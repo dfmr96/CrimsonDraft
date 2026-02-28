@@ -189,8 +189,8 @@ namespace CrimsonDraft.Combat
 {
     public interface ICombatActionMenuView
     {
-        event Action OnDisparar;
-        event Action OnCerrar;
+        event Action? OnDisparar;
+        event Action? OnCerrar;
     }
 }
 ```
@@ -246,29 +246,29 @@ namespace CrimsonDraft.Combat
         public event Action? OnDisparar;
         public event Action? OnCerrar;
 
-        private Button _btnDisparar = null!;
-        private Button _btnCerrar = null!;
+        private Button btnDisparar = null!;
+        private Button btnCerrar = null!;
 
         private void OnEnable()
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
-            _btnDisparar = root.Q<Button>("btn-disparar");
-            _btnCerrar = root.Q<Button>("btn-cerrar");
+            this.btnDisparar = root.Q<Button>("btn-disparar");
+            this.btnCerrar = root.Q<Button>("btn-cerrar");
 
-            _btnDisparar.clicked += HandleDisparar;
-            _btnCerrar.clicked += HandleCerrar;
+            this.btnDisparar.clicked += this.HandleDisparar;
+            this.btnCerrar.clicked += this.HandleCerrar;
 
-            _btnDisparar.Focus();
+            this.btnDisparar.Focus();
         }
 
         private void OnDisable()
         {
-            _btnDisparar.clicked -= HandleDisparar;
-            _btnCerrar.clicked -= HandleCerrar;
+            this.btnDisparar.clicked -= this.HandleDisparar;
+            this.btnCerrar.clicked -= this.HandleCerrar;
         }
 
-        private void HandleDisparar() => OnDisparar?.Invoke();
-        private void HandleCerrar() => OnCerrar?.Invoke();
+        private void HandleDisparar() => this.OnDisparar?.Invoke();
+        private void HandleCerrar() => this.OnCerrar?.Invoke();
     }
 }
 ```
@@ -331,77 +331,65 @@ The test asmdef at `Assets/Tests/EditMode/CrimsonDraft.Tests.EditMode.asmdef` al
 ```csharp
 using System;
 using NUnit.Framework;
+using VContainer.Unity;
 
 namespace CrimsonDraft.Tests
 {
     public sealed class CombatMenuControllerTests
     {
-        private FakeCombatActionMenuView _menuView = null!;
-        private FakeQTEView _qteView = null!;
+        private FakeCombatActionMenuView menuView = null!;
+        private FakeQTEView qteView = null!;
 
         [SetUp]
         public void SetUp()
         {
-            _menuView = new FakeCombatActionMenuView();
-            _qteView = new FakeQTEView();
+            this.menuView = new FakeCombatActionMenuView();
+            this.qteView = new FakeQTEView();
         }
 
         [Test]
         public void QTEPanel_StartsHidden()
         {
-            // Arrange
-            var controller = new CrimsonDraft.Combat.CombatMenuController(_menuView, _qteView);
+            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
             controller.Initialize();
 
-            // Assert — QTE was never shown
-            Assert.IsFalse(_qteView.IsVisible);
+            Assert.IsFalse(this.qteView.IsVisible);
         }
 
         [Test]
         public void DisparasEvent_ShowsQTEPanel()
         {
-            // Arrange
-            var controller = new CrimsonDraft.Combat.CombatMenuController(_menuView, _qteView);
+            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
             controller.Initialize();
 
-            // Act
-            _menuView.RaiseOnDisparar();
+            this.menuView.RaiseOnDisparar();
 
-            // Assert
-            Assert.IsTrue(_qteView.IsVisible);
+            Assert.IsTrue(this.qteView.IsVisible);
         }
 
         [Test]
         public void CerrarEvent_HidesQTEPanel()
         {
-            // Arrange
-            var controller = new CrimsonDraft.Combat.CombatMenuController(_menuView, _qteView);
+            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
             controller.Initialize();
-            _menuView.RaiseOnDisparar(); // open first
+            this.menuView.RaiseOnDisparar();
 
-            // Act
-            _menuView.RaiseOnCerrar();
+            this.menuView.RaiseOnCerrar();
 
-            // Assert
-            Assert.IsFalse(_qteView.IsVisible);
+            Assert.IsFalse(this.qteView.IsVisible);
         }
 
         [Test]
         public void AfterDispose_EventsNoLongerTriggerView()
         {
-            // Arrange
-            var controller = new CrimsonDraft.Combat.CombatMenuController(_menuView, _qteView);
-            controller.Initialize();
-            controller.Dispose();
+            var controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
+            ((IInitializable)controller).Initialize();
+            ((IDisposable)controller).Dispose();
 
-            // Act — fire events after dispose
-            _menuView.RaiseOnDisparar();
+            this.menuView.RaiseOnDisparar();
 
-            // Assert — view was NOT shown
-            Assert.IsFalse(_qteView.IsVisible);
+            Assert.IsFalse(this.qteView.IsVisible);
         }
-
-        // ── Test Doubles ──────────────────────────────────────────────────
 
         private sealed class FakeCombatActionMenuView : CrimsonDraft.Combat.ICombatActionMenuView
         {
@@ -445,35 +433,53 @@ git commit -m "test: add failing tests for CombatMenuController (TDD)"
 #nullable enable
 
 using System;
+using UnityEngine.Scripting;
 using VContainer.Unity;
 
 namespace CrimsonDraft.Combat
 {
     public sealed class CombatMenuController : IInitializable, IDisposable
     {
-        private readonly ICombatActionMenuView _menuView;
-        private readonly IQTEView _qteView;
+        #region Dependency Injection
 
+        private readonly ICombatActionMenuView menuView;
+        private readonly IQTEView qteView;
+
+        [Preserve]
         public CombatMenuController(ICombatActionMenuView menuView, IQTEView qteView)
         {
-            _menuView = menuView;
-            _qteView = qteView;
+            this.menuView = menuView;
+            this.qteView = qteView;
         }
 
-        public void Initialize()
+        #endregion
+
+        #region IInitializable
+
+        void IInitializable.Initialize()
         {
-            _menuView.OnDisparar += HandleDisparar;
-            _menuView.OnCerrar += HandleCerrar;
+            this.menuView.OnDisparar += this.HandleDisparar;
+            this.menuView.OnCerrar += this.HandleCerrar;
         }
 
-        public void Dispose()
+        #endregion
+
+        #region IDisposable
+
+        void IDisposable.Dispose()
         {
-            _menuView.OnDisparar -= HandleDisparar;
-            _menuView.OnCerrar -= HandleCerrar;
+            this.menuView.OnDisparar -= this.HandleDisparar;
+            this.menuView.OnCerrar -= this.HandleCerrar;
         }
 
-        private void HandleDisparar() => _qteView.Show();
-        private void HandleCerrar() => _qteView.Hide();
+        #endregion
+
+        #region Handlers
+
+        private void HandleDisparar() => this.qteView.Show();
+        private void HandleCerrar() => this.qteView.Hide();
+
+        #endregion
     }
 }
 ```
