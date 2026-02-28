@@ -1,10 +1,13 @@
 #nullable enable
 
+using MessagePipe;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Scenes;
 
 namespace CrimsonDraft.Infrastructure
 {
@@ -26,6 +29,12 @@ namespace CrimsonDraft.Infrastructure
 
             builder.RegisterInstance(this.inputActions);
             builder.Register<InputService>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            var options = builder.RegisterMessagePipe();
+            builder.RegisterMessageBroker<CombatStartedEvent>(options);
+            builder.RegisterMessageBroker<CombatEndedEvent>(options);
+
+            builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
         }
     }
 }

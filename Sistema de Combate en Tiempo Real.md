@@ -88,14 +88,32 @@ Cada enemigo tiene su propio **timer de ataque**, invisible para el jugador. Cua
 
 ## Transicion desde Free Roam
 
-Al iniciarse un combate (trigger de proximidad o cutscene):
+El combate ocurre en una **escena separada cargada de forma aditiva** sobre la escena de exploración. La escena de navegación permanece activa en segundo plano durante todo el combate.
 
-1. Cada personaje del party se mueve a su **posicion predefinida** del encuentro y queda estatico
-2. Los timers de todos los enemigos comienzan desde 0
-3. Todos los personajes del party quedan en estado **Libre** desde el primer frame
-4. No hay periodo de gracia — el jugador puede actuar inmediatamente
+### Inicio del combate
 
-Las posiciones predefinidas son especificas por encuentro. No hay movimiento tactico durante el combate — la tactica es en la seleccion de acciones, no en el posicionamiento.
+El combate se inicia por **colisión de proximidad**: cada enemigo en el mapa de exploración tiene un **trigger de área**. Cuando el jugador entra en ese área:
+
+1. El input de exploración se desactiva — el jugador no puede moverse
+2. La escena de combate se carga **additively** — la navegación queda congelada en fondo
+3. Los personajes del party aparecen a la **izquierda**, los enemigos a la **derecha**
+4. El **QTE bidimensional** ocupa el **centro** de la pantalla
+5. Los **comandos, HP, presion arterial y municion** se muestran en la **zona inferior**
+6. Los timers de todos los enemigos comienzan desde 0
+7. Todos los personajes del party quedan en estado **Libre** desde el primer frame
+8. No hay periodo de gracia — el jugador puede actuar inmediatamente
+
+### Fin del combate
+
+| Condicion | Resultado |
+|---|---|
+| Todos los enemigos eliminados | **Victoria** — se descarga la escena de combate, vuelve exploración |
+| Mateo muere | **Game over** (o checkpoint segun implementacion) |
+| Muere un aliado | Combate continua sin ese personaje, permanentemente |
+
+Al terminar el combate (victoria), la escena de combate se descarga y el input de exploración se reactiva exactamente donde quedó.
+
+No hay movimiento táctico durante el combate — la táctica es en la selección de acciones, no en el posicionamiento.
 
 ---
 

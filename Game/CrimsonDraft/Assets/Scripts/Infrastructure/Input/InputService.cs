@@ -32,6 +32,9 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction CombatCancel { get; }
         public InputAction CombatUseItem { get; }
 
+        public InputAction UINavigate { get; }
+        public InputAction UICancel   { get; }
+
         [Preserve]
         public InputService(InputActionAsset asset)
         {
@@ -49,6 +52,9 @@ namespace CrimsonDraft.Infrastructure.Input
             CombatConfirm  = this.combatMap[ConfirmAction];
             CombatCancel   = this.combatMap[CancelAction];
             CombatUseItem  = this.combatMap[UseItemAction];
+
+            UINavigate = this.uiMap[NavigateAction];
+            UICancel   = this.uiMap[CancelAction];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();

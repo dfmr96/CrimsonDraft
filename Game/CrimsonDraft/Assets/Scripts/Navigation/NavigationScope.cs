@@ -2,7 +2,9 @@
 
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.Navigation
 {
@@ -18,6 +20,9 @@ namespace CrimsonDraft.Navigation
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterComponentInHierarchy<PlayerController>();
+            builder.RegisterComponentInHierarchy<InventoryView>();
+            builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<CombatTrigger>();
         }
     }
 }

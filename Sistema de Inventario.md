@@ -65,6 +65,21 @@ Una escopeta (4×1) más una AR (3×1) ya consume 7 de 16 slots. Llevar dos arma
 
 ---
 
+## Acceso desde Exploración
+
+El inventario se abre **en cualquier momento durante la exploración** sin interrumpir la escena — el mapa de navegación permanece visible y activo en segundo plano.
+
+| Input | Acción |
+|---|---|
+| **Tab / Select** | Abre el inventario |
+| **Botón B / Esc** | Cierra el inventario y vuelve a exploración |
+
+Al abrir el inventario el input de movimiento se desactiva automáticamente — el jugador no puede moverse mientras navega el inventario. Al cerrar, el control vuelve inmediatamente.
+
+El inventario **no está disponible durante el combate** — la escena de combate usa su propio sistema de input y el inventario queda bloqueado hasta volver a exploración.
+
+---
+
 ## Controles e Interacción
 
 > El juego se juega **exclusivamente con joystick / teclado. Sin input de mouse.**

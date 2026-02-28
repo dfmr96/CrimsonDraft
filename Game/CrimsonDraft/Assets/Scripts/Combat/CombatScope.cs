@@ -16,6 +16,7 @@ namespace CrimsonDraft.Combat
     {
         protected override void Configure(IContainerBuilder builder)
         {
+            builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
         }
     }
 }
