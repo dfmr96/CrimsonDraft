@@ -2,6 +2,7 @@
 
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation
 {
@@ -16,6 +17,7 @@ namespace CrimsonDraft.Navigation
     {
         protected override void Configure(IContainerBuilder builder)
         {
+            builder.RegisterComponentInHierarchy<PlayerController>();
         }
     }
 }
