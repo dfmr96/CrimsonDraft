@@ -17,6 +17,10 @@ namespace CrimsonDraft.Combat
         protected override void Configure(IContainerBuilder builder)
         {
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
+
+            builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<QTEView>().AsImplementedInterfaces();
+            builder.Register<CombatMenuController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
         }
     }
 }
