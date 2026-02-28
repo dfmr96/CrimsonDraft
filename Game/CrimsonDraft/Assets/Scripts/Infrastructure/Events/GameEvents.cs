@@ -1,130 +1,72 @@
-// GameEvents.cs — all MessagePipe event structs for Crimson Draft
-// Readonly structs = zero GC allocation on publish.
-// Every type listed here must be registered in GameLifetimeScope.
+#nullable enable
+
 namespace CrimsonDraft.Infrastructure.Events
 {
-    // ── Combat ────────────────────────────────────────────────────────────────
+    public enum AmmoType { Rip, Fmj }
+
+    public enum GuardAlertState { Patrol, Suspicious, Alert }
 
     public readonly struct CombatStartedEvent
     {
-        public readonly string EncounterId;
-        public CombatStartedEvent(string encounterId) => EncounterId = encounterId;
+        public string EncounterId { get; init; }
     }
 
     public readonly struct CombatEndedEvent
     {
-        public readonly bool Victory;
-        public CombatEndedEvent(bool victory) => Victory = victory;
+        public bool Victory { get; init; }
     }
 
     public readonly struct CharacterDamagedEvent
     {
-        public readonly string CharacterId;
-        public readonly int DamageAmount;
-        public readonly int RemainingHP;
-
-        public CharacterDamagedEvent(string characterId, int damage, int remainingHP)
-        {
-            CharacterId  = characterId;
-            DamageAmount = damage;
-            RemainingHP  = remainingHP;
-        }
+        public string CharacterId { get; init; }
+        public int DamageAmount { get; init; }
+        public int RemainingHP { get; init; }
     }
 
     public readonly struct CharacterDiedEvent
     {
-        public readonly string CharacterId;
-        public readonly bool IsPermanent; // permadeath
-        public CharacterDiedEvent(string characterId, bool isPermanent)
-        {
-            CharacterId = characterId;
-            IsPermanent = isPermanent;
-        }
+        public string CharacterId { get; init; }
+        public bool IsPermadeath { get; init; }
     }
-
-    // ── QTE ───────────────────────────────────────────────────────────────────
 
     public readonly struct QTEStartedEvent
     {
-        public readonly string CharacterId;
-        public readonly string WeaponId;
-        public QTEStartedEvent(string characterId, string weaponId)
-        {
-            CharacterId = characterId;
-            WeaponId    = weaponId;
-        }
+        public string CharacterId { get; init; }
+        public string WeaponId { get; init; }
     }
 
     public readonly struct QTECompletedEvent
     {
-        public readonly string CharacterId;
-        public readonly float AccuracyY;   // 0–1, vertical bar stop
-        public readonly float AccuracyX;   // 0–1, horizontal bar stop
-        public readonly int   ShotsFired;
-        public QTECompletedEvent(string characterId, float accY, float accX, int shots)
-        {
-            CharacterId = characterId;
-            AccuracyY   = accY;
-            AccuracyX   = accX;
-            ShotsFired  = shots;
-        }
+        public string CharacterId { get; init; }
+        public float NormalizedVerticalAccuracy { get; init; }
+        public float NormalizedHorizontalAccuracy { get; init; }
+        public int ShotsFired { get; init; }
     }
-
-    // ── Inventory ─────────────────────────────────────────────────────────────
 
     public readonly struct ItemUsedEvent
     {
-        public readonly string CharacterId;
-        public readonly string ItemId;
-        public ItemUsedEvent(string characterId, string itemId)
-        {
-            CharacterId = characterId;
-            ItemId      = itemId;
-        }
+        public string CharacterId { get; init; }
+        public string ItemId { get; init; }
     }
 
     public readonly struct WeaponReloadedEvent
     {
-        public readonly string CharacterId;
-        public readonly string WeaponId;
-        public readonly string AmmoType;  // "RIP" | "FMJ"
-        public WeaponReloadedEvent(string characterId, string weaponId, string ammoType)
-        {
-            CharacterId = characterId;
-            WeaponId    = weaponId;
-            AmmoType    = ammoType;
-        }
+        public string CharacterId { get; init; }
+        public string WeaponId { get; init; }
+        public AmmoType AmmoType { get; init; }
     }
 
-    // ── Krokonil ──────────────────────────────────────────────────────────────
-
-    public readonly struct KrokoniлDoseAppliedEvent
+    public readonly struct KrokonilDoseAppliedEvent
     {
-        public readonly string CharacterId;
-        public readonly float  DoseMg;
-        public readonly float  TotalExposure; // hidden cumulative counter
-        public KrokoniлDoseAppliedEvent(string characterId, float doseMg, float totalExposure)
-        {
-            CharacterId   = characterId;
-            DoseMg        = doseMg;
-            TotalExposure = totalExposure;
-        }
+        public string CharacterId { get; init; }
+        public float DoseMg { get; init; }
+        public float CumulativeExposureMg { get; init; }
     }
-
-    // ── Navigation / Stealth ─────────────────────────────────────────────────
 
     public readonly struct GuardAlertChangedEvent
     {
-        public readonly string GuardId;
-        public readonly GuardAlertState PreviousState;
-        public readonly GuardAlertState NewState;
-        public GuardAlertChangedEvent(string guardId, GuardAlertState prev, GuardAlertState next)
-        {
-            GuardId       = guardId;
-            PreviousState = prev;
-            NewState      = next;
-        }
+        public string GuardId { get; init; }
+        public GuardAlertState PreviousState { get; init; }
+        public GuardAlertState NewState { get; init; }
     }
-
-    public enum GuardAlertState { Patrol, Suspicious, Alert }
 }
