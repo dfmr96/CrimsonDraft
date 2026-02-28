@@ -10,8 +10,13 @@ namespace CrimsonDraft.Infrastructure.Input
     public sealed class InputService : IInputService, IInitializable, IDisposable
     {
         private const string GameplayMapName = "Gameplay";
-        private const string CombatMapName = "Combat";
-        private const string UIMapName = "UI";
+        private const string CombatMapName   = "Combat";
+        private const string UIMapName       = "UI";
+
+        private const string NavigateAction = "Navigate";
+        private const string ConfirmAction  = "Confirm";
+        private const string CancelAction   = "Cancel";
+        private const string UseItemAction  = "UseItem";
 
         private readonly InputActionAsset asset;
         private readonly InputActionMap gameplayMap;
@@ -40,10 +45,10 @@ namespace CrimsonDraft.Infrastructure.Input
             OpenInventory = this.gameplayMap[nameof(OpenInventory)];
             Pause         = this.gameplayMap[nameof(Pause)];
 
-            CombatNavigate = this.combatMap["Navigate"];
-            CombatConfirm  = this.combatMap["Confirm"];
-            CombatCancel   = this.combatMap["Cancel"];
-            CombatUseItem  = this.combatMap["UseItem"];
+            CombatNavigate = this.combatMap[NavigateAction];
+            CombatConfirm  = this.combatMap[ConfirmAction];
+            CombatCancel   = this.combatMap[CancelAction];
+            CombatUseItem  = this.combatMap[UseItemAction];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();
@@ -66,7 +71,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap.Enable();
         }
 
-        public void Dispose()
+        void IDisposable.Dispose()
         {
             DisableAll();
             this.asset.Disable();
