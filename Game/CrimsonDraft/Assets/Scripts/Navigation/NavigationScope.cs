@@ -2,6 +2,7 @@
 
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.UI;
@@ -23,6 +24,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<InventoryView>();
             builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatTrigger>();
+            builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
         }
     }
 }

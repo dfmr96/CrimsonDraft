@@ -1,7 +1,9 @@
 #nullable enable
 
+using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Cameras;
 
 namespace CrimsonDraft.Combat
 {
@@ -14,6 +16,8 @@ namespace CrimsonDraft.Combat
     /// </summary>
     public sealed class CombatScope : LifetimeScope
     {
+        [SerializeField] private EncounterDatabase encounterDatabase = null!;
+
         protected override void Configure(IContainerBuilder builder)
         {
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
@@ -22,6 +26,12 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<CommandPanelView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<SubPanelView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.encounterDatabase);
+
+            builder.Register<BattlefieldPresenter>(Lifetime.Scoped).AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<CombatCameraRegistrar>().AsImplementedInterfaces();
 
             builder.Register<CombatMenuController>(Lifetime.Scoped)
                 .AsSelf().AsImplementedInterfaces();

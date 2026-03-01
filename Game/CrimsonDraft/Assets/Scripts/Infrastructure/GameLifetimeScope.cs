@@ -5,9 +5,11 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.Infrastructure
 {
@@ -34,7 +36,11 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
 
+            builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
+
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
         }
     }
 }

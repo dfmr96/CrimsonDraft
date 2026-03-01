@@ -6,8 +6,10 @@ using MessagePipe;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.Infrastructure.Scenes
 {
@@ -17,6 +19,9 @@ namespace CrimsonDraft.Infrastructure.Scenes
 
         private readonly IInputService inputService;
         private readonly ISubscriber<CombatEndedEvent> combatEndedSubscriber;
+        private readonly EncounterContext encounterContext;
+        private readonly ICameraService cameraService;
+        private readonly ScreenFader screenFader;
 
         private IDisposable? combatEndedSubscription;
         private bool isInCombat;
@@ -26,10 +31,16 @@ namespace CrimsonDraft.Infrastructure.Scenes
         [Preserve]
         public SceneTransitionService(
             IInputService inputService,
-            ISubscriber<CombatEndedEvent> combatEndedSubscriber)
+            ISubscriber<CombatEndedEvent> combatEndedSubscriber,
+            EncounterContext encounterContext,
+            ICameraService cameraService,
+            ScreenFader screenFader)
         {
-            this.inputService = inputService;
+            this.inputService          = inputService;
             this.combatEndedSubscriber = combatEndedSubscriber;
+            this.encounterContext      = encounterContext;
+            this.cameraService         = cameraService;
+            this.screenFader           = screenFader;
         }
 
         void IInitializable.Initialize()
@@ -43,8 +54,13 @@ namespace CrimsonDraft.Infrastructure.Scenes
                 return;
 
             this.isInCombat = true;
+            this.encounterContext.Set(encounterId);
             this.inputService.SwitchToCombat();
+
+            await this.screenFader.FadeOutAsync();
             await SceneManager.LoadSceneAsync(CombatSceneName, LoadSceneMode.Additive).ToUniTask();
+            this.cameraService.ActivateCombatCamera();
+            await this.screenFader.FadeInAsync();
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)
@@ -54,12 +70,16 @@ namespace CrimsonDraft.Infrastructure.Scenes
 
         private async UniTask EndCombatAsync()
         {
+            await this.screenFader.FadeOutAsync();
+            this.cameraService.ActivateNavigationCamera();
+
             var scene = SceneManager.GetSceneByName(CombatSceneName);
             if (scene.isLoaded)
                 await SceneManager.UnloadSceneAsync(scene).ToUniTask();
 
             this.isInCombat = false;
             this.inputService.SwitchToGameplay();
+            await this.screenFader.FadeInAsync();
         }
 
         void IDisposable.Dispose()
