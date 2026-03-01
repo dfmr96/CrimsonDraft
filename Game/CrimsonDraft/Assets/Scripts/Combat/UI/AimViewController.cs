@@ -17,7 +17,7 @@ namespace CrimsonDraft.Combat
 
         #region Fields
 
-        private enum AimPhase { VerticalAiming, HorizontalAiming }
+        private enum AimPhase { VerticalAiming, HorizontalAiming, WaitingDismiss }
 
         [SerializeField] private RectTransform verticalSpace      = null!;
         [SerializeField] private Image         verticalSelector   = null!;
@@ -30,6 +30,7 @@ namespace CrimsonDraft.Combat
 
         private AimPhase phase;
         private float    confirmedY;
+        private Vector2  pendingShot;
 
         #endregion
 
@@ -53,14 +54,19 @@ namespace CrimsonDraft.Combat
                 this.StartHorizontalOscillation();
                 this.phase = AimPhase.HorizontalAiming;
             }
-            else
+            else if (this.phase == AimPhase.HorizontalAiming)
             {
                 float halfW      = this.horizontalSpace.rect.width / 2f;
                 float confirmedX = (this.horizontalSelector.rectTransform.localPosition.x + halfW) / (halfW * 2f);
                 this.horizontalSelector.rectTransform.DOKill();
                 this.horizontalSelector.DOFade(this.dimmingAlpha, 0.15f);
+                this.pendingShot = new Vector2(confirmedX, this.confirmedY);
                 this.SpawnMarker(confirmedX, this.confirmedY);
-                this.OnShotFired?.Invoke(new Vector2(confirmedX, this.confirmedY));
+                this.phase = AimPhase.WaitingDismiss;
+            }
+            else if (this.phase == AimPhase.WaitingDismiss)
+            {
+                this.OnShotFired?.Invoke(this.pendingShot);
             }
         }
 

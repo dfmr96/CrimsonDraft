@@ -144,6 +144,8 @@ namespace CrimsonDraft.Combat
 
         private void HandleCommandSelected(CombatCommand command)
         {
+            if (this.state != CombatMenuState.CommandPanel) return;
+
             if (command == CombatCommand.Shoot)
             {
                 this.commandPanel.SetDimmed(true);
