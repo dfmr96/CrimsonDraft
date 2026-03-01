@@ -19,7 +19,11 @@ namespace CrimsonDraft.Combat
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();
-            builder.Register<CombatMenuController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<CommandPanelView>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<SubPanelView>().AsImplementedInterfaces();
+
+            builder.Register<CombatMenuController>(Lifetime.Scoped)
+                .AsSelf().AsImplementedInterfaces();
         }
     }
 }

@@ -19,8 +19,10 @@ namespace CrimsonDraft.Combat
 
         #region Fields
 
-        [SerializeField] private ActionMenuItem[] operators    = Array.Empty<ActionMenuItem>();
-        [SerializeField] private RectTransform    selectorMark = null!;
+        [SerializeField] private ActionMenuItem[] operators       = Array.Empty<ActionMenuItem>();
+        [SerializeField] private RectTransform    selectorMark   = null!;
+        [SerializeField] private Image       dimmingOverlay = null!;
+        [SerializeField] private CanvasGroup operatorsGroup = null!;
         [SerializeField] private float bobAmplitude = 4f;
         [SerializeField] private float bobDuration  = 0.4f;
 
@@ -81,13 +83,43 @@ namespace CrimsonDraft.Combat
 
         #region Private
 
-        private void MoveSelector(int index)
+        private void MoveSelector(int index) =>
+            MoveSelectorTo(this.operators[index].SelectorAnchor);
+
+        #endregion
+
+        #region ICombatActionMenuView
+
+        public void FocusOperator(int index)
+        {
+            if (index >= 0 && index < this.operators.Length)
+                EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
+        }
+
+        public RectTransform GetOperatorAnchor(int index) =>
+            this.operators[index].SelectorAnchor;
+
+        public RectTransform GetOperatorRect(int index) =>
+            (RectTransform)this.operators[index].transform;
+
+        public void SetDimmed(bool dimmed)
+        {
+            if (this.dimmingOverlay != null)
+                this.dimmingOverlay.DOFade(dimmed ? 0.6f : 0f, 0.1f);
+
+            if (this.operatorsGroup != null)
+            {
+                this.operatorsGroup.interactable   = !dimmed;
+                this.operatorsGroup.blocksRaycasts = !dimmed;
+            }
+        }
+
+        public void MoveSelectorTo(RectTransform anchor)
         {
             this.selectorMark.DOKill();
 
-            var anchorWorldPos = this.operators[index].SelectorAnchor.position;
-            var parentRect     = (RectTransform)this.selectorMark.parent;
-            Vector3 localPos   = parentRect.InverseTransformPoint(anchorWorldPos);
+            var parentRect   = (RectTransform)this.selectorMark.parent;
+            Vector3 localPos = parentRect.InverseTransformPoint(anchor.position);
 
             float centerX = localPos.x;
             float centerY = localPos.y;
