@@ -21,6 +21,7 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CommandPanelView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<SubPanelView>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
 
             builder.Register<CombatMenuController>(Lifetime.Scoped)
                 .AsSelf().AsImplementedInterfaces();
