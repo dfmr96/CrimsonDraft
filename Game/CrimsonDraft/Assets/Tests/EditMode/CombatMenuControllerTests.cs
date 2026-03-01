@@ -9,26 +9,28 @@ namespace CrimsonDraft.Tests
 {
     public sealed class CombatMenuControllerTests
     {
-        private FakeCombatActionMenuView menuView      = null!;
-        private FakeCommandPanelView     commandPanel  = null!;
-        private FakeSubPanelView         subPanel      = null!;
-        private FakePublisher            publisher     = null!;
-        private FakeAimView              aimView       = null!;
+        private FakeCombatActionMenuView menuView        = null!;
+        private FakeCommandPanelView     commandPanel    = null!;
+        private FakeSubPanelView         subPanel        = null!;
+        private FakePublisher            publisher       = null!;
+        private FakeAimView              aimView         = null!;
+        private FakeBattlefieldView      battlefieldView = null!;
 
         [SetUp]
         public void SetUp()
         {
-            this.menuView     = new FakeCombatActionMenuView();
-            this.commandPanel = new FakeCommandPanelView();
-            this.subPanel     = new FakeSubPanelView();
-            this.publisher    = new FakePublisher();
-            this.aimView      = new FakeAimView();
+            this.menuView        = new FakeCombatActionMenuView();
+            this.commandPanel    = new FakeCommandPanelView();
+            this.subPanel        = new FakeSubPanelView();
+            this.publisher       = new FakePublisher();
+            this.aimView         = new FakeAimView();
+            this.battlefieldView = new FakeBattlefieldView();
         }
 
         private CombatMenuController BuildAndInit()
         {
             var controller = new CombatMenuController(
-                this.menuView, this.commandPanel, this.subPanel, this.publisher, this.aimView);
+                this.menuView, this.commandPanel, this.subPanel, this.publisher, this.aimView, this.battlefieldView);
             ((IInitializable)controller).Initialize();
             return controller;
         }
@@ -123,11 +125,12 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(this.publisher.Published);
         }
 
-        // ── Aim minigame ───────────────────────────────────────────────
+        // ── Aim minigame (no enemies → bypasses TargetSelection) ───────
 
         [Test]
-        public void ShootCommand_showsAimView()
+        public void ShootCommand_noEnemies_showsAimView()
         {
+            // FakeBattlefieldView returns empty slots by default → goes straight to Aiming
             BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
@@ -163,12 +166,38 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
+        // ── Target selection ───────────────────────────────────────────
+
+        [Test]
+        public void ShootCommand_withEnemies_showsEnemyTargetIndicator()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 0, 2 });
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
+            Assert.IsFalse(this.aimView.IsVisible);
+        }
+
+        [Test]
+        public void Cancel_inTargetSelection_hidesIndicator_returnsToCommandPanel()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 0 });
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.HandleCancelPressed();
+            Assert.IsFalse(this.battlefieldView.EnemyTargetVisible);
+            Assert.IsTrue(this.commandPanel.IsVisible);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
         {
             public event Action<int>? OnOperatorSelected;
-            public bool HasSubscribers => this.OnOperatorSelected != null;
+            public event Action<int>? OnOperatorFocused;
+            public bool HasSubscribers => this.OnOperatorSelected != null || this.OnOperatorFocused != null;
             public void RaiseOnOperatorSelected(int index) => this.OnOperatorSelected?.Invoke(index);
             public void FocusOperator(int index) { }
             public void MoveSelectorTo(RectTransform anchor) { }
@@ -216,6 +245,21 @@ namespace CrimsonDraft.Tests
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
             public void FireShot(Vector2 pos) => this.OnShotFired?.Invoke(pos);
+        }
+
+        private sealed class FakeBattlefieldView : IBattlefieldView
+        {
+            private int[] occupiedSlots    = Array.Empty<int>();
+            public bool   EnemyTargetVisible { get; private set; }
+
+            public void SetOccupiedSlots(int[] slots) => this.occupiedSlots = slots;
+
+            public void Populate(EncounterData encounter)              { }
+            public void SetOperatorIndicator(int slotIndex)            { }
+            public void DimOperatorIndicator()                         { }
+            public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
+            public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
+            public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
         }
     }
 }

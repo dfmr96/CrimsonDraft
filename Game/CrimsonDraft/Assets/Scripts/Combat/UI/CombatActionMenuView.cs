@@ -14,6 +14,7 @@ namespace CrimsonDraft.Combat
         #region Events
 
         public event Action<int>? OnOperatorSelected;
+        public event Action<int>? OnOperatorFocused;
 
         #endregion
 
@@ -49,7 +50,11 @@ namespace CrimsonDraft.Combat
             {
                 int index = i;
                 this.submitHandlers[i]   = () => this.OnOperatorSelected?.Invoke(index);
-                this.selectedHandlers[i] = () => this.MoveSelector(index);
+                this.selectedHandlers[i] = () =>
+                {
+                    this.MoveSelector(index);
+                    this.OnOperatorFocused?.Invoke(index);
+                };
 
                 this.operators[i].OnSubmit   += this.submitHandlers[i];
                 this.operators[i].OnSelected += this.selectedHandlers[i];

@@ -1,4 +1,4 @@
-# Combat QTE UI — Design Document
+cla# Combat QTE UI — Design Document
 **Date:** 2026-02-28
 **Scope:** Combat action menu + QTE panel activation (placeholder sprint)
 

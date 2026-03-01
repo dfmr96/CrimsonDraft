@@ -15,9 +15,11 @@ namespace CrimsonDraft.Combat
     {
         #region State
 
-        private enum CombatMenuState { OperatorSelection, CommandPanel, SubPanel, Aiming }
-        private CombatMenuState state           = CombatMenuState.OperatorSelection;
-        private int             selectedOperator = 0;
+        private enum CombatMenuState { OperatorSelection, CommandPanel, SubPanel, TargetSelection, Aiming }
+        private CombatMenuState state              = CombatMenuState.OperatorSelection;
+        private int             selectedOperator   = 0;
+        private int[]           occupiedEnemySlots = Array.Empty<int>();
+        private int             enemyTargetCursor  = 0;
 
         #endregion
 
@@ -29,6 +31,7 @@ namespace CrimsonDraft.Combat
         private readonly IPublisher<CombatEndedEvent>   combatEndedPublisher;
         private readonly IInputService?                 inputService;
         private readonly IAimView                       aimView;
+        private readonly IBattlefieldView               battlefieldView;
 
         [Preserve]
         public CombatMenuController(
@@ -37,6 +40,7 @@ namespace CrimsonDraft.Combat
             ISubPanelView                subPanel,
             IPublisher<CombatEndedEvent> combatEndedPublisher,
             IAimView                     aimView,
+            IBattlefieldView             battlefieldView,
             IInputService                inputService)
         {
             this.menuView             = menuView;
@@ -44,21 +48,25 @@ namespace CrimsonDraft.Combat
             this.subPanel             = subPanel;
             this.combatEndedPublisher = combatEndedPublisher;
             this.aimView              = aimView;
+            this.battlefieldView      = battlefieldView;
             this.inputService         = inputService;
         }
 
+        // Internal constructor for tests (no inputService, no battlefieldView wired to input)
         internal CombatMenuController(
             ICombatActionMenuView        menuView,
             ICommandPanelView            commandPanel,
             ISubPanelView                subPanel,
             IPublisher<CombatEndedEvent> combatEndedPublisher,
-            IAimView                     aimView)
+            IAimView                     aimView,
+            IBattlefieldView             battlefieldView)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
             this.subPanel             = subPanel;
             this.combatEndedPublisher = combatEndedPublisher;
             this.aimView              = aimView;
+            this.battlefieldView      = battlefieldView;
         }
 
         #endregion
@@ -67,16 +75,18 @@ namespace CrimsonDraft.Combat
 
         void IInitializable.Initialize()
         {
-            this.menuView.OnOperatorSelected     += this.HandleOperatorSelected;
-            this.commandPanel.OnCommandSelected  += this.HandleCommandSelected;
-            this.commandPanel.OnEntryFocused     += this.menuView.MoveSelectorTo;
-            this.subPanel.OnItemSelected         += this.HandleItemSelected;
-            this.subPanel.OnEntryFocused         += this.menuView.MoveSelectorTo;
+            this.menuView.OnOperatorSelected    += this.HandleOperatorSelected;
+            this.menuView.OnOperatorFocused     += this.HandleOperatorFocused;
+            this.commandPanel.OnCommandSelected += this.HandleCommandSelected;
+            this.commandPanel.OnEntryFocused    += this.menuView.MoveSelectorTo;
+            this.subPanel.OnItemSelected        += this.HandleItemSelected;
+            this.subPanel.OnEntryFocused        += this.menuView.MoveSelectorTo;
 
             if (this.inputService != null)
             {
-                this.inputService.CombatCancel.performed  += this.OnCancelPerformed;
-                this.inputService.CombatConfirm.performed += this.OnConfirmPerformed;
+                this.inputService.CombatCancel.performed   += this.OnCancelPerformed;
+                this.inputService.CombatConfirm.performed  += this.OnConfirmPerformed;
+                this.inputService.CombatNavigate.performed += this.OnNavigatePerformed;
             }
         }
 
@@ -86,16 +96,18 @@ namespace CrimsonDraft.Combat
 
         void IDisposable.Dispose()
         {
-            this.menuView.OnOperatorSelected     -= this.HandleOperatorSelected;
-            this.commandPanel.OnCommandSelected  -= this.HandleCommandSelected;
-            this.commandPanel.OnEntryFocused     -= this.menuView.MoveSelectorTo;
-            this.subPanel.OnItemSelected         -= this.HandleItemSelected;
-            this.subPanel.OnEntryFocused         -= this.menuView.MoveSelectorTo;
+            this.menuView.OnOperatorSelected    -= this.HandleOperatorSelected;
+            this.menuView.OnOperatorFocused     -= this.HandleOperatorFocused;
+            this.commandPanel.OnCommandSelected -= this.HandleCommandSelected;
+            this.commandPanel.OnEntryFocused    -= this.menuView.MoveSelectorTo;
+            this.subPanel.OnItemSelected        -= this.HandleItemSelected;
+            this.subPanel.OnEntryFocused        -= this.menuView.MoveSelectorTo;
 
             if (this.inputService != null)
             {
-                this.inputService.CombatCancel.performed  -= this.OnCancelPerformed;
-                this.inputService.CombatConfirm.performed -= this.OnConfirmPerformed;
+                this.inputService.CombatCancel.performed   -= this.OnCancelPerformed;
+                this.inputService.CombatConfirm.performed  -= this.OnConfirmPerformed;
+                this.inputService.CombatNavigate.performed -= this.OnNavigatePerformed;
             }
         }
 
@@ -114,9 +126,17 @@ namespace CrimsonDraft.Combat
                     this.state = CombatMenuState.CommandPanel;
                     break;
 
+                case CombatMenuState.TargetSelection:
+                    this.battlefieldView.HideEnemyTargetIndicator();
+                    this.commandPanel.SetDimmed(false);
+                    this.commandPanel.Focus();
+                    this.state = CombatMenuState.CommandPanel;
+                    break;
+
                 case CombatMenuState.CommandPanel:
                     this.commandPanel.Hide();
                     this.menuView.SetDimmed(false);
+                    this.battlefieldView.SetOperatorIndicator(this.selectedOperator);
                     this.menuView.FocusOperator(this.selectedOperator);
                     this.state = CombatMenuState.OperatorSelection;
                     break;
@@ -134,11 +154,39 @@ namespace CrimsonDraft.Combat
         private void OnCancelPerformed(InputAction.CallbackContext _) =>
             this.HandleCancelPressed();
 
+        private void OnConfirmPerformed(InputAction.CallbackContext _)
+        {
+            switch (this.state)
+            {
+                case CombatMenuState.TargetSelection:
+                    this.ConfirmTarget();
+                    break;
+                case CombatMenuState.Aiming:
+                    this.aimView.Confirm();
+                    break;
+            }
+        }
+
+        private void OnNavigatePerformed(InputAction.CallbackContext ctx)
+        {
+            if (this.state != CombatMenuState.TargetSelection) return;
+            var dir = ctx.ReadValue<Vector2>();
+            if (dir.x > 0.5f)       this.NavigateTarget(1);
+            else if (dir.x < -0.5f) this.NavigateTarget(-1);
+        }
+
+        private void HandleOperatorFocused(int index)
+        {
+            if (this.state != CombatMenuState.OperatorSelection) return;
+            this.battlefieldView.SetOperatorIndicator(index);
+        }
+
         private void HandleOperatorSelected(int index)
         {
             this.selectedOperator = index;
             this.commandPanel.Show(this.menuView.GetOperatorRect(index));
             this.menuView.SetDimmed(true);
+            this.battlefieldView.DimOperatorIndicator();
             this.state = CombatMenuState.CommandPanel;
         }
 
@@ -150,9 +198,7 @@ namespace CrimsonDraft.Combat
             {
                 this.commandPanel.SetDimmed(true);
                 this.menuView.SetDimmed(true);
-                this.aimView.OnShotFired += this.HandleShotFired;
-                this.aimView.Show();
-                this.state = CombatMenuState.Aiming;
+                this.EnterTargetSelection();
                 return;
             }
 
@@ -163,21 +209,56 @@ namespace CrimsonDraft.Combat
 
         private void HandleItemSelected(int index) { }
 
-        private void OnConfirmPerformed(InputAction.CallbackContext _)
-        {
-            if (this.state == CombatMenuState.Aiming)
-                this.aimView.Confirm();
-        }
-
         private void HandleShotFired(Vector2 _)
         {
             this.aimView.OnShotFired -= this.HandleShotFired;
             this.aimView.Hide();
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
+            this.battlefieldView.SetOperatorIndicator(this.selectedOperator);
             this.menuView.FocusOperator(this.selectedOperator);
             this.state = CombatMenuState.OperatorSelection;
         }
+
+        #endregion
+
+        #region Target Selection
+
+        private void EnterTargetSelection()
+        {
+            this.occupiedEnemySlots = this.battlefieldView.GetOccupiedEnemySlots();
+            if (this.occupiedEnemySlots.Length == 0)
+            {
+                // No enemies in scene — go straight to aim
+                this.aimView.OnShotFired += this.HandleShotFired;
+                this.aimView.Show();
+                this.state = CombatMenuState.Aiming;
+                return;
+            }
+            this.enemyTargetCursor = 0;
+            this.battlefieldView.SetEnemyTargetIndicator(this.occupiedEnemySlots[0]);
+            this.state = CombatMenuState.TargetSelection;
+        }
+
+        private void NavigateTarget(int delta)
+        {
+            if (this.occupiedEnemySlots.Length == 0) return;
+            this.enemyTargetCursor =
+                (this.enemyTargetCursor + delta + this.occupiedEnemySlots.Length) % this.occupiedEnemySlots.Length;
+            this.battlefieldView.SetEnemyTargetIndicator(this.occupiedEnemySlots[this.enemyTargetCursor]);
+        }
+
+        private void ConfirmTarget()
+        {
+            this.battlefieldView.HideEnemyTargetIndicator();
+            this.aimView.OnShotFired += this.HandleShotFired;
+            this.aimView.Show();
+            this.state = CombatMenuState.Aiming;
+        }
+
+        #endregion
+
+        #region Helpers
 
         private SubPanelItem[] GetItemsFor(CombatCommand command) => command switch
         {
