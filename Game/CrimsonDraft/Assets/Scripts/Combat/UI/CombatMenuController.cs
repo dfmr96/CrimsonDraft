@@ -1,23 +1,20 @@
 #nullable enable
 
-using System;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 
 namespace CrimsonDraft.Combat
 {
-    public sealed class CombatMenuController : IInitializable, IDisposable
+    public sealed class CombatMenuController : IInitializable, System.IDisposable
     {
         #region Dependency Injection
 
         private readonly ICombatActionMenuView menuView;
-        private readonly IQTEView qteView;
 
         [Preserve]
-        public CombatMenuController(ICombatActionMenuView menuView, IQTEView qteView)
+        public CombatMenuController(ICombatActionMenuView menuView)
         {
             this.menuView = menuView;
-            this.qteView = qteView;
         }
 
         #endregion
@@ -26,26 +23,23 @@ namespace CrimsonDraft.Combat
 
         void IInitializable.Initialize()
         {
-            this.menuView.OnDisparar += this.HandleDisparar;
-            this.menuView.OnCerrar += this.HandleCerrar;
+            this.menuView.OnOperatorSelected += this.HandleOperatorSelected;
         }
 
         #endregion
 
         #region IDisposable
 
-        void IDisposable.Dispose()
+        void System.IDisposable.Dispose()
         {
-            this.menuView.OnDisparar -= this.HandleDisparar;
-            this.menuView.OnCerrar -= this.HandleCerrar;
+            this.menuView.OnOperatorSelected -= this.HandleOperatorSelected;
         }
 
         #endregion
 
         #region Handlers
 
-        private void HandleDisparar() => this.qteView.Show();
-        private void HandleCerrar() => this.qteView.Hide();
+        private void HandleOperatorSelected(int index) { }
 
         #endregion
     }

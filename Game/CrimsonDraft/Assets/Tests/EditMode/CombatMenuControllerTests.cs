@@ -7,72 +7,47 @@ namespace CrimsonDraft.Tests
     public sealed class CombatMenuControllerTests
     {
         private FakeCombatActionMenuView menuView = null!;
-        private FakeQTEView qteView = null!;
 
         [SetUp]
         public void SetUp()
         {
             this.menuView = new FakeCombatActionMenuView();
-            this.qteView = new FakeQTEView();
         }
 
         [Test]
-        public void QTEPanel_StartsHidden()
+        public void Initialize_Controller_subscribesToMenuView()
         {
-            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
-            controller.Initialize();
+            var controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView);
+            ((IInitializable)controller).Initialize();
 
-            Assert.IsFalse(this.qteView.IsVisible);
+            Assert.IsTrue(this.menuView.HasSubscribers);
         }
 
         [Test]
-        public void DisparasEvent_ShowsQTEPanel()
+        public void AfterDispose_Controller_unsubscribesFromMenuView()
         {
-            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
-            controller.Initialize();
-
-            this.menuView.RaiseOnDisparar();
-
-            Assert.IsTrue(this.qteView.IsVisible);
-        }
-
-        [Test]
-        public void CerrarEvent_HidesQTEPanel()
-        {
-            IInitializable controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
-            controller.Initialize();
-            this.menuView.RaiseOnDisparar();
-
-            this.menuView.RaiseOnCerrar();
-
-            Assert.IsFalse(this.qteView.IsVisible);
-        }
-
-        [Test]
-        public void AfterDispose_EventsNoLongerTriggerView()
-        {
-            var controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView, this.qteView);
+            var controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView);
             ((IInitializable)controller).Initialize();
             ((IDisposable)controller).Dispose();
 
-            this.menuView.RaiseOnDisparar();
+            Assert.IsFalse(this.menuView.HasSubscribers);
+        }
 
-            Assert.IsFalse(this.qteView.IsVisible);
+        [Test]
+        public void AfterDispose_OperatorSelectedEvent_doesNotThrow()
+        {
+            var controller = new CrimsonDraft.Combat.CombatMenuController(this.menuView);
+            ((IInitializable)controller).Initialize();
+            ((IDisposable)controller).Dispose();
+
+            Assert.DoesNotThrow(() => this.menuView.RaiseOnOperatorSelected(0));
         }
 
         private sealed class FakeCombatActionMenuView : CrimsonDraft.Combat.ICombatActionMenuView
         {
-            public event Action? OnDisparar;
-            public event Action? OnCerrar;
-            public void RaiseOnDisparar() => OnDisparar?.Invoke();
-            public void RaiseOnCerrar() => OnCerrar?.Invoke();
-        }
-
-        private sealed class FakeQTEView : CrimsonDraft.Combat.IQTEView
-        {
-            public bool IsVisible { get; private set; }
-            public void Show() => this.IsVisible = true;
-            public void Hide() => this.IsVisible = false;
+            public event Action<int>? OnOperatorSelected;
+            public bool HasSubscribers => this.OnOperatorSelected != null;
+            public void RaiseOnOperatorSelected(int index) => this.OnOperatorSelected?.Invoke(index);
         }
     }
 }

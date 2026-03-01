@@ -1,33 +1,27 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <Style src="CombatActionMenu.uss" />
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Art/UI/CombatActionMenu.uss?fileID=7433441132597879392&amp;guid=76eb75dcede5de24f9a299fa7ad258cc&amp;type=3#CombatActionMenu"/>
     <ui:VisualElement name="root" class="hud-root">
-        <ui:VisualElement name="bottom-strip" class="bottom-strip">
-
-            <!-- Action Menu (bottom-left) -->
+        <ui:VisualElement name="bottom-strip" class="bottom-strip" style="height: 48px; width: 321px;">
             <ui:VisualElement name="action-panel" class="action-panel">
                 <ui:VisualElement name="action-item-fire" class="action-item">
-                    <ui:Label name="selector-fire" text="►" class="action-selector" />
-                    <ui:Label text="DISPARAR" class="action-label" />
+                    <ui:Label name="selector-fire" text="►" class="action-selector"/>
+                    <ui:Label text="DISPARAR" class="action-label" style="-unity-font-definition: resource(&quot;Fonts/Silver SDF&quot;);"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="action-item-close" class="action-item">
-                    <ui:Label name="selector-close" text="►" class="action-selector" />
-                    <ui:Label text="CERRAR" class="action-label" />
+                    <ui:Label name="selector-close" text="►" class="action-selector"/>
+                    <ui:Label text="CERRAR" class="action-label" style="-unity-font-definition: resource(&quot;Fonts/Silver SDF&quot;);"/>
                 </ui:VisualElement>
             </ui:VisualElement>
-
-            <ui:VisualElement class="strip-divider" />
-
-            <!-- Character Stats (placeholder) -->
+            <ui:VisualElement class="strip-divider"/>
             <ui:VisualElement name="stats-panel" class="stats-panel">
-                <ui:VisualElement name="portrait" class="portrait" />
-                <ui:VisualElement name="char-info" class="char-info">
-                    <ui:Label text="OPERADOR" class="char-name" />
-                    <ui:Label text="ECG  ~~~~&#x2227;~~~~  72bpm" class="ecg-line" />
-                    <ui:Label text="PA   120 / 80" class="bp-line" />
-                    <ui:Label text="P229   13 / 13" class="weapon-line" />
+                <ui:VisualElement name="portrait" class="portrait"/>
+                <ui:VisualElement name="char-info" class="char-info" style="height: 33px; width: 59px;">
+                    <ui:Label text="OPERADOR" class="char-name" style="-unity-font-definition: resource(&quot;Fonts/Silver&quot;); height: 8px; width: 50px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;"/>
+                    <ui:Label text="ECG  ~~~~∧~~~~  72bpm" class="ecg-line" style="-unity-font-definition: resource(&quot;Fonts/Silver&quot;); height: 8px; width: 43px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;"/>
+                    <ui:Label text="PA   120 / 80" class="bp-line" style="-unity-font-definition: resource(&quot;Fonts/Silver&quot;); height: 11px; width: 32px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;"/>
+                    <ui:Label text="P229   13 / 13" class="weapon-line" style="-unity-font-definition: resource(&quot;Fonts/Silver&quot;); height: 8px; width: 36px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;"/>
                 </ui:VisualElement>
             </ui:VisualElement>
-
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

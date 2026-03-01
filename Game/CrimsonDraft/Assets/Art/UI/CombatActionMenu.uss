@@ -1,11 +1,16 @@
 /* ── Root ──────────────────────────────────────────────────────── */
+/* Reference resolution: 320x180 (~FF7 proportions)               */
 
 .hud-root {
-    flex-grow: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     justify-content: flex-end;
 }
 
-/* ── Bottom Strip ──────────────────────────────────────────────── */
+/* ── Bottom Strip (~46px tall = 26% of 180) ────────────────────── */
 
 .bottom-strip {
     flex-direction: row;
@@ -13,21 +18,21 @@
     background-color: rgba(4, 6, 10, 210);
     border-top-color: rgb(45, 55, 65);
     border-top-width: 1px;
-    padding: 10px 16px;
+    padding: 5px 6px;
     gap: 0;
 }
 
 .strip-divider {
     width: 1px;
     background-color: rgb(45, 55, 65);
-    margin-left: 16px;
-    margin-right: 16px;
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
-/* ── Action Panel ──────────────────────────────────────────────── */
+/* ── Action Panel (~62px wide = 19% of 320) ────────────────────── */
 
 .action-panel {
-    width: 148px;
+    width: 62px;
     justify-content: center;
     gap: 2px;
 }
@@ -35,21 +40,21 @@
 .action-item {
     flex-direction: row;
     align-items: center;
-    padding: 5px 0;
-    gap: 6px;
+    padding: 2px 0;
+    gap: 3px;
 }
 
 .action-selector {
     color: rgb(220, 195, 80);
-    font-size: 11px;
-    width: 14px;
+    font-size: 8px;
+    width: 8px;
     -unity-text-align: middle-center;
     visibility: hidden;
 }
 
 .action-label {
     color: rgb(170, 175, 185);
-    font-size: 13px;
+    font-size: 8px;
     -unity-font-style: normal;
     -unity-text-align: middle-left;
 }
@@ -60,43 +65,43 @@
     flex-grow: 1;
     flex-direction: row;
     align-items: center;
-    gap: 12px;
+    gap: 5px;
 }
 
 .portrait {
-    width: 52px;
-    height: 52px;
+    width: 34px;
+    height: 34px;
     background-color: rgb(22, 28, 36);
     border-color: rgb(55, 65, 78);
     border-width: 1px;
 }
 
 .char-info {
-    gap: 3px;
+    gap: 2px;
     justify-content: center;
 }
 
 .char-name {
     color: rgb(160, 200, 230);
-    font-size: 10px;
+    font-size: 6px;
     -unity-font-style: bold;
     -unity-text-align: middle-left;
 }
 
 .ecg-line {
     color: rgb(40, 210, 110);
-    font-size: 10px;
+    font-size: 6px;
     -unity-text-align: middle-left;
 }
 
 .bp-line {
     color: rgb(220, 90, 90);
-    font-size: 10px;
+    font-size: 6px;
     -unity-text-align: middle-left;
 }
 
 .weapon-line {
     color: rgb(200, 195, 155);
-    font-size: 10px;
+    font-size: 6px;
     -unity-text-align: middle-left;
 }
