@@ -13,6 +13,7 @@ namespace CrimsonDraft.Tests
         private FakeCommandPanelView     commandPanel  = null!;
         private FakeSubPanelView         subPanel      = null!;
         private FakePublisher            publisher     = null!;
+        private FakeAimView              aimView       = null!;
 
         [SetUp]
         public void SetUp()
@@ -21,12 +22,13 @@ namespace CrimsonDraft.Tests
             this.commandPanel = new FakeCommandPanelView();
             this.subPanel     = new FakeSubPanelView();
             this.publisher    = new FakePublisher();
+            this.aimView      = new FakeAimView();
         }
 
         private CombatMenuController BuildAndInit()
         {
             var controller = new CombatMenuController(
-                this.menuView, this.commandPanel, this.subPanel, this.publisher);
+                this.menuView, this.commandPanel, this.subPanel, this.publisher, this.aimView);
             ((IInitializable)controller).Initialize();
             return controller;
         }
@@ -121,6 +123,46 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(this.publisher.Published);
         }
 
+        // ── Aim minigame ───────────────────────────────────────────────
+
+        [Test]
+        public void ShootCommand_showsAimView()
+        {
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            Assert.IsTrue(this.aimView.IsVisible);
+        }
+
+        [Test]
+        public void ShootCommand_doesNotShowSubPanel()
+        {
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            Assert.IsFalse(this.subPanel.IsVisible);
+        }
+
+        [Test]
+        public void ShotFired_hidesAimView()
+        {
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            this.aimView.FireShot(Vector2.zero);
+            Assert.IsFalse(this.aimView.IsVisible);
+        }
+
+        [Test]
+        public void ShotFired_hidesCommandPanel()
+        {
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            this.aimView.FireShot(Vector2.zero);
+            Assert.IsFalse(this.commandPanel.IsVisible);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
@@ -164,6 +206,16 @@ namespace CrimsonDraft.Tests
         {
             public bool Published { get; private set; }
             public void Publish(CombatEndedEvent message) => this.Published = true;
+        }
+
+        private sealed class FakeAimView : IAimView
+        {
+            public event Action<Vector2>? OnShotFired;
+            public bool IsVisible { get; private set; }
+            public void Show()    => this.IsVisible = true;
+            public void Confirm() { }
+            public void Hide()    => this.IsVisible = false;
+            public void FireShot(Vector2 pos) => this.OnShotFired?.Invoke(pos);
         }
     }
 }
