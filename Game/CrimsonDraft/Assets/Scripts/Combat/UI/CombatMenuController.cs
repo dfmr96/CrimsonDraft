@@ -149,6 +149,7 @@ namespace CrimsonDraft.Combat
             if (command == CombatCommand.Shoot)
             {
                 this.commandPanel.SetDimmed(true);
+                this.menuView.SetDimmed(true);
                 this.aimView.OnShotFired += this.HandleShotFired;
                 this.aimView.Show();
                 this.state = CombatMenuState.Aiming;

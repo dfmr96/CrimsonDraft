@@ -76,6 +76,10 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOKill();
             this.horizontalSelector.rectTransform.DOKill();
+
+            foreach (Transform child in this.aimSpace)
+                Destroy(child.gameObject);
+
             this.gameObject.SetActive(false);
         }
 

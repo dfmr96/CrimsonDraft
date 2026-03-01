@@ -64,7 +64,18 @@ namespace CrimsonDraft.Combat
                 this.dimmingOverlay.DOFade(dimmed ? 0.6f : 0f, 0.1f);
         }
 
-        public void Hide() => this.gameObject.SetActive(false);
+        public void Hide()
+        {
+            if (this.dimmingOverlay != null)
+            {
+                this.dimmingOverlay.DOKill();
+                var c = this.dimmingOverlay.color;
+                c.a = 0f;
+                this.dimmingOverlay.color = c;
+            }
+
+            this.gameObject.SetActive(false);
+        }
 
         #endregion
 

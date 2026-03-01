@@ -93,7 +93,13 @@ namespace CrimsonDraft.Combat
         public void FocusOperator(int index)
         {
             if (index >= 0 && index < this.operators.Length)
-                EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
+                FocusNextFrame(index).Forget();
+        }
+
+        private async UniTaskVoid FocusNextFrame(int index)
+        {
+            await UniTask.NextFrame();
+            EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
         }
 
         public RectTransform GetOperatorAnchor(int index) =>
@@ -112,10 +118,17 @@ namespace CrimsonDraft.Combat
                 this.operatorsGroup.interactable   = !dimmed;
                 this.operatorsGroup.blocksRaycasts = !dimmed;
             }
+
+            if (dimmed)
+            {
+                this.selectorMark.DOKill();
+                this.selectorMark.gameObject.SetActive(false);
+            }
         }
 
         public void MoveSelectorTo(RectTransform anchor)
         {
+            this.selectorMark.gameObject.SetActive(true);
             this.selectorMark.DOKill();
 
             var parentRect   = (RectTransform)this.selectorMark.parent;
