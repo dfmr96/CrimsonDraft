@@ -30,6 +30,7 @@ namespace CrimsonDraft.Combat
 
         private AimPhase phase;
         private float    confirmedY;
+        private float    confirmedWorldY;
         private Vector2  pendingShot;
 
         #endregion
@@ -47,21 +48,33 @@ namespace CrimsonDraft.Combat
         {
             if (this.phase == AimPhase.VerticalAiming)
             {
-                float halfH      = this.verticalSpace.rect.height / 2f;
-                this.confirmedY  = (this.verticalSelector.rectTransform.localPosition.y + halfH) / (halfH * 2f);
                 this.verticalSelector.rectTransform.DOKill();
+                var vLocal = this.verticalSelector.rectTransform.localPosition;
+                vLocal.y   = Mathf.Round(vLocal.y);
+                this.verticalSelector.rectTransform.localPosition = vLocal;
+
+                float halfH         = this.verticalSpace.rect.height / 2f;
+                this.confirmedY     = (vLocal.y + halfH) / (halfH * 2f);
+                this.confirmedWorldY = this.verticalSelector.rectTransform.position.y;
+
                 this.verticalSelector.DOFade(this.dimmingAlpha, 0.15f);
                 this.StartHorizontalOscillation();
                 this.phase = AimPhase.HorizontalAiming;
             }
             else if (this.phase == AimPhase.HorizontalAiming)
             {
-                float halfW      = this.horizontalSpace.rect.width / 2f;
-                float confirmedX = (this.horizontalSelector.rectTransform.localPosition.x + halfW) / (halfW * 2f);
                 this.horizontalSelector.rectTransform.DOKill();
+                var hLocal = this.horizontalSelector.rectTransform.localPosition;
+                hLocal.x   = Mathf.Round(hLocal.x);
+                this.horizontalSelector.rectTransform.localPosition = hLocal;
+
+                float halfW      = this.horizontalSpace.rect.width / 2f;
+                float confirmedX = (hLocal.x + halfW) / (halfW * 2f);
+                float confirmedWorldX = this.horizontalSelector.rectTransform.position.x;
+
                 this.horizontalSelector.DOFade(this.dimmingAlpha, 0.15f);
                 this.pendingShot = new Vector2(confirmedX, this.confirmedY);
-                this.SpawnMarker(confirmedX, this.confirmedY);
+                this.SpawnMarker(confirmedWorldX, this.confirmedWorldY);
                 this.phase = AimPhase.WaitingDismiss;
             }
             else if (this.phase == AimPhase.WaitingDismiss)
@@ -113,13 +126,15 @@ namespace CrimsonDraft.Combat
                 .SetEase(Ease.InOutSine);
         }
 
-        private void SpawnMarker(float normalizedX, float normalizedY)
+        private void SpawnMarker(float worldX, float worldY)
         {
-            var   r      = this.aimSpace.rect;
-            float x      = Mathf.Lerp(r.xMin, r.xMax, normalizedX);
-            float y      = Mathf.Lerp(r.yMin, r.yMax, normalizedY);
-            var   marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
-            ((RectTransform)marker.transform).localPosition = new Vector3(x, y, 0f);
+            var worldPos = new Vector3(worldX, worldY, this.aimSpace.position.z);
+            var localPos = this.aimSpace.InverseTransformPoint(worldPos);
+            var marker   = Instantiate(this.shotMarkerPrefab, this.aimSpace);
+            ((RectTransform)marker.transform).localPosition = new Vector3(
+                Mathf.Round(localPos.x),
+                Mathf.Round(localPos.y),
+                0f);
         }
 
         #endregion
