@@ -9,6 +9,20 @@
 
 ## Documentacion
 
+> El documento principal de referencia es [[GDD]] — biblia única con resúmenes de todos los sistemas y links a los docs de detalle.
+
+### Sistemas de Juego (detalle)
+- [[Sistema de Combate en Tiempo Real]]
+- [[Diseño de Combate y Armas]]
+- [[Sistema de Dispersion y Apuntado]]
+- [[Distractores Visuales]]
+- [[Sistema de Salud]]
+- [[Sistema de Inventario]]
+- [[Sistema de Movimiento]]
+- [[Mecanicas de Supervivencia]]
+- [[Tactical Survival Horror]]
+- [[Acto I - Diseño Detallado]]
+
 ### Narrativa
 - [[Premisa y Sinopsis]]
 - [[Contexto Geopolitico]]
@@ -24,15 +38,6 @@
 - [[Proyecto Meridian]]
 - [[Protocolo SCUTTLE]]
 - [[Referencias e Influencias]]
-
-### Game Design
-- [[Tactical Survival Horror]]
-- [[Sistema de Combate en Tiempo Real]]
-- [[Diseño de Combate y Armas]]
-- [[Sistema de Salud]]
-- [[Sistema de Inventario]]
-- [[Mecanicas de Supervivencia]]
-- [[Acto I - Diseño Detallado]]
 
 ### Presentacion
 - [[High Concept]]
