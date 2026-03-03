@@ -34,7 +34,7 @@ BPM = 60 + 100 * damage_ratio    [rango: 60–160 BPM]
 |  75%   |  85 |
 |  50%   | 110 |
 |  25%   | 135 |
-|  10%   | 154 |
+|  10%   | 150 |
 
 ### Patrón de un latido (normalizado a 1 ciclo)
 
@@ -105,12 +105,12 @@ pulse  = 0.7 + 0.3 * intensity                 [oscila entre 0.7 y 1.0]
 
 Implementada como 4 franjas desde cada borde con alpha decreciente hacia el centro (4 strips, alpha proporcional a `(1 - i/4)` donde i es el índice de franja desde el borde).
 
-| HP (%)  | Profundidad | Alpha base | Alpha en pico |
-|---------|-------------|-----------|--------------|
-| 100%    | 0 px        | —         | —            |
-|  85%    | 6 px        | 27        | 39           |
-|  50%    | 20 px       | 90        | 128          |
-|   0%    | 40 px       | 180       | 180          |
+| HP (%)  | Profundidad | Alpha base (pulse min) | Alpha en pico (pulse max) |
+|---------|-------------|------------------------|--------------------------|
+| 100%    | 0 px        | —                      | —                        |
+|  85%    | 6 px        | 18                     | 27                       |
+|  50%    | 20 px       | 63                     | 90                       |
+|   0%    | 40 px       | 126                    | 180                      |
 
 **Umbral:** activo cuando `damage_ratio > 0.15` (HP < 85%)
 
@@ -129,8 +129,8 @@ alpha    = int(100 * damage_ratio)    [valor base; cada píxel varía ±50%]
 |---------|-----------------|
 | 100%    | 0 (inactivo)    |
 |  75%    | 0 (inactivo)    |
-|  50%    | 38              |
-|  25%    | 75              |
+|  50%    | 75              |
+|  25%    | 112             |
 |   0%    | 150             |
 
 **Umbral:** activo cuando `damage_ratio > 0.25` (HP < 75%)
@@ -155,7 +155,7 @@ El offset es mayor en X que en Y para simular desenfoque principalmente horizont
 |  50%    | 2.5 px       |
 |   0%    | 5 px         |
 
-**Umbral:** sin umbral explícito — escala suavemente desde HP < 100%.
+**Umbral:** la función escala desde cualquier HP, pero el loop de juego aplica `ghost_offset = 0` cuando `damage_ratio < 0.15` (HP > 85%).
 
 ---
 
@@ -174,7 +174,7 @@ silueta_invisible = (time_ms % period_ms) < invisible_window
 | HP (%)  | Probabilidad | Período | Ventana invisible |
 |---------|-------------|---------|-----------------|
 | 65%     | ~0%         | 800 ms  | ~0 ms           |
-|  50%    | 3.5%        | 723 ms  | 25 ms           |
+|  50%    | 3.5%        | 707 ms  | 24 ms           |
 |  25%    | 9.2%        | 615 ms  | 57 ms           |
 |   0%    | 15%         | 400 ms  | 60 ms           |
 
