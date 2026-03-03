@@ -228,7 +228,7 @@ RIP destruye carne pero rebota en protección. FMJ penetra mejor pero hace menos
 
 ## Integración con el QTE
 
-El jugador fija eje Y (intención vertical) → fija eje X (intención horizontal) → ese punto `(center_x, center_y)` es la entrada a la función de dispersión. El punto de impacto final se comprueba contra hitboxes y se calcula el daño.
+El jugador fija eje Y (intención vertical) → fija eje X (intención horizontal) → ese punto `(center_x, center_y)` es la entrada a `apply_three_layer_dispersion()`. El punto de impacto final se comprueba contra hitboxes y se calcula el daño.
 
 Ver [[Sistema de Combate en Tiempo Real]] para el flujo completo del QTE.
 Ver [[Distractores Visuales]] para cómo el HP degrada visualmente la puntería.
