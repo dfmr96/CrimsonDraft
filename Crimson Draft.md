@@ -15,6 +15,7 @@
 - [[Sistema de Combate en Tiempo Real]]
 - [[Diseño de Combate y Armas]]
 - [[Sistema de Dispersion y Apuntado]]
+- [[Sistema de Deteccion de Impacto]]
 - [[Distractores Visuales]]
 - [[Sistema de Salud]]
 - [[Sistema de Inventario]]
