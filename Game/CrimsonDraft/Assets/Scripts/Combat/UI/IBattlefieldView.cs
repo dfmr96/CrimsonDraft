@@ -2,6 +2,22 @@
 
 namespace CrimsonDraft.Combat
 {
+    public readonly struct EnemyDamageResult
+    {
+        public int SlotIndex      { get; }
+        public int DamageApplied  { get; }
+        public int RemainingHp    { get; }
+        public bool IsDead        { get; }
+
+        public EnemyDamageResult(int slotIndex, int damageApplied, int remainingHp, bool isDead)
+        {
+            this.SlotIndex     = slotIndex;
+            this.DamageApplied = damageApplied;
+            this.RemainingHp   = remainingHp;
+            this.IsDead        = isDead;
+        }
+    }
+
     public interface IBattlefieldView
     {
         void Populate(EncounterData encounter);
@@ -11,5 +27,7 @@ namespace CrimsonDraft.Combat
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
+        EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage);
+        bool HasAliveEnemies();
     }
 }

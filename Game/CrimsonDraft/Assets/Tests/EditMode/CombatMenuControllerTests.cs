@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using NUnit.Framework;
 using UnityEngine;
@@ -210,6 +212,100 @@ namespace CrimsonDraft.Tests
             Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
         }
 
+        [Test]
+        public void ComputeShotDamage_head_returns40()
+        {
+            Assert.AreEqual(40, CombatMenuController.ComputeShotDamage(ShotZone.Head));
+        }
+
+        [Test]
+        public void ComputeShotDamage_torso_returns20()
+        {
+            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Torso));
+        }
+
+        [Test]
+        public void ComputeShotDamage_arms_returns14()
+        {
+            Assert.AreEqual(14, CombatMenuController.ComputeShotDamage(ShotZone.Arms));
+        }
+
+        [Test]
+        public void ComputeShotDamage_legs_returns16()
+        {
+            Assert.AreEqual(16, CombatMenuController.ComputeShotDamage(ShotZone.Legs));
+        }
+
+        [Test]
+        public void ComputeShotDamage_miss_returns0()
+        {
+            Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss));
+        }
+
+        [Test]
+        public void ShotFired_appliesDamageToSelectedEnemy()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            this.aimView.FireShot(Vector2.zero, ShotZone.Torso);
+
+            Assert.AreEqual(1, this.battlefieldView.LastDamageResult.SlotIndex);
+            Assert.AreEqual(20, this.battlefieldView.LastDamageResult.DamageApplied);
+            Assert.AreEqual(80, this.battlefieldView.LastDamageResult.RemainingHp);
+            Assert.IsFalse(this.battlefieldView.LastDamageResult.IsDead);
+        }
+
+        [Test]
+        public void ShotFired_whenEnemyHpReachesZero_marksEnemyDead()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            this.aimView.FireShot(Vector2.zero, ShotZone.Torso);
+
+            Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
+            Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
+            Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
+        }
+
+        [Test]
+        public void ShotFired_whenAllEnemiesDead_publishesVictoryTrue()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            this.aimView.FireShot(Vector2.zero, ShotZone.Head);
+
+            Assert.IsTrue(this.publisher.Published);
+            Assert.NotNull(this.publisher.LastEvent);
+            Assert.IsTrue(this.publisher.LastEvent!.Value.Victory);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
@@ -253,7 +349,12 @@ namespace CrimsonDraft.Tests
         private sealed class FakePublisher : MessagePipe.IPublisher<CombatEndedEvent>
         {
             public bool Published { get; private set; }
-            public void Publish(CombatEndedEvent message) => this.Published = true;
+            public CombatEndedEvent? LastEvent { get; private set; }
+            public void Publish(CombatEndedEvent message)
+            {
+                this.Published = true;
+                this.LastEvent = message;
+            }
         }
 
         private sealed class FakeAimView : IAimView
@@ -273,10 +374,21 @@ namespace CrimsonDraft.Tests
         {
             private int[] occupiedSlots    = Array.Empty<int>();
             private readonly System.Collections.Generic.Dictionary<int, AimHitMaskProfile?> maskBySlot = new();
+            private readonly System.Collections.Generic.Dictionary<int, int> hpBySlot = new();
             public bool   EnemyTargetVisible { get; private set; }
+            public EnemyDamageResult LastDamageResult { get; private set; }
 
-            public void SetOccupiedSlots(int[] slots) => this.occupiedSlots = slots;
+            public void SetOccupiedSlots(int[] slots)
+            {
+                this.occupiedSlots = slots;
+                foreach (int slot in slots)
+                {
+                    if (!this.hpBySlot.ContainsKey(slot))
+                        this.hpBySlot[slot] = 100;
+                }
+            }
             public void SetMaskProfile(int slot, AimHitMaskProfile? profile) => this.maskBySlot[slot] = profile;
+            public void SetEnemyHp(int slot, int hp) => this.hpBySlot[slot] = hp;
 
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
@@ -286,6 +398,33 @@ namespace CrimsonDraft.Tests
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
                 this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+            {
+                if (!this.hpBySlot.TryGetValue(slotIndex, out int hp))
+                {
+                    this.LastDamageResult = new EnemyDamageResult(slotIndex, 0, 0, false);
+                    return this.LastDamageResult;
+                }
+
+                int applied = Mathf.Max(0, damage);
+                int nextHp = Mathf.Max(0, hp - applied);
+                this.hpBySlot[slotIndex] = nextHp;
+                bool dead = nextHp <= 0;
+                if (dead)
+                {
+                    var next = new System.Collections.Generic.List<int>(this.occupiedSlots.Length);
+                    foreach (int slot in this.occupiedSlots)
+                    {
+                        if (slot != slotIndex)
+                            next.Add(slot);
+                    }
+                    this.occupiedSlots = next.ToArray();
+                }
+
+                this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead);
+                return this.LastDamageResult;
+            }
+            public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
         }
     }
 }

@@ -20,6 +20,8 @@ namespace CrimsonDraft.Combat
         private int             selectedOperator   = 0;
         private int[]           occupiedEnemySlots = Array.Empty<int>();
         private int             enemyTargetCursor  = 0;
+        private int             currentTargetSlot  = -1;
+        private const int       BaseDamage         = 20;
 
         #endregion
 
@@ -212,7 +214,21 @@ namespace CrimsonDraft.Combat
         private void HandleShotFired(Vector2 normalizedPos, ShotZone zone)
         {
             _ = normalizedPos;
-            _ = zone;
+
+            if (this.currentTargetSlot >= 0)
+            {
+                int damage = ComputeShotDamage(zone);
+                var result = this.battlefieldView.ApplyDamageToEnemy(this.currentTargetSlot, damage);
+#if UNITY_EDITOR
+                Debug.Log(
+                    $"[Combat] Enemy slot={this.currentTargetSlot} zone={zone} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
+#endif
+            }
+
+            if (!this.battlefieldView.HasAliveEnemies())
+                this.combatEndedPublisher.Publish(new CombatEndedEvent { Victory = true });
+
+            this.currentTargetSlot = -1;
             this.aimView.OnShotFired -= this.HandleShotFired;
             this.aimView.Hide();
             this.commandPanel.Hide();
@@ -254,8 +270,8 @@ namespace CrimsonDraft.Combat
         private void ConfirmTarget()
         {
             this.battlefieldView.HideEnemyTargetIndicator();
-            int targetSlot = this.occupiedEnemySlots[this.enemyTargetCursor];
-            this.aimView.ConfigureHitMask(this.battlefieldView.GetEnemyHitMaskProfile(targetSlot));
+            this.currentTargetSlot = this.occupiedEnemySlots[this.enemyTargetCursor];
+            this.aimView.ConfigureHitMask(this.battlefieldView.GetEnemyHitMaskProfile(this.currentTargetSlot));
             this.aimView.OnShotFired += this.HandleShotFired;
             this.aimView.Show();
             this.state = CombatMenuState.Aiming;
@@ -272,6 +288,20 @@ namespace CrimsonDraft.Combat
             CombatCommand.Defend => new[] { new SubPanelItem("SHIELD") },
             _                    => Array.Empty<SubPanelItem>()
         };
+
+        internal static int ComputeShotDamage(ShotZone zone)
+        {
+            float multiplier = zone switch
+            {
+                ShotZone.Head  => 2.0f,
+                ShotZone.Torso => 1.0f,
+                ShotZone.Arms  => 0.7f,
+                ShotZone.Legs  => 0.8f,
+                ShotZone.Hit   => 1.0f,
+                _              => 0.0f,
+            };
+            return Mathf.RoundToInt(BaseDamage * multiplier);
+        }
 
         #endregion
     }
