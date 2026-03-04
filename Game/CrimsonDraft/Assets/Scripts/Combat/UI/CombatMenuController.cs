@@ -213,17 +213,18 @@ namespace CrimsonDraft.Combat
 
         private void HandleShotFired(Vector2 normalizedPos, ShotZone zone)
         {
-            _ = normalizedPos;
+            int damage = ComputeShotDamage(zone);
+            bool isMiss = zone == ShotZone.Miss;
 
             if (this.currentTargetSlot >= 0)
             {
-                int damage = ComputeShotDamage(zone);
                 var result = this.battlefieldView.ApplyDamageToEnemy(this.currentTargetSlot, damage);
 #if UNITY_EDITOR
                 Debug.Log(
                     $"[Combat] Enemy slot={this.currentTargetSlot} zone={zone} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
 #endif
             }
+            this.aimView.ShowShotFeedback(normalizedPos, damage, isMiss);
 
             if (!this.battlefieldView.HasAliveEnemies())
                 this.combatEndedPublisher.Publish(new CombatEndedEvent { Victory = true });

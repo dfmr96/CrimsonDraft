@@ -169,6 +169,51 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
+        [Test]
+        public void ShotFired_hit_callsShowShotFeedback_withDamageAndMissFalse()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            this.aimView.FireShot(Vector2.zero, ShotZone.Torso);
+
+            Assert.IsTrue(this.aimView.ShowShotFeedbackCalled);
+            Assert.AreEqual(1, this.aimView.ShowShotFeedbackCallCount);
+            Assert.AreEqual(20, this.aimView.LastFeedbackDamage);
+            Assert.IsFalse(this.aimView.LastFeedbackIsMiss);
+        }
+
+        [Test]
+        public void ShotFired_miss_callsShowShotFeedback_withMissTrue()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            this.aimView.FireShot(new Vector2(0.25f, 0.75f), ShotZone.Miss);
+
+            Assert.IsTrue(this.aimView.ShowShotFeedbackCalled);
+            Assert.AreEqual(1, this.aimView.ShowShotFeedbackCallCount);
+            Assert.AreEqual(new Vector2(0.25f, 0.75f), this.aimView.LastFeedbackPos);
+            Assert.AreEqual(0, this.aimView.LastFeedbackDamage);
+            Assert.IsTrue(this.aimView.LastFeedbackIsMiss);
+        }
+
         // ── Target selection ───────────────────────────────────────────
 
         [Test]
@@ -362,7 +407,20 @@ namespace CrimsonDraft.Tests
             public event Action<Vector2, ShotZone>? OnShotFired;
             public bool IsVisible { get; private set; }
             public AimHitMaskProfile? LastConfiguredProfile { get; private set; }
+            public bool ShowShotFeedbackCalled { get; private set; }
+            public int ShowShotFeedbackCallCount { get; private set; }
+            public Vector2 LastFeedbackPos { get; private set; }
+            public int LastFeedbackDamage { get; private set; }
+            public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
+            public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
+            {
+                this.ShowShotFeedbackCalled = true;
+                this.ShowShotFeedbackCallCount++;
+                this.LastFeedbackPos = normalizedPos;
+                this.LastFeedbackDamage = damage;
+                this.LastFeedbackIsMiss = isMiss;
+            }
             public void Show()    => this.IsVisible = true;
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;

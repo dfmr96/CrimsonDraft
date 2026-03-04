@@ -1,7 +1,9 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -27,9 +29,18 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image         silhouetteImage        = null!;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
+        [SerializeField] private RectTransform feedbackRoot           = null!;
+        [SerializeField] private GameObject    feedbackTextPrefab      = null!;
         [SerializeField] private float         speed                  = 0.8f;
         [SerializeField] private float         dimmingAlpha           = 0.3f;
         [SerializeField] private int           dispersionRadius       = 10;
+        [SerializeField] private Vector2       feedbackOffset         = new Vector2(0f, 24f);
+        [SerializeField] private float         feedbackHoldDuration   = 0.25f;
+        [SerializeField] private float         feedbackDuration       = 0.6f;
+        [SerializeField] private float         feedbackFloatY         = 18f;
+        [SerializeField] private int           maxConcurrentFeedback  = 3;
+        [SerializeField] private Color         hitFeedbackColor       = Color.white;
+        [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
 
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
@@ -39,6 +50,8 @@ namespace CrimsonDraft.Combat
         private ShotZoneDefinition[]  activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                 activeColorTolerance  = 0.1f;
         private bool                  warnedMissingMaskConfig;
+        private readonly List<GameObject> activeFeedback = new List<GameObject>();
+        private bool externalFeedbackConsumedForPendingShot;
 #if UNITY_EDITOR
         private bool     hasLastSample;
         private Vector3  lastSampleWorldPos;
@@ -75,6 +88,89 @@ namespace CrimsonDraft.Combat
             this.phase = AimPhase.VerticalAiming;
         }
 
+        public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
+        {
+            // If this shot was already rendered at marker-spawn time, ignore the
+            // later call coming from CombatMenuController on submit.
+            if (this.externalFeedbackConsumedForPendingShot &&
+                this.phase == AimPhase.WaitingDismiss &&
+                IsSameShot(normalizedPos, this.pendingNormalizedShot))
+            {
+                this.externalFeedbackConsumedForPendingShot = false;
+                return;
+            }
+
+            this.SpawnShotFeedbackVisual(normalizedPos, damage, isMiss);
+        }
+
+        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
+        {
+            if (this.feedbackTextPrefab == null)
+            {
+                Debug.LogWarning("[AimView] Feedback text prefab is not assigned.");
+                return;
+            }
+
+            this.PruneDeadFeedback();
+            if (this.maxConcurrentFeedback > 0)
+            {
+                while (this.activeFeedback.Count >= this.maxConcurrentFeedback)
+                {
+                    var oldest = this.activeFeedback[0];
+                    this.activeFeedback.RemoveAt(0);
+                    if (oldest != null)
+                        Destroy(oldest);
+                }
+            }
+
+            var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+            this.activeFeedback.Add(go);
+
+            var rt = go.transform as RectTransform;
+            if (rt != null)
+            {
+                Vector2 localShot = this.DenormalizeShotLocal(normalizedPos);
+                rt.localPosition = new Vector3(
+                    Mathf.Round(localShot.x + this.feedbackOffset.x),
+                    Mathf.Round(localShot.y + this.feedbackOffset.y),
+                    0f);
+            }
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text == null)
+            {
+                Debug.LogWarning("[AimView] Feedback prefab must include TMP_Text.");
+                this.activeFeedback.Remove(go);
+                Destroy(go);
+                return;
+            }
+
+            text.text = isMiss ? "MISS" : $"-{damage}";
+            var baseColor = isMiss ? this.missFeedbackColor : this.hitFeedbackColor;
+            baseColor.a = 1f;
+            text.color = baseColor;
+
+            float hold = Mathf.Max(0f, this.feedbackHoldDuration);
+            float fade = Mathf.Max(0f, this.feedbackDuration);
+
+            DOVirtual.DelayedCall(hold, () =>
+            {
+                if (text != null)
+                    text.DOFade(0f, fade).SetEase(Ease.OutQuad);
+            });
+
+            DOVirtual.DelayedCall(hold + fade, () =>
+            {
+                this.activeFeedback.Remove(go);
+                if (go != null)
+                {
+                    go.transform.DOKill();
+                    text.DOKill();
+                    Destroy(go);
+                }
+            });
+        }
+
         public void Confirm()
         {
             if (this.phase == AimPhase.VerticalAiming)
@@ -109,6 +205,12 @@ namespace CrimsonDraft.Combat
                 this.SpawnMarker(shotLocal);
                 this.pendingNormalizedShot = this.NormalizeShotLocal(shotLocal);
                 this.pendingZone           = this.SampleSilhouette(shotLocal);
+                int pendingDamage          = CombatMenuController.ComputeShotDamage(this.pendingZone);
+                bool pendingMiss           = this.pendingZone == ShotZone.Miss;
+
+                // Render feedback immediately with the shot marker.
+                this.SpawnShotFeedbackVisual(this.pendingNormalizedShot, pendingDamage, pendingMiss);
+                this.externalFeedbackConsumedForPendingShot = true;
 
                 this.phase = AimPhase.WaitingDismiss;
             }
@@ -124,10 +226,12 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOKill();
             this.horizontalSelector.rectTransform.DOKill();
+            this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
                 Destroy(child.gameObject);
 
+            this.externalFeedbackConsumedForPendingShot = false;
             this.gameObject.SetActive(false);
         }
 
@@ -194,6 +298,55 @@ namespace CrimsonDraft.Combat
             return new Vector2(
                 Mathf.Clamp01((localPos.x + halfW) / (halfW * 2f)),
                 Mathf.Clamp01((localPos.y + halfH) / (halfH * 2f)));
+        }
+
+        private Vector2 DenormalizeShotLocal(Vector2 normalizedPos)
+        {
+            float halfW = this.aimSpace.rect.width / 2f;
+            float halfH = this.aimSpace.rect.height / 2f;
+            return new Vector2(
+                Mathf.Lerp(-halfW, halfW, Mathf.Clamp01(normalizedPos.x)),
+                Mathf.Lerp(-halfH, halfH, Mathf.Clamp01(normalizedPos.y)));
+        }
+
+        private void ClearFeedback()
+        {
+            foreach (var feedback in this.activeFeedback)
+            {
+                if (feedback != null)
+                    Destroy(feedback);
+            }
+            this.activeFeedback.Clear();
+        }
+
+        private void DetachFeedbackFromAimView()
+        {
+            var overlayRoot = this.feedbackRoot != null
+                ? this.feedbackRoot
+                : (this.transform.parent as RectTransform);
+            if (overlayRoot == null)
+                return;
+
+            foreach (var feedback in this.activeFeedback)
+            {
+                if (feedback != null)
+                    feedback.transform.SetParent(overlayRoot, worldPositionStays: true);
+            }
+        }
+
+        private void PruneDeadFeedback()
+        {
+            for (int i = this.activeFeedback.Count - 1; i >= 0; i--)
+            {
+                if (this.activeFeedback[i] == null)
+                    this.activeFeedback.RemoveAt(i);
+            }
+        }
+
+        private static bool IsSameShot(Vector2 a, Vector2 b)
+        {
+            const float epsilon = 0.0001f;
+            return (a - b).sqrMagnitude <= epsilon * epsilon;
         }
 
         private ShotZone SampleSilhouette(Vector2 shotLocal)

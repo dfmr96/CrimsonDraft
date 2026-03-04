@@ -8,6 +8,7 @@ namespace CrimsonDraft.Combat
     {
         event Action<Vector2, ShotZone>? OnShotFired;
         void ConfigureHitMask(AimHitMaskProfile? profile);
+        void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss);
         void Show();
         void Confirm();
         void Hide();
