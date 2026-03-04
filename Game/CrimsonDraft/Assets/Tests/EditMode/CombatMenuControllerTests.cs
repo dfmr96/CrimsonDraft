@@ -135,6 +135,7 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
             Assert.IsTrue(this.aimView.IsVisible);
+            Assert.IsNull(this.aimView.LastConfiguredProfile);
         }
 
         [Test]
@@ -191,6 +192,24 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(this.commandPanel.IsVisible);
         }
 
+        [Test]
+        public void ConfirmTarget_configuresAimWithSelectedEnemyMaskProfile()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 2 });
+            var expected = ScriptableObject.CreateInstance<AimHitMaskProfile>();
+            this.battlefieldView.SetMaskProfile(2, expected);
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(confirm);
+            confirm!.Invoke(c, null);
+
+            Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
@@ -241,6 +260,8 @@ namespace CrimsonDraft.Tests
         {
             public event Action<Vector2, ShotZone>? OnShotFired;
             public bool IsVisible { get; private set; }
+            public AimHitMaskProfile? LastConfiguredProfile { get; private set; }
+            public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
             public void Show()    => this.IsVisible = true;
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
@@ -251,9 +272,11 @@ namespace CrimsonDraft.Tests
         private sealed class FakeBattlefieldView : IBattlefieldView
         {
             private int[] occupiedSlots    = Array.Empty<int>();
+            private readonly System.Collections.Generic.Dictionary<int, AimHitMaskProfile?> maskBySlot = new();
             public bool   EnemyTargetVisible { get; private set; }
 
             public void SetOccupiedSlots(int[] slots) => this.occupiedSlots = slots;
+            public void SetMaskProfile(int slot, AimHitMaskProfile? profile) => this.maskBySlot[slot] = profile;
 
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
@@ -261,6 +284,8 @@ namespace CrimsonDraft.Tests
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
             public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
+            public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
+                this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
         }
     }
 }

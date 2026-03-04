@@ -232,6 +232,7 @@ namespace CrimsonDraft.Combat
             if (this.occupiedEnemySlots.Length == 0)
             {
                 // No enemies in scene — go straight to aim
+                this.aimView.ConfigureHitMask(null);
                 this.aimView.OnShotFired += this.HandleShotFired;
                 this.aimView.Show();
                 this.state = CombatMenuState.Aiming;
@@ -253,6 +254,8 @@ namespace CrimsonDraft.Combat
         private void ConfirmTarget()
         {
             this.battlefieldView.HideEnemyTargetIndicator();
+            int targetSlot = this.occupiedEnemySlots[this.enemyTargetCursor];
+            this.aimView.ConfigureHitMask(this.battlefieldView.GetEnemyHitMaskProfile(targetSlot));
             this.aimView.OnShotFired += this.HandleShotFired;
             this.aimView.Show();
             this.state = CombatMenuState.Aiming;

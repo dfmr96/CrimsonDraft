@@ -14,7 +14,8 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
 
         private readonly List<GameObject> spawnedSprites = new();
-        private int[] occupiedEnemySlots = Array.Empty<int>();
+        private int[]       occupiedEnemySlots = Array.Empty<int>();
+        private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
 
         private void Awake()
         {
@@ -27,6 +28,7 @@ namespace CrimsonDraft.Combat
             foreach (var go in this.spawnedSprites)
                 Destroy(go);
             this.spawnedSprites.Clear();
+            this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
             for (int i = 0; i < encounter.EnemySlots.Length && i < this.enemySlotTransforms.Length; i++)
@@ -61,6 +63,13 @@ namespace CrimsonDraft.Combat
         }
 
         public int[] GetOccupiedEnemySlots() => this.occupiedEnemySlots;
+        public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= this.currentEnemySlots.Length)
+                return null;
+
+            return this.currentEnemySlots[slotIndex]?.HitMaskProfile;
+        }
 
         public void SetOperatorIndicator(int slotIndex)
         {

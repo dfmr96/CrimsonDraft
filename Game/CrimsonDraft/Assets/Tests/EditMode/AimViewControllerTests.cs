@@ -47,5 +47,42 @@ namespace CrimsonDraft.Tests
             var result = AimViewController.ResolveZone(Color.white, new ShotZoneDefinition[0], 0.1f);
             Assert.AreEqual(ShotZone.Miss, result);
         }
+
+        [Test]
+        public void MapUvToTexturePixel_usesSpriteTextureRect()
+        {
+            var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            tex.SetPixels(new[]
+            {
+                Color.black, Color.black, Color.black, Color.black,
+                Color.black, Color.red,   Color.green, Color.black,
+                Color.black, Color.blue,  Color.white, Color.black,
+                Color.black, Color.black, Color.black, Color.black,
+            });
+            tex.Apply();
+
+            var sprite = Sprite.Create(tex, new Rect(1f, 1f, 2f, 2f), new Vector2(0.5f, 0.5f), 100f);
+            var min = AimViewController.MapUvToTexturePixel(sprite, 0f, 0f);
+            var max = AimViewController.MapUvToTexturePixel(sprite, 1f, 1f);
+
+            Assert.AreEqual(new Vector2Int(1, 1), min);
+            Assert.AreEqual(new Vector2Int(2, 2), max);
+            Assert.AreEqual(Color.red, tex.GetPixel(min.x, min.y));
+            Assert.AreEqual(Color.white, tex.GetPixel(max.x, max.y));
+
+            UnityEngine.Object.DestroyImmediate(sprite);
+            UnityEngine.Object.DestroyImmediate(tex);
+        }
+
+        [Test]
+        public void AimHitMaskProfile_defaults_areSafe()
+        {
+            var profile = ScriptableObject.CreateInstance<AimHitMaskProfile>();
+            Assert.NotNull(profile.ZoneDefinitions);
+            Assert.AreEqual(0, profile.ZoneDefinitions.Length);
+            Assert.AreEqual(0.1f, profile.ColorTolerance);
+
+            UnityEngine.Object.DestroyImmediate(profile);
+        }
     }
 }

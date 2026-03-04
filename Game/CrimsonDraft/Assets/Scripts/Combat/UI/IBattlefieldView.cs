@@ -10,5 +10,6 @@ namespace CrimsonDraft.Combat
         void SetEnemyTargetIndicator(int slotIndex);
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();
+        AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
     }
 }

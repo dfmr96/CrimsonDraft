@@ -27,8 +27,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image         silhouetteImage        = null!;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
-        [SerializeField] private ShotZoneDefinition[] zoneDefinitions = Array.Empty<ShotZoneDefinition>();
-        [SerializeField] private float         colorTolerance         = 0.1f;
         [SerializeField] private float         speed                  = 0.8f;
         [SerializeField] private float         dimmingAlpha           = 0.3f;
         [SerializeField] private int           dispersionRadius       = 10;
@@ -37,6 +35,10 @@ namespace CrimsonDraft.Combat
         private Vector2  confirmedLocalPos;
         private Vector2  pendingNormalizedShot;
         private ShotZone pendingZone;
+        private Sprite?               activeZoneMaskSprite;
+        private ShotZoneDefinition[]  activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
+        private float                 activeColorTolerance  = 0.1f;
+        private bool                  warnedMissingMaskConfig;
 #if UNITY_EDITOR
         private bool     hasLastSample;
         private Vector3  lastSampleWorldPos;
@@ -48,6 +50,23 @@ namespace CrimsonDraft.Combat
         #endregion
 
         #region IAimView
+
+        public void ConfigureHitMask(AimHitMaskProfile? profile)
+        {
+            this.warnedMissingMaskConfig = false;
+
+            if (profile == null || profile.ZoneMaskSprite == null || profile.ZoneDefinitions == null || profile.ZoneDefinitions.Length == 0)
+            {
+                this.activeZoneMaskSprite  = null;
+                this.activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
+                this.activeColorTolerance  = 0.1f;
+                return;
+            }
+
+            this.activeZoneMaskSprite  = profile.ZoneMaskSprite;
+            this.activeZoneDefinitions = profile.ZoneDefinitions;
+            this.activeColorTolerance  = profile.ColorTolerance;
+        }
 
         public void Show()
         {
@@ -179,8 +198,17 @@ namespace CrimsonDraft.Combat
 
         private ShotZone SampleSilhouette(Vector2 shotLocal)
         {
-            if (this.silhouetteImage == null || this.silhouetteImage.sprite == null)
+            if (this.silhouetteImage == null)
                 return ShotZone.Miss;
+            if (this.activeZoneMaskSprite == null)
+            {
+                if (!this.warnedMissingMaskConfig)
+                {
+                    Debug.LogWarning("[AimView] Missing hit mask profile. Returning ShotZone.Miss until ConfigureHitMask(...) is provided.");
+                    this.warnedMissingMaskConfig = true;
+                }
+                return ShotZone.Miss;
+            }
 
             var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
             var silRt      = this.silhouetteImage.rectTransform;
@@ -192,21 +220,16 @@ namespace CrimsonDraft.Combat
             float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
             float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
 
-            var sprite = this.silhouetteImage.sprite;
+            var sprite = this.activeZoneMaskSprite;
             var tex    = sprite.texture;
+            var pixelCoord = MapUvToTexturePixel(sprite, u, v);
+            int px = pixelCoord.x;
+            int py = pixelCoord.y;
             var texRect = sprite.textureRect;
-            int px = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.xMin + u * (texRect.width - 1f)),
-                0,
-                tex.width - 1);
-            int py = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.yMin + v * (texRect.height - 1f)),
-                0,
-                tex.height - 1);
             var pixel = tex.GetPixel(px, py);
-            var zone = ResolveZone(pixel, this.zoneDefinitions, this.colorTolerance);
+            var zone = ResolveZone(pixel, this.activeZoneDefinitions, this.activeColorTolerance);
             string hex = $"#{ColorUtility.ToHtmlStringRGB(pixel)}";
-            string spriteName = this.silhouetteImage.sprite.name;
+            string spriteName = sprite.name;
             string textureName = tex.name;
             Debug.Log(
                 $"[AimView] Sampled sprite='{spriteName}' texture='{textureName}' px=({px},{py}) color={hex} ({pixel}) -> Zone: {zone}");
@@ -222,6 +245,21 @@ namespace CrimsonDraft.Combat
             this.lastSampleHex    = hex;
 #endif
             return zone;
+        }
+
+        internal static Vector2Int MapUvToTexturePixel(Sprite sprite, float u, float v)
+        {
+            var tex     = sprite.texture;
+            var texRect = sprite.textureRect;
+            int px = Mathf.Clamp(
+                Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)),
+                0,
+                tex.width - 1);
+            int py = Mathf.Clamp(
+                Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)),
+                0,
+                tex.height - 1);
+            return new Vector2Int(px, py);
         }
 
         internal static ShotZone ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)
