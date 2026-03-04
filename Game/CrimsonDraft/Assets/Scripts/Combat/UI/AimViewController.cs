@@ -11,7 +11,7 @@ namespace CrimsonDraft.Combat
     {
         #region Events
 
-        public event Action<Vector2>? OnShotFired;
+        public event Action<Vector2, ShotZone>? OnShotFired;
 
         #endregion
 
@@ -24,8 +24,11 @@ namespace CrimsonDraft.Combat
         [SerializeField] private RectTransform horizontalSpace        = null!;
         [SerializeField] private Image         horizontalSelector     = null!;
         [SerializeField] private RectTransform aimSpace               = null!;
+        [SerializeField] private Image         silhouetteImage        = null!;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
+        [SerializeField] private ShotZoneDefinition[] zoneDefinitions = Array.Empty<ShotZoneDefinition>();
+        [SerializeField] private float         colorTolerance         = 0.1f;
         [SerializeField] private float         speed                  = 0.8f;
         [SerializeField] private float         dimmingAlpha           = 0.3f;
         [SerializeField] private int           dispersionRadius       = 10;
@@ -33,6 +36,14 @@ namespace CrimsonDraft.Combat
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
         private Vector2  pendingNormalizedShot;
+        private ShotZone pendingZone;
+#if UNITY_EDITOR
+        private bool     hasLastSample;
+        private Vector3  lastSampleWorldPos;
+        private Vector2Int lastSamplePixel;
+        private Color    lastSampleColor;
+        private string   lastSampleHex = "#000000";
+#endif
 
         #endregion
 
@@ -78,12 +89,13 @@ namespace CrimsonDraft.Combat
                 var shotLocal = this.ComputeRandomShotLocal();
                 this.SpawnMarker(shotLocal);
                 this.pendingNormalizedShot = this.NormalizeShotLocal(shotLocal);
+                this.pendingZone           = this.SampleSilhouette(shotLocal);
 
                 this.phase = AimPhase.WaitingDismiss;
             }
             else if (this.phase == AimPhase.WaitingDismiss)
             {
-                this.OnShotFired?.Invoke(this.pendingNormalizedShot);
+                this.OnShotFired?.Invoke(this.pendingNormalizedShot, this.pendingZone);
             }
         }
 
@@ -165,6 +177,79 @@ namespace CrimsonDraft.Combat
                 Mathf.Clamp01((localPos.y + halfH) / (halfH * 2f)));
         }
 
+        private ShotZone SampleSilhouette(Vector2 shotLocal)
+        {
+            if (this.silhouetteImage == null || this.silhouetteImage.sprite == null)
+                return ShotZone.Miss;
+
+            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
+            var silRt      = this.silhouetteImage.rectTransform;
+            var localInSil = silRt.InverseTransformPoint(worldPos);
+            var rect       = silRt.rect;
+            if (rect.width <= 0f || rect.height <= 0f)
+                return ShotZone.Miss;
+
+            float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
+            float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+
+            var sprite = this.silhouetteImage.sprite;
+            var tex    = sprite.texture;
+            var texRect = sprite.textureRect;
+            int px = Mathf.Clamp(
+                Mathf.RoundToInt(texRect.xMin + u * (texRect.width - 1f)),
+                0,
+                tex.width - 1);
+            int py = Mathf.Clamp(
+                Mathf.RoundToInt(texRect.yMin + v * (texRect.height - 1f)),
+                0,
+                tex.height - 1);
+            var pixel = tex.GetPixel(px, py);
+            var zone = ResolveZone(pixel, this.zoneDefinitions, this.colorTolerance);
+            string hex = $"#{ColorUtility.ToHtmlStringRGB(pixel)}";
+            string spriteName = this.silhouetteImage.sprite.name;
+            string textureName = tex.name;
+            Debug.Log(
+                $"[AimView] Sampled sprite='{spriteName}' texture='{textureName}' px=({px},{py}) color={hex} ({pixel}) -> Zone: {zone}");
+#if UNITY_EDITOR
+            float uCenter = Mathf.Clamp01(((px - texRect.xMin) + 0.5f) / texRect.width);
+            float vCenter = Mathf.Clamp01(((py - texRect.yMin) + 0.5f) / texRect.height);
+            float sampleX = Mathf.Lerp(rect.xMin, rect.xMax, uCenter);
+            float sampleY = Mathf.Lerp(rect.yMin, rect.yMax, vCenter);
+            this.hasLastSample    = true;
+            this.lastSampleWorldPos = silRt.TransformPoint(new Vector3(sampleX, sampleY, 0f));
+            this.lastSamplePixel  = new Vector2Int(px, py);
+            this.lastSampleColor  = pixel;
+            this.lastSampleHex    = hex;
+#endif
+            return zone;
+        }
+
+        internal static ShotZone ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)
+        {
+            if (definitions == null || definitions.Length == 0)
+                return ShotZone.Miss;
+
+            float bestDistSq = float.MaxValue;
+            ShotZone bestZone = ShotZone.Miss;
+            bool found = false;
+
+            foreach (var def in definitions)
+            {
+                float dr = pixel.r - def.color.r;
+                float dg = pixel.g - def.color.g;
+                float db = pixel.b - def.color.b;
+                float distSq = dr * dr + dg * dg + db * db;
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    bestZone   = def.zone;
+                    found      = true;
+                }
+            }
+
+            return (found && bestDistSq <= tolerance * tolerance) ? bestZone : ShotZone.Miss;
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
@@ -174,6 +259,18 @@ namespace CrimsonDraft.Combat
             var   center = this.aimSpace.TransformPoint(this.confirmedLocalPos);
             UnityEditor.Handles.color = new Color(0f, 0.9f, 1f, 0.8f);
             UnityEditor.Handles.DrawWireDisc(center, Vector3.forward, radius);
+
+            if (this.hasLastSample)
+            {
+                float markerRadius = Mathf.Max(2f * this.aimSpace.lossyScale.x, 0.01f);
+                UnityEditor.Handles.color = this.lastSampleColor;
+                UnityEditor.Handles.DrawSolidDisc(this.lastSampleWorldPos, Vector3.forward, markerRadius);
+                UnityEditor.Handles.color = Color.yellow;
+                UnityEditor.Handles.DrawWireDisc(this.lastSampleWorldPos, Vector3.forward, markerRadius * 1.8f);
+                UnityEditor.Handles.Label(
+                    this.lastSampleWorldPos + new Vector3(0.1f, 0.1f, 0f),
+                    $"px:{this.lastSamplePixel.x},{this.lastSamplePixel.y} color:{this.lastSampleHex}");
+            }
         }
 #endif
 
