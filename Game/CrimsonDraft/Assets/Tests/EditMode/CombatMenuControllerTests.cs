@@ -239,12 +239,13 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeAimView : IAimView
         {
-            public event Action<Vector2>? OnShotFired;
+            public event Action<Vector2, ShotZone>? OnShotFired;
             public bool IsVisible { get; private set; }
             public void Show()    => this.IsVisible = true;
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
-            public void FireShot(Vector2 pos) => this.OnShotFired?.Invoke(pos);
+            public void FireShot(Vector2 pos, ShotZone zone = ShotZone.Miss) =>
+                this.OnShotFired?.Invoke(pos, zone);
         }
 
         private sealed class FakeBattlefieldView : IBattlefieldView

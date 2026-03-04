@@ -209,8 +209,10 @@ namespace CrimsonDraft.Combat
 
         private void HandleItemSelected(int index) { }
 
-        private void HandleShotFired(Vector2 _)
+        private void HandleShotFired(Vector2 normalizedPos, ShotZone zone)
         {
+            _ = normalizedPos;
+            _ = zone;
             this.aimView.OnShotFired -= this.HandleShotFired;
             this.aimView.Hide();
             this.commandPanel.Hide();
