@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 namespace CrimsonDraft.Combat
@@ -11,6 +12,7 @@ namespace CrimsonDraft.Combat
         private sealed class EnemyRuntimeState
         {
             public int CurrentHp;
+            public int MaxHp;
             public bool IsDead;
         }
 
@@ -18,12 +20,16 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Transform[] playerSlotTransforms = Array.Empty<Transform>();
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
+        [SerializeField] private Material?   enemyDeathFadeMaterial;
+        [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
 
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
         private readonly Dictionary<int, GameObject> enemyGoBySlot = new();
+        private readonly Dictionary<int, SpriteRenderer> enemyRendererBySlot = new();
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
+        private static readonly int FadePropId = Shader.PropertyToID("_Fade");
 
         private void Awake()
         {
@@ -38,6 +44,7 @@ namespace CrimsonDraft.Combat
             this.spawnedSprites.Clear();
             this.enemyStateBySlot.Clear();
             this.enemyGoBySlot.Clear();
+            this.enemyRendererBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -53,11 +60,20 @@ namespace CrimsonDraft.Combat
                 sr.sprite = enemy.Sprite;
                 sr.sortingLayerName = "Combat";
                 sr.sortingOrder = 0;
+                if (this.enemyDeathFadeMaterial != null)
+                {
+                    var materialInstance = new Material(this.enemyDeathFadeMaterial);
+                    if (materialInstance.HasProperty(FadePropId))
+                        materialInstance.SetFloat(FadePropId, 0f);
+                    sr.sharedMaterial = materialInstance;
+                }
                 this.spawnedSprites.Add(go);
                 this.enemyGoBySlot[i] = go;
+                this.enemyRendererBySlot[i] = sr;
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
                     CurrentHp = Mathf.Max(1, enemy.MaxHp),
+                    MaxHp = Mathf.Max(1, enemy.MaxHp),
                     IsDead = false
                 };
             }
@@ -104,7 +120,13 @@ namespace CrimsonDraft.Combat
 
             state.IsDead = true;
             if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                go.SetActive(false);
+            {
+                if (this.enemyRendererBySlot.TryGetValue(slotIndex, out var sr) && sr != null && sr.sharedMaterial != null &&
+                    sr.sharedMaterial.HasProperty(FadePropId))
+                    StartCoroutine(this.FadeOutAndHideEnemy(go, sr));
+                else
+                    go.SetActive(false);
+            }
 
             var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
             foreach (int slot in this.occupiedEnemySlots)
@@ -118,6 +140,34 @@ namespace CrimsonDraft.Combat
         }
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo, SpriteRenderer sr)
+        {
+            if (enemyGo == null || sr == null || sr.sharedMaterial == null)
+            {
+                if (enemyGo != null) enemyGo.SetActive(false);
+                yield break;
+            }
+
+            var mat = sr.sharedMaterial;
+            if (!mat.HasProperty(FadePropId))
+            {
+                enemyGo.SetActive(false);
+                yield break;
+            }
+
+            float elapsed = 0f;
+            float duration = Mathf.Max(0.01f, this.enemyDeathFadeDuration);
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                mat.SetFloat(FadePropId, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+
+            mat.SetFloat(FadePropId, 1f);
+            enemyGo.SetActive(false);
+        }
 
         public void SetOperatorIndicator(int slotIndex)
         {
@@ -145,5 +195,32 @@ namespace CrimsonDraft.Combat
         {
             this.enemyTargetIndicator.SetActive(false);
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            if (this.enemySlotTransforms == null) return;
+
+            foreach (var kvp in this.enemyStateBySlot)
+            {
+                int slot = kvp.Key;
+                var state = kvp.Value;
+                if (slot < 0 || slot >= this.enemySlotTransforms.Length) continue;
+                if (this.enemySlotTransforms[slot] == null) continue;
+
+                float hpRatio = state.MaxHp > 0 ? (float)state.CurrentHp / state.MaxHp : 0f;
+                var labelPos = this.enemySlotTransforms[slot].position + new Vector3(0f, 0.9f, 0f);
+
+                UnityEditor.Handles.color = state.IsDead
+                    ? Color.gray
+                    : Color.Lerp(Color.red, Color.green, hpRatio);
+
+                string text = state.IsDead
+                    ? $"Enemy {slot} - DEAD"
+                    : $"Enemy {slot} - HP {state.CurrentHp}/{state.MaxHp}";
+                UnityEditor.Handles.Label(labelPos, text);
+            }
+        }
+#endif
     }
 }
