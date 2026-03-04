@@ -23,12 +23,15 @@ El **punto de impacto final** (output del [[Sistema de Dispersión y Apuntado]],
 
 Cada entrada de la paleta define un par `color → ShotZone`. El sistema busca el color de paleta con menor distancia euclidiana RGB al píxel muestreado.
 
-| Color en sprite | ShotZone | Descripción                       |
-|-----------------|----------|-----------------------------------|
-| Blanco `#FFFFFF`| Hit      | Zona válida — el disparo acertó   |
+| Color en sprite | ShotZone | Descripción                         |
+|-----------------|----------|-------------------------------------|
+| Rojo `#FF0000`  | Head     | Zona de cabeza                      |
+| Verde `#00FF00` | Torso    | Zona de torso                       |
+| Azul `#0000FF`  | Arms     | Zona de brazos                      |
+| Amarillo `#FFFF00` | Legs  | Zona de piernas                     |
 | Negro `#000000` | Miss     | Fuera de silueta — el disparo falló |
 
-> Esta es la configuración mínima de la iteración actual. Las zonas anatómicas se añaden como nuevas entradas de paleta sin cambiar la arquitectura.
+`Hit` se mantiene en el enum por compatibilidad, pero la segmentación recomendada de zonas usa `Head/Torso/Arms/Legs/Miss`.
 
 ### Proceso de Detección
 
@@ -42,19 +45,19 @@ Cada entrada de la paleta define un par `color → ShotZone`. El sistema busca e
 7. Si ninguna entrada supera la tolerancia → ShotZone = Miss
 ```
 
-### Zonas Anatómicas (iteración futura)
+### Variante de Borde (daño reducido futuro)
 
-Cuando se añadan zonas de cuerpo, la paleta se expande con nuevos colores. La silueta del sprite se divide en regiones pintadas con el color correspondiente.
+Para distinguir centro vs borde del mismo miembro sin añadir nuevos enums, usar tonos más oscuros en el borde y mapearlos al mismo `ShotZone`.
 
-| Color          | ShotZone  | Multiplicador de daño | Prob. hemorragia |
-|----------------|-----------|-----------------------|------------------|
-| Rojo `#FF0000` | Head      | ×2.5                  | 80%              |
-| Verde `#00FF00`| Torso     | ×1.0                  | 60%              |
-| Azul `#0000FF` | Arms      | ×0.6                  | 40%              |
-| Amarillo       | Legs      | ×0.7                  | 50%              |
-| Negro `#000000`| Miss      | —                     | —                |
+| Zona  | Centro   | Borde    |
+|-------|----------|----------|
+| Head  | `#FF0000` | `#B30000` |
+| Torso | `#00FF00` | `#00B300` |
+| Arms  | `#0000FF` | `#0000B3` |
+| Legs  | `#FFFF00` | `#B3B300` |
+| Miss  | `#000000` | `#000000` |
 
-Los multiplicadores y probabilidades se toman del [[Sistema de Salud]].
+Los multiplicadores de daño por centro/borde se conectarán en una iteración posterior al [[Sistema de Salud]].
 
 ### Flujo de Datos
 
@@ -88,7 +91,7 @@ Las zonas anatómicas futuras añaden la decisión de dónde apuntar: un headsho
 
 ## Pendiente
 
-- [ ] Añadir zonas anatómicas (Head, Torso, Arms, Legs) al sprite y a la paleta
+- [ ] Definir fórmula de daño para centro vs borde por zona
 - [ ] Definir feedback visual de hit/miss (efecto en la silueta, sonido de impacto)
 - [ ] Conectar ShotZone al cálculo de daño en [[Sistema de Salud]]
 - [ ] Definir comportamiento cuando el disparo sale completamente fuera del AimSpace
