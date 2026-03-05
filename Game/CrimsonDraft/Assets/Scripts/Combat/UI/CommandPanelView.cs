@@ -27,12 +27,20 @@ namespace CrimsonDraft.Combat
             public CombatCommand  command;
         }
 
+        private sealed class EntryVisualState
+        {
+            public Graphic[] Graphics = Array.Empty<Graphic>();
+            public Color[]   Colors   = Array.Empty<Color>();
+        }
+
         [SerializeField] private CommandEntry[] entries        = Array.Empty<CommandEntry>();
         [SerializeField] private Vector2        offset         = Vector2.zero;
         [SerializeField] private Image          dimmingOverlay = null!;
 
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
+        private EntryVisualState[] entryVisualStates = Array.Empty<EntryVisualState>();
+        private static readonly Color DisabledCommandColor = new Color(0.45f, 0.45f, 0.45f, 1f);
 
         #endregion
 
@@ -57,6 +65,18 @@ namespace CrimsonDraft.Combat
         }
 
         public void Focus() => SelectFirstNextFrame().Forget();
+
+        public void SetCommandEnabled(CombatCommand command, bool enabled)
+        {
+            for (int i = 0; i < this.entries.Length; i++)
+            {
+                if (this.entries[i].command != command || this.entries[i].item == null)
+                    continue;
+
+                this.entries[i].item.interactable = enabled;
+                this.ApplyCommandVisualState(i, enabled);
+            }
+        }
 
         public void SetDimmed(bool dimmed)
         {
@@ -85,6 +105,21 @@ namespace CrimsonDraft.Combat
         {
             this.submitHandlers   = new Action[this.entries.Length];
             this.selectedHandlers = new Action[this.entries.Length];
+            this.entryVisualStates = new EntryVisualState[this.entries.Length];
+
+            for (int i = 0; i < this.entries.Length; i++)
+            {
+                var state = new EntryVisualState();
+                if (this.entries[i].item != null)
+                {
+                    state.Graphics = this.entries[i].item.GetComponentsInChildren<Graphic>(includeInactive: true);
+                    state.Colors   = new Color[state.Graphics.Length];
+                    for (int g = 0; g < state.Graphics.Length; g++)
+                        state.Colors[g] = state.Graphics[g].color;
+                }
+
+                this.entryVisualStates[i] = state;
+            }
         }
 
         private void OnEnable()
@@ -114,11 +149,40 @@ namespace CrimsonDraft.Combat
 
         #region Private
 
+        private void ApplyCommandVisualState(int index, bool enabled)
+        {
+            if (index < 0 || index >= this.entryVisualStates.Length)
+                return;
+
+            var state = this.entryVisualStates[index];
+            for (int i = 0; i < state.Graphics.Length; i++)
+            {
+                var g = state.Graphics[i];
+                if (g == null)
+                    continue;
+
+                Color color = enabled ? state.Colors[i] : DisabledCommandColor;
+                g.color = color;
+            }
+        }
+
         private async UniTaskVoid SelectFirstNextFrame()
         {
             await UniTask.NextFrame();
-            if (this.entries.Length > 0)
-                EventSystem.current.SetSelectedGameObject(this.entries[0].item.gameObject);
+            if (this.entries.Length == 0 || EventSystem.current == null)
+                return;
+
+            int focusIndex = 0;
+            for (int i = 0; i < this.entries.Length; i++)
+            {
+                if (this.entries[i].item != null && this.entries[i].item.interactable)
+                {
+                    focusIndex = i;
+                    break;
+                }
+            }
+
+            EventSystem.current.SetSelectedGameObject(this.entries[focusIndex].item.gameObject);
         }
 
         #endregion

@@ -12,6 +12,7 @@ namespace CrimsonDraft.Combat
         RectTransform GetOperatorAnchor(int index);
         RectTransform GetOperatorRect(int index);
         void MoveSelectorTo(RectTransform anchor);
+        void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo);
         void SetDimmed(bool dimmed);
     }
 }

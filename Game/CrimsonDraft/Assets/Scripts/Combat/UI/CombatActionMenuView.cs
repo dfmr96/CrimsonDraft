@@ -3,6 +3,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Combat
         #region Fields
 
         [SerializeField] private ActionMenuItem[] operators       = Array.Empty<ActionMenuItem>();
+        [SerializeField] private TMP_Text[]       operatorAmmoLabels = Array.Empty<TMP_Text>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
@@ -39,6 +41,7 @@ namespace CrimsonDraft.Combat
             var le = this.selectorMark.GetComponent<LayoutElement>();
             if (le == null) le = this.selectorMark.gameObject.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
+            this.TryAutoWireOperatorAmmoLabels();
         }
 
         private void OnEnable()
@@ -91,6 +94,47 @@ namespace CrimsonDraft.Combat
         private void MoveSelector(int index) =>
             MoveSelectorTo(this.operators[index].SelectorAnchor);
 
+        private void TryAutoWireOperatorAmmoLabels()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorAmmoLabels != null && this.operatorAmmoLabels.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorAmmoLabels[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorAmmoLabels = new TMP_Text[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var ammoNode = overview.Find("WeaponAmmo");
+                if (ammoNode == null)
+                    continue;
+
+                this.operatorAmmoLabels[i] = ammoNode.GetComponent<TMP_Text>();
+            }
+        }
+
         #endregion
 
         #region ICombatActionMenuView
@@ -129,6 +173,26 @@ namespace CrimsonDraft.Combat
                 this.selectorMark.DOKill();
                 this.selectorMark.gameObject.SetActive(false);
             }
+        }
+
+        public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)
+        {
+            if (index < 0 || index >= this.operatorAmmoLabels.Length)
+                return;
+
+            var label = this.operatorAmmoLabels[index];
+            if (label == null)
+                return;
+
+            int current = Mathf.Max(0, currentAmmo);
+            int max     = Mathf.Max(1, maxAmmo);
+            if (current == 0)
+            {
+                label.text = $"<color=#FF3B3B>0</color>/{max}";
+                return;
+            }
+
+            label.text = $"{current}/{max}";
         }
 
         public void MoveSelectorTo(RectTransform anchor)
