@@ -180,4 +180,85 @@ La muerte de un aliado no termina el combate, pero lo hace mecanicamente mas dif
 
 ---
 
+## Salud de Enemigos (MVP)
+
+En esta iteracion, los enemigos pasan a tener **HP interno** y los disparos del jugador aplican daño real al objetivo seleccionado.
+
+### Variables de salud por enemigo (runtime)
+
+| Variable | Tipo | Descripcion |
+|---|---|---|
+| `max_hp` | int | Vida maxima del enemigo. Se define en data del enemigo |
+| `current_hp` | int | Vida actual durante el combate |
+| `is_dead` | bool | Marca de muerte. Si es `true`, no recibe mas daño |
+
+`current_hp` vive solo durante el combate. No modifica el asset fuente.
+
+### Daño base y multiplicadores de zona
+
+El daño de esta fase es deliberadamente simple para destrabar gameplay:
+
+- `base_damage = 20` (fijo)
+- No depende todavia de sistema de armas
+
+Multiplicadores por zona:
+
+| Zona (`ShotZone`) | Multiplicador |
+|---|---|
+| `Head` | 2.0 |
+| `Torso` | 1.0 |
+| `Arms` | 0.7 |
+| `Legs` | 0.8 |
+| `Hit` | 1.0 (compatibilidad) |
+| `Miss` | 0.0 |
+
+### Flujo de resolucion de disparo a enemigo
+
+```
+1. Jugador confirma target enemigo
+2. Resuelve QTE de apuntado
+3. Hit detection entrega ShotZone
+4. damage = base_damage * multiplier(ShotZone)
+5. current_hp = current_hp - damage
+6. Si current_hp <= 0:
+   - is_dead = true
+   - ocultar sprite del enemigo en battlefield
+   - recalcular lista de enemigos vivos
+7. Si enemigos vivos == 0:
+   - victoria de combate
+```
+
+### Regla visual de muerte (temporal)
+
+Cuando un enemigo muere en esta iteracion:
+
+- Se **oculta su sprite** (sin animacion de cadaver)
+- Se libera su slot como objetivo seleccionable
+
+Esta decision es temporal hasta tener assets de muerte/cadaver.
+
+### Debug y telemetria de desarrollo
+
+El logging de daño/zona en esta fase se limita a entorno editor:
+
+- Logs de impacto solo bajo `#if UNITY_EDITOR`
+- En build final no debe quedar spam de combate
+
+### Casos borde definidos
+
+| Caso | Resultado esperado |
+|---|---|
+| Disparo con `Miss` | 0 daño |
+| Disparo sobre enemigo ya muerto | Se ignora |
+| Muere enemigo target actual | El cursor salta al siguiente vivo (si existe) |
+| No quedan enemigos vivos | Fin de combate con victoria |
+
+### Relacion con otros sistemas
+
+- Usa `ShotZone` desde [[Sistema de Deteccion de Impacto]]
+- Respeta loop de tiempo real de este documento
+- Queda preparado para conectar daño real de armas en iteracion futura (ver [[Diseño de Combate y Armas]])
+
+---
+
 Volver a [[Crimson Draft]]

@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -13,13 +14,13 @@ namespace CrimsonDraft.Combat
     {
         #region Events
 
-        public event Action<Vector2, ShotZone>? OnShotFired;
+        public event Action<ResolvedShot[]>? OnShotsResolved;
 
         #endregion
 
         #region Fields
 
-        private enum AimPhase { VerticalAiming, HorizontalAiming, WaitingDismiss }
+        private enum AimPhase { VerticalAiming, HorizontalAiming, WaitingResolve, ResolvingSequence, WaitingDismiss }
 
         [SerializeField] private RectTransform verticalSpace          = null!;
         [SerializeField] private Image         verticalSelector       = null!;
@@ -30,34 +31,36 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
         [SerializeField] private RectTransform feedbackRoot           = null!;
-        [SerializeField] private GameObject    feedbackTextPrefab      = null!;
+        [SerializeField] private GameObject    feedbackTextPrefab     = null!;
         [SerializeField] private float         speed                  = 0.8f;
         [SerializeField] private float         dimmingAlpha           = 0.3f;
         [SerializeField] private int           dispersionRadius       = 10;
         [SerializeField] private Vector2       feedbackOffset         = new Vector2(0f, 24f);
         [SerializeField] private float         feedbackHoldDuration   = 0.25f;
         [SerializeField] private float         feedbackDuration       = 0.6f;
-        [SerializeField] private float         feedbackFloatY         = 18f;
+        [SerializeField] private float         bulletSequenceDelay    = 0.03f;
+        [SerializeField] private float         perBulletYOffset       = 5f;
         [SerializeField] private int           maxConcurrentFeedback  = 3;
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
 
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
-        private Vector2  pendingNormalizedShot;
-        private ShotZone pendingZone;
-        private Sprite?               activeZoneMaskSprite;
-        private ShotZoneDefinition[]  activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
-        private float                 activeColorTolerance  = 0.1f;
-        private bool                  warnedMissingMaskConfig;
+        private int      shotCount = 1;
+        private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
+        private bool isResolvingSequence;
+
+        private Sprite?              activeZoneMaskSprite;
+        private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
+        private float                activeColorTolerance  = 0.1f;
+        private bool                 warnedMissingMaskConfig;
         private readonly List<GameObject> activeFeedback = new List<GameObject>();
-        private bool externalFeedbackConsumedForPendingShot;
 #if UNITY_EDITOR
-        private bool     hasLastSample;
-        private Vector3  lastSampleWorldPos;
+        private bool       hasLastSample;
+        private Vector3    lastSampleWorldPos;
         private Vector2Int lastSamplePixel;
-        private Color    lastSampleColor;
-        private string   lastSampleHex = "#000000";
+        private Color      lastSampleColor;
+        private string     lastSampleHex = "#000000";
 #endif
 
         #endregion
@@ -81,26 +84,170 @@ namespace CrimsonDraft.Combat
             this.activeColorTolerance  = profile.ColorTolerance;
         }
 
+        public void SetShotCount(int shotCount)
+        {
+            this.shotCount = Mathf.Max(1, shotCount);
+        }
+
         public void Show()
         {
             this.gameObject.SetActive(true);
             this.StartVerticalOscillation();
             this.phase = AimPhase.VerticalAiming;
+            this.pendingResolvedShots = Array.Empty<ResolvedShot>();
+            this.isResolvingSequence = false;
         }
 
-        public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
+        public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss) =>
+            this.SpawnShotFeedbackVisual(normalizedPos, damage, isMiss);
+
+        public void Confirm()
         {
-            // If this shot was already rendered at marker-spawn time, ignore the
-            // later call coming from CombatMenuController on submit.
-            if (this.externalFeedbackConsumedForPendingShot &&
-                this.phase == AimPhase.WaitingDismiss &&
-                IsSameShot(normalizedPos, this.pendingNormalizedShot))
+            if (this.phase == AimPhase.VerticalAiming)
             {
-                this.externalFeedbackConsumedForPendingShot = false;
+                this.verticalSelector.rectTransform.DOKill();
+                var vLocal = this.verticalSelector.rectTransform.localPosition;
+                vLocal.y   = Mathf.Round(vLocal.y);
+                this.verticalSelector.rectTransform.localPosition = vLocal;
+
+                this.verticalSelector.DOFade(this.dimmingAlpha, 0.15f);
+                this.StartHorizontalOscillation();
+                this.phase = AimPhase.HorizontalAiming;
                 return;
             }
 
-            this.SpawnShotFeedbackVisual(normalizedPos, damage, isMiss);
+            if (this.phase == AimPhase.HorizontalAiming)
+            {
+                this.horizontalSelector.rectTransform.DOKill();
+                var hLocal = this.horizontalSelector.rectTransform.localPosition;
+                hLocal.x   = Mathf.Round(hLocal.x);
+                this.horizontalSelector.rectTransform.localPosition = hLocal;
+
+                this.horizontalSelector.DOFade(this.dimmingAlpha, 0.15f);
+
+                var worldIntersection = new Vector3(
+                    this.horizontalSelector.rectTransform.position.x,
+                    this.verticalSelector.rectTransform.position.y,
+                    this.aimSpace.position.z);
+                var raw = this.aimSpace.InverseTransformPoint(worldIntersection);
+                this.confirmedLocalPos = new Vector2(Mathf.Round(raw.x), Mathf.Round(raw.y));
+                this.SpawnDispersionCircle(this.confirmedLocalPos);
+
+                var firstShotLocal = this.ComputeRandomShotLocal();
+                this.pendingResolvedShots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
+                this.phase = AimPhase.WaitingResolve;
+                return;
+            }
+
+            if (this.phase == AimPhase.WaitingResolve && !this.isResolvingSequence)
+                this.ResolvePendingShotsAsync().Forget();
+        }
+
+        public void Hide()
+        {
+            this.verticalSelector.DOKill();
+            this.verticalSelector.rectTransform.DOKill();
+            this.horizontalSelector.DOKill();
+            this.horizontalSelector.rectTransform.DOKill();
+            this.DetachFeedbackFromAimView();
+
+            foreach (Transform child in this.aimSpace)
+                Destroy(child.gameObject);
+
+            this.pendingResolvedShots = Array.Empty<ResolvedShot>();
+            this.isResolvingSequence = false;
+            this.gameObject.SetActive(false);
+        }
+
+        #endregion
+
+        #region Private
+
+        private void StartVerticalOscillation()
+        {
+            float halfH = Mathf.Floor(this.verticalSpace.rect.height / 2f);
+            this.verticalSelector.DOKill();
+            this.verticalSelector.rectTransform.DOKill();
+            this.verticalSelector.DOFade(1f, 0f);
+            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, -halfH, 0f);
+            this.verticalSelector.rectTransform
+                .DOLocalMoveY(halfH, this.speed, snapping: true)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine);
+        }
+
+        private void StartHorizontalOscillation()
+        {
+            float halfW = Mathf.Floor(this.horizontalSpace.rect.width / 2f);
+            this.horizontalSelector.DOKill();
+            this.horizontalSelector.rectTransform.DOKill();
+            this.horizontalSelector.DOFade(1f, 0f);
+            this.horizontalSelector.rectTransform.localPosition = new Vector3(-halfW, 0f, 0f);
+            this.horizontalSelector.rectTransform
+                .DOLocalMoveX(halfW, this.speed, snapping: true)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine);
+        }
+
+        private ResolvedShot[] BuildResolvedShots(Vector2 firstShotLocal, int count)
+        {
+            int clampedCount = Mathf.Max(1, count);
+            var resolved = new ResolvedShot[clampedCount];
+            for (int i = 0; i < clampedCount; i++)
+            {
+                Vector2 shotLocal = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
+                Vector2 normalized = this.NormalizeShotLocal(shotLocal);
+                ShotZone zone = this.SampleSilhouette(shotLocal);
+                int damage = CombatMenuController.ComputeShotDamage(zone);
+                resolved[i] = new ResolvedShot(i, normalized, zone, damage);
+            }
+            return resolved;
+        }
+
+        private async UniTaskVoid ResolvePendingShotsAsync()
+        {
+            this.isResolvingSequence = true;
+            this.phase = AimPhase.ResolvingSequence;
+
+            if (this.pendingResolvedShots.Length == 0)
+            {
+                this.OnShotsResolved?.Invoke(Array.Empty<ResolvedShot>());
+                this.isResolvingSequence = false;
+                this.phase = AimPhase.WaitingDismiss;
+                return;
+            }
+
+            for (int i = 0; i < this.pendingResolvedShots.Length; i++)
+            {
+                var shot = this.pendingResolvedShots[i];
+                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
+                this.SpawnMarker(local);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+
+                if (i < this.pendingResolvedShots.Length - 1 && this.bulletSequenceDelay > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
+            }
+
+            this.OnShotsResolved?.Invoke(this.pendingResolvedShots);
+            this.isResolvingSequence = false;
+            this.phase = AimPhase.WaitingDismiss;
+        }
+
+        private void SpawnMarker(Vector2 localPos)
+        {
+            var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
+            ((RectTransform)marker.transform).localPosition = new Vector3(
+                Mathf.Round(localPos.x),
+                Mathf.Round(localPos.y),
+                0f);
+        }
+
+        private void SpawnDispersionCircle(Vector2 localPos)
+        {
+            var circle = Instantiate(this.dispersionCirclePrefab, this.aimSpace);
+            var rt     = (RectTransform)circle.transform;
+            rt.localPosition = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
+            circle.GetComponent<Image>().SetNativeSize();
         }
 
         private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
@@ -171,117 +318,6 @@ namespace CrimsonDraft.Combat
             });
         }
 
-        public void Confirm()
-        {
-            if (this.phase == AimPhase.VerticalAiming)
-            {
-                this.verticalSelector.rectTransform.DOKill();
-                var vLocal = this.verticalSelector.rectTransform.localPosition;
-                vLocal.y   = Mathf.Round(vLocal.y);
-                this.verticalSelector.rectTransform.localPosition = vLocal;
-
-                this.verticalSelector.DOFade(this.dimmingAlpha, 0.15f);
-                this.StartHorizontalOscillation();
-                this.phase = AimPhase.HorizontalAiming;
-            }
-            else if (this.phase == AimPhase.HorizontalAiming)
-            {
-                this.horizontalSelector.rectTransform.DOKill();
-                var hLocal = this.horizontalSelector.rectTransform.localPosition;
-                hLocal.x   = Mathf.Round(hLocal.x);
-                this.horizontalSelector.rectTransform.localPosition = hLocal;
-
-                this.horizontalSelector.DOFade(this.dimmingAlpha, 0.15f);
-
-                var worldIntersection = new Vector3(
-                    this.horizontalSelector.rectTransform.position.x,
-                    this.verticalSelector.rectTransform.position.y,
-                    this.aimSpace.position.z);
-                var raw = this.aimSpace.InverseTransformPoint(worldIntersection);
-                this.confirmedLocalPos = new Vector2(Mathf.Round(raw.x), Mathf.Round(raw.y));
-
-                this.SpawnDispersionCircle(this.confirmedLocalPos);
-                var shotLocal = this.ComputeRandomShotLocal();
-                this.SpawnMarker(shotLocal);
-                this.pendingNormalizedShot = this.NormalizeShotLocal(shotLocal);
-                this.pendingZone           = this.SampleSilhouette(shotLocal);
-                int pendingDamage          = CombatMenuController.ComputeShotDamage(this.pendingZone);
-                bool pendingMiss           = this.pendingZone == ShotZone.Miss;
-
-                // Render feedback immediately with the shot marker.
-                this.SpawnShotFeedbackVisual(this.pendingNormalizedShot, pendingDamage, pendingMiss);
-                this.externalFeedbackConsumedForPendingShot = true;
-
-                this.phase = AimPhase.WaitingDismiss;
-            }
-            else if (this.phase == AimPhase.WaitingDismiss)
-            {
-                this.OnShotFired?.Invoke(this.pendingNormalizedShot, this.pendingZone);
-            }
-        }
-
-        public void Hide()
-        {
-            this.verticalSelector.DOKill();
-            this.verticalSelector.rectTransform.DOKill();
-            this.horizontalSelector.DOKill();
-            this.horizontalSelector.rectTransform.DOKill();
-            this.DetachFeedbackFromAimView();
-
-            foreach (Transform child in this.aimSpace)
-                Destroy(child.gameObject);
-
-            this.externalFeedbackConsumedForPendingShot = false;
-            this.gameObject.SetActive(false);
-        }
-
-        #endregion
-
-        #region Private
-
-        private void StartVerticalOscillation()
-        {
-            float halfH = Mathf.Floor(this.verticalSpace.rect.height / 2f);
-            this.verticalSelector.DOKill();
-            this.verticalSelector.rectTransform.DOKill();
-            this.verticalSelector.DOFade(1f, 0f);
-            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, -halfH, 0f);
-            this.verticalSelector.rectTransform
-                .DOLocalMoveY(halfH, this.speed, snapping: true)
-                .SetLoops(-1, LoopType.Yoyo)
-                .SetEase(Ease.InOutSine);
-        }
-
-        private void StartHorizontalOscillation()
-        {
-            float halfW = Mathf.Floor(this.horizontalSpace.rect.width / 2f);
-            this.horizontalSelector.DOKill();
-            this.horizontalSelector.rectTransform.DOKill();
-            this.horizontalSelector.DOFade(1f, 0f);
-            this.horizontalSelector.rectTransform.localPosition = new Vector3(-halfW, 0f, 0f);
-            this.horizontalSelector.rectTransform
-                .DOLocalMoveX(halfW, this.speed, snapping: true)
-                .SetLoops(-1, LoopType.Yoyo)
-                .SetEase(Ease.InOutSine);
-        }
-
-        private void SpawnMarker(Vector2 localPos)
-        {
-            var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
-            ((RectTransform)marker.transform).localPosition = new Vector3(
-                Mathf.Round(localPos.x),
-                Mathf.Round(localPos.y),
-                0f);
-        }
-
-        private void SpawnDispersionCircle(Vector2 localPos)
-        {
-            var circle = Instantiate(this.dispersionCirclePrefab, this.aimSpace);
-            var rt     = (RectTransform)circle.transform;
-            rt.localPosition = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
-            circle.GetComponent<Image>().SetNativeSize();
-        }
-
         private Vector2 ComputeRandomShotLocal()
         {
             float angle = UnityEngine.Random.value * Mathf.PI * 2f;
@@ -309,16 +345,6 @@ namespace CrimsonDraft.Combat
                 Mathf.Lerp(-halfH, halfH, Mathf.Clamp01(normalizedPos.y)));
         }
 
-        private void ClearFeedback()
-        {
-            foreach (var feedback in this.activeFeedback)
-            {
-                if (feedback != null)
-                    Destroy(feedback);
-            }
-            this.activeFeedback.Clear();
-        }
-
         private void DetachFeedbackFromAimView()
         {
             var overlayRoot = this.feedbackRoot != null
@@ -343,11 +369,10 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        private static bool IsSameShot(Vector2 a, Vector2 b)
-        {
-            const float epsilon = 0.0001f;
-            return (a - b).sqrMagnitude <= epsilon * epsilon;
-        }
+        internal static Vector2 ComputeBulletLocalFromPrimary(Vector2 primaryLocal, int bulletIndex, float perBulletYOffset) =>
+            new Vector2(
+                Mathf.Round(primaryLocal.x),
+                Mathf.Round(primaryLocal.y + Mathf.Max(0, bulletIndex) * perBulletYOffset));
 
         private ShotZone SampleSilhouette(Vector2 shotLocal)
         {
@@ -391,11 +416,11 @@ namespace CrimsonDraft.Combat
             float vCenter = Mathf.Clamp01(((py - texRect.yMin) + 0.5f) / texRect.height);
             float sampleX = Mathf.Lerp(rect.xMin, rect.xMax, uCenter);
             float sampleY = Mathf.Lerp(rect.yMin, rect.yMax, vCenter);
-            this.hasLastSample    = true;
+            this.hasLastSample      = true;
             this.lastSampleWorldPos = silRt.TransformPoint(new Vector3(sampleX, sampleY, 0f));
-            this.lastSamplePixel  = new Vector2Int(px, py);
-            this.lastSampleColor  = pixel;
-            this.lastSampleHex    = hex;
+            this.lastSamplePixel    = new Vector2Int(px, py);
+            this.lastSampleColor    = pixel;
+            this.lastSampleHex      = hex;
 #endif
             return zone;
         }

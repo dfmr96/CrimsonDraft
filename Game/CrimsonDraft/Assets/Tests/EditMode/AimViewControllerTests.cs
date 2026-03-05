@@ -84,5 +84,26 @@ namespace CrimsonDraft.Tests
 
             UnityEngine.Object.DestroyImmediate(profile);
         }
+
+        [Test]
+        public void ComputeBulletLocalFromPrimary_indexZero_hasNoYOffset()
+        {
+            var result = AimViewController.ComputeBulletLocalFromPrimary(new Vector2(10f, 20f), 0, 5f);
+            Assert.AreEqual(new Vector2(10f, 20f), result);
+        }
+
+        [Test]
+        public void ComputeBulletLocalFromPrimary_indexOne_addsFiveY()
+        {
+            var result = AimViewController.ComputeBulletLocalFromPrimary(new Vector2(10f, 20f), 1, 5f);
+            Assert.AreEqual(new Vector2(10f, 25f), result);
+        }
+
+        [Test]
+        public void ComputeBulletLocalFromPrimary_indexTwo_addsTenY()
+        {
+            var result = AimViewController.ComputeBulletLocalFromPrimary(new Vector2(10f, 20f), 2, 5f);
+            Assert.AreEqual(new Vector2(10f, 30f), result);
+        }
     }
 }

@@ -6,8 +6,9 @@ namespace CrimsonDraft.Combat
 {
     public interface IAimView
     {
-        event Action<Vector2, ShotZone>? OnShotFired;
+        event Action<ResolvedShot[]>? OnShotsResolved;
         void ConfigureHitMask(AimHitMaskProfile? profile);
+        void SetShotCount(int shotCount);
         void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss);
         void Show();
         void Confirm();

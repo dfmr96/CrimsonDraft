@@ -13,9 +13,11 @@
 
 ### Sistemas de Juego (detalle)
 - [[Sistema de Combate en Tiempo Real]]
+- [[Sistema de Conteo de Balas por Disparo]]
 - [[Diseño de Combate y Armas]]
 - [[Sistema de Dispersion y Apuntado]]
 - [[Sistema de Deteccion de Impacto]]
+- [[Sistema de Feedback de Daño de Disparo]]
 - [[Distractores Visuales]]
 - [[Sistema de Salud]]
 - [[Sistema de Inventario]]
@@ -72,3 +74,5 @@
 
 **Tema:**
 > Dependencia como herramienta de poder. El verdadero monstruo no es el infectado. Es el sistema que lo diseño.
+
+
