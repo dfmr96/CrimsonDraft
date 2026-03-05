@@ -20,6 +20,7 @@
 - [[Sistema de Feedback de Daño de Disparo]]
 - [[Distractores Visuales]]
 - [[Sistema de Salud]]
+- [[Sistema ECG de Operadores]]
 - [[Sistema de Inventario]]
 - [[Sistema de Movimiento]]
 - [[Mecanicas de Supervivencia]]
@@ -74,5 +75,6 @@
 
 **Tema:**
 > Dependencia como herramienta de poder. El verdadero monstruo no es el infectado. Es el sistema que lo diseño.
+
 
 
