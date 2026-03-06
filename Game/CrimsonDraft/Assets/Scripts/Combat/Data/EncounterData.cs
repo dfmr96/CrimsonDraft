@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
 {

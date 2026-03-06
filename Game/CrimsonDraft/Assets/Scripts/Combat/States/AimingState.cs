@@ -1,0 +1,98 @@
+#nullable enable
+
+using MessagePipe;
+using UnityEngine;
+using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Operators;
+
+namespace CrimsonDraft.Combat
+{
+    internal sealed class AimingState : ICombatMenuState
+    {
+        private readonly CombatMenuController         context;
+        private readonly ICombatActionMenuView        menuView;
+        private readonly ICommandPanelView            commandPanel;
+        private readonly IBattlefieldView             battlefieldView;
+        private readonly IAimView                     aimView;
+        private readonly IPublisher<CombatEndedEvent> publisher;
+        private readonly IOperatorRoster              roster;
+
+        private bool awaitingDismiss;
+
+        internal AimingState(
+            CombatMenuController         context,
+            ICombatActionMenuView        menuView,
+            ICommandPanelView            commandPanel,
+            IBattlefieldView             battlefieldView,
+            IAimView                     aimView,
+            IPublisher<CombatEndedEvent> publisher,
+            IOperatorRoster              roster)
+        {
+            this.context         = context;
+            this.menuView        = menuView;
+            this.commandPanel    = commandPanel;
+            this.battlefieldView = battlefieldView;
+            this.aimView         = aimView;
+            this.publisher       = publisher;
+            this.roster          = roster;
+        }
+
+        public void Enter()
+        {
+            this.awaitingDismiss = false;
+            this.aimView.OnShotsResolved += HandleShotsResolved;
+            this.aimView.Show();
+        }
+
+        public void Exit() =>
+            this.aimView.OnShotsResolved -= HandleShotsResolved;
+
+        public void OnConfirm()
+        {
+            if (this.awaitingDismiss)
+            {
+                CloseAimAndReturnToOperatorSelection();
+                return;
+            }
+            this.aimView.Confirm();
+        }
+
+        private void HandleShotsResolved(ResolvedShot[] shots)
+        {
+            int totalDamage = 0;
+            if (shots != null)
+            {
+                foreach (var shot in shots)
+                    totalDamage += Mathf.Max(0, shot.Damage);
+            }
+
+            if (this.context.CurrentTargetSlot >= 0)
+            {
+                var result = this.battlefieldView.ApplyDamageToEnemy(this.context.CurrentTargetSlot, totalDamage);
+#if UNITY_EDITOR
+                Debug.Log(
+                    $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
+#endif
+            }
+
+            int op = this.context.SelectedOperator;
+            if (this.roster.Count > op)
+                this.roster[op].ConsumeAmmo(this.context.SelectedShotCount);
+
+            if (!this.battlefieldView.HasAliveEnemies())
+                this.publisher.Publish(new CombatEndedEvent { Victory = true });
+
+            this.awaitingDismiss = true;
+        }
+
+        private void CloseAimAndReturnToOperatorSelection()
+        {
+            this.context.CurrentTargetSlot  = -1;
+            this.context.SelectedShotCount  = 1;
+            this.awaitingDismiss            = false;
+            this.aimView.Hide();
+            this.commandPanel.Hide();
+            this.context.TransitionTo(this.context.OperatorSelState);
+        }
+    }
+}

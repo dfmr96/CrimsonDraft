@@ -6,6 +6,7 @@ using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.UI;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation
 {
@@ -25,6 +26,9 @@ namespace CrimsonDraft.Navigation
             builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatTrigger>();
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
+            builder.Register<DefaultOperatorRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
+            builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
+            builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
         }
     }
 }

@@ -4,36 +4,34 @@ using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
 {
     public sealed class EnemyAttackController : MonoBehaviour
     {
-        [SerializeField, Min(1)] private int defaultOperatorHp = 100;
+        private IEncounterContext   encounterContext  = null!;
+        private EncounterDatabase   encounterDatabase = null!;
+        private IBattlefieldView    battlefieldView   = null!;
+        private IOperatorRoster     roster            = null!;
 
-        private IEncounterContext encounterContext = null!;
-        private EncounterDatabase encounterDatabase = null!;
-        private IBattlefieldView battlefieldView = null!;
-        private CombatOperatorHealthBridge healthBridge = null!;
-
-        private EnemyAttackScheduler scheduler = null!;
-        private readonly IRandomSource random = new UnityRandomSource();
-        private readonly HashSet<int> knownAliveEnemySlots = new();
-        private bool[] hasOperatorSlot = System.Array.Empty<bool>();
-        private IOperatorEcgFeedback? ecgFeedback;
-        private bool initialized;
+        private EnemyAttackScheduler    scheduler = null!;
+        private readonly IRandomSource  random    = new UnityRandomSource();
+        private readonly HashSet<int>   knownAliveEnemySlots = new();
+        private IOperatorEcgFeedback?   ecgFeedback;
+        private bool                    initialized;
 
         [Inject]
         public void Construct(
-            IEncounterContext encounterContext,
-            EncounterDatabase encounterDatabase,
-            IBattlefieldView battlefieldView,
-            CombatOperatorHealthBridge healthBridge)
+            IEncounterContext   encounterContext,
+            EncounterDatabase   encounterDatabase,
+            IBattlefieldView    battlefieldView,
+            IOperatorRoster     roster)
         {
-            this.encounterContext = encounterContext;
+            this.encounterContext  = encounterContext;
             this.encounterDatabase = encounterDatabase;
-            this.battlefieldView = battlefieldView;
-            this.healthBridge = healthBridge;
+            this.battlefieldView   = battlefieldView;
+            this.roster            = roster;
         }
 
         private void Start()
@@ -54,18 +52,8 @@ namespace CrimsonDraft.Combat
             for (int i = 0; i < configs.Count; i++)
                 this.knownAliveEnemySlots.Add(configs[i].EnemySlotIndex);
 
-            this.healthBridge.Initialize(encounter.Operators.Length, this.defaultOperatorHp);
-            this.hasOperatorSlot = new bool[encounter.Operators.Length];
-            for (int i = 0; i < encounter.Operators.Length; i++)
-            {
-                bool hasOperator = encounter.Operators[i] != null;
-                this.hasOperatorSlot[i] = hasOperator;
-                if (!hasOperator)
-                    this.healthBridge.ApplyDamage(i, this.defaultOperatorHp);
-            }
-
             this.ecgFeedback = ResolveEcgFeedback();
-            SyncAllOperatorEcgStates(encounter.Operators.Length);
+            SyncAllOperatorEcgStates(this.roster.Count);
             this.initialized = true;
         }
 
@@ -76,28 +64,25 @@ namespace CrimsonDraft.Combat
 
             SyncDeadEnemiesFromBattlefield();
 
-            IReadOnlyList<int> aliveOperators = this.healthBridge.GetAliveSlots();
-            var validAliveOperators = new List<int>(aliveOperators.Count);
-            for (int i = 0; i < aliveOperators.Count; i++)
-            {
-                int slot = aliveOperators[i];
-                if (slot >= 0 && slot < this.hasOperatorSlot.Length && this.hasOperatorSlot[slot])
-                    validAliveOperators.Add(slot);
-            }
-            if (validAliveOperators.Count == 0)
+            IReadOnlyList<int> aliveSlots = this.roster.GetAliveSlots();
+            if (aliveSlots.Count == 0)
                 return;
+
+            var validAliveOperators = new List<int>(aliveSlots.Count);
+            for (int i = 0; i < aliveSlots.Count; i++)
+                validAliveOperators.Add(aliveSlots[i]);
 
             if (!this.scheduler.TryScheduleAttack(Time.time, validAliveOperators, out var attack))
                 return;
 
-            this.healthBridge.ApplyDamage(attack.TargetOperatorSlotIndex, attack.Damage);
+            this.roster[attack.TargetOperatorSlotIndex].ApplyDamage(attack.Damage);
             this.battlefieldView.PlayEnemyAttackFeedback(attack.AttackerSlotIndex);
             this.battlefieldView.ShowOperatorDamage(attack.TargetOperatorSlotIndex, attack.Damage);
             this.ecgFeedback?.FlashOperatorDamage(attack.TargetOperatorSlotIndex);
             this.ecgFeedback?.SetOperatorHealthState(
                 attack.TargetOperatorSlotIndex,
-                this.healthBridge.GetHpRatio(attack.TargetOperatorSlotIndex),
-                this.healthBridge.IsAlive(attack.TargetOperatorSlotIndex));
+                this.roster[attack.TargetOperatorSlotIndex].HpRatio,
+                this.roster[attack.TargetOperatorSlotIndex].IsAlive);
         }
 
         private void LateUpdate()
@@ -105,7 +90,7 @@ namespace CrimsonDraft.Combat
             if (!this.initialized)
                 return;
 
-            SyncAllOperatorEcgStates(this.hasOperatorSlot.Length);
+            SyncAllOperatorEcgStates(this.roster.Count);
         }
 
         private static List<EnemyAttackConfig> BuildAttackConfigs(EncounterData encounter)
@@ -170,11 +155,11 @@ namespace CrimsonDraft.Combat
 
             for (int i = 0; i < operatorCount; i++)
             {
-                bool hasOperator = i < this.hasOperatorSlot.Length && this.hasOperatorSlot[i];
+                bool isPresent = i < this.roster.Count && this.roster[i].IsPresent;
                 this.ecgFeedback.SetOperatorHealthState(
                     i,
-                    hasOperator ? this.healthBridge.GetHpRatio(i) : 0f,
-                    hasOperator && this.healthBridge.IsAlive(i));
+                    isPresent ? this.roster[i].HpRatio : 0f,
+                    isPresent && this.roster[i].IsAlive);
             }
         }
     }

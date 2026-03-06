@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
@@ -31,6 +32,7 @@ namespace CrimsonDraft.Combat
 
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
+        private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator = new();
 
         #endregion
 
@@ -42,12 +44,14 @@ namespace CrimsonDraft.Combat
             if (le == null) le = this.selectorMark.gameObject.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
             this.TryAutoWireOperatorAmmoLabels();
+            this.ApplyPendingAmmoLabels();
         }
 
         private void OnEnable()
         {
             this.submitHandlers   = new Action[this.operators.Length];
             this.selectedHandlers = new Action[this.operators.Length];
+            this.ApplyPendingAmmoLabels();
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -177,6 +181,8 @@ namespace CrimsonDraft.Combat
 
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)
         {
+            this.pendingAmmoByOperator[index] = (currentAmmo, maxAmmo);
+
             if (index < 0 || index >= this.operatorAmmoLabels.Length)
                 return;
 
@@ -184,8 +190,29 @@ namespace CrimsonDraft.Combat
             if (label == null)
                 return;
 
+            ApplyAmmoLabel(label, currentAmmo, maxAmmo);
+        }
+
+        private void ApplyPendingAmmoLabels()
+        {
+            foreach (var kvp in this.pendingAmmoByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorAmmoLabels.Length)
+                    continue;
+
+                var label = this.operatorAmmoLabels[index];
+                if (label == null)
+                    continue;
+
+                ApplyAmmoLabel(label, kvp.Value.current, kvp.Value.max);
+            }
+        }
+
+        private static void ApplyAmmoLabel(TMP_Text label, int currentAmmo, int maxAmmo)
+        {
             int current = Mathf.Max(0, currentAmmo);
-            int max     = Mathf.Max(1, maxAmmo);
+            int max = Mathf.Max(1, maxAmmo);
             if (current == 0)
             {
                 label.text = $"<color=#FF3B3B>0</color>/{max}";

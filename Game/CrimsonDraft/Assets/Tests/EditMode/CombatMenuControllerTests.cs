@@ -7,6 +7,7 @@ using UnityEngine;
 using VContainer.Unity;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Tests
 {
@@ -19,6 +20,7 @@ namespace CrimsonDraft.Tests
         private FakePublisher            publisher       = null!;
         private FakeAimView              aimView         = null!;
         private FakeBattlefieldView      battlefieldView = null!;
+        private FakeOperatorRoster       roster          = null!;
 
         [SetUp]
         public void SetUp()
@@ -30,12 +32,13 @@ namespace CrimsonDraft.Tests
             this.publisher       = new FakePublisher();
             this.aimView         = new FakeAimView();
             this.battlefieldView = new FakeBattlefieldView();
+            this.roster          = new FakeOperatorRoster();
         }
 
         private CombatMenuController BuildAndInit()
         {
             var controller = new CombatMenuController(
-                this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView);
+                this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster);
             ((IInitializable)controller).Initialize();
             return controller;
         }
@@ -55,6 +58,19 @@ namespace CrimsonDraft.Tests
         {
             BuildAndInit();
             Assert.IsTrue(this.menuView.HasSubscribers);
+        }
+
+        [Test]
+        public void Initialize_updatesAmmoLabelsForAllOperators()
+        {
+            BuildAndInit();
+
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.IsTrue(this.menuView.TryGetAmmo(i, out var ammo));
+                Assert.AreEqual(6, ammo.current);
+                Assert.AreEqual(6, ammo.max);
+            }
         }
 
         [Test]
@@ -182,10 +198,7 @@ namespace CrimsonDraft.Tests
             this.shotCountView.Increment();
             this.shotCountView.Increment();
 
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
             Assert.AreEqual(3, this.aimView.LastShotCount);
             Assert.IsTrue(this.aimView.IsVisible);
@@ -197,10 +210,7 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
             Assert.IsTrue(this.aimView.IsVisible);
@@ -212,10 +222,7 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
             Assert.IsTrue(this.commandPanel.IsVisible);
@@ -227,10 +234,7 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
             InvokeConfirm(c);
@@ -248,10 +252,7 @@ namespace CrimsonDraft.Tests
             for (int i = 0; i < 6; i++)
             {
                 this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-                var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                Assert.NotNull(confirmShotCount);
-                confirmShotCount!.Invoke(c, null);
+                InvokeConfirm(c);
                 this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
                 InvokeConfirm(c);
                 this.menuView.RaiseOnOperatorSelected(0);
@@ -274,15 +275,9 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
 
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
 
@@ -299,15 +294,9 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
 
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, new Vector2(0.25f, 0.75f), ShotZone.Miss, 0) });
 
@@ -326,10 +315,7 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
 
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
             Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
             Assert.IsFalse(this.aimView.IsVisible);
@@ -342,10 +328,7 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
             c.HandleCancelPressed();
             Assert.IsFalse(this.battlefieldView.EnemyTargetVisible);
             Assert.IsTrue(this.commandPanel.IsVisible);
@@ -361,14 +344,8 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
+            InvokeConfirm(c);
 
             Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
         }
@@ -411,15 +388,9 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
 
@@ -437,15 +408,9 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
 
@@ -462,15 +427,9 @@ namespace CrimsonDraft.Tests
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            var confirmShotCount = typeof(CombatMenuController).GetMethod("ConfirmShotCount",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirmShotCount);
-            confirmShotCount!.Invoke(c, null);
+            InvokeConfirm(c);
 
-            var confirm = typeof(CombatMenuController).GetMethod("ConfirmTarget",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(confirm);
-            confirm!.Invoke(c, null);
+            InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, 40) });
 
@@ -492,6 +451,8 @@ namespace CrimsonDraft.Tests
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
+            public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
+                this.ammoByOperator.TryGetValue(index, out ammo);
             public void SetDimmed(bool dimmed) { }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
@@ -644,6 +605,34 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
+        }
+
+        private sealed class FakeOperatorRoster : IOperatorRoster
+        {
+            private readonly OperatorRuntime[] slots;
+            private readonly System.Collections.Generic.List<int> scratchAlive = new();
+            public bool IsInitialized { get; private set; } = true;
+
+            internal FakeOperatorRoster(int slotCount = 3, int maxHp = 100, int maxAmmo = 6)
+            {
+                this.slots = new OperatorRuntime[slotCount];
+                for (int i = 0; i < slotCount; i++)
+                    this.slots[i] = new OperatorRuntime(i, null, isPresent: true, maxHp, maxAmmo);
+            }
+
+            public int Count => this.slots.Length;
+
+            public OperatorRuntime this[int slotIndex] => this.slots[slotIndex];
+
+            public void EnsureInitialized() => this.IsInitialized = true;
+
+            public System.Collections.Generic.IReadOnlyList<int> GetAliveSlots()
+            {
+                this.scratchAlive.Clear();
+                for (int i = 0; i < this.slots.Length; i++)
+                    if (this.slots[i].IsAlive) this.scratchAlive.Add(i);
+                return this.scratchAlive;
+            }
         }
     }
 }
