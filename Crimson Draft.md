@@ -12,6 +12,7 @@
 > El documento principal de referencia es [[GDD]] — biblia única con resúmenes de todos los sistemas y links a los docs de detalle.
 
 ### Sistemas de Juego (detalle)
+- [[Sistema de Ataque de Enemigos]]
 - [[Sistema de Combate en Tiempo Real]]
 - [[Sistema de Conteo de Balas por Disparo]]
 - [[Diseño de Combate y Armas]]
@@ -75,6 +76,7 @@
 
 **Tema:**
 > Dependencia como herramienta de poder. El verdadero monstruo no es el infectado. Es el sistema que lo diseño.
+
 
 
 
