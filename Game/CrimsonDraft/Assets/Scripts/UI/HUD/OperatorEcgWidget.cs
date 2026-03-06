@@ -36,6 +36,18 @@ namespace CrimsonDraft.UI.HUD
             this.waveGraphic?.SetLineThickness(thicknessPx);
         }
 
+        public void FlashDamage()
+        {
+            EnsureReferences();
+            this.waveGraphic?.TriggerDamageFlash();
+        }
+
+        public void SetHealthState(float hpRatio, bool isActive)
+        {
+            EnsureReferences();
+            this.waveGraphic?.SetHealthState(hpRatio, isActive);
+        }
+
         private void EnsureReferences()
         {
             this.waveGraphic ??= GetComponentInChildren<OperatorEcgWaveGraphic>(true);

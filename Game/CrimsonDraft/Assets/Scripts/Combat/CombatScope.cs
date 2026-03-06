@@ -3,6 +3,7 @@
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Health;
 using CrimsonDraft.Infrastructure.Cameras;
 
 namespace CrimsonDraft.Combat
@@ -21,6 +22,8 @@ namespace CrimsonDraft.Combat
         protected override void Configure(IContainerBuilder builder)
         {
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
+            builder.Register<OperatorHealthService>(Lifetime.Scoped).As<IOperatorHealthService>();
+            builder.Register<CombatOperatorHealthBridge>(Lifetime.Scoped).AsSelf();
 
             builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CommandPanelView>().AsImplementedInterfaces();
@@ -28,6 +31,7 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<ShotCountView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<EnemyAttackController>().AsSelf();
 
             builder.RegisterInstance(this.encounterDatabase);
 

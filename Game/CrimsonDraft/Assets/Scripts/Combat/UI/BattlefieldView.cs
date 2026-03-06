@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using DG.Tweening;
+using TMPro;
 using UnityEngine;
 
 namespace CrimsonDraft.Combat
@@ -22,6 +24,12 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
         [SerializeField] private Material?   enemyDeathFadeMaterial;
         [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
+        [SerializeField] private Canvas? operatorDamageCanvas;
+        [SerializeField] private GameObject? operatorDamageTextPrefab;
+        [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
+        [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
+        [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
+        [SerializeField] private Vector3 enemyAttackShakeStrength = new(0.15f, 0.15f, 0f);
 
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
@@ -182,6 +190,88 @@ namespace CrimsonDraft.Combat
         {
             var sr = this.operatorIndicator.GetComponent<SpriteRenderer>();
             if (sr != null) sr.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+        }
+
+        public void PlayEnemyAttackFeedback(int enemySlotIndex)
+        {
+            if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null)
+                return;
+
+            enemyGo.transform.DOKill();
+            enemyGo.transform.DOShakePosition(
+                this.enemyAttackShakeDuration,
+                this.enemyAttackShakeStrength,
+                vibrato: 20,
+                randomness: 90f,
+                fadeOut: true);
+        }
+
+        public void ShowOperatorDamage(int operatorSlotIndex, int damage)
+        {
+            if (operatorSlotIndex < 0 || operatorSlotIndex >= this.playerSlotTransforms.Length)
+                return;
+
+            if (this.operatorDamageTextPrefab == null)
+            {
+                Debug.LogWarning("[BattlefieldView] operatorDamageTextPrefab is not assigned.");
+                return;
+            }
+
+            Canvas? targetCanvas = this.operatorDamageCanvas != null
+                ? this.operatorDamageCanvas
+                : GetComponentInParent<Canvas>();
+            if (targetCanvas == null)
+            {
+                Debug.LogWarning("[BattlefieldView] Missing Canvas for operator damage text.");
+                return;
+            }
+
+            Transform anchor = this.playerSlotTransforms[operatorSlotIndex];
+            var textGo = Instantiate(
+                this.operatorDamageTextPrefab,
+                targetCanvas.transform);
+            var tmp = textGo.GetComponentInChildren<TMP_Text>();
+            if (tmp == null)
+            {
+                Destroy(textGo);
+                return;
+            }
+
+            PositionDamageTextOnCanvas(textGo.transform, targetCanvas, anchor.position + this.operatorDamageOffset);
+
+            tmp.text = $"-{Mathf.Max(0, damage)}";
+            tmp.alpha = 1f;
+
+            Vector3 moveTarget = textGo.transform.position + (Vector3.up * 0.4f);
+            textGo.transform.DOMove(moveTarget, this.operatorDamageDuration);
+            tmp.DOFade(0f, this.operatorDamageDuration).OnComplete(() =>
+            {
+                if (textGo != null)
+                    Destroy(textGo);
+            });
+        }
+
+        private static void PositionDamageTextOnCanvas(Transform textTransform, Canvas canvas, Vector3 worldPosition)
+        {
+            if (textTransform is not RectTransform textRt)
+            {
+                textTransform.position = worldPosition;
+                return;
+            }
+
+            if (canvas.transform is not RectTransform canvasRt)
+            {
+                textTransform.position = worldPosition;
+                return;
+            }
+
+            Camera? eventCamera = null;
+            if (canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+                eventCamera = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(eventCamera, worldPosition);
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, screenPoint, eventCamera, out Vector2 localPoint))
+                textRt.anchoredPosition = localPoint;
         }
 
         public void SetEnemyTargetIndicator(int slotIndex)

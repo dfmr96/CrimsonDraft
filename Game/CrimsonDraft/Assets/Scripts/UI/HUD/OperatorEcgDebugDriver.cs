@@ -16,12 +16,13 @@ namespace CrimsonDraft.UI.HUD
 
         private void OnEnable()
         {
-            Apply();
+            if (!Application.isPlaying)
+                Apply();
         }
 
         private void Update()
         {
-            if (this.applyEachFrame)
+            if (this.applyEachFrame && !Application.isPlaying)
             {
                 Apply();
             }

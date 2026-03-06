@@ -19,10 +19,13 @@ namespace CrimsonDraft.UI.HUD
         [SerializeField, Min(1)] private int lineThickness = 2;
         [SerializeField, Min(0.1f)] private float visibleBeats = 2.5f;
         [SerializeField] private Vector2 minSize = DefaultMinSize;
+        [SerializeField] private Color damageFlashColor = Color.red;
+        [SerializeField, Min(0f)] private float damageFlashDuration = 0.15f;
 
         [SerializeField, Range(0f, 1f)] private float hpRatio = 1f;
         [SerializeField] private int bpm = 72;
         [SerializeField] private bool isActive = true;
+        private float damageFlashUntilTime;
 
         internal float HpRatio => this.hpRatio;
         internal int Bpm => this.bpm;
@@ -52,9 +55,22 @@ namespace CrimsonDraft.UI.HUD
             SetVerticesDirty();
         }
 
+        public void SetHealthState(float hpRatio, bool isActive)
+        {
+            this.hpRatio = OperatorEcgMath.ClampHpRatio(hpRatio);
+            this.isActive = isActive;
+            SetVerticesDirty();
+        }
+
         public void SetLineThickness(int thicknessPx)
         {
             this.lineThickness = Mathf.Max(1, thicknessPx);
+            SetVerticesDirty();
+        }
+
+        public void TriggerDamageFlash()
+        {
+            this.damageFlashUntilTime = Time.unscaledTime + this.damageFlashDuration;
             SetVerticesDirty();
         }
 
@@ -108,7 +124,11 @@ namespace CrimsonDraft.UI.HUD
                 return;
             }
 
-            var waveColor = OperatorEcgMath.ComputeEcgColor(this.hpRatio);
+            var baseColor = OperatorEcgMath.ComputeEcgColor(this.hpRatio);
+            float flashDuration = Mathf.Max(0.001f, this.damageFlashDuration);
+            float flashTime = this.damageFlashUntilTime - Time.unscaledTime;
+            float flashT = Mathf.Clamp01(flashTime / flashDuration);
+            var waveColor = Color.Lerp(baseColor, this.damageFlashColor, flashT);
             var amplitude = OperatorEcgMath.ComputeAmplitude(rect.height, this.hpRatio);
             var centerY = rect.yMin + (rect.height * 0.5f);
             var xMin = rect.xMin;

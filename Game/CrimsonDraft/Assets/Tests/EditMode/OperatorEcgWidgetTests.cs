@@ -39,6 +39,19 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(2, scope.WaveGraphic.LineThickness);
         }
 
+        [Test]
+        public void SetHealthState_updatesHpRatioAndActiveState()
+        {
+            using var scope = new WidgetScope();
+            scope.Widget.SetVitals(1f, 90, true);
+
+            scope.Widget.SetHealthState(0.25f, false);
+
+            Assert.AreEqual(0.25f, scope.WaveGraphic.HpRatio, 0.0001f);
+            Assert.AreEqual(90, scope.WaveGraphic.Bpm);
+            Assert.IsFalse(scope.WaveGraphic.IsActive);
+        }
+
         private sealed class WidgetScope : System.IDisposable
         {
             private readonly GameObject root;

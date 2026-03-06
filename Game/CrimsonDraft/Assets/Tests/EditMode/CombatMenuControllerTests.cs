@@ -610,6 +610,8 @@ namespace CrimsonDraft.Tests
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
             public void DimOperatorIndicator()                         { }
+            public void PlayEnemyAttackFeedback(int enemySlotIndex)    { }
+            public void ShowOperatorDamage(int operatorSlotIndex, int damage) { }
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
             public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;

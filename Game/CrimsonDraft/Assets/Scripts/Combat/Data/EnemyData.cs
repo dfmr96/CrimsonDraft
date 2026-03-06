@@ -11,10 +11,18 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Sprite             sprite         = null!;
         [SerializeField] private AimHitMaskProfile? hitMaskProfile = null;
         [SerializeField] private int                maxHp          = 100;
+        [SerializeField, Min(0f)] private float     attackBaseSec = 7f;
+        [SerializeField, Min(0f)] private float     attackJitterSec = 1.25f;
+        [SerializeField, Min(0f)] private float     attackDurationSec = 1.2f;
+        [SerializeField, Min(0)] private int        attackDamage = 10;
 
         public string EnemyId                    => this.enemyId;
         public Sprite Sprite                     => this.sprite;
         public AimHitMaskProfile? HitMaskProfile => this.hitMaskProfile;
         public int MaxHp                         => this.maxHp;
+        public float AttackBaseSec               => this.attackBaseSec;
+        public float AttackJitterSec             => this.attackJitterSec;
+        public float AttackDurationSec           => this.attackDurationSec;
+        public int AttackDamage                  => this.attackDamage;
     }
 }

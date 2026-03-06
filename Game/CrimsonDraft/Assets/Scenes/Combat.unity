@@ -144,7 +144,7 @@ Transform:
   m_GameObject: {fileID: 111627722}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8.5, y: 0, z: 0}
+  m_LocalPosition: {x: 7.5625, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3738,12 +3738,53 @@ Transform:
   m_GameObject: {fileID: 328534123}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7.5, y: 2, z: 0}
+  m_LocalPosition: {x: 6.0625, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 628344096}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!21 &403049092
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &424536292
 GameObject:
   m_ObjectHideFlags: 0
@@ -4086,6 +4127,8 @@ GameObject:
   m_Component:
   - component: {fileID: 628344096}
   - component: {fileID: 628344095}
+  - component: {fileID: 628344097}
+  - component: {fileID: 628344098}
   m_Layer: 0
   m_Name: Battlefield
   m_TagString: Untagged
@@ -4121,6 +4164,12 @@ MonoBehaviour:
   enemyTargetIndicator: {fileID: 1729760326}
   enemyDeathFadeMaterial: {fileID: 2100000, guid: d2fe5a8814130984eb12f977eb7baa17, type: 2}
   enemyDeathFadeDuration: 0.2
+  operatorDamageCanvas: {fileID: 424536295}
+  operatorDamageTextPrefab: {fileID: 8384130790680122345, guid: 6cb7c69026d539241a7995b4b7f4ba14, type: 3}
+  operatorDamageOffset: {x: 0, y: 0.9, z: 0}
+  operatorDamageDuration: 0.6
+  enemyAttackShakeDuration: 0.2
+  enemyAttackShakeStrength: {x: 0.15, y: 0.15, z: 0}
 --- !u!4 &628344096
 Transform:
   m_ObjectHideFlags: 0
@@ -4136,8 +4185,8 @@ Transform:
   m_Children:
   - {fileID: 328534124}
   - {fileID: 1169752431}
-  - {fileID: 1265621940}
   - {fileID: 2043468417}
+  - {fileID: 1265621940}
   - {fileID: 1474306906}
   - {fileID: 111627723}
   - {fileID: 1872474456}
@@ -4148,6 +4197,36 @@ Transform:
   - {fileID: 1729760327}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &628344097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 628344094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87ac5e25a8c88114486e52cb78c18919, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.EnemyAttackController
+  defaultOperatorHp: 100
+--- !u!114 &628344098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 628344094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e626fefbefec78429bd94bad114fd81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.HUD.OperatorEcgPanel
+  widgets:
+  - {fileID: 5461424452283274748}
+  - {fileID: 1396979546}
+  - {fileID: 1825998390}
+  - {fileID: 1844153717}
 --- !u!1 &658657592
 GameObject:
   m_ObjectHideFlags: 0
@@ -4436,47 +4515,6 @@ MonoBehaviour:
   operatorsGroup: {fileID: 1839888237}
   bobAmplitude: 2
   bobDuration: 0.8
---- !u!21 &958167401
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ECGSweep(Clone)(Clone)(Clone)
-  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _GapWidth: 0.2
-    - _HaloIntensity: 2
-    - _HaloWidth: 0.1
-    - _HaloX: 1
-    - _Sweep: 1
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
-    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!224 &962890052 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 5565654260718611596, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
@@ -4827,7 +4865,7 @@ Transform:
   m_GameObject: {fileID: 1169752430}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7, y: 1, z: 0}
+  m_LocalPosition: {x: 5.5625, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4863,7 +4901,7 @@ Transform:
   m_GameObject: {fileID: 1265621939}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8.5, y: 2, z: 0}
+  m_LocalPosition: {x: 8.5, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4974,7 +5012,7 @@ Transform:
   m_GameObject: {fileID: 1383560266}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7.5, y: 1, z: 0}
+  m_LocalPosition: {x: -7.9375, y: -1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5075,7 +5113,11 @@ PrefabInstance:
     - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 2100000, guid: 1f2e3d4c5b6a7c8d9e0f1a2b3c4d5e6f, type: 2}
+      objectReference: {fileID: 2006533020}
+    - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+      propertyPath: lineThickness
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8245922219208722824, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Name
       value: OperatorOverview (1)
@@ -5121,6 +5163,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1782181359914741196, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 1396979543}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1396979546 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4755603828357916839, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+  m_PrefabInstance: {fileID: 1396979543}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6cda5d1ae7ed4945909a74459aae242, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.HUD.OperatorEcgWidget
 --- !u!1 &1474306905
 GameObject:
   m_ObjectHideFlags: 0
@@ -5146,7 +5199,7 @@ Transform:
   m_GameObject: {fileID: 1474306905}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8, y: 1, z: 0}
+  m_LocalPosition: {x: 8, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5314,7 +5367,7 @@ Transform:
   m_GameObject: {fileID: 1591232871}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -8.5, y: 1, z: 0}
+  m_LocalPosition: {x: -8.6875, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5619,47 +5672,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f0e4c915c0e1ab48b682eed9e20f516, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!21 &1670998892
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ECGSweep(Clone)(Clone)(Clone)(Clone)
-  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _GapWidth: 0.2
-    - _HaloIntensity: 2
-    - _HaloWidth: 0.1
-    - _HaloX: 1
-    - _Sweep: 1
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
-    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &1683568929
 GameObject:
   m_ObjectHideFlags: 0
@@ -5974,12 +5986,53 @@ Transform:
   m_GameObject: {fileID: 1771507759}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -8.5, y: 0, z: 0}
+  m_LocalPosition: {x: -8.3125, y: 0.0425, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 628344096}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!21 &1773535150
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)(Clone)(Clone)(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1812093576
 GameObject:
   m_ObjectHideFlags: 0
@@ -6150,7 +6203,11 @@ PrefabInstance:
     - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 2100000, guid: 1f2e3d4c5b6a7c8d9e0f1a2b3c4d5e6f, type: 2}
+      objectReference: {fileID: 1938644654}
+    - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+      propertyPath: lineThickness
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8245922219208722824, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Name
       value: OperatorOverview (2)
@@ -6196,6 +6253,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1782181359914741196, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 1825998387}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1825998390 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4755603828357916839, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+  m_PrefabInstance: {fileID: 1825998387}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6cda5d1ae7ed4945909a74459aae242, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.HUD.OperatorEcgWidget
 --- !u!1 &1827126264
 GameObject:
   m_ObjectHideFlags: 0
@@ -6497,7 +6565,11 @@ PrefabInstance:
     - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 2100000, guid: 1f2e3d4c5b6a7c8d9e0f1a2b3c4d5e6f, type: 2}
+      objectReference: {fileID: 403049092}
+    - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+      propertyPath: lineThickness
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8245922219208722824, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Name
       value: OperatorOverview (3)
@@ -6543,6 +6615,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1782181359914741196, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 1844153714}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1844153717 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4755603828357916839, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+  m_PrefabInstance: {fileID: 1844153714}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6cda5d1ae7ed4945909a74459aae242, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.HUD.OperatorEcgWidget
 --- !u!1 &1866968664
 GameObject:
   m_ObjectHideFlags: 0
@@ -6613,7 +6696,7 @@ Transform:
   m_GameObject: {fileID: 1872474455}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -8.5, y: 2, z: 0}
+  m_LocalPosition: {x: -9, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6694,6 +6777,47 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1900974175}
   m_CullTransparentMesh: 1
+--- !u!21 &1938644654
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1940657589
 GameObject:
   m_ObjectHideFlags: 0
@@ -6880,6 +7004,47 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1991111182}
   m_CullTransparentMesh: 1
+--- !u!21 &2006533020
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &2043468416
 GameObject:
   m_ObjectHideFlags: 0
@@ -6905,7 +7070,7 @@ Transform:
   m_GameObject: {fileID: 2043468416}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7.5, y: 0, z: 0}
+  m_LocalPosition: {x: 5.0625, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -7248,7 +7413,11 @@ PrefabInstance:
     - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 958167401}
+      objectReference: {fileID: 1773535150}
+    - target: {fileID: 7492375283020428169, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+      propertyPath: lineThickness
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8187404205857209535, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
       propertyPath: m_RaycastTarget
       value: 0
@@ -7302,6 +7471,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1782181359914741196, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 5461424452283274745}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5461424452283274748 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4755603828357916839, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+  m_PrefabInstance: {fileID: 5461424452283274745}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6cda5d1ae7ed4945909a74459aae242, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.HUD.OperatorEcgWidget
 --- !u!1001 &6383089982979617400
 PrefabInstance:
   m_ObjectHideFlags: 0
