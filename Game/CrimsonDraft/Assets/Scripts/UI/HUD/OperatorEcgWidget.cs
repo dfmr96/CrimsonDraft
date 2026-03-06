@@ -30,10 +30,10 @@ namespace CrimsonDraft.UI.HUD
             }
         }
 
-        public void SetPixelStyle(int stepPx, int thicknessPx)
+        public void SetLineThickness(int thicknessPx)
         {
             EnsureReferences();
-            this.waveGraphic?.SetPixelStyle(stepPx, thicknessPx);
+            this.waveGraphic?.SetLineThickness(thicknessPx);
         }
 
         private void EnsureReferences()

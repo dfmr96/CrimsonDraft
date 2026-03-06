@@ -30,13 +30,12 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void SetPixelStyle_forwardsToWaveGraphic()
+        public void SetLineThickness_forwardsLineThicknessToWaveGraphic()
         {
             using var scope = new WidgetScope();
 
-            scope.Widget.SetPixelStyle(2, 2);
+            scope.Widget.SetLineThickness(2);
 
-            Assert.AreEqual(2, scope.WaveGraphic.PixelStep);
             Assert.AreEqual(2, scope.WaveGraphic.LineThickness);
         }
 

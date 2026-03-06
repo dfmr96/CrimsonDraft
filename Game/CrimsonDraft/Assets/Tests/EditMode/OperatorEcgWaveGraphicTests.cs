@@ -26,24 +26,21 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void SetPixelStyle_appliesPixelAndThickness()
+        public void SetLineThickness_appliesLineThickness()
         {
             using var scope = new WaveScope();
-            scope.Graphic.SetPixelStyle(2, 2);
+            scope.Graphic.SetLineThickness(2);
 
-            Assert.AreEqual(2, scope.Graphic.PixelStep);
             Assert.AreEqual(2, scope.Graphic.LineThickness);
         }
 
         [Test]
-        public void BuildNormalizedSamples_usesPixelStepAcrossWidth()
+        public void BuildNormalizedSamples_matchesWidthSamples()
         {
             using var scope = new WaveScope();
-            scope.Graphic.SetPixelStyle(2, 2);
-
             var samples = scope.Graphic.BuildNormalizedSamples(10);
 
-            Assert.AreEqual(6, samples.Count);
+            Assert.AreEqual(11, samples.Count);
         }
 
         private sealed class WaveScope : System.IDisposable

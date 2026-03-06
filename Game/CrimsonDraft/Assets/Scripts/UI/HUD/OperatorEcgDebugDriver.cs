@@ -11,7 +11,6 @@ namespace CrimsonDraft.UI.HUD
         [SerializeField, Range(0f, 1f)] private float hpRatio = 1f;
         [SerializeField] private int bpm = 72;
         [SerializeField] private bool isActive = true;
-        [SerializeField] private int pixelStep = 2;
         [SerializeField] private int lineThickness = 2;
         [SerializeField] private bool applyEachFrame = true;
 
@@ -41,7 +40,7 @@ namespace CrimsonDraft.UI.HUD
                 return;
             }
 
-            this.widget.SetPixelStyle(this.pixelStep, this.lineThickness);
+            this.widget.SetLineThickness(this.lineThickness);
             this.widget.SetVitals(this.hpRatio, this.bpm, this.isActive);
         }
     }
