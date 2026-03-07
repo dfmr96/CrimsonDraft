@@ -8,7 +8,8 @@ namespace CrimsonDraft.Inventory
     {
         IReadOnlyList<InventoryItem> Items { get; }
 
-        void AddItem(ItemData data);
+        /// <summary>Creates the correct InventoryItem subtype based on ItemData type. quantity is used for AmmoBox.</summary>
+        void AddItem(ItemData data, int quantity = 0);
 
         /// <summary>Equips weapon at itemIndex to operatorSlot. Unequips any weapon that slot was previously carrying.</summary>
         void EquipWeapon(int itemIndex, int operatorSlot);
@@ -19,10 +20,10 @@ namespace CrimsonDraft.Inventory
         /// <summary>Returns the index of the weapon equipped by operatorSlot, or -1 if none.</summary>
         int GetEquippedWeaponIndex(int operatorSlot);
 
-        /// <summary>Returns true if ammoBox at ammoBoxIndex can reload operatorSlot (caliber match + ammo &lt; max).</summary>
+        /// <summary>Returns true if ammoBox at ammoBoxIndex can reload operatorSlot.</summary>
         bool CanReload(int ammoBoxIndex, int operatorSlot);
 
-        /// <summary>Reloads operatorSlot using the ammo box at ammoBoxIndex. Consumes the box (removes from list).</summary>
+        /// <summary>Reloads weapon using ammo from box. Partially deducts box.Quantity. Removes box if exhausted.</summary>
         void ReloadOperator(int ammoBoxIndex, int operatorSlot);
     }
 }

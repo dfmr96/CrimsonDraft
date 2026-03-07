@@ -32,22 +32,31 @@ namespace CrimsonDraft.Tests
             public void EnsureInitialized() { }
         }
 
-        private static OperatorRuntime MakeAlive(int slot, int maxAmmo = 6, int spentAmmo = 0)
+        private static OperatorRuntime MakeAlive(int slot) =>
+            new OperatorRuntime(slot, null, isPresent: true, maxHp: 100);
+
+        private static WeaponData MakeWeaponData(string caliber = "9mm", int magazineCapacity = 6)
         {
-            var op = new OperatorRuntime(slot, null, isPresent: true, maxHp: 100, maxAmmo: maxAmmo);
-            op.ConsumeAmmo(spentAmmo);
-            return op;
+            var d  = ScriptableObject.CreateInstance<WeaponData>();
+            var so = new UnityEditor.SerializedObject(d);
+            so.FindProperty("itemId").stringValue          = System.Guid.NewGuid().ToString();
+            so.FindProperty("itemType").enumValueIndex     = (int)ItemType.Weapon;
+            so.FindProperty("displayName").stringValue     = "Test Weapon";
+            so.FindProperty("caliber").stringValue         = caliber;
+            so.FindProperty("magazineCapacity").intValue   = magazineCapacity;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return d;
         }
 
-        private static ItemData MakeItem(ItemType type = ItemType.Weapon, string caliber = "")
+        private static AmmoBoxData MakeAmmoBoxData(string caliber = "9mm", int defaultQuantity = 30)
         {
-            var d = ScriptableObject.CreateInstance<ItemData>();
-            // Use SerializedObject to set private fields in EditMode tests
+            var d  = ScriptableObject.CreateInstance<AmmoBoxData>();
             var so = new UnityEditor.SerializedObject(d);
-            so.FindProperty("itemId").stringValue      = System.Guid.NewGuid().ToString();
-            so.FindProperty("itemType").enumValueIndex = (int)type;
-            so.FindProperty("displayName").stringValue = type.ToString();
-            so.FindProperty("caliber").stringValue     = caliber;
+            so.FindProperty("itemId").stringValue          = System.Guid.NewGuid().ToString();
+            so.FindProperty("itemType").enumValueIndex     = (int)ItemType.AmmoBox;
+            so.FindProperty("displayName").stringValue     = "Test Box";
+            so.FindProperty("caliber").stringValue         = caliber;
+            so.FindProperty("defaultQuantity").intValue    = defaultQuantity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
         }
@@ -55,138 +64,189 @@ namespace CrimsonDraft.Tests
         // ── Tests ──────────────────────────────────────────────────────────────
 
         [Test]
-        public void AddItem_increasesItemCount()
+        public void AddItem_weapon_createsWeaponItemWithFullAmmo()
         {
             var service = new InventoryService(new FakeRoster(MakeAlive(0)));
-
-            service.AddItem(MakeItem());
+            service.AddItem(MakeWeaponData(magazineCapacity: 30));
 
             Assert.AreEqual(1, service.Items.Count);
+            var item = service.Items[0] as WeaponItem;
+            Assert.IsNotNull(item);
+            Assert.AreEqual(30, item!.CurrentAmmo);
+            Assert.AreEqual(30, item.MaxAmmo);
         }
 
         [Test]
-        public void EquipWeapon_setsEquippedBySlot()
+        public void AddItem_ammoBox_usesProvidedQuantity()
         {
             var service = new InventoryService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeItem(ItemType.Weapon));
+            service.AddItem(MakeAmmoBoxData(defaultQuantity: 30), quantity: 99);
+
+            var item = service.Items[0] as AmmoBoxItem;
+            Assert.IsNotNull(item);
+            Assert.AreEqual(99, item!.Quantity);
+        }
+
+        [Test]
+        public void AddItem_ammoBox_usesDefaultQuantity_whenZero()
+        {
+            var service = new InventoryService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(MakeAmmoBoxData(defaultQuantity: 30), quantity: 0);
+
+            var item = service.Items[0] as AmmoBoxItem;
+            Assert.AreEqual(30, item!.Quantity);
+        }
+
+        [Test]
+        public void EquipWeapon_setsEquippedBySlotAndUpdatesRoster()
+        {
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData());
 
             service.EquipWeapon(0, operatorSlot: 0);
 
             Assert.AreEqual(0, service.Items[0].EquippedBySlot);
+            Assert.IsNotNull(op.EquippedWeapon);
         }
 
         [Test]
         public void EquipWeapon_unequipsPreviousWeaponOfSameSlot()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeItem(ItemType.Weapon));
-            service.AddItem(MakeItem(ItemType.Weapon));
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData());
+            service.AddItem(MakeWeaponData());
 
             service.EquipWeapon(0, operatorSlot: 0);
             service.EquipWeapon(1, operatorSlot: 0);
 
-            Assert.AreEqual(-1, service.Items[0].EquippedBySlot, "old weapon should be unequipped");
-            Assert.AreEqual(0,  service.Items[1].EquippedBySlot, "new weapon should be equipped");
+            Assert.AreEqual(-1, service.Items[0].EquippedBySlot, "old weapon unequipped");
+            Assert.AreEqual( 0, service.Items[1].EquippedBySlot, "new weapon equipped");
+            Assert.AreEqual(service.Items[1] as IWeaponSlot, op.EquippedWeapon);
         }
 
         [Test]
-        public void UnequipWeapon_setsSlotToMinusOne()
+        public void UnequipWeapon_clearsSlotAndNullsRosterWeapon()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeItem(ItemType.Weapon));
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData());
             service.EquipWeapon(0, operatorSlot: 0);
 
             service.UnequipWeapon(0);
 
             Assert.AreEqual(-1, service.Items[0].EquippedBySlot);
+            Assert.IsNull(op.EquippedWeapon);
         }
 
         [Test]
-        public void GetEquippedWeaponIndex_returnsCorrectIndex()
+        public void WeaponAmmo_persistsWhenTransferredBetweenOperators()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0), MakeAlive(1)));
-            service.AddItem(MakeItem(ItemType.Weapon));
+            var op0     = MakeAlive(0);
+            var op1     = MakeAlive(1);
+            var service = new InventoryService(new FakeRoster(op0, op1));
+            service.AddItem(MakeWeaponData(magazineCapacity: 30));
 
+            service.EquipWeapon(0, operatorSlot: 0);
+            op0.EquippedWeapon!.SetAmmo(10);
+            Assert.AreEqual(10, op0.EquippedWeapon.CurrentAmmo);
+
+            service.UnequipWeapon(0);
             service.EquipWeapon(0, operatorSlot: 1);
 
-            Assert.AreEqual( 0, service.GetEquippedWeaponIndex(operatorSlot: 1));
-            Assert.AreEqual(-1, service.GetEquippedWeaponIndex(operatorSlot: 0));
+            Assert.AreEqual(10, op1.EquippedWeapon!.CurrentAmmo, "ammo stays on weapon item");
         }
 
         [Test]
         public void CanReload_returnsFalse_whenNoWeaponEquipped()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0, maxAmmo: 6, spentAmmo: 3)));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm"));
+            var service = new InventoryService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(MakeAmmoBoxData("9mm"));
 
-            bool result = service.CanReload(0, operatorSlot: 0);
-
-            Assert.IsFalse(result);
+            Assert.IsFalse(service.CanReload(0, operatorSlot: 0));
         }
 
         [Test]
         public void CanReload_returnsFalse_whenCaliberMismatch()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0, maxAmmo: 6, spentAmmo: 3)));
-            service.AddItem(MakeItem(ItemType.Weapon, caliber: "5.56"));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm"));
-            service.EquipWeapon(0, operatorSlot: 0);
-
-            bool result = service.CanReload(1, operatorSlot: 0);
-
-            Assert.IsFalse(result);
-        }
-
-        [Test]
-        public void CanReload_returnsTrue_whenCaliberMatchAndAmmoNotFull()
-        {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0, maxAmmo: 6, spentAmmo: 3)));
-            service.AddItem(MakeItem(ItemType.Weapon, caliber: "9mm"));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm"));
-            service.EquipWeapon(0, operatorSlot: 0);
-
-            bool result = service.CanReload(1, operatorSlot: 0);
-
-            Assert.IsTrue(result);
-        }
-
-        [Test]
-        public void CanReload_returnsFalse_whenAmmoAlreadyFull()
-        {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0, maxAmmo: 6, spentAmmo: 0)));
-            service.AddItem(MakeItem(ItemType.Weapon, caliber: "9mm"));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm"));
-            service.EquipWeapon(0, operatorSlot: 0);
-
-            bool result = service.CanReload(1, operatorSlot: 0);
-
-            Assert.IsFalse(result);
-        }
-
-        [Test]
-        public void ReloadOperator_consumesBox_andRestoresAmmo()
-        {
-            var op      = MakeAlive(0, maxAmmo: 6, spentAmmo: 4);
+            var op      = MakeAlive(0);
             var service = new InventoryService(new FakeRoster(op));
-            service.AddItem(MakeItem(ItemType.Weapon, caliber: "9mm"));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm"));
+            service.AddItem(MakeWeaponData("5.56", 30));
+            service.AddItem(MakeAmmoBoxData("9mm"));
             service.EquipWeapon(0, operatorSlot: 0);
+
+            Assert.IsFalse(service.CanReload(1, operatorSlot: 0));
+        }
+
+        [Test]
+        public void CanReload_returnsTrue_whenCaliberMatchAndNotFull()
+        {
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData("9mm", 30));
+            service.AddItem(MakeAmmoBoxData("9mm"));
+            service.EquipWeapon(0, operatorSlot: 0);
+            op.EquippedWeapon!.SetAmmo(10);
+
+            Assert.IsTrue(service.CanReload(1, operatorSlot: 0));
+        }
+
+        [Test]
+        public void CanReload_returnsFalse_whenWeaponFull()
+        {
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData("9mm", 30));
+            service.AddItem(MakeAmmoBoxData("9mm"));
+            service.EquipWeapon(0, operatorSlot: 0);
+
+            Assert.IsFalse(service.CanReload(1, operatorSlot: 0));
+        }
+
+        [Test]
+        public void ReloadOperator_fillsWeapon_andDeductsFromBox()
+        {
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData("9mm", 30));
+            service.AddItem(MakeAmmoBoxData("9mm", defaultQuantity: 99), quantity: 99);
+            service.EquipWeapon(0, operatorSlot: 0);
+            op.EquippedWeapon!.SetAmmo(10); // 20 rounds spent
 
             service.ReloadOperator(1, operatorSlot: 0);
 
-            Assert.AreEqual(1, service.Items.Count, "ammo box should be consumed");
-            Assert.AreEqual(6, op.Ammo, "operator ammo should be restored to max");
+            Assert.AreEqual(30, op.EquippedWeapon.CurrentAmmo, "weapon is full");
+            Assert.AreEqual(2,  service.Items.Count,           "box still in inventory");
+            var box = service.Items[1] as AmmoBoxItem;
+            Assert.AreEqual(79, box!.Quantity, "box deducted 20 rounds");
+        }
+
+        [Test]
+        public void ReloadOperator_removesBox_whenExhausted()
+        {
+            var op      = MakeAlive(0);
+            var service = new InventoryService(new FakeRoster(op));
+            service.AddItem(MakeWeaponData("9mm", 30));
+            service.AddItem(MakeAmmoBoxData("9mm"), quantity: 5);
+            service.EquipWeapon(0, operatorSlot: 0);
+            op.EquippedWeapon!.SetAmmo(0); // empty
+
+            service.ReloadOperator(1, operatorSlot: 0);
+
+            Assert.AreEqual(5, op.EquippedWeapon.CurrentAmmo, "weapon gets 5 rounds");
+            Assert.AreEqual(1, service.Items.Count,            "box removed");
         }
 
         [Test]
         public void ReloadOperator_noOp_whenCannotReload()
         {
-            var service = new InventoryService(new FakeRoster(MakeAlive(0, maxAmmo: 6, spentAmmo: 3)));
-            service.AddItem(MakeItem(ItemType.AmmoBox, caliber: "9mm")); // no weapon equipped
+            var service = new InventoryService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(MakeAmmoBoxData("9mm"), quantity: 30);
 
             service.ReloadOperator(0, operatorSlot: 0);
 
-            Assert.AreEqual(1, service.Items.Count, "box should NOT be consumed");
+            Assert.AreEqual(1, service.Items.Count, "box not consumed");
         }
     }
 }
