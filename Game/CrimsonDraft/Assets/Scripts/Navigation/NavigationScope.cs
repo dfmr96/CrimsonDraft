@@ -2,6 +2,7 @@
 
 using VContainer;
 using VContainer.Unity;
+using UnityEngine;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Player;
@@ -20,16 +21,20 @@ namespace CrimsonDraft.Navigation
     /// </summary>
     public sealed class NavigationScope : LifetimeScope
     {
+        [SerializeField] private StartingLoadout startingLoadout = null!;
+
         protected override void Configure(IContainerBuilder builder)
         {
+            builder.RegisterInstance(this.startingLoadout);
+
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<InventoryView>();
-            builder.RegisterComponentInHierarchy<InventoryDebugSeeder>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
+            builder.Register<InventoryBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatTrigger>();
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
-            builder.Register<DefaultOperatorRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
+            builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
         }
