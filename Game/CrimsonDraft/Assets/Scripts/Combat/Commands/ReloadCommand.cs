@@ -10,6 +10,7 @@ namespace CrimsonDraft.Combat.Commands
 
         public ReloadCommand(OperatorRuntime op) => this.op = op;
 
-        public void Execute() => this.op.Reload();
+        // Reload is handled via InventoryService in Navigation, not during combat.
+        public void Execute() { }
     }
 }

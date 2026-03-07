@@ -244,7 +244,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Reload_refillsAmmo_andShootBecomesAvailable()
+        public void Reload_doesNotRefillAmmo_andShootRemainsUnavailable()
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
@@ -263,7 +263,7 @@ namespace CrimsonDraft.Tests
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
             this.menuView.RaiseOnOperatorSelected(0);
 
-            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
+            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
         }
 
         [Test]
@@ -617,7 +617,10 @@ namespace CrimsonDraft.Tests
             {
                 this.slots = new OperatorRuntime[slotCount];
                 for (int i = 0; i < slotCount; i++)
-                    this.slots[i] = new OperatorRuntime(i, null, isPresent: true, maxHp, maxAmmo);
+                {
+                    this.slots[i] = new OperatorRuntime(i, null, isPresent: true, maxHp);
+                    this.slots[i].SetEquippedWeapon(new FakeWeaponSlot(maxAmmo));
+                }
             }
 
             public int Count => this.slots.Length;
@@ -632,6 +635,22 @@ namespace CrimsonDraft.Tests
                 for (int i = 0; i < this.slots.Length; i++)
                     if (this.slots[i].IsAlive) this.scratchAlive.Add(i);
                 return this.scratchAlive;
+            }
+
+            private sealed class FakeWeaponSlot : IWeaponSlot
+            {
+                public string Caliber => "9mm";
+                public int CurrentAmmo { get; private set; }
+                public int MaxAmmo { get; }
+
+                internal FakeWeaponSlot(int maxAmmo)
+                {
+                    this.MaxAmmo = Mathf.Max(1, maxAmmo);
+                    this.CurrentAmmo = this.MaxAmmo;
+                }
+
+                public void SetAmmo(int value) =>
+                    this.CurrentAmmo = Mathf.Clamp(value, 0, this.MaxAmmo);
             }
         }
     }

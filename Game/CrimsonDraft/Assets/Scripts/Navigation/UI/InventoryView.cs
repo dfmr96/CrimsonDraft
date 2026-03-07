@@ -101,10 +101,20 @@ namespace CrimsonDraft.Navigation.UI
                 var op = roster[i];
                 if (!op.IsPresent) continue;
 
-                string rawId    = op.Data?.OperatorId ?? string.Empty;
-                string name     = rawId.Length > 0 ? rawId : $"Slot {i}";
+                string rawName = op.Data?.DisplayName ?? string.Empty;
+                string name     = rawName.Length > 0 ? rawName : $"Slot {i}";
                 int    wIdx     = inventory.GetEquippedWeaponIndex(i);
-                string wpnName  = wIdx >= 0 ? inventory.Items[wIdx].Data.DisplayName : "---";
+                string wpnName;
+                if (wIdx >= 0)
+                {
+                    string dn     = inventory.Items[wIdx].Data.DisplayName;
+                    var    weapon = op.EquippedWeapon;
+                    wpnName = weapon != null ? $"{dn} ({weapon.CurrentAmmo}/{weapon.MaxAmmo})" : dn;
+                }
+                else
+                {
+                    wpnName = "---";
+                }
 
                 this.rosterRows[rowIdx].Setup(name, wpnName);
                 this.rosterRows[rowIdx].gameObject.SetActive(true);

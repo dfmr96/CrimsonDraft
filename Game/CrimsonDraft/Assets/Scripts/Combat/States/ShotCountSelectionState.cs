@@ -70,7 +70,7 @@ namespace CrimsonDraft.Combat
         {
             int op = this.context.SelectedOperator;
             if (this.roster.Count <= op) return CombatMenuController.MaxShotCount;
-            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].Ammo);
+            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].EquippedWeapon?.CurrentAmmo ?? 0);
         }
     }
 }

@@ -198,7 +198,7 @@ namespace CrimsonDraft.Navigation.UI
                     _                         => false
                 };
 
-                string rawId       = op.Data?.OperatorId ?? string.Empty;
+                string rawId       = op.Data?.DisplayName ?? string.Empty;
                 string name        = rawId.Length > 0 ? rawId : $"Slot {i}";
                 int    equippedIdx = this.inventoryService.GetEquippedWeaponIndex(i);
                 string equippedWpn = equippedIdx >= 0
@@ -255,7 +255,7 @@ namespace CrimsonDraft.Navigation.UI
                 var op = this.roster[i];
                 if (op.IsPresent)
                 {
-                    string id = op.Data?.OperatorId ?? string.Empty;
+                    string id = op.Data?.DisplayName ?? string.Empty;
                     map[i] = id.Length > 0 ? id : $"Slot {i}";
                 }
             }

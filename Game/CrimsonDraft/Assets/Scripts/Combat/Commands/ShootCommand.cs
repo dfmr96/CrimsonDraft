@@ -21,7 +21,9 @@ namespace CrimsonDraft.Combat.Commands
 
         public void Execute()
         {
-            this.op.ConsumeAmmo(this.shotCount);
+            var weapon = this.op.EquippedWeapon;
+            if (weapon != null)
+                weapon.SetAmmo(weapon.CurrentAmmo - this.shotCount);
             this.battlefield.ApplyDamageToEnemy(this.targetSlot, this.shotCount * CombatMenuController.BaseDamage);
         }
     }

@@ -46,14 +46,15 @@ namespace CrimsonDraft.Combat
         public void OnOperatorFocused(int index)
         {
             if (this.roster.Count == 0) return;
-            this.menuView.SetOperatorAmmo(index, this.roster[index].Ammo, this.roster[index].MaxAmmo);
+            var weapon = this.roster[index].EquippedWeapon;
+            this.menuView.SetOperatorAmmo(index, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
             this.battlefieldView.SetOperatorIndicator(index);
         }
 
         public void OnOperatorSelected(int index)
         {
             this.context.SelectedOperator = index;
-            bool hasAmmo = this.roster.Count > index && this.roster[index].Ammo > 0;
+            bool hasAmmo = this.roster.Count > index && (this.roster[index].EquippedWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);
             this.commandPanel.Show(this.menuView.GetOperatorRect(index));
             this.menuView.SetDimmed(true);
@@ -64,7 +65,10 @@ namespace CrimsonDraft.Combat
         private void SyncAllOperatorAmmo()
         {
             for (int i = 0; i < this.roster.Count; i++)
-                this.menuView.SetOperatorAmmo(i, this.roster[i].Ammo, this.roster[i].MaxAmmo);
+            {
+                var weapon = this.roster[i].EquippedWeapon;
+                this.menuView.SetOperatorAmmo(i, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
+            }
         }
     }
 }

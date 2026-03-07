@@ -77,7 +77,11 @@ namespace CrimsonDraft.Combat
 
             int op = this.context.SelectedOperator;
             if (this.roster.Count > op)
-                this.roster[op].ConsumeAmmo(this.context.SelectedShotCount);
+            {
+                var weapon = this.roster[op].EquippedWeapon;
+                if (weapon != null)
+                    weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
+            }
 
             if (!this.battlefieldView.HasAliveEnemies())
                 this.publisher.Publish(new CombatEndedEvent { Victory = true });

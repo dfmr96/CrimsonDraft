@@ -59,8 +59,8 @@ namespace CrimsonDraft.Combat
                 int op = this.context.SelectedOperator;
                 if (this.roster.Count > op)
                 {
-                    this.roster[op].Reload();
-                    this.menuView.SetOperatorAmmo(op, this.roster[op].Ammo, this.roster[op].MaxAmmo);
+                    var weapon = this.roster[op].EquippedWeapon;
+                    this.menuView.SetOperatorAmmo(op, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
                 }
                 this.commandPanel.Hide();
                 this.context.TransitionTo(this.context.OperatorSelState);
@@ -76,7 +76,7 @@ namespace CrimsonDraft.Combat
         {
             int op = this.context.SelectedOperator;
             if (this.roster.Count <= op) return CombatMenuController.MaxShotCount;
-            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].Ammo);
+            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].EquippedWeapon?.CurrentAmmo ?? 0);
         }
 
         private static SubPanelItem[] GetItemsFor(CombatCommand command) => command switch
