@@ -43,7 +43,7 @@ namespace CrimsonDraft.Operators
             for (int i = 0; i < seed.Operators.Length; i++)
             {
                 bool isPresent = seed.Operators[i] != null;
-                this.slots[i] = new OperatorRuntime(i, seed.Operators[i], isPresent, seed.DefaultHp, seed.DefaultAmmo);
+                this.slots[i] = new OperatorRuntime(i, seed.Operators[i], isPresent, seed.DefaultHp);
             }
 
             this.IsInitialized = true;

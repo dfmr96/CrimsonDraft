@@ -11,32 +11,31 @@ namespace CrimsonDraft.Tests
         {
             private readonly OperatorRosterSeed seed;
 
-            internal FakeSeedProvider(OperatorData?[] operators, int defaultHp, int defaultAmmo) =>
-                this.seed = new OperatorRosterSeed(operators, defaultHp, defaultAmmo);
+            internal FakeSeedProvider(OperatorData?[] operators, int defaultHp) =>
+                this.seed = new OperatorRosterSeed(operators, defaultHp);
 
             public OperatorRosterSeed GetSeed() => this.seed;
         }
 
-        private static OperatorRuntime MakePresent(int slot, int maxHp = 100, int maxAmmo = 6) =>
-            new OperatorRuntime(slot, null, isPresent: true, maxHp, maxAmmo);
+        private static OperatorRuntime MakePresent(int slot, int maxHp = 100) =>
+            new OperatorRuntime(slot, null, isPresent: true, maxHp);
 
         private static OperatorRuntime MakeAbsent(int slot) =>
-            new OperatorRuntime(slot, null, isPresent: false, maxHp: 100, maxAmmo: 6);
+            new OperatorRuntime(slot, null, isPresent: false, maxHp: 100);
 
         [Test]
-        public void EnsureInitialized_setsHpAndAmmoFromSeed()
+        public void EnsureInitialized_setsHpFromSeed()
         {
-            var roster = new OperatorRoster(new FakeSeedProvider(new OperatorData?[] { null, null, null }, defaultHp: 80, defaultAmmo: 4));
+            var roster = new OperatorRoster(new FakeSeedProvider(new OperatorData?[] { null, null, null }, defaultHp: 80));
             roster.EnsureInitialized();
 
-            Assert.AreEqual(0, roster[0].Hp);   // null slot → not present → Hp = 0
-            Assert.AreEqual(0, roster[0].Ammo);
+            Assert.AreEqual(0, roster[0].Hp);   // null slot -> not present -> Hp = 0
         }
 
         [Test]
         public void EnsureInitialized_isIdempotent()
         {
-            var roster = new OperatorRoster(new FakeSeedProvider(new OperatorData?[] { null, null }, defaultHp: 80, defaultAmmo: 4));
+            var roster = new OperatorRoster(new FakeSeedProvider(new OperatorData?[] { null, null }, defaultHp: 80));
 
             roster.EnsureInitialized();
             int firstCount = roster.Count;
@@ -49,7 +48,7 @@ namespace CrimsonDraft.Tests
         [Test]
         public void ApplyDamage_clampsToZero_andMarksDead()
         {
-            var op = MakePresent(0, maxHp: 100);
+            var op     = MakePresent(0, maxHp: 100);
             var result = op.ApplyDamage(150);
 
             Assert.AreEqual(0, result.RemainingHp);
@@ -60,7 +59,7 @@ namespace CrimsonDraft.Tests
         [Test]
         public void ApplyDamage_partialDamage_doesNotKill()
         {
-            var op = MakePresent(1, maxHp: 100);
+            var op     = MakePresent(1, maxHp: 100);
             var result = op.ApplyDamage(30);
 
             Assert.AreEqual(70, result.RemainingHp);
@@ -72,36 +71,11 @@ namespace CrimsonDraft.Tests
         public void GetAliveSlots_excludesAbsentAndDeadOperators()
         {
             var roster = new OperatorRoster(
-                new FakeSeedProvider(
-                    new OperatorData?[] { null, null, null },
-                    defaultHp: 100,
-                    defaultAmmo: 6));
+                new FakeSeedProvider(new OperatorData?[] { null, null, null }, defaultHp: 100));
             roster.EnsureInitialized();
 
-            // Make slot 1 "present" via a direct OperatorRuntime we can control
-            // Instead test with the Initialize + ApplyDamage path:
-            // All slots are absent (null data) → IsPresent=false → IsAlive=false
             var alive = roster.GetAliveSlots();
             Assert.AreEqual(0, alive.Count);
-        }
-
-        [Test]
-        public void Reload_restoresAmmoToMax()
-        {
-            var op = MakePresent(0, maxHp: 100, maxAmmo: 6);
-            op.ConsumeAmmo(4);
-            Assert.AreEqual(2, op.Ammo);
-
-            op.Reload();
-            Assert.AreEqual(6, op.Ammo);
-        }
-
-        [Test]
-        public void ConsumeAmmo_clampsToZero()
-        {
-            var op = MakePresent(0, maxHp: 100, maxAmmo: 6);
-            op.ConsumeAmmo(100);
-            Assert.AreEqual(0, op.Ammo);
         }
 
         [Test]
@@ -111,15 +85,53 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(op.IsPresent);
             Assert.IsFalse(op.IsAlive);
             Assert.AreEqual(0, op.Hp);
-            Assert.AreEqual(0, op.Ammo);
         }
 
         [Test]
         public void HpRatio_returnsCorrectFraction()
         {
-            var op = MakePresent(0, maxHp: 100, maxAmmo: 6);
+            var op = MakePresent(0, maxHp: 100);
             op.ApplyDamage(25);
             Assert.AreEqual(0.75f, op.HpRatio, delta: 0.001f);
+        }
+
+        [Test]
+        public void SetEquippedWeapon_updatesEquippedWeapon()
+        {
+            var op = MakePresent(0);
+            Assert.IsNull(op.EquippedWeapon);
+
+            var fakeWeapon = new FakeWeaponSlot("9mm", 15, 15);
+            op.SetEquippedWeapon(fakeWeapon);
+
+            Assert.AreEqual(fakeWeapon, op.EquippedWeapon);
+            Assert.AreEqual(15, op.EquippedWeapon!.CurrentAmmo);
+        }
+
+        [Test]
+        public void SetEquippedWeapon_null_clearsWeapon()
+        {
+            var op = MakePresent(0);
+            op.SetEquippedWeapon(new FakeWeaponSlot("9mm", 15, 15));
+            op.SetEquippedWeapon(null);
+
+            Assert.IsNull(op.EquippedWeapon);
+        }
+
+        private sealed class FakeWeaponSlot : IWeaponSlot
+        {
+            public string Caliber     { get; }
+            public int    CurrentAmmo { get; private set; }
+            public int    MaxAmmo     { get; }
+
+            internal FakeWeaponSlot(string caliber, int currentAmmo, int maxAmmo)
+            {
+                this.Caliber     = caliber;
+                this.CurrentAmmo = currentAmmo;
+                this.MaxAmmo     = maxAmmo;
+            }
+
+            public void SetAmmo(int value) => this.CurrentAmmo = value < 0 ? 0 : value > this.MaxAmmo ? this.MaxAmmo : value;
         }
     }
 }
