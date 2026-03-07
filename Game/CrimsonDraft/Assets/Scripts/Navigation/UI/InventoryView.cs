@@ -101,7 +101,8 @@ namespace CrimsonDraft.Navigation.UI
                 var op = roster[i];
                 if (!op.IsPresent) continue;
 
-                string name     = op.Data?.OperatorId ?? $"Slot {i}";
+                string rawId    = op.Data?.OperatorId ?? string.Empty;
+                string name     = rawId.Length > 0 ? rawId : $"Slot {i}";
                 int    wIdx     = inventory.GetEquippedWeaponIndex(i);
                 string wpnName  = wIdx >= 0 ? inventory.Items[wIdx].Data.DisplayName : "---";
 

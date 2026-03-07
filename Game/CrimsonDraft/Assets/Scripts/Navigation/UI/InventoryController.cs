@@ -198,7 +198,8 @@ namespace CrimsonDraft.Navigation.UI
                     _                         => false
                 };
 
-                string name        = op.Data?.OperatorId ?? $"Slot {i}";
+                string rawId       = op.Data?.OperatorId ?? string.Empty;
+                string name        = rawId.Length > 0 ? rawId : $"Slot {i}";
                 int    equippedIdx = this.inventoryService.GetEquippedWeaponIndex(i);
                 string equippedWpn = equippedIdx >= 0
                     ? this.inventoryService.Items[equippedIdx].Data.DisplayName
@@ -253,7 +254,10 @@ namespace CrimsonDraft.Navigation.UI
             {
                 var op = this.roster[i];
                 if (op.IsPresent)
-                    map[i] = op.Data?.OperatorId ?? $"Slot {i}";
+                {
+                    string id = op.Data?.OperatorId ?? string.Empty;
+                    map[i] = id.Length > 0 ? id : $"Slot {i}";
+                }
             }
             return map;
         }
