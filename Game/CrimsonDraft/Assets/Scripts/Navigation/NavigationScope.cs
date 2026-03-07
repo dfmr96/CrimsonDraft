@@ -24,6 +24,7 @@ namespace CrimsonDraft.Navigation
         {
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<InventoryView>();
+            builder.RegisterComponentInHierarchy<InventoryDebugSeeder>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatTrigger>();
