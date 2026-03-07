@@ -18,6 +18,7 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction CombatUseItem { get; }
 
         InputAction UINavigate { get; }
+        InputAction UIConfirm  { get; }
         InputAction UICancel   { get; }
 
         void SwitchToGameplay();

@@ -33,6 +33,7 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction CombatUseItem { get; }
 
         public InputAction UINavigate { get; }
+        public InputAction UIConfirm  { get; }
         public InputAction UICancel   { get; }
 
         [Preserve]
@@ -54,6 +55,7 @@ namespace CrimsonDraft.Infrastructure.Input
             CombatUseItem  = this.combatMap[UseItemAction];
 
             UINavigate = this.uiMap[NavigateAction];
+            UIConfirm  = this.uiMap["Submit"];
             UICancel   = this.uiMap[CancelAction];
         }
 
