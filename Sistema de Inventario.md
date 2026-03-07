@@ -1,136 +1,131 @@
+---
+estado: aprobado
+ultima-revision: 2026-03-07
+tags:
+  - game-design
+---
+
 # Sistema de Inventario
 
-**Fecha:** 2026-02-18
-**Estado:** Diseño aprobado
+El inventario es un pool compartido por todo el roster. Cada operador tiene un único slot de equipamiento: su arma principal.
 
 ---
 
-## Estructura General
+## Diseño
 
-Cada operador tiene una **grilla de inventario propia de 4×4** (16 slots). El inventario es **por personaje**: si el operador muere, todo lo que llevaba se pierde permanentemente.
+### Estructura
 
-Los items tienen **dimensiones físicas** que ocupan múltiples slots y se pueden **rotar 90°** para optimizar el espacio.
+El inventario es una **lista plana compartida** entre todos los operadores. No tiene límite de capacidad. No hay grillas, no hay tamaños físicos.
 
----
+Cada **ítem** tiene: identificador, tipo, nombre, y calibre (solo si es arma o caja de balas).
 
-## Tamaños de Items
+### Tipos de ítems
 
-| Item | Tamaño | Stackeable | Notas |
-|---|---|---|---|
-| Pistola (9mm) | 2×1 | No | P229 |
-| SMG | 3×1 | No | MP5 |
-| AR | 3×1 | No | Mk18 |
-| Escopeta | 4×1 | No | Benelli M4 |
-| Cargador | 1×2 | No | Por calibre |
-| Caja balas 9mm / 12ga | 1×1 | Sí (máx. TBD) | Recarga de cargadores |
-| Caja metálica AR (5.56) | 2×2 | Sí (máx. TBD) | Recarga de cargadores |
-| Puñal | 2×1 | No | Ítem táctico defensivo |
-| Granada | 1×1 | No | Ítem táctico defensivo |
-| Queroseno | 2×1 | No | Eliminación permanente post-combate |
-| Encendedor | 1×1 | No | Requerido para usar queroseno |
-| Dosis Krokonil | TBD | TBD | Pendiente de diseño |
+| Tipo | Acciones disponibles |
+|---|---|
+| Arma | Equipar / Desequipar, Examinar |
+| Caja de balas | Recargar, Examinar |
+| Consumible | Usar, Examinar |
 
----
+### Equipamiento
 
-## Equipamiento
+Cada operador tiene un único slot: **arma equipada** (puede estar vacío).
 
-El item **actualmente equipado** (activo en mano) muestra una **"E" en la esquina** de su slot en la grilla.
+El arma equipada permanece en la lista compartida marcada con el nombre del operador que la lleva — `[Eq: García]`. Si un operador muere, su arma vuelve al pool sin dueño.
 
-Solo puede haber un item activo por categoría:
-- **Arma principal** (la que se usa en combate QTE)
-- **Ítem táctico** (puñal o granada, usado en Acción Defenderse)
+Equipar un arma a un operador que ya tiene otra: el arma anterior queda sin dueño en la lista. No se pierde.
 
----
+### Pantalla de inventario
 
-## Tensión de Espacio
+La pantalla tiene dos paneles:
 
-La grilla 4×4 genera decisiones reales de qué llevar. Ejemplo de configuración típica:
+**Panel izquierdo — lista de ítems (navegable):**
+El jugador navega ítem por ítem con D-pad / flechas. Los ítems equipados muestran `[Eq: NombreOperador]`.
+
+**Panel derecho — estado del roster (solo visual):**
+Muestra cada operador con su arma equipada actual. No recibe foco de navegación — es referencia para el jugador.
 
 ```
-[ Benelli M4 4×1         ]  — fila completa
-[ Mk18 3×1    ] [  1×1  ]  — AR + 1 slot libre
-[ Carg ] [ Carg ] [ G ] [ E ]  — 2 cargadores, 1 granada, 1 encendedor
-[ BalaBox ] [ BalaBox ] [ Q 2×1 ]  — cajas balas + queroseno
+┌──────────────────────────────────────────────────────┐
+│  INVENTARIO                                          │
+│                                                      │
+│  ┌─────────────────────┐  ┌──────────────────────┐   │
+│  │ > Benelli M4        │  │ García               │   │
+│  │   Mk18 [Eq: García] │  │   Arma: Mk18         │   │
+│  │   9mm Box ×32       │  │                      │   │
+│  │   9mm Box ×18       │  │ Torres               │   │
+│  │                     │  │   Arma: ---          │   │
+│  └─────────────────────┘  └──────────────────────┘   │
+│                                                      │
+│  [A] Acción   [B] Cerrar                            │
+└──────────────────────────────────────────────────────┘
 ```
 
-Una escopeta (4×1) más una AR (3×1) ya consume 7 de 16 slots. Llevar dos armas largas deja poco espacio para suministros: cada arma adicional es un tradeoff explícito contra munición y consumibles.
+### Controles
 
----
-
-## Relación con Otros Sistemas
-
-- **Acción Defenderse**: Requiere tener puñal o granada en el inventario. Si el slot táctico está vacío, la acción no está disponible cuando el enemigo telegrafía el ataque.
-- **Eliminación Permanente**: Requiere tener queroseno **y** encendedor simultáneamente. Perder uno de los dos inutiliza el otro.
-- **Ammo system**: Los cargadores se recargan consumiendo cajas de balas del mismo calibre. Sin caja de balas, no se puede recargar el cargador vacío.
-
----
-
-## Acceso desde Exploración
-
-El inventario se abre **en cualquier momento durante la exploración** sin interrumpir la escena — el mapa de navegación permanece visible y activo en segundo plano.
+> El juego se juega exclusivamente con joystick / teclado. Sin input de mouse.
 
 | Input | Acción |
 |---|---|
-| **Tab / Select** | Abre el inventario |
-| **Botón B / Esc** | Cierra el inventario y vuelve a exploración |
+| D-pad / Flechas | Navegar por la lista de ítems |
+| A (confirmar) | Abrir menú contextual del ítem seleccionado |
+| B | Cerrar inventario |
+| Tab / Select | Abrir inventario (desde exploración) |
 
-Al abrir el inventario el input de movimiento se desactiva automáticamente — el jugador no puede moverse mientras navega el inventario. Al cerrar, el control vuelve inmediatamente.
-
-El inventario **no está disponible durante el combate** — la escena de combate usa su propio sistema de input y el inventario queda bloqueado hasta volver a exploración.
-
----
-
-## Controles e Interacción
-
-> El juego se juega **exclusivamente con joystick / teclado. Sin input de mouse.**
-
-### Navegación normal
-
-El cursor salta **de ítem en ítem** — nunca queda en una celda vacía.
-
-| Input | Acción |
-|---|---|
-| D-pad / Flechas | Saltar al ítem siguiente en esa dirección |
-| **Botón A** (confirmar) | Abrir menú contextual sobre el ítem seleccionado |
-| **Botón X** (agarrar) | Entrar en modo reordenar |
-
-### Modo reordenar (ítem agarrado)
-
-Al agarrar un ítem, el cursor cambia a movimiento **celda por celda**. El ítem sigue al cursor con preview verde (válido) / rojo (inválido).
-
-| Input | Acción |
-|---|---|
-| D-pad / Flechas | Mover celda por celda |
-| **Botón Y** | Rotar ítem 90° |
-| **Botón A** | Colocar ítem (si la posición es válida) |
-| **Botón B** | Cancelar — ítem vuelve a su posición original |
-
-**Transferir entre operadores:** cruzar a la fila de otro operador en modo reordenar y soltar el ítem = transferencia directa. No hay acción de menú para esto.
+Al abrir el inventario, el input de movimiento del jugador se desactiva. Al cerrar, se restaura inmediatamente.
 
 ### Menú contextual
 
-Aparece al confirmar sobre un ítem. Las opciones disponibles dependen del tipo:
+Al confirmar sobre un ítem aparece un menú vertical con las acciones disponibles para ese tipo.
 
-| Acción | Disponible para | Descripción |
-|---|---|---|
-| **Equipar / Desequipar** | Armas, tácticos | Activa el ítem en su slot (Holster o Sling) |
-| **Recargar** | Cargadores | Consume una caja de balas del mismo calibre |
-| **Examinar** | Cualquier ítem | Muestra descripción completa |
+#### Equipar / Desequipar (armas)
 
-#### Detalle: Recargar
+Submenú con la lista de operadores. El operador que ya lleva el arma seleccionada aparece con `✓`. Seleccionar un operador diferente transfiere el arma directamente.
 
-- **9mm:** muestra las variantes disponibles con su cantidad — `RIP (×32) / FMJ (×18)` — el jugador elige cuál cargar.
-- **Otros calibres** (12ga, 5.56): consume automáticamente la caja compatible. Sin submenú.
-- Si no hay balas del calibre requerido: acción deshabilitada (grayed out).
+#### Recargar (cajas de balas)
 
-#### Sin "Descartar"
+Submenú con los operadores que tienen un arma equipada del **calibre compatible** y ammo por debajo del máximo. Seleccionar un operador consume la caja y lleva su ammo al máximo.
 
-Los ítems no se descartan desde el inventario. Se depositan en **zonas seguras** del barco (sistema pendiente de diseño).
+Si no hay operadores compatibles: la acción aparece deshabilitada.
+
+#### Usar (consumibles)
+
+Comportamiento específico por consumible. En algunos casos: acción inmediata. En otros: submenú de operadores destino. TBD según consumible.
+
+#### Examinar (cualquier ítem)
+
+Overlay con la descripción completa del ítem. B para volver al inventario.
+
+### Descarte
+
+Los ítems no se descartan desde el inventario. Se depositan en zonas seguras del barco (sistema pendiente de diseño).
+
+### Acceso
+
+El inventario está disponible **solo durante exploración**. Queda bloqueado mientras el jugador está en combate.
+
+---
+
+## Intención
+
+> El inventario compartido elimina la microgestión por personaje. El jugador decide qué lleva el equipo como unidad, no individualmente.
+
+La lista es deliberadamente simple: sin grillas, sin tamaños, sin rotaciones. El peso de la decisión recae en qué ítems tiene el jugador, no en cómo los organiza espacialmente.
+
+El slot único por operador hace que armar al roster sea una decisión táctica clara: con armas limitadas y varios operadores, el jugador elige quién va armado y quién no.
+
+El arma de un operador muerto no se pierde — vuelve al pool. Esto evita que una muerte accidental destruya el progreso de equipo, pero sí obliga a volver a asignar en la siguiente oportunidad.
 
 ---
 
 ## Pendiente
 
-- Máximo de stack para cajas de balas (9mm, 12ga, 5.56)
-- Tamaño y stackeabilidad de dosis Krokonil (si existe como ítem)
-- Sistema de zonas seguras / almacenamiento en el barco
+- [ ] Máximo de ammo por arma / por operador (definir valor concreto)
+- [ ] Sistema de zonas seguras para depositar ítems
+- [ ] Comportamiento concreto de consumibles (Usar → qué efecto, sobre qué operador)
+- [ ] Integración con [[Krokonil]] si existe como ítem consumible
+- [ ] Decidir si las cajas de balas son stackeables en la lista o entradas separadas
+
+---
+
+Volver a [[Crimson Draft]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]
