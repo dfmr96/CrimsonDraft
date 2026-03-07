@@ -71,10 +71,15 @@ namespace CrimsonDraft.Navigation.UI
             {
                 var    item  = items[i];
                 string eqBy  = string.Empty;
+                string label = item.Data.DisplayName;
+
+                if (item is AmmoBoxItem ammoBox)
+                    label = $"{label} x{ammoBox.Quantity}";
+
                 if (item.IsEquipped && operatorNames.TryGetValue(item.EquippedBySlot, out var n))
                     eqBy = n;
 
-                this.itemRows[i].Setup(item.Data.DisplayName, eqBy, isCursor: i == cursorIndex);
+                this.itemRows[i].Setup(label, eqBy, isCursor: i == cursorIndex);
                 this.itemRows[i].gameObject.SetActive(true);
             }
         }
