@@ -7,6 +7,7 @@ using UnityEngine;
 using VContainer.Unity;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Tests
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Tests
         private FakeAimView              aimView         = null!;
         private FakeBattlefieldView      battlefieldView = null!;
         private FakeOperatorRoster       roster          = null!;
+        private FakeInventoryService     inventory       = null!;
 
         [SetUp]
         public void SetUp()
@@ -33,12 +35,14 @@ namespace CrimsonDraft.Tests
             this.aimView         = new FakeAimView();
             this.battlefieldView = new FakeBattlefieldView();
             this.roster          = new FakeOperatorRoster();
+            this.inventory       = new FakeInventoryService();
         }
 
-        private CombatMenuController BuildAndInit()
+        private CombatMenuController BuildAndInit(FakeInventoryService? inv = null)
         {
             var controller = new CombatMenuController(
-                this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster);
+                this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster,
+                inv ?? this.inventory);
             ((IInitializable)controller).Initialize();
             return controller;
         }
@@ -439,6 +443,40 @@ namespace CrimsonDraft.Tests
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
+
+        private sealed class FakeInventoryService : IInventoryService
+        {
+            private readonly List<InventoryItem>   items       = new();
+            private readonly Dictionary<int, bool> canReloadBy = new();
+
+            public IReadOnlyList<InventoryItem> Items => this.items;
+            public int ReloadCallCount  { get; private set; }
+            public int LastAmmoBoxIndex { get; private set; } = -1;
+            public int LastOperatorSlot { get; private set; } = -1;
+
+            public void AddItem(ItemData data, int quantity = 0)        { }
+            public void EquipWeapon(int itemIndex, int operatorSlot)    { }
+            public void UnequipWeapon(int itemIndex)                    { }
+            public int  GetEquippedWeaponIndex(int operatorSlot)        => -1;
+
+            public bool CanReload(int ammoBoxIndex, int operatorSlot)
+                => this.canReloadBy.TryGetValue(ammoBoxIndex, out bool v) && v;
+
+            public void ReloadOperator(int ammoBoxIndex, int operatorSlot)
+            {
+                this.ReloadCallCount++;
+                this.LastAmmoBoxIndex = ammoBoxIndex;
+                this.LastOperatorSlot = operatorSlot;
+            }
+
+            /// <summary>Registers an ammo box item at the next index. canReload controls CanReload result.</summary>
+            public void RegisterBox(AmmoBoxItem box, bool canReload)
+            {
+                int idx = this.items.Count;
+                this.items.Add(box);
+                this.canReloadBy[idx] = canReload;
+            }
+        }
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
         {

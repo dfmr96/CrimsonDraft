@@ -7,6 +7,7 @@ using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -15,9 +16,10 @@ namespace CrimsonDraft.Combat
     {
         #region Shared state (accessed by state objects)
 
-        internal int SelectedOperator  { get; set; } = 0;
-        internal int SelectedShotCount { get; set; } = 1;
-        internal int CurrentTargetSlot { get; set; } = -1;
+        internal int   SelectedOperator      { get; set; } = 0;
+        internal int   SelectedShotCount     { get; set; } = 1;
+        internal int   CurrentTargetSlot     { get; set; } = -1;
+        internal int[] ReloadAmmoBoxIndices  { get; set; } = System.Array.Empty<int>();
 
         internal const int BaseDamage   = 20;
         internal const int MaxShotCount = 6;
@@ -56,6 +58,7 @@ namespace CrimsonDraft.Combat
         private readonly IAimView                      aimView;
         private readonly IBattlefieldView              battlefieldView;
         private readonly IOperatorRoster               roster;
+        private readonly IInventoryService             inventory;
 
         [Preserve]
         public CombatMenuController(
@@ -67,6 +70,7 @@ namespace CrimsonDraft.Combat
             IAimView                     aimView,
             IBattlefieldView             battlefieldView,
             IOperatorRoster              roster,
+            IInventoryService            inventory,
             IInputService                inputService)
         {
             this.menuView             = menuView;
@@ -77,6 +81,7 @@ namespace CrimsonDraft.Combat
             this.aimView              = aimView;
             this.battlefieldView      = battlefieldView;
             this.roster               = roster;
+            this.inventory            = inventory;
             this.inputService         = inputService;
         }
 
@@ -89,7 +94,8 @@ namespace CrimsonDraft.Combat
             IPublisher<CombatEndedEvent> combatEndedPublisher,
             IAimView                     aimView,
             IBattlefieldView             battlefieldView,
-            IOperatorRoster              roster)
+            IOperatorRoster              roster,
+            IInventoryService            inventory)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
@@ -99,6 +105,7 @@ namespace CrimsonDraft.Combat
             this.aimView              = aimView;
             this.battlefieldView      = battlefieldView;
             this.roster               = roster;
+            this.inventory            = inventory;
         }
 
         #endregion
