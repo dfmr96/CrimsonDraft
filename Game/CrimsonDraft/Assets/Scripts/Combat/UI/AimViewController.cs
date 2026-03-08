@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using CrimsonDraft.Inventory;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
@@ -34,7 +35,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject    feedbackTextPrefab     = null!;
         [SerializeField] private float         speed                  = 0.8f;
         [SerializeField] private float         dimmingAlpha           = 0.3f;
-        [SerializeField] private int           dispersionRadius       = 10;
         [SerializeField] private Vector2       feedbackOffset         = new Vector2(0f, 24f);
         [SerializeField] private float         feedbackHoldDuration   = 0.25f;
         [SerializeField] private float         feedbackDuration       = 0.6f;
@@ -46,7 +46,9 @@ namespace CrimsonDraft.Combat
 
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
-        private int      shotCount = 1;
+        private int      shotCount              = 1;
+        private int      activeDispersionRadius = 10;
+        private Sprite?  activeDispersionSprite;
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
@@ -82,6 +84,12 @@ namespace CrimsonDraft.Combat
             this.activeZoneMaskSprite  = profile.ZoneMaskSprite;
             this.activeZoneDefinitions = profile.ZoneDefinitions;
             this.activeColorTolerance  = profile.ColorTolerance;
+        }
+
+        public void ConfigureWeapon(WeaponData? weaponData)
+        {
+            this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
+            this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
         }
 
         public void SetShotCount(int shotCount)
@@ -247,7 +255,10 @@ namespace CrimsonDraft.Combat
             var circle = Instantiate(this.dispersionCirclePrefab, this.aimSpace);
             var rt     = (RectTransform)circle.transform;
             rt.localPosition = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
-            circle.GetComponent<Image>().SetNativeSize();
+            var img = circle.GetComponent<Image>();
+            if (this.activeDispersionSprite != null)
+                img.sprite = this.activeDispersionSprite;
+            img.SetNativeSize();
         }
 
         private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
@@ -321,7 +332,7 @@ namespace CrimsonDraft.Combat
         private Vector2 ComputeRandomShotLocal()
         {
             float angle = UnityEngine.Random.value * Mathf.PI * 2f;
-            float r     = this.dispersionRadius * Mathf.Sqrt(UnityEngine.Random.value);
+            float r     = this.activeDispersionRadius * Mathf.Sqrt(UnityEngine.Random.value);
             return new Vector2(
                 Mathf.Round(this.confirmedLocalPos.x + r * Mathf.Cos(angle)),
                 Mathf.Round(this.confirmedLocalPos.y + r * Mathf.Sin(angle)));
@@ -471,7 +482,7 @@ namespace CrimsonDraft.Combat
         {
             if (this.aimSpace == null) return;
 
-            float radius = this.dispersionRadius * this.aimSpace.lossyScale.x;
+            float radius = this.activeDispersionRadius * this.aimSpace.lossyScale.x;
             var   center = this.aimSpace.TransformPoint(this.confirmedLocalPos);
             UnityEditor.Handles.color = new Color(0f, 0.9f, 1f, 0.8f);
             UnityEditor.Handles.DrawWireDisc(center, Vector3.forward, radius);

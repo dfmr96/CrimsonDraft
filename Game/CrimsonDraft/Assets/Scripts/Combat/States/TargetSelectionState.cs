@@ -1,5 +1,7 @@
 #nullable enable
 
+using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 using UnityEngine;
 
 namespace CrimsonDraft.Combat
@@ -10,6 +12,7 @@ namespace CrimsonDraft.Combat
         private readonly ICommandPanelView    commandPanel;
         private readonly IBattlefieldView     battlefieldView;
         private readonly IAimView             aimView;
+        private readonly IOperatorRoster      roster;
 
         private int[] occupiedSlots = System.Array.Empty<int>();
         private int   cursor        = 0;
@@ -18,12 +21,14 @@ namespace CrimsonDraft.Combat
             CombatMenuController context,
             ICommandPanelView    commandPanel,
             IBattlefieldView     battlefieldView,
-            IAimView             aimView)
+            IAimView             aimView,
+            IOperatorRoster      roster)
         {
             this.context         = context;
             this.commandPanel    = commandPanel;
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
+            this.roster          = roster;
         }
 
         public void Enter()
@@ -45,6 +50,9 @@ namespace CrimsonDraft.Combat
             this.battlefieldView.HideEnemyTargetIndicator();
             this.context.CurrentTargetSlot = this.occupiedSlots.Length > 0
                 ? this.occupiedSlots[this.cursor] : -1;
+            int op = this.context.SelectedOperator;
+            WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].EquippedWeapon as WeaponItem)?.Data : null;
+            this.aimView.ConfigureWeapon(weaponData);
             this.aimView.ConfigureHitMask(
                 this.context.CurrentTargetSlot >= 0
                     ? this.battlefieldView.GetEnemyHitMaskProfile(this.context.CurrentTargetSlot)

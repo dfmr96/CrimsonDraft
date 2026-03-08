@@ -1,7 +1,8 @@
 #nullable enable
 
-using UnityEngine;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
+using UnityEngine;
 
 namespace CrimsonDraft.Combat
 {
@@ -51,6 +52,9 @@ namespace CrimsonDraft.Combat
             int[] enemies = this.battlefieldView.GetOccupiedEnemySlots();
             if (enemies.Length == 0)
             {
+                int op = this.context.SelectedOperator;
+                WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].EquippedWeapon as WeaponItem)?.Data : null;
+                this.aimView.ConfigureWeapon(weaponData);
                 this.aimView.ConfigureHitMask(null);
                 this.aimView.SetShotCount(this.context.SelectedShotCount);
                 this.context.TransitionTo(this.context.AimingState);

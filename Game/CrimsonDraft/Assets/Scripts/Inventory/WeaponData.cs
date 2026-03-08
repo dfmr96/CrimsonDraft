@@ -7,10 +7,14 @@ namespace CrimsonDraft.Inventory
     [CreateAssetMenu(fileName = "WeaponData", menuName = "CrimsonDraft/Inventory/Weapon Data")]
     public sealed class WeaponData : ItemData
     {
-        [SerializeField] private string caliber          = string.Empty;
-        [SerializeField] private int    magazineCapacity = 1;
+        [SerializeField] private string  caliber                = string.Empty;
+        [SerializeField] private int     magazineCapacity       = 1;
+        [SerializeField] private int     dispersionRadius       = 10;
+        [SerializeField] private Sprite? dispersionCircleSprite;
 
-        public string Caliber          => this.caliber;
-        public int    MagazineCapacity => this.magazineCapacity;
+        public string  Caliber                => this.caliber;
+        public int     MagazineCapacity       => this.magazineCapacity;
+        public int     DispersionRadius       => this.dispersionRadius;
+        public Sprite? DispersionCircleSprite => this.dispersionCircleSprite;
     }
 }

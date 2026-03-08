@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using CrimsonDraft.Inventory;
 using UnityEngine;
 
 namespace CrimsonDraft.Combat
@@ -8,6 +9,7 @@ namespace CrimsonDraft.Combat
     {
         event Action<ResolvedShot[]>? OnShotsResolved;
         void ConfigureHitMask(AimHitMaskProfile? profile);
+        void ConfigureWeapon(WeaponData? weaponData);
         void SetShotCount(int shotCount);
         void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss);
         void Show();

@@ -690,6 +690,7 @@ namespace CrimsonDraft.Tests
             public int LastFeedbackDamage { get; private set; }
             public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
+            public void ConfigureWeapon(CrimsonDraft.Inventory.WeaponData? weaponData) { }
             public void SetShotCount(int shotCount) => this.LastShotCount = shotCount;
             public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
             {
