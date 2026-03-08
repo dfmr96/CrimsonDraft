@@ -18,8 +18,12 @@ namespace CrimsonDraft.Navigation
             this.inventory = inventory;
         }
 
+        private bool initialized;
+
         public void Initialize()
         {
+            if (this.initialized) return;
+            this.initialized = true;
             foreach (var entry in this.loadout.Items)
                 this.inventory.AddItem(entry.item, entry.quantity);
         }

@@ -31,7 +31,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<InventoryView>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
-            builder.Register<InventoryBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
+            builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatTrigger>();
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
