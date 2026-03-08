@@ -157,6 +157,74 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void SubPanel_selectAmmoBox_callsReloadOperator_andHidesSubPanel()
+        {
+            var inv     = new FakeInventoryService();
+            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
+            SetDisplayName(boxData, "9MM FMJ");
+            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true); // inventory index 0
+
+            BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+
+            Assert.IsTrue(this.subPanel.IsVisible);
+
+            this.subPanel.RaiseOnItemSelected(0);
+
+            Assert.AreEqual(1, inv.ReloadCallCount,   "ReloadOperator called once");
+            Assert.AreEqual(0, inv.LastAmmoBoxIndex,  "correct inventory index");
+            Assert.AreEqual(0, inv.LastOperatorSlot,  "correct operator slot");
+            Assert.IsFalse(this.subPanel.IsVisible,   "SubPanel hidden after reload");
+        }
+
+        [Test]
+        public void SubPanel_selectNoAmmo_doesNotCallReloadOperator()
+        {
+            var inv = new FakeInventoryService();
+
+            BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+
+            this.subPanel.RaiseOnItemSelected(0); // "NO AMMO" at index 0
+
+            Assert.AreEqual(0, inv.ReloadCallCount, "ReloadOperator not called");
+        }
+
+        [Test]
+        public void SubPanel_reload_updatesAmmoHud()
+        {
+            var inv     = new FakeInventoryService();
+            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
+            SetDisplayName(boxData, "9MM FMJ");
+            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true);
+
+            BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+            this.subPanel.RaiseOnItemSelected(0);
+
+            Assert.IsTrue(this.menuView.TryGetAmmo(0, out _));
+        }
+
+        [Test]
+        public void SubPanel_reload_transitionsBackToOperatorSelection()
+        {
+            var inv     = new FakeInventoryService();
+            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
+            SetDisplayName(boxData, "9MM FMJ");
+            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true);
+
+            BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+            this.subPanel.RaiseOnItemSelected(0);
+
+            Assert.IsFalse(this.commandPanel.IsVisible);
+        }
+
+        [Test]
         public void CommandSelected_Items_showsSubPanel()
         {
             BuildAndInit();
