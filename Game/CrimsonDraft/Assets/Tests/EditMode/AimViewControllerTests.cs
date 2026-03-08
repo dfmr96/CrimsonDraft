@@ -8,22 +8,35 @@ namespace CrimsonDraft.Tests
     {
         private static ShotZoneDefinition[] StandardPalette() => new[]
         {
-            new ShotZoneDefinition { color = Color.white, zone = ShotZone.Hit  },
-            new ShotZoneDefinition { color = Color.black, zone = ShotZone.Miss },
+            new ShotZoneDefinition
+            {
+                color          = Color.white,
+                zone           = ShotZone.Hit,
+                precisionEntry = new ShotPrecisionEntry { precision = ShotPrecision.Normal, multiplier = 1f }
+            },
+            new ShotZoneDefinition
+            {
+                color          = Color.black,
+                zone           = ShotZone.Miss,
+                precisionEntry = new ShotPrecisionEntry { precision = ShotPrecision.Normal, multiplier = 0f }
+            },
         };
 
         [Test]
-        public void ResolveZone_exactWhite_returnsHit()
+        public void ResolveZone_exactWhite_returnsHitDefinition()
         {
             var result = AimViewController.ResolveZone(Color.white, StandardPalette(), 0.1f);
-            Assert.AreEqual(ShotZone.Hit, result);
+            Assert.IsTrue(result.HasValue);
+            Assert.AreEqual(ShotZone.Hit, result!.Value.zone);
+            Assert.AreEqual(ShotPrecision.Normal, result.Value.precisionEntry.precision);
         }
 
         [Test]
-        public void ResolveZone_exactBlack_returnsMiss()
+        public void ResolveZone_exactBlack_returnsMissDefinition()
         {
             var result = AimViewController.ResolveZone(Color.black, StandardPalette(), 0.1f);
-            Assert.AreEqual(ShotZone.Miss, result);
+            Assert.IsTrue(result.HasValue);
+            Assert.AreEqual(ShotZone.Miss, result!.Value.zone);
         }
 
         [Test]
@@ -31,21 +44,40 @@ namespace CrimsonDraft.Tests
         {
             var nearWhite = new Color(0.95f, 0.95f, 0.95f);
             var result = AimViewController.ResolveZone(nearWhite, StandardPalette(), 0.1f);
-            Assert.AreEqual(ShotZone.Hit, result);
+            Assert.IsTrue(result.HasValue);
+            Assert.AreEqual(ShotZone.Hit, result!.Value.zone);
         }
 
         [Test]
-        public void ResolveZone_unknownColor_outsideTolerance_returnsMiss()
+        public void ResolveZone_unknownColor_outsideTolerance_returnsNull()
         {
             var result = AimViewController.ResolveZone(Color.red, StandardPalette(), 0.1f);
-            Assert.AreEqual(ShotZone.Miss, result);
+            Assert.IsFalse(result.HasValue);
         }
 
         [Test]
-        public void ResolveZone_emptyPalette_returnsMiss()
+        public void ResolveZone_emptyPalette_returnsNull()
         {
             var result = AimViewController.ResolveZone(Color.white, new ShotZoneDefinition[0], 0.1f);
-            Assert.AreEqual(ShotZone.Miss, result);
+            Assert.IsFalse(result.HasValue);
+        }
+
+        [Test]
+        public void ResolveZone_preservesPrecisionEntry()
+        {
+            var palette = new[]
+            {
+                new ShotZoneDefinition
+                {
+                    color          = Color.red,
+                    zone           = ShotZone.Head,
+                    precisionEntry = new ShotPrecisionEntry { precision = ShotPrecision.WeakPoint, multiplier = 2f }
+                }
+            };
+            var result = AimViewController.ResolveZone(Color.red, palette, 0.1f);
+            Assert.IsTrue(result.HasValue);
+            Assert.AreEqual(ShotPrecision.WeakPoint, result!.Value.precisionEntry.precision);
+            Assert.AreEqual(2f, result.Value.precisionEntry.multiplier);
         }
 
         [Test]

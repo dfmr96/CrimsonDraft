@@ -6,7 +6,8 @@ namespace CrimsonDraft.Combat
     [Serializable]
     public struct ShotZoneDefinition
     {
-        public Color    color;
-        public ShotZone zone;
+        public Color              color;
+        public ShotZone           zone;
+        public ShotPrecisionEntry precisionEntry;
     }
 }

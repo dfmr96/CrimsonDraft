@@ -200,14 +200,17 @@ namespace CrimsonDraft.Combat
         private ResolvedShot[] BuildResolvedShots(Vector2 firstShotLocal, int count)
         {
             int clampedCount = Mathf.Max(1, count);
-            var resolved = new ResolvedShot[clampedCount];
+            var resolved     = new ResolvedShot[clampedCount];
             for (int i = 0; i < clampedCount; i++)
             {
-                Vector2 shotLocal = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
-                Vector2 normalized = this.NormalizeShotLocal(shotLocal);
-                ShotZone zone = this.SampleSilhouette(shotLocal);
-                int damage = CombatMenuController.ComputeShotDamage(zone);
-                resolved[i] = new ResolvedShot(i, normalized, zone, damage);
+                Vector2             shotLocal  = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
+                Vector2             normalized = this.NormalizeShotLocal(shotLocal);
+                ShotZoneDefinition? def        = this.SampleSilhouette(shotLocal);
+                ShotZone            zone       = def?.zone ?? ShotZone.Miss;
+                ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
+                float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
+                int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult);
+                resolved[i] = new ResolvedShot(i, normalized, zone, precision, damage);
             }
             return resolved;
         }
@@ -385,18 +388,18 @@ namespace CrimsonDraft.Combat
                 Mathf.Round(primaryLocal.x),
                 Mathf.Round(primaryLocal.y + Mathf.Max(0, bulletIndex) * perBulletYOffset));
 
-        private ShotZone SampleSilhouette(Vector2 shotLocal)
+        private ShotZoneDefinition? SampleSilhouette(Vector2 shotLocal)
         {
             if (this.silhouetteImage == null)
-                return ShotZone.Miss;
+                return null;
             if (this.activeZoneMaskSprite == null)
             {
                 if (!this.warnedMissingMaskConfig)
                 {
-                    Debug.LogWarning("[AimView] Missing hit mask profile. Returning ShotZone.Miss until ConfigureHitMask(...) is provided.");
+                    Debug.LogWarning("[AimView] Missing hit mask profile. Returning null until ConfigureHitMask(...) is provided.");
                     this.warnedMissingMaskConfig = true;
                 }
-                return ShotZone.Miss;
+                return null;
             }
 
             var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
@@ -404,24 +407,24 @@ namespace CrimsonDraft.Combat
             var localInSil = silRt.InverseTransformPoint(worldPos);
             var rect       = silRt.rect;
             if (rect.width <= 0f || rect.height <= 0f)
-                return ShotZone.Miss;
+                return null;
 
             float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
             float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
 
-            var sprite = this.activeZoneMaskSprite;
-            var tex    = sprite.texture;
+            var sprite     = this.activeZoneMaskSprite;
+            var tex        = sprite.texture;
             var pixelCoord = MapUvToTexturePixel(sprite, u, v);
-            int px = pixelCoord.x;
-            int py = pixelCoord.y;
-            var texRect = sprite.textureRect;
-            var pixel = tex.GetPixel(px, py);
-            var zone = ResolveZone(pixel, this.activeZoneDefinitions, this.activeColorTolerance);
-            string hex = $"#{ColorUtility.ToHtmlStringRGB(pixel)}";
-            string spriteName = sprite.name;
+            int px         = pixelCoord.x;
+            int py         = pixelCoord.y;
+            var texRect    = sprite.textureRect;
+            var pixel      = tex.GetPixel(px, py);
+            var def        = ResolveZone(pixel, this.activeZoneDefinitions, this.activeColorTolerance);
+            string hex         = $"#{ColorUtility.ToHtmlStringRGB(pixel)}";
+            string spriteName  = sprite.name;
             string textureName = tex.name;
             Debug.Log(
-                $"[AimView] Sampled sprite='{spriteName}' texture='{textureName}' px=({px},{py}) color={hex} ({pixel}) -> Zone: {zone}");
+                $"[AimView] Sampled sprite='{spriteName}' texture='{textureName}' px=({px},{py}) color={hex} ({pixel}) -> Zone: {def?.zone} Precision: {def?.precisionEntry.precision}");
 #if UNITY_EDITOR
             float uCenter = Mathf.Clamp01(((px - texRect.xMin) + 0.5f) / texRect.width);
             float vCenter = Mathf.Clamp01(((py - texRect.yMin) + 0.5f) / texRect.height);
@@ -433,7 +436,7 @@ namespace CrimsonDraft.Combat
             this.lastSampleColor    = pixel;
             this.lastSampleHex      = hex;
 #endif
-            return zone;
+            return def;
         }
 
         internal static Vector2Int MapUvToTexturePixel(Sprite sprite, float u, float v)
@@ -451,30 +454,30 @@ namespace CrimsonDraft.Combat
             return new Vector2Int(px, py);
         }
 
-        internal static ShotZone ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)
+        internal static ShotZoneDefinition? ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)
         {
             if (definitions == null || definitions.Length == 0)
-                return ShotZone.Miss;
+                return null;
 
             float bestDistSq = float.MaxValue;
-            ShotZone bestZone = ShotZone.Miss;
-            bool found = false;
+            int   bestIdx    = -1;
 
-            foreach (var def in definitions)
+            for (int i = 0; i < definitions.Length; i++)
             {
-                float dr = pixel.r - def.color.r;
-                float dg = pixel.g - def.color.g;
-                float db = pixel.b - def.color.b;
+                float dr     = pixel.r - definitions[i].color.r;
+                float dg     = pixel.g - definitions[i].color.g;
+                float db     = pixel.b - definitions[i].color.b;
                 float distSq = dr * dr + dg * dg + db * db;
                 if (distSq < bestDistSq)
                 {
                     bestDistSq = distSq;
-                    bestZone   = def.zone;
-                    found      = true;
+                    bestIdx    = i;
                 }
             }
 
-            return (found && bestDistSq <= tolerance * tolerance) ? bestZone : ShotZone.Miss;
+            return (bestIdx >= 0 && bestDistSq <= tolerance * tolerance)
+                ? definitions[bestIdx]
+                : null;
         }
 
 #if UNITY_EDITOR

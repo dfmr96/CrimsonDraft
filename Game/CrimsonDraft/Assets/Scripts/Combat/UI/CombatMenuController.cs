@@ -165,9 +165,9 @@ namespace CrimsonDraft.Combat
 
         internal void HandleCancelPressed() => this.currentState.OnCancel();
 
-        internal static int ComputeShotDamage(ShotZone zone)
+        internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier)
         {
-            float multiplier = zone switch
+            float zoneMult = zone switch
             {
                 ShotZone.Head  => 2.0f,
                 ShotZone.Torso => 1.0f,
@@ -176,7 +176,7 @@ namespace CrimsonDraft.Combat
                 ShotZone.Hit   => 1.0f,
                 _              => 0.0f,
             };
-            return Mathf.RoundToInt(BaseDamage * multiplier);
+            return Mathf.RoundToInt(BaseDamage * zoneMult * precisionMultiplier);
         }
 
         #endregion

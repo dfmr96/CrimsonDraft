@@ -328,7 +328,7 @@ namespace CrimsonDraft.Tests
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             Assert.IsTrue(this.aimView.IsVisible);
         }
 
@@ -340,7 +340,7 @@ namespace CrimsonDraft.Tests
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             Assert.IsTrue(this.commandPanel.IsVisible);
         }
 
@@ -352,7 +352,7 @@ namespace CrimsonDraft.Tests
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             InvokeConfirm(c);
 
             Assert.IsFalse(this.aimView.IsVisible);
@@ -369,7 +369,7 @@ namespace CrimsonDraft.Tests
             {
                 this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
                 InvokeConfirm(c);
-                this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, 0) });
+                this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
                 InvokeConfirm(c);
                 this.menuView.RaiseOnOperatorSelected(0);
             }
@@ -396,7 +396,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.AreEqual(20, this.battlefieldView.LastDamageResult.DamageApplied);
             Assert.AreEqual(80, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -415,7 +415,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, new Vector2(0.25f, 0.75f), ShotZone.Miss, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, new Vector2(0.25f, 0.75f), ShotZone.Miss, ShotPrecision.Normal, 0) });
 
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.DamageApplied);
             Assert.AreEqual(100, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -468,33 +468,51 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ComputeShotDamage_head_returns40()
+        public void ComputeShotDamage_head_normalPrecision_returns40()
         {
-            Assert.AreEqual(40, CombatMenuController.ComputeShotDamage(ShotZone.Head));
+            Assert.AreEqual(40, CombatMenuController.ComputeShotDamage(ShotZone.Head, 1f));
         }
 
         [Test]
-        public void ComputeShotDamage_torso_returns20()
+        public void ComputeShotDamage_head_graze_returns20()
         {
-            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Torso));
+            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Head, 0.5f));
         }
 
         [Test]
-        public void ComputeShotDamage_arms_returns14()
+        public void ComputeShotDamage_head_weakPoint_returns80()
         {
-            Assert.AreEqual(14, CombatMenuController.ComputeShotDamage(ShotZone.Arms));
+            Assert.AreEqual(80, CombatMenuController.ComputeShotDamage(ShotZone.Head, 2f));
         }
 
         [Test]
-        public void ComputeShotDamage_legs_returns16()
+        public void ComputeShotDamage_torso_normalPrecision_returns20()
         {
-            Assert.AreEqual(16, CombatMenuController.ComputeShotDamage(ShotZone.Legs));
+            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 1f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_torso_graze_returns10()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 0.5f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_arms_normalPrecision_returns14()
+        {
+            Assert.AreEqual(14, CombatMenuController.ComputeShotDamage(ShotZone.Arms, 1f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_legs_normalPrecision_returns16()
+        {
+            Assert.AreEqual(16, CombatMenuController.ComputeShotDamage(ShotZone.Legs, 1f));
         }
 
         [Test]
         public void ComputeShotDamage_miss_returns0()
         {
-            Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss));
+            Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss, 1f));
         }
 
         [Test]
@@ -509,7 +527,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.AreEqual(1, this.battlefieldView.LastDamageResult.SlotIndex);
             Assert.AreEqual(20, this.battlefieldView.LastDamageResult.DamageApplied);
@@ -529,7 +547,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -548,7 +566,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, 40) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
             Assert.IsTrue(this.publisher.Published);
             Assert.NotNull(this.publisher.LastEvent);
