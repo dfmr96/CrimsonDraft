@@ -1,7 +1,9 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -14,6 +16,7 @@ namespace CrimsonDraft.Combat
         private readonly ISubPanelView         subPanel;
         private readonly IBattlefieldView      battlefieldView;
         private readonly IOperatorRoster       roster;
+        private readonly IInventoryService     inventory;
 
         internal CommandPanelState(
             CombatMenuController  context,
@@ -21,7 +24,8 @@ namespace CrimsonDraft.Combat
             ICommandPanelView     commandPanel,
             ISubPanelView         subPanel,
             IBattlefieldView      battlefieldView,
-            IOperatorRoster       roster)
+            IOperatorRoster       roster,
+            IInventoryService     inventory)
         {
             this.context         = context;
             this.menuView        = menuView;
@@ -29,6 +33,7 @@ namespace CrimsonDraft.Combat
             this.subPanel        = subPanel;
             this.battlefieldView = battlefieldView;
             this.roster          = roster;
+            this.inventory       = inventory;
         }
 
         public void Enter()
@@ -57,13 +62,26 @@ namespace CrimsonDraft.Combat
             if (command == CombatCommand.Reload)
             {
                 int op = this.context.SelectedOperator;
-                if (this.roster.Count > op)
+
+                var compatibleIndices = new List<int>();
+                var items             = new List<SubPanelItem>();
+
+                for (int i = 0; i < this.inventory.Items.Count; i++)
                 {
-                    var weapon = this.roster[op].EquippedWeapon;
-                    this.menuView.SetOperatorAmmo(op, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
+                    if (this.inventory.CanReload(i, op) && this.inventory.Items[i] is AmmoBoxItem box)
+                    {
+                        compatibleIndices.Add(i);
+                        items.Add(new SubPanelItem($"{box.Data.DisplayName} \u00d7{box.Quantity}"));
+                    }
                 }
-                this.commandPanel.Hide();
-                this.context.TransitionTo(this.context.OperatorSelState);
+
+                if (items.Count == 0)
+                    items.Add(new SubPanelItem("NO AMMO"));
+
+                this.context.ReloadAmmoBoxIndices = compatibleIndices.ToArray();
+                this.commandPanel.SetDimmed(true);
+                this.subPanel.Show(items.ToArray(), this.commandPanel.PanelRect);
+                this.context.TransitionTo(this.context.SubPanelState);
                 return;
             }
 
@@ -81,7 +99,6 @@ namespace CrimsonDraft.Combat
 
         private static SubPanelItem[] GetItemsFor(CombatCommand command) => command switch
         {
-            CombatCommand.Reload => new[] { new SubPanelItem("9MM FMJ"), new SubPanelItem("9MM RIP") },
             CombatCommand.Items  => new[] { new SubPanelItem("MORPHINE"), new SubPanelItem("BANDAGE") },
             CombatCommand.Defend => new[] { new SubPanelItem("SHIELD") },
             _                    => Array.Empty<SubPanelItem>()

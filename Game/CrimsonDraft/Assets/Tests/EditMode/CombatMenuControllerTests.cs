@@ -55,6 +55,13 @@ namespace CrimsonDraft.Tests
             onConfirm!.Invoke(controller, new object?[] { null });
         }
 
+        private static void SetDisplayName(ItemData data, string name)
+        {
+            var so = new UnityEditor.SerializedObject(data);
+            so.FindProperty("displayName").stringValue = name;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         // ── Existing subscription tests ────────────────────────────────
 
         [Test]
@@ -104,12 +111,49 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void CommandSelected_Reload_doesNotShowSubPanel()
+        public void CommandSelected_Reload_noCompatibleAmmo_showsSubPanelWithNoAmmoItem()
         {
             BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-            Assert.IsFalse(this.subPanel.IsVisible);
+
+            Assert.IsTrue(this.subPanel.IsVisible);
+            Assert.AreEqual(1, this.subPanel.LastShownItems.Length);
+            Assert.AreEqual("NO AMMO", this.subPanel.LastShownItems[0].Label);
+        }
+
+        [Test]
+        public void CommandSelected_Reload_withCompatibleAmmo_showsSubPanelWithAmmoLabels()
+        {
+            var inv     = new FakeInventoryService();
+            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
+            SetDisplayName(boxData, "9MM FMJ");
+            inv.RegisterBox(new AmmoBoxItem(boxData, 45), canReload: true);
+
+            BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+
+            Assert.IsTrue(this.subPanel.IsVisible);
+            Assert.AreEqual(1, this.subPanel.LastShownItems.Length);
+            Assert.AreEqual("9MM FMJ \u00d745", this.subPanel.LastShownItems[0].Label);
+        }
+
+        [Test]
+        public void CommandSelected_Reload_withCompatibleAmmo_storesInventoryIndexMapping()
+        {
+            var inv     = new FakeInventoryService();
+            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
+            SetDisplayName(boxData, "9MM FMJ");
+            inv.RegisterBox(new AmmoBoxItem(boxData, 10), canReload: false); // index 0 — not compatible
+            inv.RegisterBox(new AmmoBoxItem(boxData, 20), canReload: true);  // index 1 — compatible
+
+            var c = BuildAndInit(inv);
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+
+            Assert.AreEqual(1, c.ReloadAmmoBoxIndices.Length);
+            Assert.AreEqual(1, c.ReloadAmmoBoxIndices[0]);
         }
 
         [Test]
@@ -248,7 +292,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Reload_doesNotRefillAmmo_andShootRemainsUnavailable()
+        public void Reload_noCompatibleAmmo_doesNotRefillAmmo_andShootRemainsUnavailable()
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
@@ -264,8 +308,9 @@ namespace CrimsonDraft.Tests
 
             Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
 
+            // Reload opens SubPanel with NO AMMO — cancel back to CommandPanel
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-            this.menuView.RaiseOnOperatorSelected(0);
+            c.HandleCancelPressed();
 
             Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
         }
@@ -525,9 +570,15 @@ namespace CrimsonDraft.Tests
         {
             public event Action<int>?           OnItemSelected;
             public event Action<RectTransform>? OnEntryFocused;
-            public bool IsVisible { get; private set; }
-            public void Show(SubPanelItem[] _, RectTransform __) => this.IsVisible = true;
-            public void Hide()                                    => this.IsVisible = false;
+            public bool           IsVisible      { get; private set; }
+            public SubPanelItem[] LastShownItems { get; private set; } = Array.Empty<SubPanelItem>();
+            public void Show(SubPanelItem[] items, RectTransform __)
+            {
+                this.LastShownItems = items;
+                this.IsVisible      = true;
+            }
+            public void Hide()                                           => this.IsVisible = false;
+            public void RaiseOnItemSelected(int index)                   => this.OnItemSelected?.Invoke(index);
         }
 
         private sealed class FakeShotCountView : IShotCountView
