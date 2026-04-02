@@ -48,7 +48,9 @@ namespace CrimsonDraft.Navigation.Player
                 ? raw.normalized
                 : Quantize8Way(raw);
 
-            this.rb.linearVelocity = new Vector3(direction.x, 0f, direction.y) * this.moveSpeed;
+            var moveDir = new Vector3(direction.x, 0f, direction.y);
+            transform.forward = moveDir;
+            this.rb.linearVelocity = moveDir * this.moveSpeed;
         }
 
         private static Vector2 Quantize8Way(Vector2 input)
