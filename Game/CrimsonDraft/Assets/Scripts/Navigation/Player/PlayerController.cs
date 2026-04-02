@@ -11,7 +11,11 @@ namespace CrimsonDraft.Navigation.Player
     public sealed class PlayerController : MonoBehaviour
     {
         [SerializeField] private Rigidbody rb = null!;
-        [SerializeField] private float moveSpeed = 4f;
+        [SerializeField] private Animator animator = null!;
+        [SerializeField] private float walkSpeed = 4f;
+        [SerializeField] private float runSpeed = 7f;
+
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
         private IInputService inputService = null!;
         private InputDevice? lastDevice;
@@ -41,6 +45,7 @@ namespace CrimsonDraft.Navigation.Player
             if (raw.sqrMagnitude < 0.01f)
             {
                 this.rb.linearVelocity = Vector3.zero;
+                this.animator.SetFloat(SpeedHash, 0f);
                 return;
             }
 
@@ -50,7 +55,13 @@ namespace CrimsonDraft.Navigation.Player
 
             var moveDir = new Vector3(direction.x, 0f, direction.y);
             transform.forward = moveDir;
-            this.rb.linearVelocity = moveDir * this.moveSpeed;
+
+            var isSprinting = this.inputService.Sprint.IsPressed();
+            var speed       = isSprinting ? this.runSpeed  : this.walkSpeed;
+            var animSpeed   = isSprinting ? 1f             : 0.5f;
+
+            this.rb.linearVelocity = moveDir * speed;
+            this.animator.SetFloat(SpeedHash, animSpeed);
         }
 
         private static Vector2 Quantize8Way(Vector2 input)
