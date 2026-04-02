@@ -3,7 +3,6 @@
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
-using VContainer;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -11,14 +10,6 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         [SerializeField] private DoorData   data   = null!;
         [SerializeField] private UnityEvent onOpen = new();
-
-        private PoiController poiController = null!;
-
-        [Inject]
-        public void Construct(PoiController poiController)
-        {
-            this.poiController = poiController;
-        }
 
         public void Interact(InteractionContext context)
         {
@@ -30,7 +21,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (this.data.KeyItem == null)
             {
-                this.poiController.Open(new[] { "Bloqueada." });
+                context.PoiController.Open(new[] { "Bloqueada." });
                 return;
             }
 
@@ -40,7 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (!hasKey)
             {
-                this.poiController.Open(new[] { $"Necesitas: {keyItem.DisplayName}." });
+                context.PoiController.Open(new[] { $"Necesitas: {keyItem.DisplayName}." });
                 return;
             }
 

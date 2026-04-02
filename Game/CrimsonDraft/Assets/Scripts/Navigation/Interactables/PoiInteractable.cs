@@ -1,8 +1,6 @@
 #nullable enable
 
 using UnityEngine;
-using VContainer;
-using CrimsonDraft.Navigation.Interactables.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -10,17 +8,9 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         [SerializeField] private PoiData data = null!;
 
-        private PoiController controller = null!;
-
-        [Inject]
-        public void Construct(PoiController controller)
-        {
-            this.controller = controller;
-        }
-
         public void Interact(InteractionContext context)
         {
-            this.controller.Open(this.data.Lines);
+            context.PoiController.Open(this.data.Lines);
         }
     }
 }

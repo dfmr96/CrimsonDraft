@@ -14,14 +14,25 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
 
-        private IInputService     inputService     = null!;
-        private IInventoryService inventoryService = null!;
+        private IInputService       inputService        = null!;
+        private IInventoryService   inventoryService    = null!;
+        private PoiController       poiController       = null!;
+        private DocumentController  documentController  = null!;
+        private ContainerController containerController = null!;
 
         [Inject]
-        public void Construct(IInputService inputService, IInventoryService inventoryService)
+        public void Construct(
+            IInputService       inputService,
+            IInventoryService   inventoryService,
+            PoiController       poiController,
+            DocumentController  documentController,
+            ContainerController containerController)
         {
-            this.inputService     = inputService;
-            this.inventoryService = inventoryService;
+            this.inputService        = inputService;
+            this.inventoryService    = inventoryService;
+            this.poiController       = poiController;
+            this.documentController  = documentController;
+            this.containerController = containerController;
             this.inputService.Interact.performed += OnInteract;
         }
 
@@ -39,7 +50,12 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
 
-            var context = new InteractionContext(this.inventoryService, this.inputService);
+            var context = new InteractionContext(
+                this.inventoryService,
+                this.inputService,
+                this.poiController,
+                this.documentController,
+                this.containerController);
             interactable.Interact(context);
         }
 

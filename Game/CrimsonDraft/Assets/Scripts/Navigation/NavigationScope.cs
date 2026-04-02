@@ -51,14 +51,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
-            foreach (var t in FindObjectsByType<PoiInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(t);
-            foreach (var t in FindObjectsByType<DocumentInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(t);
-            foreach (var t in FindObjectsByType<DoorInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(t);
-            foreach (var t in FindObjectsByType<ContainerInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(t);
         }
     }
 }

@@ -9,11 +9,22 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         public readonly IInventoryService InventoryService;
         public readonly IInputService     InputService;
+        public readonly PoiController     PoiController;
+        public readonly DocumentController DocumentController;
+        public readonly ContainerController ContainerController;
 
-        public InteractionContext(IInventoryService inventoryService, IInputService inputService)
+        public InteractionContext(
+            IInventoryService   inventoryService,
+            IInputService       inputService,
+            PoiController       poiController,
+            DocumentController  documentController,
+            ContainerController containerController)
         {
-            InventoryService = inventoryService;
-            InputService     = inputService;
+            InventoryService    = inventoryService;
+            InputService        = inputService;
+            PoiController       = poiController;
+            DocumentController  = documentController;
+            ContainerController = containerController;
         }
     }
 }
