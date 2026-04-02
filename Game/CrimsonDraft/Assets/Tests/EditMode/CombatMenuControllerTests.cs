@@ -588,6 +588,7 @@ namespace CrimsonDraft.Tests
             public void AddItem(ItemData data, int quantity = 0)        { }
             public void EquipWeapon(int itemIndex, int operatorSlot)    { }
             public void UnequipWeapon(int itemIndex)                    { }
+            public void RemoveItem(int itemIndex)                       { }
             public int  GetEquippedWeaponIndex(int operatorSlot)        => -1;
 
             public bool CanReload(int ammoBoxIndex, int operatorSlot)

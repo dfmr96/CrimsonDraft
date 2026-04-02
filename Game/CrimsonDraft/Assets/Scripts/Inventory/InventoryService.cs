@@ -73,6 +73,13 @@ namespace CrimsonDraft.Inventory
             return this.roster[operatorSlot].IsAlive && weapon.CurrentAmmo < weapon.MaxAmmo;
         }
 
+        public void RemoveItem(int itemIndex)
+        {
+            if (itemIndex < 0 || itemIndex >= this.items.Count)
+                throw new System.ArgumentOutOfRangeException(nameof(itemIndex));
+            this.items.RemoveAt(itemIndex);
+        }
+
         public void ReloadOperator(int ammoBoxIndex, int operatorSlot)
         {
             if (!CanReload(ammoBoxIndex, operatorSlot)) return;

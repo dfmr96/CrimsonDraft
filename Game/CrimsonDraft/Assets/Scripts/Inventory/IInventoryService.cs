@@ -25,5 +25,8 @@ namespace CrimsonDraft.Inventory
 
         /// <summary>Reloads weapon using ammo from box. Partially deducts box.Quantity. Removes box if exhausted.</summary>
         void ReloadOperator(int ammoBoxIndex, int operatorSlot);
+
+        /// <summary>Removes item at itemIndex from inventory.</summary>
+        void RemoveItem(int itemIndex);
     }
 }
