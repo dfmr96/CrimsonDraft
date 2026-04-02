@@ -11,8 +11,13 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
-            context.InventoryService.AddItem(this.item);
-            gameObject.SetActive(false);
+            context.PoiController.Open(
+                new[] { $"You picked up: {this.item.DisplayName}." },
+                onClose: () =>
+                {
+                    context.InventoryService.AddItem(this.item);
+                    gameObject.SetActive(false);
+                });
         }
     }
 }

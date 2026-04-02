@@ -18,6 +18,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private string[] lines = Array.Empty<string>();
         private int      lineIndex;
         private bool     isOpen;
+        private Action?  onClose;
 
         [Preserve]
         public PoiController(IInputService inputService, PoiDialogView view)
@@ -28,20 +29,21 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void IInitializable.Initialize()
         {
-            this.inputService.Interact.performed += OnInteract;
+            this.inputService.UIConfirm.performed += OnConfirm;
         }
 
-        public void Open(string[] poiLines)
+        public void Open(string[] poiLines, Action? onClose = null)
         {
             this.lines     = poiLines;
             this.lineIndex = 0;
             this.isOpen    = true;
+            this.onClose   = onClose;
             Time.timeScale  = 0f;
             this.inputService.SwitchToUI();
             this.view.Show(this.lines[0]);
         }
 
-        private void OnInteract(InputAction.CallbackContext _)
+        private void OnConfirm(InputAction.CallbackContext _)
         {
             if (!this.isOpen) return;
 
@@ -62,11 +64,13 @@ namespace CrimsonDraft.Navigation.Interactables
             this.view.Hide();
             Time.timeScale = 1f;
             this.inputService.SwitchToGameplay();
+            this.onClose?.Invoke();
+            this.onClose = null;
         }
 
         void IDisposable.Dispose()
         {
-            this.inputService.Interact.performed -= OnInteract;
+            this.inputService.UIConfirm.performed -= OnConfirm;
         }
     }
 }
