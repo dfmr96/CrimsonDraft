@@ -44,10 +44,25 @@ namespace CrimsonDraft.Navigation.Interactables
         }
 
 #if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
+        private void OnDrawGizmos()
         {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawRay(transform.position, transform.forward * this.rayDistance);
+            var origin = transform.position;
+            var tip    = origin + transform.forward * this.rayDistance;
+
+            bool hit = Physics.Raycast(origin, transform.forward, out var hitInfo, this.rayDistance, this.interactableLayer);
+
+            Gizmos.color = hit ? Color.green : Color.cyan;
+            Gizmos.DrawRay(origin, transform.forward * this.rayDistance);
+            Gizmos.DrawWireSphere(tip, 0.08f);
+
+            if (hit)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(hitInfo.point, 0.12f);
+
+                UnityEditor.Handles.color = Color.green;
+                UnityEditor.Handles.Label(hitInfo.point + Vector3.up * 0.3f, hitInfo.collider.name);
+            }
         }
 #endif
     }
