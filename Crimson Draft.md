@@ -23,6 +23,7 @@
 - [[Sistema de Salud]]
 - [[Sistema ECG de Operadores]]
 - [[Sistema de Inventario]]
+- [[Sistema de Interactuables]]
 - [[Sistema de Movimiento]]
 - [[Mecanicas de Supervivencia]]
 - [[Tactical Survival Horror]]
