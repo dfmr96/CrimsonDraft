@@ -11,6 +11,7 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction Interact { get; }
         InputAction OpenInventory { get; }
         InputAction Pause { get; }
+        InputAction Sprint { get; }
 
         InputAction CombatNavigate { get; }
         InputAction CombatConfirm { get; }
