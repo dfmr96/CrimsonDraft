@@ -26,6 +26,8 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction Move { get; }
         public InputAction Interact { get; }
         public InputAction OpenInventory { get; }
+        public InputAction OpenMap { get; }
+        public InputAction Aim { get; }
         public InputAction Pause { get; }
         public InputAction Sprint { get; }
         public InputAction CombatNavigate { get; }
@@ -36,6 +38,7 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction UINavigate { get; }
         public InputAction UIConfirm  { get; }
         public InputAction UICancel   { get; }
+        public InputAction UIBack     { get; }
 
         [Preserve]
         public InputService(InputActionAsset asset)
@@ -48,6 +51,8 @@ namespace CrimsonDraft.Infrastructure.Input
             Move          = this.gameplayMap[nameof(Move)];
             Interact      = this.gameplayMap[nameof(Interact)];
             OpenInventory = this.gameplayMap[nameof(OpenInventory)];
+            OpenMap       = this.gameplayMap[nameof(OpenMap)];
+            Aim           = this.gameplayMap[nameof(Aim)];
             Pause         = this.gameplayMap[nameof(Pause)];
             Sprint        = this.gameplayMap[nameof(Sprint)];
 
@@ -59,6 +64,7 @@ namespace CrimsonDraft.Infrastructure.Input
             UINavigate = this.uiMap[NavigateAction];
             UIConfirm  = this.uiMap["Submit"];
             UICancel   = this.uiMap[CancelAction];
+            UIBack     = this.uiMap["UIBack"];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();

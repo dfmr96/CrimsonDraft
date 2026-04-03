@@ -45,6 +45,7 @@ namespace CrimsonDraft.Navigation.UI
             this.inputService.UINavigate.performed    += OnUINavigate;
             this.inputService.UIConfirm.performed     += OnUIConfirm;
             this.inputService.UICancel.performed      += OnUICancel;
+            this.inputService.UIBack.performed        += OnUICancel;
         }
 
         // ── Open / Close ───────────────────────────────────────────────────────
@@ -53,8 +54,9 @@ namespace CrimsonDraft.Navigation.UI
         {
             if (this.state != State.Closed) return;
 
-            this.state       = State.List;
-            this.cursorIndex = 0;
+            this.state             = State.List;
+            this.cursorIndex       = 0;
+            UnityEngine.Time.timeScale = 0f;
             this.inputService.SwitchToUI();
             RefreshView();
             this.view.Show();
@@ -66,6 +68,7 @@ namespace CrimsonDraft.Navigation.UI
             this.view.HideContextMenu();
             this.view.HideOperatorSubMenu();
             this.view.Hide();
+            UnityEngine.Time.timeScale = 1f;
             this.inputService.SwitchToGameplay();
         }
 
@@ -268,6 +271,7 @@ namespace CrimsonDraft.Navigation.UI
             this.inputService.UINavigate.performed    -= OnUINavigate;
             this.inputService.UIConfirm.performed     -= OnUIConfirm;
             this.inputService.UICancel.performed      -= OnUICancel;
+            this.inputService.UIBack.performed        -= OnUICancel;
         }
     }
 }

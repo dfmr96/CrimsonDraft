@@ -10,6 +10,8 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction Move { get; }
         InputAction Interact { get; }
         InputAction OpenInventory { get; }
+        InputAction OpenMap { get; }
+        InputAction Aim { get; }
         InputAction Pause { get; }
         InputAction Sprint { get; }
 
@@ -21,6 +23,7 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction UINavigate { get; }
         InputAction UIConfirm  { get; }
         InputAction UICancel   { get; }
+        InputAction UIBack     { get; }
 
         void SwitchToGameplay();
         void SwitchToCombat();

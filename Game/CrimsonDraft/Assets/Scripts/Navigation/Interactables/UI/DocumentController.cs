@@ -12,6 +12,8 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class DocumentController : IInitializable, IDisposable
     {
+        private const float NavCooldown = 0.35f;
+
         private readonly IInputService        inputService;
         private readonly InteractionReaderView view;
 
@@ -19,6 +21,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private string   title = string.Empty;
         private int      pageIndex;
         private bool     isOpen;
+        private float    lastNavTime = float.MinValue;
 
         [Preserve]
         public DocumentController(IInputService inputService, InteractionReaderView view)
@@ -29,30 +32,54 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void IInitializable.Initialize()
         {
+            this.inputService.UIConfirm.performed  += OnConfirm;
+            this.inputService.UICancel.performed   += OnCancel;
             this.inputService.UINavigate.performed += OnNavigate;
-            this.inputService.UIBack.performed     += OnBack;
         }
 
         public void Open(string docTitle, string[] docPages)
         {
-            this.title     = docTitle;
-            this.pages     = docPages;
-            this.pageIndex = 0;
-            this.isOpen    = true;
-            Time.timeScale  = 0f;
+            this.title       = docTitle;
+            this.pages       = docPages;
+            this.pageIndex   = 0;
+            this.isOpen      = true;
+            this.lastNavTime = float.MinValue;
+            Time.timeScale    = 0f;
             this.inputService.SwitchToUI();
             RefreshView();
+        }
+
+        private void OnConfirm(InputAction.CallbackContext _)
+        {
+            if (!this.isOpen) return;
+            AdvanceOrClose();
+        }
+
+        private void OnCancel(InputAction.CallbackContext _)
+        {
+            if (!this.isOpen) return;
+            TryRetreat();
         }
 
         private void OnNavigate(InputAction.CallbackContext ctx)
         {
             if (!this.isOpen) return;
+            if (Time.unscaledTime - this.lastNavTime < NavCooldown) return;
 
-            var dir = ctx.ReadValue<UnityEngine.Vector2>();
-            if (dir.x > 0.5f)
+            var x = ctx.ReadValue<Vector2>().x;
+            if (x > 0.5f)       AdvanceOrClose();
+            else if (x < -0.5f) TryRetreat();
+            else return;
+
+            this.lastNavTime = Time.unscaledTime;
+        }
+
+        private void AdvanceOrClose()
+        {
+            if (this.pageIndex >= this.pages.Length - 1)
+                Close();
+            else
                 TryAdvance();
-            else if (dir.x < -0.5f)
-                TryRetreat();
         }
 
         private void TryAdvance()
@@ -67,12 +94,6 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.pageIndex <= 0) return;
             this.pageIndex--;
             RefreshView();
-        }
-
-        private void OnBack(InputAction.CallbackContext _)
-        {
-            if (!this.isOpen) return;
-            Close();
         }
 
         private void Close()
@@ -94,8 +115,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void IDisposable.Dispose()
         {
+            this.inputService.UIConfirm.performed  -= OnConfirm;
+            this.inputService.UICancel.performed   -= OnCancel;
             this.inputService.UINavigate.performed -= OnNavigate;
-            this.inputService.UIBack.performed     -= OnBack;
         }
     }
 }
