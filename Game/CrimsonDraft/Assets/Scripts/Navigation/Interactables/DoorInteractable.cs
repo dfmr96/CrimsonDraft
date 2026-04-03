@@ -11,9 +11,11 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private DoorData   data   = null!;
         [SerializeField] private UnityEvent onOpen = new();
 
+        private bool unlocked;
+
         public void Interact(InteractionContext context)
         {
-            if (!this.data.Locked)
+            if (!this.data.Locked || this.unlocked)
             {
                 this.onOpen.Invoke();
                 return;
@@ -21,26 +23,35 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (this.data.KeyItem == null)
             {
-                context.PoiController.Open(new[] { "Bloqueada." });
+                context.PoiController.Open(new[] { "Locked." });
                 return;
             }
 
-            var keyItem = this.data.KeyItem;
-            bool hasKey = context.InventoryService.Items
-                .Any(item => item.Data.ItemId == keyItem.ItemId);
+            var keyItem  = this.data.KeyItem;
+            var keyIndex = FindKeyIndex(context, keyItem.ItemId);
 
-            if (!hasKey)
+            if (keyIndex < 0)
             {
-                context.PoiController.Open(new[] { $"Necesitas: {keyItem.DisplayName}." });
+                context.PoiController.Open(new[] { $"You need: {keyItem.DisplayName}." });
                 return;
             }
 
-            var itemIndex = context.InventoryService.Items
-                .Select((item, i) => (item, i))
-                .First(t => t.item.Data.ItemId == keyItem.ItemId).i;
+            context.PoiController.Open(
+                new[] { $"You used {keyItem.DisplayName} to unlock the door." },
+                onClose: () =>
+                {
+                    context.InventoryService.RemoveItem(keyIndex);
+                    this.unlocked = true;
+                    this.onOpen.Invoke();
+                });
+        }
 
-            context.InventoryService.RemoveItem(itemIndex);
-            this.onOpen.Invoke();
+        private static int FindKeyIndex(InteractionContext context, string itemId)
+        {
+            var items = context.InventoryService.Items;
+            for (int i = 0; i < items.Count; i++)
+                if (items[i].Data.ItemId == itemId) return i;
+            return -1;
         }
     }
 }

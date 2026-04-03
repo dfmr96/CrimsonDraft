@@ -17,7 +17,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private void OnDrawGizmos()
         {
-            foreach (var col in FindObjectsByType<Collider>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (Application.isPlaying && Time.timeScale == 0f) return;
+
+            foreach (var col in FindObjectsByType<Collider>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
                 if (col.gameObject.layer != InteractableLayer) continue;
 
