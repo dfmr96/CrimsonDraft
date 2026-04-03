@@ -12,5 +12,6 @@ namespace CrimsonDraft.Inventory
 
         public string Caliber         => this.caliber;
         public int    DefaultQuantity => this.defaultQuantity;
+        public override bool Stackable => true;
     }
 }
