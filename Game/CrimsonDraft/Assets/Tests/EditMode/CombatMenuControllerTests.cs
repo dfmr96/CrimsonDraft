@@ -173,7 +173,7 @@ namespace CrimsonDraft.Tests
             this.subPanel.RaiseOnItemSelected(0);
 
             Assert.AreEqual(1, inv.ReloadCallCount,   "ReloadOperator called once");
-            Assert.AreEqual(0, inv.LastAmmoBoxIndex,  "correct inventory index");
+            Assert.AreEqual(0, inv.LastSlotIndex,    "correct inventory index");
             Assert.AreEqual(0, inv.LastOperatorSlot,  "correct operator slot");
             Assert.IsFalse(this.subPanel.IsVisible,   "SubPanel hidden after reload");
         }
@@ -577,36 +577,50 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
-            private readonly List<InventoryItem>   items       = new();
+            private readonly InventorySlot[]       slots       = new InventorySlot[8]; // 2 operators × 4
             private readonly Dictionary<int, bool> canReloadBy = new();
 
-            public IReadOnlyList<InventoryItem> Items => this.items;
+            public FakeInventoryService()
+            {
+                for (int i = 0; i < this.slots.Length; i++)
+                    this.slots[i] = new InventorySlot();
+            }
+
+            public IReadOnlyList<InventorySlot> Slots    => this.slots;
+            public int                          SlotCount => this.slots.Length;
+
             public int ReloadCallCount  { get; private set; }
-            public int LastAmmoBoxIndex { get; private set; } = -1;
+            public int LastSlotIndex    { get; private set; } = -1;
             public int LastOperatorSlot { get; private set; } = -1;
 
-            public void AddItem(ItemData data, int quantity = 0)        { }
-            public void EquipWeapon(int itemIndex, int operatorSlot)    { }
-            public void UnequipWeapon(int itemIndex)                    { }
-            public void RemoveItem(int itemIndex)                       { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)        => -1;
+            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
+            public void RemoveItem(int slotIndex)                                   { }
+            public void MoveItem(int fromSlot, int toSlot)                         { }
+            public void EquipWeapon(int slotIndex, int operatorSlot)               { }
+            public void UnequipWeapon(int slotIndex)                               { }
+            public int  GetEquippedWeaponIndex(int operatorSlot)                   => -1;
 
-            public bool CanReload(int ammoBoxIndex, int operatorSlot)
-                => this.canReloadBy.TryGetValue(ammoBoxIndex, out bool v) && v;
+            public bool CanReload(int slotIndex, int operatorSlot)
+                => this.canReloadBy.TryGetValue(slotIndex, out bool v) && v;
 
-            public void ReloadOperator(int ammoBoxIndex, int operatorSlot)
+            public void ReloadOperator(int slotIndex, int operatorSlot)
             {
                 this.ReloadCallCount++;
-                this.LastAmmoBoxIndex = ammoBoxIndex;
+                this.LastSlotIndex    = slotIndex;
                 this.LastOperatorSlot = operatorSlot;
             }
 
-            /// <summary>Registers an ammo box item at the next index. canReload controls CanReload result.</summary>
+            /// <summary>Places an ammo box in the next empty slot. canReload controls CanReload result.</summary>
             public void RegisterBox(AmmoBoxItem box, bool canReload)
             {
-                int idx = this.items.Count;
-                this.items.Add(box);
-                this.canReloadBy[idx] = canReload;
+                for (int i = 0; i < this.slots.Length; i++)
+                {
+                    if (!this.slots[i].IsEmpty) continue;
+                    this.slots[i].Item     = box;
+                    this.slots[i].Quantity = 1;
+                    this.canReloadBy[i]    = canReload;
+                    return;
+                }
             }
         }
 

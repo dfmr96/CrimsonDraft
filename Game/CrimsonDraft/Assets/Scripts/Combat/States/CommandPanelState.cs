@@ -66,9 +66,11 @@ namespace CrimsonDraft.Combat
                 var compatibleIndices = new List<int>();
                 var items             = new List<SubPanelItem>();
 
-                for (int i = 0; i < this.inventory.Items.Count; i++)
+                int start = op * 4;
+                for (int i = start; i < start + 4; i++)
                 {
-                    if (this.inventory.CanReload(i, op) && this.inventory.Items[i] is AmmoBoxItem box)
+                    var slot = this.inventory.Slots[i];
+                    if (this.inventory.CanReload(i, op) && slot.Item is AmmoBoxItem box)
                     {
                         compatibleIndices.Add(i);
                         items.Add(new SubPanelItem($"{box.Data.DisplayName} \u00d7{box.Quantity}"));

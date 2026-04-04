@@ -26,16 +26,21 @@ namespace CrimsonDraft.Navigation
             this.initialized = true;
 
             foreach (var entry in this.loadout.Items)
-                this.inventory.AddItem(entry.item, entry.quantity);
+                this.inventory.AddItem(entry.item, entry.operatorSlot, entry.quantity);
 
             for (int slot = 0; slot < this.loadout.DefaultWeapons.Length; slot++)
             {
                 var weaponData = this.loadout.DefaultWeapons[slot];
                 if (weaponData == null) continue;
 
-                for (int i = 0; i < this.inventory.Items.Count; i++)
+                this.inventory.AddItem(weaponData, operatorSlot: slot);
+
+                // Find the slot index we just added and equip it
+                int start = slot * 4;
+                for (int i = start; i < start + 4; i++)
                 {
-                    if (this.inventory.Items[i].Data == weaponData && this.inventory.Items[i].EquippedBySlot < 0)
+                    if (this.inventory.Slots[i].Item?.Data == weaponData
+                        && this.inventory.Slots[i].Item!.EquippedBySlot < 0)
                     {
                         this.inventory.EquipWeapon(i, slot);
                         break;

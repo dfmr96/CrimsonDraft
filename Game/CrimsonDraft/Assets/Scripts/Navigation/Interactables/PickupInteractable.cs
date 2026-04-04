@@ -11,13 +11,17 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            // operatorSlot: 0 — temporary default until active-operator concept is defined
+            if (!context.InventoryService.AddItem(this.item, operatorSlot: 0))
+            {
+                context.PoiController.Open(
+                    new[] { $"No space for: {this.item.DisplayName}." });
+                return;
+            }
+
             context.PoiController.Open(
                 new[] { $"You picked up: {this.item.DisplayName}." },
-                onClose: () =>
-                {
-                    context.InventoryService.AddItem(this.item);
-                    gameObject.SetActive(false);
-                });
+                onClose: () => gameObject.SetActive(false));
         }
     }
 }

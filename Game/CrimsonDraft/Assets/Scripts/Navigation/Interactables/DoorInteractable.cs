@@ -48,9 +48,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private static int FindKeyIndex(InteractionContext context, string itemId)
         {
-            var items = context.InventoryService.Items;
-            for (int i = 0; i < items.Count; i++)
-                if (items[i].Data.ItemId == itemId) return i;
+            var slots = context.InventoryService.Slots;
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i].Item?.Data.ItemId == itemId) return i;
             return -1;
         }
     }

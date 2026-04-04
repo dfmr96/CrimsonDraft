@@ -67,7 +67,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!this.isOpen || this.containerItems.Count == 0) return;
 
             var item = this.containerItems[this.cursorIndex];
-            this.inventoryService.AddItem(item);
+            this.inventoryService.AddItem(item, operatorSlot: 0);
             this.containerItems.RemoveAt(this.cursorIndex);
 
             if (this.containerItems.Count == 0)
