@@ -10,6 +10,16 @@ namespace CrimsonDraft.Navigation.UI
 {
     public sealed class InventoryView : MonoBehaviour
     {
+        [Header("Slot Grid")]
+        // Length = rosterCount × 4. Order matches slotIndex (op0 slots 0-3, op1 slots 4-7, ...).
+        [SerializeField] private InventorySlotCell[] cells           = null!;
+        // One label per operator, in operatorSlot order.
+        [SerializeField] private TextMeshProUGUI[]   operatorHeaders = null!;
+
+        [Header("Roster Panel")]
+        [SerializeField] private Transform         rosterContainer = null!;
+        [SerializeField] private RosterOperatorRow rosterRowPrefab = null!;
+
         [Header("Context Menu")]
         [SerializeField] private GameObject         contextMenuRoot      = null!;
         [SerializeField] private Transform          contextMenuContainer = null!;
@@ -19,16 +29,74 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private GameObject      examineOverlayRoot = null!;
         [SerializeField] private TextMeshProUGUI examineText        = null!;
 
+        private readonly List<RosterOperatorRow>  rosterRows  = new();
         private readonly List<ContextMenuItemRow> contextRows = new();
 
         public int ContextMenuActionCount => this.contextRows.Count;
 
+        // ── Show / Hide ────────────────────────────────────────────────────────
+
         public void Show()  => gameObject.SetActive(true);
         public void Hide()  => gameObject.SetActive(false);
 
-        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1) { }
-        public void SetOperatorHeaders(string[] names) { }
-        public void RefreshRosterPanel(IOperatorRoster roster, IInventoryService inventory)               { }
+        // ── Slot grid ──────────────────────────────────────────────────────────
+
+        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
+        {
+            for (int i = 0; i < this.cells.Length && i < slots.Count; i++)
+                this.cells[i].Setup(slots[i], isCursor: i == cursorSlot, isLifted: i == liftedSlot);
+        }
+
+        public void SetOperatorHeaders(string[] names)
+        {
+            for (int i = 0; i < this.operatorHeaders.Length && i < names.Length; i++)
+                this.operatorHeaders[i].text = names[i];
+        }
+
+        // ── Roster panel ───────────────────────────────────────────────────────
+
+        public void RefreshRosterPanel(IOperatorRoster roster, IInventoryService inventory)
+        {
+            roster.EnsureInitialized();
+
+            int presentCount = 0;
+            for (int i = 0; i < roster.Count; i++)
+                if (roster[i].IsPresent) presentCount++;
+
+            while (this.rosterRows.Count < presentCount)
+                this.rosterRows.Add(Instantiate(this.rosterRowPrefab, this.rosterContainer));
+
+            for (int i = presentCount; i < this.rosterRows.Count; i++)
+                this.rosterRows[i].gameObject.SetActive(false);
+
+            int rowIdx = 0;
+            for (int i = 0; i < roster.Count; i++)
+            {
+                var op = roster[i];
+                if (!op.IsPresent) continue;
+
+                string rawName = op.Data?.DisplayName ?? string.Empty;
+                string name    = rawName.Length > 0 ? rawName : $"Slot {i}";
+                int    wIdx    = inventory.GetEquippedWeaponIndex(i);
+                string wpnName;
+                if (wIdx >= 0)
+                {
+                    string dn     = inventory.Slots[wIdx].Item?.Data.DisplayName ?? "---";
+                    var    weapon = op.EquippedWeapon;
+                    wpnName = weapon != null ? $"{dn} ({weapon.CurrentAmmo}/{weapon.MaxAmmo})" : dn;
+                }
+                else
+                {
+                    wpnName = "---";
+                }
+
+                this.rosterRows[rowIdx].Setup(name, wpnName);
+                this.rosterRows[rowIdx].gameObject.SetActive(true);
+                rowIdx++;
+            }
+        }
+
+        // ── Context menu ───────────────────────────────────────────────────────
 
         public void ShowContextMenu(InventoryItem item, int slotIndex)
         {
@@ -56,6 +124,8 @@ namespace CrimsonDraft.Navigation.UI
 
         public ContextMenuAction GetContextMenuAction(int index) => this.contextRows[index].Action;
 
+        // ── Examine overlay ────────────────────────────────────────────────────
+
         public void ShowExamineOverlay(InventoryItem item)
         {
             this.examineOverlayRoot.SetActive(true);
@@ -63,6 +133,8 @@ namespace CrimsonDraft.Navigation.UI
         }
 
         public void HideExamineOverlay() => this.examineOverlayRoot.SetActive(false);
+
+        // ── Private helpers ────────────────────────────────────────────────────
 
         private static List<ContextMenuAction> GetActionsForItem(InventoryItem item) =>
             item.Data.ItemType switch
