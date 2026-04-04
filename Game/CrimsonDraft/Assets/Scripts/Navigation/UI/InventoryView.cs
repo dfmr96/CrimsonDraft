@@ -11,10 +11,9 @@ namespace CrimsonDraft.Navigation.UI
     public sealed class InventoryView : MonoBehaviour
     {
         [Header("Slot Grid")]
-        // Length = rosterCount × 4. Order matches slotIndex (op0 slots 0-3, op1 slots 4-7, ...).
-        [SerializeField] private InventorySlotCell[] cells           = null!;
-        // One label per operator, in operatorSlot order.
-        [SerializeField] private TextMeshProUGUI[]   operatorHeaders = null!;
+        [SerializeField] private Transform          slotGridContainer    = null!;
+        [SerializeField] private InventorySlotCell  cellPrefab           = null!;
+        [SerializeField] private TextMeshProUGUI    operatorHeaderPrefab = null!;
 
         [Header("Roster Panel")]
         [SerializeField] private Transform         rosterContainer = null!;
@@ -29,6 +28,8 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private GameObject      examineOverlayRoot = null!;
         [SerializeField] private TextMeshProUGUI examineText        = null!;
 
+        private readonly List<InventorySlotCell>  cells       = new();
+        private readonly List<TextMeshProUGUI>    headers     = new();
         private readonly List<RosterOperatorRow>  rosterRows  = new();
         private readonly List<ContextMenuItemRow> contextRows = new();
 
@@ -43,14 +44,26 @@ namespace CrimsonDraft.Navigation.UI
 
         public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
         {
-            for (int i = 0; i < this.cells.Length && i < slots.Count; i++)
+            while (this.cells.Count < slots.Count)
+                this.cells.Add(Instantiate(this.cellPrefab, this.slotGridContainer));
+
+            for (int i = 0; i < this.cells.Count; i++)
+                this.cells[i].gameObject.SetActive(i < slots.Count);
+
+            for (int i = 0; i < slots.Count; i++)
                 this.cells[i].Setup(slots[i], isCursor: i == cursorSlot, isLifted: i == liftedSlot);
         }
 
         public void SetOperatorHeaders(string[] names)
         {
-            for (int i = 0; i < this.operatorHeaders.Length && i < names.Length; i++)
-                this.operatorHeaders[i].text = names[i];
+            while (this.headers.Count < names.Length)
+                this.headers.Add(Instantiate(this.operatorHeaderPrefab, this.slotGridContainer));
+
+            for (int i = 0; i < this.headers.Count; i++)
+                this.headers[i].gameObject.SetActive(i < names.Length);
+
+            for (int i = 0; i < names.Length; i++)
+                this.headers[i].text = names[i];
         }
 
         // ── Roster panel ───────────────────────────────────────────────────────
