@@ -19,6 +19,9 @@ namespace CrimsonDraft.Inventory
         /// Returns false if all 4 slots are occupied and item cannot stack.</summary>
         bool AddItem(ItemData data, int operatorSlot, int quantity = 0);
 
+        /// <summary>Tries each operator in order until one has space. Returns false only if all operators are full.</summary>
+        bool AddItemAuto(ItemData data, int quantity = 0);
+
         /// <summary>Clears the slot at slotIndex (Item = null, Quantity = 0).</summary>
         void RemoveItem(int slotIndex);
 

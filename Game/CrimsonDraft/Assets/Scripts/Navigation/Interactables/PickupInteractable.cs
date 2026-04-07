@@ -11,8 +11,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
-            // operatorSlot: 0 — temporary default until active-operator concept is defined
-            if (!context.InventoryService.AddItem(this.item, operatorSlot: 0))
+            if (!context.InventoryService.AddItemAuto(this.item))
             {
                 context.PoiController.Open(
                     new[] { $"No space for: {this.item.DisplayName}." });

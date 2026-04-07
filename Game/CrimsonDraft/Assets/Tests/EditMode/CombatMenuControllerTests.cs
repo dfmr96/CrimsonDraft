@@ -594,6 +594,7 @@ namespace CrimsonDraft.Tests
             public int LastOperatorSlot { get; private set; } = -1;
 
             public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
+            public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
             public void RemoveItem(int slotIndex)                                   { }
             public void MoveItem(int fromSlot, int toSlot)                         { }
             public void EquipWeapon(int slotIndex, int operatorSlot)               { }

@@ -74,6 +74,17 @@ namespace CrimsonDraft.Inventory
             return false; // operator's 4 slots are full
         }
 
+        public bool AddItemAuto(ItemData data, int quantity = 0)
+        {
+            int operatorCount = EnsureSlots().Length / 4;
+            for (int op = 0; op < operatorCount; op++)
+            {
+                if (AddItem(data, op, quantity))
+                    return true;
+            }
+            return false;
+        }
+
         public void RemoveItem(int slotIndex)
         {
             var s             = EnsureSlots();
