@@ -9,10 +9,10 @@ namespace CrimsonDraft.Operators
     {
         [SerializeField] private string operatorId  = string.Empty;
         [SerializeField] private string displayName = string.Empty;
-        [SerializeField] private Sprite sprite      = null!;
+        [SerializeField] private Sprite portrait     = null!;
 
         public string OperatorId   => this.operatorId;
         public string DisplayName  => this.displayName;
-        public Sprite Sprite       => this.sprite;
+        public Sprite Portrait     => this.portrait;
     }
 }

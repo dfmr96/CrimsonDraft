@@ -25,18 +25,18 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private TextMeshProUGUI infoDetail    = null!;
 
         [Header("Context Menu")]
-        [SerializeField] private GameObject         contextMenuRoot      = null!;
-        [SerializeField] private Transform          contextMenuContainer = null!;
-        [SerializeField] private ContextMenuItemRow contextMenuRowPrefab = null!;
+        [SerializeField] private GameObject            contextMenuRoot      = null!;
+        [SerializeField] private Transform             contextMenuContainer = null!;
+        [SerializeField] private InventoryActionButton actionButtonPrefab   = null!;
 
         [Header("Examine Overlay")]
         [SerializeField] private GameObject      examineOverlayRoot = null!;
         [SerializeField] private TextMeshProUGUI examineText        = null!;
 
-        private readonly List<OperatorInventoryCard> cards       = new();
-        private readonly List<ContextMenuItemRow>    contextRows = new();
+        private readonly List<OperatorInventoryCard>  cards         = new();
+        private readonly List<InventoryActionButton>  actionButtons = new();
 
-        public int ContextMenuActionCount => this.contextRows.Count;
+        public int ContextMenuActionCount => this.actionButtons.Count;
 
         // ── Show / Hide ────────────────────────────────────────────────────────
 
@@ -117,29 +117,30 @@ namespace CrimsonDraft.Navigation.UI
 
         public void ShowContextMenu(InventoryItem item, int slotIndex)
         {
-            this.contextMenuRoot.SetActive(true);
-
-            foreach (var r in this.contextRows) Destroy(r.gameObject);
-            this.contextRows.Clear();
+            foreach (var b in this.actionButtons) Destroy(b.gameObject);
+            this.actionButtons.Clear();
 
             var actions = GetActionsForItem(item);
             for (int i = 0; i < actions.Count; i++)
             {
-                var row = Instantiate(this.contextMenuRowPrefab, this.contextMenuContainer);
-                row.Setup(actions[i], isCursor: i == 0, isEnabled: true);
-                this.contextRows.Add(row);
+                var btn = Instantiate(this.actionButtonPrefab, this.contextMenuContainer);
+                btn.Setup(actions[i], isCursor: i == 0);
+                this.actionButtons.Add(btn);
             }
+
+            PositionContextMenuAboveSlot(slotIndex);
+            this.contextMenuRoot.SetActive(true);
         }
 
         public void HideContextMenu() => this.contextMenuRoot.SetActive(false);
 
         public void SetContextMenuCursor(int index)
         {
-            for (int i = 0; i < this.contextRows.Count; i++)
-                this.contextRows[i].Setup(this.contextRows[i].Action, isCursor: i == index, isEnabled: true);
+            for (int i = 0; i < this.actionButtons.Count; i++)
+                this.actionButtons[i].Setup(this.actionButtons[i].Action, isCursor: i == index);
         }
 
-        public ContextMenuAction GetContextMenuAction(int index) => this.contextRows[index].Action;
+        public ContextMenuAction GetContextMenuAction(int index) => this.actionButtons[index].Action;
 
         // ── Examine overlay ────────────────────────────────────────────────────
 
@@ -160,15 +161,25 @@ namespace CrimsonDraft.Navigation.UI
             return cardIndex < this.cards.Count ? this.cards[cardIndex].GetCellRect(localIndex) : null;
         }
 
+        private void PositionContextMenuAboveSlot(int slotIndex)
+        {
+            var cell = GetCellRect(slotIndex);
+            if (cell == null) return;
+            var ctxRect   = (RectTransform)this.contextMenuRoot.transform;
+            ctxRect.pivot = new Vector2(0.5f, 0f);
+            // TransformPoint converts cell-local top-center to world space
+            ctxRect.position = cell.TransformPoint(new Vector3(0f, cell.rect.yMax + 8f, 0f));
+        }
+
         private static List<ContextMenuAction> GetActionsForItem(InventoryItem item) =>
             item.Data.ItemType switch
             {
                 ItemType.Weapon     => item.IsEquipped
-                                        ? new List<ContextMenuAction> { ContextMenuAction.Unequip, ContextMenuAction.Examine }
-                                        : new List<ContextMenuAction> { ContextMenuAction.Equip,   ContextMenuAction.Examine },
-                ItemType.AmmoBox    => new List<ContextMenuAction> { ContextMenuAction.Reload,  ContextMenuAction.Examine },
-                ItemType.Consumable => new List<ContextMenuAction> { ContextMenuAction.Use,     ContextMenuAction.Examine },
-                _                   => new List<ContextMenuAction> { ContextMenuAction.Examine }
+                                        ? new List<ContextMenuAction> { ContextMenuAction.Unequip, ContextMenuAction.Combine, ContextMenuAction.Examine }
+                                        : new List<ContextMenuAction> { ContextMenuAction.Equip,   ContextMenuAction.Combine, ContextMenuAction.Examine },
+                ItemType.AmmoBox    => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
+                ItemType.Consumable => new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine },
+                _                   => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine }
             };
     }
 }

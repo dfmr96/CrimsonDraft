@@ -199,11 +199,10 @@ namespace CrimsonDraft.Navigation.UI
                     this.inventoryService.UnequipWeapon(this.cursorSlotIndex);
                     break;
 
-                case ContextMenuAction.Reload:
-                    this.inventoryService.ReloadOperator(this.cursorSlotIndex, ownerOp);
+                case ContextMenuAction.Use:
                     break;
 
-                case ContextMenuAction.Use:
+                case ContextMenuAction.Combine:
                     break;
 
                 case ContextMenuAction.Examine:
