@@ -58,7 +58,7 @@ namespace CrimsonDraft.Navigation.UI
             this.liftedSlotIndex = -1;
             Time.timeScale       = 0f;
             this.inputService.SwitchToUI();
-            this.view.SetOperatorHeaders(BuildOperatorHeaders());
+            this.view.SetupCards(this.roster);
             RefreshView();
             this.view.Show();
         }
@@ -217,20 +217,8 @@ namespace CrimsonDraft.Navigation.UI
 
         // ── Helpers ────────────────────────────────────────────────────────────
 
-        private void RefreshView()
-        {
+        private void RefreshView() =>
             this.view.RefreshSlots(this.inventoryService.Slots, this.cursorSlotIndex, this.liftedSlotIndex);
-            this.view.RefreshRosterPanel(this.roster, this.inventoryService);
-        }
-
-        private string[] BuildOperatorHeaders()
-        {
-            this.roster.EnsureInitialized();
-            var headers = new string[this.roster.Count];
-            for (int i = 0; i < this.roster.Count; i++)
-                headers[i] = this.roster[i].Data?.DisplayName ?? $"Operator {i}";
-            return headers;
-        }
 
         // ── Grid index math ────────────────────────────────────────────────────
         //

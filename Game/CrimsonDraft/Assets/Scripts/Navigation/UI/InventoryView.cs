@@ -10,14 +10,9 @@ namespace CrimsonDraft.Navigation.UI
 {
     public sealed class InventoryView : MonoBehaviour
     {
-        [Header("Slot Grid")]
-        [SerializeField] private Transform          slotGridContainer    = null!;
-        [SerializeField] private InventorySlotCell  cellPrefab           = null!;
-        [SerializeField] private TextMeshProUGUI    operatorHeaderPrefab = null!;
-
-        [Header("Roster Panel")]
-        [SerializeField] private Transform         rosterContainer = null!;
-        [SerializeField] private RosterOperatorRow rosterRowPrefab = null!;
+        [Header("Operator Cards")]
+        [SerializeField] private Transform            cardsContainer = null!;
+        [SerializeField] private OperatorInventoryCard cardPrefab   = null!;
 
         [Header("Context Menu")]
         [SerializeField] private GameObject         contextMenuRoot      = null!;
@@ -28,85 +23,38 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private GameObject      examineOverlayRoot = null!;
         [SerializeField] private TextMeshProUGUI examineText        = null!;
 
-        private readonly List<InventorySlotCell>  cells       = new();
-        private readonly List<TextMeshProUGUI>    headers     = new();
-        private readonly List<RosterOperatorRow>  rosterRows  = new();
-        private readonly List<ContextMenuItemRow> contextRows = new();
+        private readonly List<OperatorInventoryCard> cards       = new();
+        private readonly List<ContextMenuItemRow>    contextRows = new();
 
         public int ContextMenuActionCount => this.contextRows.Count;
 
         // ── Show / Hide ────────────────────────────────────────────────────────
 
-        public void Show()  => gameObject.SetActive(true);
-        public void Hide()  => gameObject.SetActive(false);
+        public void Show() => gameObject.SetActive(true);
+        public void Hide() => gameObject.SetActive(false);
 
-        // ── Slot grid ──────────────────────────────────────────────────────────
+        // ── Operator cards ─────────────────────────────────────────────────────
 
-        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
-        {
-            while (this.cells.Count < slots.Count)
-                this.cells.Add(Instantiate(this.cellPrefab, this.slotGridContainer));
-
-            for (int i = 0; i < this.cells.Count; i++)
-                this.cells[i].gameObject.SetActive(i < slots.Count);
-
-            for (int i = 0; i < slots.Count; i++)
-                this.cells[i].Setup(slots[i], isCursor: i == cursorSlot, isLifted: i == liftedSlot);
-        }
-
-        public void SetOperatorHeaders(string[] names)
-        {
-            while (this.headers.Count < names.Length)
-                this.headers.Add(Instantiate(this.operatorHeaderPrefab, this.slotGridContainer));
-
-            for (int i = 0; i < this.headers.Count; i++)
-                this.headers[i].gameObject.SetActive(i < names.Length);
-
-            for (int i = 0; i < names.Length; i++)
-                this.headers[i].text = names[i];
-        }
-
-        // ── Roster panel ───────────────────────────────────────────────────────
-
-        public void RefreshRosterPanel(IOperatorRoster roster, IInventoryService inventory)
+        /// <summary>Call once when the inventory opens. Grows/reuses the card pool.</summary>
+        public void SetupCards(IOperatorRoster roster)
         {
             roster.EnsureInitialized();
 
-            int presentCount = 0;
-            for (int i = 0; i < roster.Count; i++)
-                if (roster[i].IsPresent) presentCount++;
+            while (this.cards.Count < roster.Count)
+                this.cards.Add(Instantiate(this.cardPrefab, this.cardsContainer));
 
-            while (this.rosterRows.Count < presentCount)
-                this.rosterRows.Add(Instantiate(this.rosterRowPrefab, this.rosterContainer));
-
-            for (int i = presentCount; i < this.rosterRows.Count; i++)
-                this.rosterRows[i].gameObject.SetActive(false);
-
-            int rowIdx = 0;
-            for (int i = 0; i < roster.Count; i++)
+            for (int i = 0; i < this.cards.Count; i++)
             {
-                var op = roster[i];
-                if (!op.IsPresent) continue;
-
-                string rawName = op.Data?.DisplayName ?? string.Empty;
-                string name    = rawName.Length > 0 ? rawName : $"Slot {i}";
-                int    wIdx    = inventory.GetEquippedWeaponIndex(i);
-                string wpnName;
-                if (wIdx >= 0)
-                {
-                    string dn     = inventory.Slots[wIdx].Item?.Data.DisplayName ?? "---";
-                    var    weapon = op.EquippedWeapon;
-                    wpnName = weapon != null ? $"{dn} ({weapon.CurrentAmmo}/{weapon.MaxAmmo})" : dn;
-                }
-                else
-                {
-                    wpnName = "---";
-                }
-
-                this.rosterRows[rowIdx].Setup(name, wpnName);
-                this.rosterRows[rowIdx].gameObject.SetActive(true);
-                rowIdx++;
+                bool active = i < roster.Count;
+                this.cards[i].gameObject.SetActive(active);
+                if (active) this.cards[i].Setup(roster[i], i);
             }
+        }
+
+        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
+        {
+            foreach (var card in this.cards)
+                card.RefreshSlots(slots, cursorSlot, liftedSlot);
         }
 
         // ── Context menu ───────────────────────────────────────────────────────

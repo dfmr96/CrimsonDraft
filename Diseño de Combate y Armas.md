@@ -55,11 +55,11 @@ El party cambia a lo largo del juego:
 
 Equipo estandar de Coast Guard para abordaje maritimo. Toda la municion es **anti-ricochet** — diseñada para no rebotar en paredes metalicas de barcos.
 
-| Operador | Sidearm | Primaria | Notas |
-|---|---|---|---|
-| Mateo (lider) | SIG P229 (9mm RIP) | H&K MP5 (9mm RIP) | Versatil, subfusil confiable |
-| Operador Joven | SIG P229 (9mm RIP) | Benelli M4 (00 buckshot) | Escopeta para pasillos |
-| Francotirador | SIG P229 (9mm RIP) | Mk18 (5.56 RRLP) | Rifle CQB, municion anti-ricochet |
+| Operador       | Sidearm            | Primaria                 | Notas                             |
+| -------------- | ------------------ | ------------------------ | --------------------------------- |
+| Mateo (lider)  | SIG P229 (9mm RIP) | H&K MP5 (9mm RIP)        | Versatil, subfusil confiable      |
+| Operador Joven | SIG P229 (9mm RIP) | Benelli M4 (00 buckshot) | Escopeta para pasillos            |
+| Francotirador  | SIG P229 (9mm RIP) | Mk18 (5.56 RRLP)         | Rifle CQB, municion anti-ricochet |
 
 ### Loadout Navy SEALs (Acto II+)
 
