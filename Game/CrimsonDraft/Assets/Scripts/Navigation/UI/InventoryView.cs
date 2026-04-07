@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
@@ -11,8 +12,17 @@ namespace CrimsonDraft.Navigation.UI
     public sealed class InventoryView : MonoBehaviour
     {
         [Header("Operator Cards")]
-        [SerializeField] private Transform            cardsContainer = null!;
-        [SerializeField] private OperatorInventoryCard cardPrefab   = null!;
+        [SerializeField] private Transform             cardsContainer = null!;
+        [SerializeField] private OperatorInventoryCard cardPrefab     = null!;
+
+        [Header("Cursor")]
+        [SerializeField] private RectTransform cursorRect = null!; // moves to the active cell
+        [SerializeField] private Image         cursorIcon = null!; // item icon shown while lifting
+
+        [Header("Item Info Panel")]
+        [SerializeField] private GameObject      infoPanelRoot = null!;
+        [SerializeField] private TextMeshProUGUI infoName      = null!;
+        [SerializeField] private TextMeshProUGUI infoDetail    = null!;
 
         [Header("Context Menu")]
         [SerializeField] private GameObject         contextMenuRoot      = null!;
@@ -35,7 +45,6 @@ namespace CrimsonDraft.Navigation.UI
 
         // ── Operator cards ─────────────────────────────────────────────────────
 
-        /// <summary>Call once when the inventory opens. Grows/reuses the card pool.</summary>
         public void SetupCards(IOperatorRoster roster)
         {
             roster.EnsureInitialized();
@@ -51,10 +60,57 @@ namespace CrimsonDraft.Navigation.UI
             }
         }
 
+        // ── Slot refresh ───────────────────────────────────────────────────────
+
         public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
         {
             foreach (var card in this.cards)
-                card.RefreshSlots(slots, cursorSlot, liftedSlot);
+                card.RefreshSlots(slots);
+
+            MoveCursor(cursorSlot);
+            UpdateLiftedIcon(slots, liftedSlot);
+            UpdateInfoPanel(slots, cursorSlot);
+        }
+
+        // ── Cursor ─────────────────────────────────────────────────────────────
+
+        private void MoveCursor(int slotIndex)
+        {
+            var cellRect = GetCellRect(slotIndex);
+            if (cellRect == null) return;
+            this.cursorRect.position  = cellRect.position;
+            this.cursorRect.sizeDelta = cellRect.sizeDelta;
+        }
+
+        private void UpdateLiftedIcon(IReadOnlyList<InventorySlot> slots, int liftedSlot)
+        {
+            bool isLifting = liftedSlot >= 0
+                          && liftedSlot < slots.Count
+                          && !slots[liftedSlot].IsEmpty;
+
+            this.cursorIcon.enabled = isLifting;
+            if (isLifting)
+                this.cursorIcon.sprite = slots[liftedSlot].Item!.Data.Icon;
+        }
+
+        // ── Item info panel ────────────────────────────────────────────────────
+
+        private void UpdateInfoPanel(IReadOnlyList<InventorySlot> slots, int cursorSlot)
+        {
+            if (cursorSlot >= slots.Count || slots[cursorSlot].IsEmpty)
+            {
+                this.infoPanelRoot.SetActive(false);
+                return;
+            }
+
+            this.infoPanelRoot.SetActive(true);
+            var item = slots[cursorSlot].Item!;
+            this.infoName.text = item.Data.DisplayName;
+            this.infoDetail.text = item switch
+            {
+                AmmoBoxItem box => $"\u00d7{box.Quantity}",
+                _               => slots[cursorSlot].Quantity > 1 ? $"\u00d7{slots[cursorSlot].Quantity}" : string.Empty
+            };
         }
 
         // ── Context menu ───────────────────────────────────────────────────────
@@ -96,6 +152,13 @@ namespace CrimsonDraft.Navigation.UI
         public void HideExamineOverlay() => this.examineOverlayRoot.SetActive(false);
 
         // ── Private helpers ────────────────────────────────────────────────────
+
+        private RectTransform? GetCellRect(int slotIndex)
+        {
+            int cardIndex  = slotIndex / 4;
+            int localIndex = slotIndex % 4;
+            return cardIndex < this.cards.Count ? this.cards[cardIndex].GetCellRect(localIndex) : null;
+        }
 
         private static List<ContextMenuAction> GetActionsForItem(InventoryItem item) =>
             item.Data.ItemType switch

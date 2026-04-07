@@ -11,10 +11,12 @@ namespace CrimsonDraft.Inventory
         [SerializeField] private ItemType itemType    = ItemType.Consumable;
         [SerializeField] private string   displayName = string.Empty;
         [SerializeField] private bool     stackable   = false;
+        [SerializeField] private Sprite   icon        = null!;
 
         public string   ItemId      => this.itemId;
         public ItemType ItemType    => this.itemType;
         public string   DisplayName => this.displayName;
         public virtual bool Stackable => this.stackable;
+        public Sprite?  Icon        => this.icon;
     }
 }

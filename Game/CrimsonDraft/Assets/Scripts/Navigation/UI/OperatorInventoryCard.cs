@@ -11,18 +11,19 @@ namespace CrimsonDraft.Navigation.UI
 {
     /// <summary>
     /// One card per operator in the inventory screen.
-    /// Shows portrait, name, and the operator's 4 inventory slots.
+    /// Shows portrait and name. Each card owns 4 InventorySlotCells
+    /// which are purely positional — cursor and item info live in InventoryView.
     /// Extend with equippedWeaponSlot, specialItemSlot, etc. as needed.
     /// </summary>
     public sealed class OperatorInventoryCard : MonoBehaviour
     {
         [Header("Operator Identity")]
-        [SerializeField] private Image           portrait      = null!;
-        [SerializeField] private TextMeshProUGUI nameLabel     = null!;
+        [SerializeField] private Image           portrait  = null!;
+        [SerializeField] private TextMeshProUGUI nameLabel = null!;
 
         [Header("Inventory Slots")]
-        [SerializeField] private Transform        slotsContainer = null!;
-        [SerializeField] private InventorySlotCell cellPrefab   = null!;
+        [SerializeField] private Transform         slotsContainer = null!;
+        [SerializeField] private InventorySlotCell cellPrefab     = null!;
 
         private readonly List<InventorySlotCell> cells = new();
         private int operatorSlotIndex;
@@ -32,12 +33,12 @@ namespace CrimsonDraft.Navigation.UI
             this.operatorSlotIndex = slotIndex;
             this.nameLabel.text    = op.Data?.DisplayName ?? $"Operator {slotIndex}";
 
-            bool hasPortrait        = op.Data?.Sprite != null;
-            this.portrait.sprite    = hasPortrait ? op.Data!.Sprite : null;
-            this.portrait.enabled   = hasPortrait;
+            bool hasPortrait      = op.Data?.Sprite != null;
+            this.portrait.sprite  = hasPortrait ? op.Data!.Sprite : null;
+            this.portrait.enabled = hasPortrait;
         }
 
-        public void RefreshSlots(IReadOnlyList<InventorySlot> allSlots, int cursorSlot, int liftedSlot)
+        public void RefreshSlots(IReadOnlyList<InventorySlot> allSlots)
         {
             int start = this.operatorSlotIndex * 4;
             int count = Mathf.Min(4, allSlots.Count - start);
@@ -50,10 +51,10 @@ namespace CrimsonDraft.Navigation.UI
                 this.cells[i].gameObject.SetActive(i < count);
 
             for (int i = 0; i < count; i++)
-            {
-                int idx = start + i;
-                this.cells[i].Setup(allSlots[idx], isCursor: idx == cursorSlot, isLifted: idx == liftedSlot);
-            }
+                this.cells[i].Setup(allSlots[start + i]);
         }
+
+        public RectTransform? GetCellRect(int localIndex) =>
+            localIndex < this.cells.Count ? this.cells[localIndex].RectTransform : null;
     }
 }

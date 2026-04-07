@@ -1,44 +1,28 @@
 #nullable enable
 
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.UI
 {
+    /// <summary>
+    /// Grid position marker for one inventory slot.
+    /// Only shows occupied vs empty state — cursor, item info,
+    /// and lifted icon are handled externally by InventoryView.
+    /// </summary>
     public sealed class InventorySlotCell : MonoBehaviour
     {
-        [SerializeField] private TextMeshProUGUI nameLabel     = null!;
-        [SerializeField] private TextMeshProUGUI detailLabel   = null!; // quantity / ammo count
-        [SerializeField] private TextMeshProUGUI equippedLabel = null!;
-        [SerializeField] private Image           cursorImage   = null!;
-        [SerializeField] private Image           liftedImage   = null!; // shown when item is "held" in Reorder
+        [SerializeField] private Image background = null!;
 
-        public void Setup(InventorySlot slot, bool isCursor, bool isLifted)
+        [SerializeField] private Color emptyColor    = new Color(1f, 1f, 1f, 0.1f);
+        [SerializeField] private Color occupiedColor = new Color(1f, 1f, 1f, 0.4f);
+
+        public RectTransform RectTransform => (RectTransform)transform;
+
+        public void Setup(InventorySlot slot)
         {
-            if (slot.IsEmpty)
-            {
-                this.nameLabel.text     = string.Empty;
-                this.detailLabel.text   = string.Empty;
-                this.equippedLabel.text = string.Empty;
-            }
-            else
-            {
-                this.nameLabel.text = slot.Item!.Data.DisplayName;
-
-                if (slot.Item is AmmoBoxItem box)
-                    this.detailLabel.text = $"\u00d7{box.Quantity}";
-                else if (slot.Quantity > 1)
-                    this.detailLabel.text = $"\u00d7{slot.Quantity}";
-                else
-                    this.detailLabel.text = string.Empty;
-
-                this.equippedLabel.text = slot.Item.IsEquipped ? "[Eq]" : string.Empty;
-            }
-
-            this.cursorImage.enabled = isCursor;
-            this.liftedImage.enabled = isLifted;
+            this.background.color = slot.IsEmpty ? this.emptyColor : this.occupiedColor;
         }
     }
 }
