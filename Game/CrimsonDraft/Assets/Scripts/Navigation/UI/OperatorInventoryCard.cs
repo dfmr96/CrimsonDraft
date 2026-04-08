@@ -25,17 +25,26 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Transform         slotsContainer = null!;
         [SerializeField] private InventorySlotCell cellPrefab     = null!;
 
+        [Header("Equipped Weapon")]
+        [SerializeField] private GameObject        equippedWeaponRoot  = null!;
+        [SerializeField] private Image             equippedWeaponIcon  = null!;
+        [SerializeField] private TextMeshProUGUI   equippedWeaponLabel = null!;
+
         private readonly List<InventorySlotCell> cells = new();
-        private int operatorSlotIndex;
+        private int             operatorSlotIndex;
+        private OperatorRuntime? cachedOp;
 
         public void Setup(OperatorRuntime op, int slotIndex)
         {
             this.operatorSlotIndex = slotIndex;
+            this.cachedOp          = op;
             this.nameLabel.text    = op.Data?.DisplayName ?? $"Operator {slotIndex}";
 
             bool hasPortrait      = op.Data?.Portrait != null;
             this.portrait.sprite  = hasPortrait ? op.Data!.Portrait : null;
             this.portrait.enabled = hasPortrait;
+
+            RefreshEquippedWeapon();
         }
 
         public void RefreshSlots(IReadOnlyList<InventorySlot> allSlots)
@@ -52,6 +61,19 @@ namespace CrimsonDraft.Navigation.UI
 
             for (int i = 0; i < count; i++)
                 this.cells[i].Setup(allSlots[start + i]);
+
+            RefreshEquippedWeapon();
+        }
+
+        private void RefreshEquippedWeapon()
+        {
+            var weapon = this.cachedOp?.EquippedWeapon as WeaponItem;
+            this.equippedWeaponRoot.SetActive(weapon != null);
+            if (weapon == null) return;
+
+            this.equippedWeaponIcon.sprite  = weapon.Data.Icon;
+            this.equippedWeaponIcon.enabled = weapon.Data.Icon != null;
+            this.equippedWeaponLabel.text   = weapon.Data.DisplayName;
         }
 
         public RectTransform? GetCellRect(int localIndex) =>

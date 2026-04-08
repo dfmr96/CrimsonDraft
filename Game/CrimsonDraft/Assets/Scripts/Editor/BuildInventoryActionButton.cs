@@ -9,8 +9,79 @@ namespace CrimsonDraft.Editor
 {
     public static class BuildInventoryActionButton
     {
-        private const string PrefabPath     = "Assets/Prefabs/UI/InventoryActionButton.prefab";
+        private const string PrefabPath      = "Assets/Prefabs/UI/InventoryActionButton.prefab";
         private const string SlotCellPath   = "Assets/Prefabs/InventorySlotCell.prefab";
+        private const string OpCardPath     = "Assets/Prefabs/OperatorInventoryCard.prefab";
+
+        [MenuItem("CrimsonDraft/Patch OperatorInventoryCard — Add EquippedWeapon Slot")]
+        public static void PatchOperatorCard()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(OpCardPath) == null)
+            {
+                Debug.LogError("[PatchOperatorCard] Prefab not found at " + OpCardPath);
+                return;
+            }
+
+            using var scope = new PrefabUtility.EditPrefabContentsScope(OpCardPath);
+            var root        = scope.prefabContentsRoot;
+
+            if (root.transform.Find("EquippedWeaponSlot") != null)
+            {
+                Debug.Log("[PatchOperatorCard] EquippedWeaponSlot already exists — skipping.");
+                return;
+            }
+
+            // ── EquippedWeaponSlot root ────────────────────────────────────────
+            var slotGO   = new GameObject("EquippedWeaponSlot", typeof(RectTransform));
+            slotGO.transform.SetParent(root.transform, false);
+            var slotRect = slotGO.GetComponent<RectTransform>();
+            slotRect.anchorMin = new Vector2(0f, 0f);
+            slotRect.anchorMax = new Vector2(1f, 0f);
+            slotRect.pivot     = new Vector2(0.5f, 1f);
+            slotRect.sizeDelta = new Vector2(0f, 48f);
+
+            // Background
+            var bgImg       = slotGO.AddComponent<Image>();
+            bgImg.color         = new Color(0.15f, 0.15f, 0.15f, 0.8f);
+            bgImg.raycastTarget = false;
+
+            // ── Icon ──────────────────────────────────────────────────────────
+            var iconGO   = new GameObject("WeaponIcon", typeof(RectTransform));
+            iconGO.transform.SetParent(slotGO.transform, false);
+            var iconRect = iconGO.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0f, 0f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot     = new Vector2(0f, 0.5f);
+            iconRect.offsetMin = new Vector2(4f, 4f);
+            iconRect.offsetMax = new Vector2(4f + 40f, -4f);
+            var iconImg        = iconGO.AddComponent<Image>();
+            iconImg.preserveAspect  = true;
+            iconImg.raycastTarget   = false;
+
+            // ── Label ─────────────────────────────────────────────────────────
+            var labelGO   = new GameObject("WeaponLabel", typeof(RectTransform));
+            labelGO.transform.SetParent(slotGO.transform, false);
+            var labelRect = labelGO.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.offsetMin = new Vector2(52f, 0f);
+            labelRect.offsetMax = new Vector2(-4f, 0f);
+            var tmp            = labelGO.AddComponent<TextMeshProUGUI>();
+            tmp.text      = "Weapon";
+            tmp.fontSize  = 14f;
+            tmp.color     = Color.white;
+            tmp.alignment = TextAlignmentOptions.MidlineLeft;
+
+            // ── Wire fields on OperatorInventoryCard ──────────────────────────
+            var card = root.GetComponent<CrimsonDraft.Navigation.UI.OperatorInventoryCard>();
+            var so   = new SerializedObject(card);
+            so.FindProperty("equippedWeaponRoot").objectReferenceValue  = slotGO;
+            so.FindProperty("equippedWeaponIcon").objectReferenceValue  = iconImg;
+            so.FindProperty("equippedWeaponLabel").objectReferenceValue = tmp;
+            so.ApplyModifiedProperties();
+
+            Debug.Log("[PatchOperatorCard] EquippedWeaponSlot added and wired.");
+        }
 
         [MenuItem("CrimsonDraft/Patch InventorySlotCell — Add Icon")]
         public static void PatchSlotCell()
