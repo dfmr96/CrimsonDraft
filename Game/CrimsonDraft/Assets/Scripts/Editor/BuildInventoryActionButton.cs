@@ -9,7 +9,50 @@ namespace CrimsonDraft.Editor
 {
     public static class BuildInventoryActionButton
     {
-        private const string PrefabPath = "Assets/Prefabs/UI/InventoryActionButton.prefab";
+        private const string PrefabPath     = "Assets/Prefabs/UI/InventoryActionButton.prefab";
+        private const string SlotCellPath   = "Assets/Prefabs/InventorySlotCell.prefab";
+
+        [MenuItem("CrimsonDraft/Patch InventorySlotCell — Add Icon")]
+        public static void PatchSlotCell()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SlotCellPath);
+            if (prefab == null)
+            {
+                Debug.LogError("[PatchSlotCell] Prefab not found at " + SlotCellPath);
+                return;
+            }
+
+            using var scope = new PrefabUtility.EditPrefabContentsScope(SlotCellPath);
+            var root        = scope.prefabContentsRoot;
+
+            // Skip if Icon child already exists
+            if (root.transform.Find("Icon") != null)
+            {
+                Debug.Log("[PatchSlotCell] Icon child already exists — skipping.");
+                return;
+            }
+
+            // Add Icon Image child
+            var iconGO   = new GameObject("Icon", typeof(RectTransform));
+            iconGO.transform.SetParent(root.transform, false);
+            var iconRect = iconGO.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.1f, 0.1f);
+            iconRect.anchorMax = new Vector2(0.9f, 0.9f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconImg        = iconGO.AddComponent<Image>();
+            iconImg.raycastTarget    = false;
+            iconImg.preserveAspect  = true;
+            iconImg.enabled         = false; // hidden by default
+
+            // Wire iconImage field on InventorySlotCell
+            var cell = root.GetComponent<CrimsonDraft.Navigation.UI.InventorySlotCell>();
+            var so   = new SerializedObject(cell);
+            so.FindProperty("iconImage").objectReferenceValue = iconImg;
+            so.ApplyModifiedProperties();
+
+            Debug.Log("[PatchSlotCell] Icon child added and wired to InventorySlotCell.iconImage.");
+        }
 
         [MenuItem("CrimsonDraft/Build InventoryActionButton Prefab")]
         public static void Build()

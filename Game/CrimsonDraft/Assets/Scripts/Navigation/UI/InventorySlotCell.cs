@@ -14,6 +14,7 @@ namespace CrimsonDraft.Navigation.UI
     public sealed class InventorySlotCell : MonoBehaviour
     {
         [SerializeField] private Image background = null!;
+        [SerializeField] private Image iconImage   = null!;
 
         [SerializeField] private Color emptyColor    = new Color(1f, 1f, 1f, 0.1f);
         [SerializeField] private Color occupiedColor = new Color(1f, 1f, 1f, 0.4f);
@@ -22,7 +23,9 @@ namespace CrimsonDraft.Navigation.UI
 
         public void Setup(InventorySlot slot)
         {
-            this.background.color = slot.IsEmpty ? this.emptyColor : this.occupiedColor;
+            this.background.color   = slot.IsEmpty ? this.emptyColor : this.occupiedColor;
+            this.iconImage.sprite   = slot.IsEmpty ? null : slot.Item!.Data.Icon;
+            this.iconImage.enabled  = !slot.IsEmpty && slot.Item!.Data.Icon != null;
         }
     }
 }
