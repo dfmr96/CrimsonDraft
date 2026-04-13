@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using HorrorEngine;
 using UnityEngine;
 
 namespace CrimsonDraft.Audio
@@ -17,7 +16,7 @@ namespace CrimsonDraft.Audio
             public string      WwiseSwitchState;
         }
 
-        [SerializeField] private Entry[] entries = Array.Empty<Entry>();
+        [SerializeField] private Entry[] entries      = Array.Empty<Entry>();
         [SerializeField] private string  fallbackState = "Metal";
 
         private Dictionary<SurfaceType, string>? lookup;

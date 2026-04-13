@@ -1,7 +1,5 @@
 #nullable enable
 
-using AK.Wwise;
-using HorrorEngine;
 using UnityEngine;
 
 namespace CrimsonDraft.Audio
@@ -14,9 +12,9 @@ namespace CrimsonDraft.Audio
         [SerializeField] private string         switchGroup = "SurfaceType";
 
         [Header("Surface")]
-        [SerializeField] private SurfaceTypeMapping mapping    = null!;
-        [SerializeField] private SurfaceDetector    surfaceDet = null!;
-        [SerializeField] private GroundDetector     groundDet  = null!;
+        [SerializeField] private SurfaceTypeMapping mapping     = null!;
+        [SerializeField] private LayerMask          floorMask;
+        [SerializeField] private float              rayDistance = 0.3f;
 
         [Header("Motion Guard")]
         [SerializeField] private Rigidbody rb          = null!;
@@ -38,10 +36,21 @@ namespace CrimsonDraft.Audio
 
         private void DetectAndPost(AK.Wwise.Event wwiseEvent)
         {
-            groundDet.Detect(transform.position);
-            var state = mapping.Resolve(surfaceDet.CurrentSurface);
+            var surface = DetectSurface();
+            var state   = mapping.Resolve(surface);
             AkSoundEngine.SetSwitch(switchGroup, state, gameObject);
             wwiseEvent.Post(gameObject);
+        }
+
+        private SurfaceType? DetectSurface()
+        {
+            var ray = new Ray(transform.position + Vector3.up * 0.1f, Vector3.down);
+            if (Physics.Raycast(ray, out var hit, rayDistance, floorMask, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider.TryGetComponent<Surface>(out var surface))
+                    return surface.Type;
+            }
+            return null;
         }
     }
 }
