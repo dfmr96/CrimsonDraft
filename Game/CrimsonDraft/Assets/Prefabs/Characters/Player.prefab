@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6248927136952844247}
   - component: {fileID: 7586606001846501166}
   - component: {fileID: 4605596643116429747}
+  - component: {fileID: 7067996463242752613}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -101,6 +102,22 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7067996463242752613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352273028549918950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3c0dae291d822e4ba11db73947ed385, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PlayerInteractionCaster
+  rayDistance: 2
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1001 &4992203288176685841
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -164,7 +181,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6414194386494062212}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5485407938020279572}
   m_SourcePrefab: {fileID: 100100000, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
 --- !u!95 &1453901650854825600 stripped
 Animator:
@@ -176,3 +199,58 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
   m_PrefabInstance: {fileID: 4992203288176685841}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5298123914608889408 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
+  m_PrefabInstance: {fileID: 4992203288176685841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6414194386494062212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5298123914608889408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd874ac0107f2254eb2f8cfd84f6a19d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.FootstepController
+  walkEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: de1070a8a0c2dc940880ad0397f478b2, type: 2}
+  runEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 9b6793be04ccb50438b95ee1b7194828, type: 2}
+  switchGroup: SurfaceType
+  mapping: {fileID: 11400000, guid: 8280ccae9cfaff94c8c60c319a9f4ed9, type: 2}
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 64
+  rayDistance: 0.3
+  rb: {fileID: 7586606001846501166}
+  minSpeedSqr: 0.05
+--- !u!114 &5485407938020279572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5298123914608889408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95e4e2463efd72040b2b781303e44d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkGameObj
+  m_listeners:
+    initialListenerList: []
+    useDefaultListeners: 1
+  isEnvironmentAware: 1
+  isStaticObject: 0
+  m_positionOffsetData:
+    KeepMe: 0
+    positionOffset: {x: 0, y: 0, z: 0}
+  m_posOffsetData: {fileID: 0}
+  listenerMask: 1

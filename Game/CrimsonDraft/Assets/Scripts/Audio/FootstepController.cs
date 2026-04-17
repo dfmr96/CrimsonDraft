@@ -23,6 +23,9 @@ namespace CrimsonDraft.Audio
         // Called by Animation Event on walk clip (left and right foot contacts)
         public void OnWalkStep()
         {
+#if UNITY_EDITOR
+            Debug.Log($"[Footstep] OnWalkStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
+#endif
             if (rb.linearVelocity.sqrMagnitude < minSpeedSqr) return;
             DetectAndPost(walkEvent);
         }
@@ -30,6 +33,9 @@ namespace CrimsonDraft.Audio
         // Called by Animation Event on run clip (left and right foot contacts)
         public void OnRunStep()
         {
+#if UNITY_EDITOR
+            Debug.Log($"[Footstep] OnRunStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
+#endif
             if (rb.linearVelocity.sqrMagnitude < minSpeedSqr) return;
             DetectAndPost(runEvent);
         }
@@ -38,8 +44,14 @@ namespace CrimsonDraft.Audio
         {
             var surface = DetectSurface();
             var state   = mapping.Resolve(surface);
+#if UNITY_EDITOR
+            Debug.Log($"[Footstep] DetectAndPost — surface: {(surface != null ? surface.name : "null(fallback)")} → switch: {state} — event valid: {wwiseEvent.IsValid()}");
+#endif
             AkSoundEngine.SetSwitch(switchGroup, state, gameObject);
-            wwiseEvent.Post(gameObject);
+            var playingId = wwiseEvent.Post(gameObject);
+#if UNITY_EDITOR
+            Debug.Log($"[Footstep] Post result — playingId: {playingId} (0 = failed)");
+#endif
         }
 
         private SurfaceType? DetectSurface()
@@ -52,5 +64,26 @@ namespace CrimsonDraft.Audio
             }
             return null;
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            var origin = transform.position + Vector3.up * 0.1f;
+            var end    = origin + Vector3.down * rayDistance;
+
+            var ray = new Ray(origin, Vector3.down);
+            if (Physics.Raycast(ray, out var hit, rayDistance, floorMask, QueryTriggerInteraction.Ignore))
+            {
+                UnityEngine.Gizmos.color = Color.green;
+                UnityEngine.Gizmos.DrawLine(origin, hit.point);
+                UnityEngine.Gizmos.DrawSphere(hit.point, 0.04f);
+            }
+            else
+            {
+                UnityEngine.Gizmos.color = Color.red;
+                UnityEngine.Gizmos.DrawLine(origin, end);
+            }
+        }
+#endif
     }
 }
