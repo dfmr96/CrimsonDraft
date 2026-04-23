@@ -1,6 +1,6 @@
 ---
 estado: aprobado
-ultima-revision: 2026-04-03
+ultima-revision: 2026-04-23
 tags:
   - game-design
 ---
@@ -40,9 +40,9 @@ El slot siempre existe aunque esté vacío. No hay slots nulos.
 
 | Tipo | Stackable por defecto | Acciones disponibles |
 |---|---|---|
-| Arma | No | Equipar / Desequipar, Examinar |
-| Caja de balas | Sí | Recargar, Examinar |
-| Consumible | No | Usar, Examinar |
+| Arma | No | Equipar / Desequipar, Combinar, Examinar |
+| Caja de balas | Sí | Recargar, Combinar, Examinar |
+| Consumible | No | Usar, Combinar, Examinar |
 
 `ItemData` expone un campo `Stackable`. Las cajas de balas del mismo tipo que ya están en el bloque del operador destino apilan cantidad en lugar de ocupar un slot nuevo.
 
@@ -54,6 +54,7 @@ El slot siempre existe aunque esté vacío. No hay slots nulos.
 | Equipar / Desequipar | Solo desde slots del operador dueño |
 | Recargar | Solo desde slots del operador dueño |
 | Usar consumible | Solo desde slots del operador dueño |
+| Combinar | Libre — cualquier slot de la grilla completa (ver [[Sistema de Combinación de Ítems]]) |
 
 ### Inventario lleno
 
@@ -109,6 +110,9 @@ Disponible solo desde slots del operador dueño. Si no hay operador compatible (
 #### Usar (consumibles)
 Comportamiento específico por consumible. TBD según tipo.
 
+#### Combinar (cualquier ítem)
+Activa el modo Combinar — el cursor cambia de color y el jugador selecciona un segundo ítem. Si existe una receta válida, ambos se consumen y el resultado aparece en el primer slot disponible. Ver [[Sistema de Combinación de Ítems]].
+
 #### Examinar (cualquier ítem)
 Overlay con descripción completa. B para volver.
 
@@ -137,4 +141,4 @@ La grilla única detrás de escenas garantiza que reorganizar el equipo entre mi
 
 ---
 
-Volver a [[Crimson Draft]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]
+Volver a [[Crimson Draft]] | Ver [[Sistema de Combinación de Ítems]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]
