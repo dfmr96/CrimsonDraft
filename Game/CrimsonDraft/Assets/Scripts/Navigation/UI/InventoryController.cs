@@ -13,16 +13,17 @@ namespace CrimsonDraft.Navigation.UI
 {
     public sealed class InventoryController : IInitializable, IDisposable
     {
-        private enum State { Closed, List, Reorder, ContextMenu }
+        private enum State { Closed, List, Reorder, ContextMenu, Combine }
 
         private readonly IInputService     inputService;
         private readonly IInventoryService inventoryService;
         private readonly IOperatorRoster   roster;
         private readonly InventoryView     view;
 
-        private State state             = State.Closed;
+        private State state              = State.Closed;
         private int   cursorSlotIndex;
-        private int   liftedSlotIndex   = -1;
+        private int   liftedSlotIndex    = -1;
+        private int   combineSourceSlot  = -1;
         private int   contextActionIndex;
 
         [Preserve]
@@ -85,6 +86,7 @@ namespace CrimsonDraft.Navigation.UI
             {
                 case State.List:
                 case State.Reorder:
+                case State.Combine:
                 {
                     if (dx == 0 && dy == 0) return;
                     // Total columns = rosterCount * 2. Each operator occupies 2 columns.
@@ -122,6 +124,9 @@ namespace CrimsonDraft.Navigation.UI
                 case State.ContextMenu:
                     ExecuteContextMenuAction();
                     break;
+                case State.Combine:
+                    AttemptCombination();
+                    break;
             }
         }
 
@@ -138,6 +143,11 @@ namespace CrimsonDraft.Navigation.UI
                 case State.ContextMenu:
                     this.state = State.List;
                     this.view.HideContextMenu();
+                    RefreshView();
+                    break;
+                case State.Combine:
+                    this.combineSourceSlot = -1;
+                    this.state             = State.List;
                     RefreshView();
                     break;
             }
@@ -170,6 +180,19 @@ namespace CrimsonDraft.Navigation.UI
             RefreshView();
         }
 
+        // ── Combine ────────────────────────────────────────────────────────────
+
+        private void AttemptCombination()
+        {
+            if (this.cursorSlotIndex == this.combineSourceSlot) return;
+            var slot = this.inventoryService.Slots[this.cursorSlotIndex];
+            if (slot.IsEmpty) return;
+            if (!this.inventoryService.TryCombine(this.combineSourceSlot, this.cursorSlotIndex)) return;
+            this.combineSourceSlot = -1;
+            this.state             = State.List;
+            RefreshView();
+        }
+
         // ── Context menu ───────────────────────────────────────────────────────
 
         private void OpenContextMenuOrIgnore()
@@ -184,10 +207,19 @@ namespace CrimsonDraft.Navigation.UI
         private void ExecuteContextMenuAction()
         {
             var action  = this.view.GetContextMenuAction(this.contextActionIndex);
-            int ownerOp = this.cursorSlotIndex / 4; // operatorSlot derived from slot ownership
+            int ownerOp = this.cursorSlotIndex / 4;
+
+            this.view.HideContextMenu();
+
+            if (action == ContextMenuAction.Combine)
+            {
+                this.combineSourceSlot = this.cursorSlotIndex;
+                this.state             = State.Combine;
+                RefreshView();
+                return;
+            }
 
             this.state = State.List;
-            this.view.HideContextMenu();
 
             switch (action)
             {
@@ -202,13 +234,10 @@ namespace CrimsonDraft.Navigation.UI
                 case ContextMenuAction.Use:
                     break;
 
-                case ContextMenuAction.Combine:
-                    break;
-
                 case ContextMenuAction.Examine:
                     var item = this.inventoryService.Slots[this.cursorSlotIndex].Item;
                     if (item != null) this.view.ShowExamineOverlay(item);
-                    return; // don't RefreshView — stay open
+                    return;
             }
 
             RefreshView();
@@ -217,7 +246,7 @@ namespace CrimsonDraft.Navigation.UI
         // ── Helpers ────────────────────────────────────────────────────────────
 
         private void RefreshView() =>
-            this.view.RefreshSlots(this.inventoryService.Slots, this.cursorSlotIndex, this.liftedSlotIndex);
+            this.view.RefreshSlots(this.inventoryService.Slots, this.cursorSlotIndex, this.liftedSlotIndex, this.combineSourceSlot);
 
         // ── Grid index math ────────────────────────────────────────────────────
         //
