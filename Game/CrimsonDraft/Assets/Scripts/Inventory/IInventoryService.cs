@@ -42,5 +42,10 @@ namespace CrimsonDraft.Inventory
 
         /// <summary>Reloads operatorSlot's weapon using the ammo box at slotIndex. Clears slot if box exhausted.</summary>
         void ReloadOperator(int slotIndex, int operatorSlot);
+
+        /// <summary>Checks for a recipe matching the items in slotA and slotB (symmetric).
+        /// If found: removes both items and places the result in the first available slot via AddItemAuto.
+        /// Returns false if either slot is empty or no recipe exists. No mutation on false.</summary>
+        bool TryCombine(int slotA, int slotB);
     }
 }

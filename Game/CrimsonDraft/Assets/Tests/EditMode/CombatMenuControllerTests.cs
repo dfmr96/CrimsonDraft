@@ -611,6 +611,8 @@ namespace CrimsonDraft.Tests
                 this.LastOperatorSlot = operatorSlot;
             }
 
+            public bool TryCombine(int slotA, int slotB) => false;
+
             /// <summary>Places an ammo box in the next empty slot. canReload controls CanReload result.</summary>
             public void RegisterBox(AmmoBoxItem box, bool canReload)
             {

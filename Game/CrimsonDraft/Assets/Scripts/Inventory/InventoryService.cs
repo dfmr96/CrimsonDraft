@@ -10,10 +10,15 @@ namespace CrimsonDraft.Inventory
     public sealed class InventoryService : IInventoryService
     {
         private readonly IOperatorRoster roster;
-        private InventorySlot[]? slots;
+        private readonly ICombineService combineService;
+        private InventorySlot[]?         slots;
 
         [Preserve]
-        public InventoryService(IOperatorRoster roster) => this.roster = roster;
+        public InventoryService(IOperatorRoster roster, ICombineService combineService)
+        {
+            this.roster         = roster;
+            this.combineService = combineService;
+        }
 
         // Lazy-init: roster may not be initialized at construction time.
         private InventorySlot[] EnsureSlots()
@@ -160,6 +165,18 @@ namespace CrimsonDraft.Inventory
             box.Quantity -= rounds;
             if (box.Quantity <= 0)
                 RemoveItem(slotIndex);
+        }
+
+        public bool TryCombine(int slotA, int slotB)
+        {
+            var s = EnsureSlots();
+            if (s[slotA].IsEmpty || s[slotB].IsEmpty) return false;
+            var result = this.combineService.TryGetResult(s[slotA].Item!.Data, s[slotB].Item!.Data);
+            if (result == null) return false;
+            RemoveItem(slotA);
+            RemoveItem(slotB);
+            AddItemAuto(result);
+            return true;
         }
     }
 }
