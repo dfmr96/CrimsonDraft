@@ -16,16 +16,20 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Image background = null!;
         [SerializeField] private Image iconImage   = null!;
 
-        [SerializeField] private Color emptyColor    = new Color(1f, 1f, 1f, 0.1f);
-        [SerializeField] private Color occupiedColor = new Color(1f, 1f, 1f, 0.4f);
+        [SerializeField] private Color emptyColor         = new Color(1f, 1f, 1f, 0.1f);
+        [SerializeField] private Color occupiedColor      = new Color(1f, 1f, 1f, 0.4f);
+        [SerializeField] private Color combineSourceColor = new Color(1f, 0.5f, 0f, 0.6f);
 
         public RectTransform RectTransform => (RectTransform)transform;
 
-        public void Setup(InventorySlot slot)
+        public void Setup(InventorySlot slot, bool isCombineSource = false)
         {
-            this.background.color   = slot.IsEmpty ? this.emptyColor : this.occupiedColor;
-            this.iconImage.sprite   = slot.IsEmpty ? null : slot.Item!.Data.Icon;
-            this.iconImage.enabled  = !slot.IsEmpty && slot.Item!.Data.Icon != null;
+            Color bgColor = isCombineSource  ? this.combineSourceColor
+                          : slot.IsEmpty      ? this.emptyColor
+                          :                     this.occupiedColor;
+            this.background.color  = bgColor;
+            this.iconImage.sprite  = slot.IsEmpty ? null : slot.Item!.Data.Icon;
+            this.iconImage.enabled = !slot.IsEmpty && slot.Item!.Data.Icon != null;
         }
     }
 }

@@ -47,7 +47,7 @@ namespace CrimsonDraft.Navigation.UI
             RefreshEquippedWeapon();
         }
 
-        public void RefreshSlots(IReadOnlyList<InventorySlot> allSlots)
+        public void RefreshSlots(IReadOnlyList<InventorySlot> allSlots, int combineSourceSlot = -1)
         {
             int start = this.operatorSlotIndex * 4;
             int count = Mathf.Min(4, allSlots.Count - start);
@@ -60,7 +60,7 @@ namespace CrimsonDraft.Navigation.UI
                 this.cells[i].gameObject.SetActive(i < count);
 
             for (int i = 0; i < count; i++)
-                this.cells[i].Setup(allSlots[start + i]);
+                this.cells[i].Setup(allSlots[start + i], isCombineSource: (start + i) == combineSourceSlot);
 
             RefreshEquippedWeapon();
         }

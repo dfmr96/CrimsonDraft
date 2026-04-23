@@ -16,8 +16,11 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private OperatorInventoryCard cardPrefab     = null!;
 
         [Header("Cursor")]
-        [SerializeField] private RectTransform cursorRect = null!; // moves to the active cell
-        [SerializeField] private Image         cursorIcon = null!; // item icon shown while lifting
+        [SerializeField] private RectTransform cursorRect        = null!;
+        [SerializeField] private Image         cursorIcon        = null!;
+        [SerializeField] private Image         cursorHighlight   = null!;
+        [SerializeField] private Color         normalCursorColor = Color.white;
+        [SerializeField] private Color         combineColor      = new Color(1f, 0.8f, 0f, 1f);
 
         [Header("Item Info Panel")]
         [SerializeField] private GameObject      infoPanelRoot = null!;
@@ -62,24 +65,27 @@ namespace CrimsonDraft.Navigation.UI
 
         // ── Slot refresh ───────────────────────────────────────────────────────
 
-        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1)
+        public void RefreshSlots(IReadOnlyList<InventorySlot> slots, int cursorSlot, int liftedSlot = -1, int combineSourceSlot = -1)
         {
+            bool inCombineMode = combineSourceSlot >= 0;
             foreach (var card in this.cards)
-                card.RefreshSlots(slots);
+                card.RefreshSlots(slots, combineSourceSlot);
 
-            MoveCursor(cursorSlot);
+            MoveCursor(cursorSlot, inCombineMode);
             UpdateLiftedIcon(slots, liftedSlot);
             UpdateInfoPanel(slots, cursorSlot);
         }
 
         // ── Cursor ─────────────────────────────────────────────────────────────
 
-        private void MoveCursor(int slotIndex)
+        private void MoveCursor(int slotIndex, bool combineMode = false)
         {
             var cellRect = GetCellRect(slotIndex);
             if (cellRect == null) return;
-            this.cursorRect.position  = cellRect.position;
-            this.cursorRect.sizeDelta = cellRect.sizeDelta;
+            this.cursorRect.position   = cellRect.position;
+            this.cursorRect.sizeDelta  = cellRect.sizeDelta;
+            if (this.cursorHighlight != null)
+                this.cursorHighlight.color = combineMode ? this.combineColor : this.normalCursorColor;
         }
 
         private void UpdateLiftedIcon(IReadOnlyList<InventorySlot> slots, int liftedSlot)
