@@ -23,11 +23,14 @@ namespace CrimsonDraft.Navigation
     /// </summary>
     public sealed class NavigationScope : LifetimeScope
     {
-        [SerializeField] private StartingLoadout startingLoadout = null!;
+        [SerializeField] private StartingLoadout        startingLoadout      = null!;
+        [SerializeField] private CombineRecipeLibrary  combineRecipeLibrary = null!;
 
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterInstance(this.startingLoadout);
+            builder.RegisterInstance(this.combineRecipeLibrary);
+            builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<InventoryView>();
