@@ -101,6 +101,18 @@ namespace CrimsonDraft.Tests
             return d;
         }
 
+        private static KeyItemData MakeKeyItemData(string? id = null, int maxUses = 1)
+        {
+            var d  = ScriptableObject.CreateInstance<KeyItemData>();
+            var so = new UnityEditor.SerializedObject(d);
+            so.FindProperty("itemId").stringValue      = id ?? System.Guid.NewGuid().ToString();
+            so.FindProperty("itemType").enumValueIndex = (int)ItemType.KeyItem;
+            so.FindProperty("displayName").stringValue = "Test Key";
+            so.FindProperty("maxUses").intValue        = maxUses;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return d;
+        }
+
         // ── AddItem ────────────────────────────────────────────────────────────
 
         [Test]
@@ -445,6 +457,36 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(svc.Slots[4].IsEmpty, "result in op1 slot 0 (index 4)");
             Assert.AreEqual(output.ItemId, svc.Slots[4].Item!.Data.ItemId);
             Assert.IsTrue(svc.Slots[5].IsEmpty, "slotB consumed");
+        }
+
+        // ── KeyItem.Consume ────────────────────────────────────────────────────
+
+        [Test]
+        public void KeyItem_Consume_decrementsUsesRemaining_andReturnsFalse_whenNotLastUse()
+        {
+            var key    = new KeyItem(MakeKeyItemData(maxUses: 2));
+            bool result = key.Consume();
+            Assert.AreEqual(1, key.UsesRemaining);
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void KeyItem_Consume_returnsTrueAndZero_onLastUse()
+        {
+            var key    = new KeyItem(MakeKeyItemData(maxUses: 1));
+            bool result = key.Consume();
+            Assert.IsTrue(result);
+            Assert.AreEqual(0, key.UsesRemaining);
+        }
+
+        [Test]
+        public void KeyItem_Consume_returnsTrueWithoutDecrement_whenAlreadyZero()
+        {
+            var key = new KeyItem(MakeKeyItemData(maxUses: 1));
+            key.Consume();
+            bool result = key.Consume();
+            Assert.IsTrue(result);
+            Assert.AreEqual(0, key.UsesRemaining, "must not go below 0");
         }
     }
 }
