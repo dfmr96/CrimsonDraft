@@ -43,6 +43,7 @@ El slot siempre existe aunque esté vacío. No hay slots nulos.
 | Arma | No | Equipar / Desequipar, Combinar, Examinar |
 | Caja de balas | Sí | Recargar, Combinar, Examinar |
 | Consumible | No | Usar, Combinar, Examinar |
+| Llave | No | Combinar, Examinar |
 
 `ItemData` expone un campo `Stackable`. Las cajas de balas del mismo tipo que ya están en el bloque del operador destino apilan cantidad en lugar de ocupar un slot nuevo.
 
@@ -131,6 +132,9 @@ La grilla única detrás de escenas garantiza que reorganizar el equipo entre mi
 ---
 
 ## Pendiente
+
+- [x] Sistema de llaves con usos múltiples — ver [[Sistema de Llaves]] (spec: `docs/superpowers/specs/2026-04-24-key-item-design.md`)
+
 
 - [ ] Comportamiento concreto de consumibles (Usar → qué efecto, sobre qué operador)
 - [ ] Integración con [[Krokonil]] si existe como ítem consumible
