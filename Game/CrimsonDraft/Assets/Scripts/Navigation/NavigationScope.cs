@@ -49,6 +49,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>();
             builder.RegisterComponentInHierarchy<PoiDialogView>();
             builder.Register<PoiController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();

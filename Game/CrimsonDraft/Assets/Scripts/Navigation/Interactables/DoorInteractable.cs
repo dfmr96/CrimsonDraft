@@ -57,10 +57,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.onOpen.Invoke();
-                            context.PoiController.Open(
-                                new[] { $"Ya no necesitas {keyItemData.DisplayName}. ¿Deseas descartarla?" },
-                                onClose: () => context.InventoryService.RemoveItem(outcome.SlotIndex),
-                                onCancel: () => { });
+                            context.InventoryService.RemoveItem(outcome.SlotIndex);
                         });
                     break;
             }

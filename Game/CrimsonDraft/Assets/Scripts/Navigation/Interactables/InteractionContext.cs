@@ -7,10 +7,10 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class InteractionContext
     {
-        public readonly IInventoryService InventoryService;
-        public readonly IInputService     InputService;
-        public readonly PoiController     PoiController;
-        public readonly DocumentController DocumentController;
+        public readonly IInventoryService   InventoryService;
+        public readonly IInputService       InputService;
+        public readonly PoiController       PoiController;
+        public readonly DocumentController  DocumentController;
         public readonly ContainerController ContainerController;
 
         public InteractionContext(
