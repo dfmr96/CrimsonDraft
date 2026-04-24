@@ -19,6 +19,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private int      lineIndex;
         private bool     isOpen;
         private Action?  onClose;
+        private Action?  onCancel;
 
         [Preserve]
         public PoiController(IInputService inputService, PoiDialogView view)
@@ -30,14 +31,16 @@ namespace CrimsonDraft.Navigation.Interactables
         void IInitializable.Initialize()
         {
             this.inputService.UIConfirm.performed += OnConfirm;
+            this.inputService.UICancel.performed  += OnCancel;
         }
 
-        public void Open(string[] poiLines, Action? onClose = null)
+        public void Open(string[] poiLines, Action? onClose = null, Action? onCancel = null)
         {
             this.lines     = poiLines;
             this.lineIndex = 0;
             this.isOpen    = true;
             this.onClose   = onClose;
+            this.onCancel  = onCancel;
             Time.timeScale  = 0f;
             this.inputService.SwitchToUI();
             this.view.Show(this.lines[0]);
@@ -58,19 +61,35 @@ namespace CrimsonDraft.Navigation.Interactables
             this.view.Show(this.lines[this.lineIndex]);
         }
 
-        private void Close()
+        private void OnCancel(InputAction.CallbackContext _)
         {
-            this.isOpen = false;
+            if (!this.isOpen || this.onCancel == null) return;
+            var action    = this.onCancel;
+            this.onClose  = null;
+            this.onCancel = null;
+            this.isOpen   = false;
             this.view.Hide();
             Time.timeScale = 1f;
             this.inputService.SwitchToGameplay();
-            this.onClose?.Invoke();
-            this.onClose = null;
+            action.Invoke();
+        }
+
+        private void Close()
+        {
+            this.isOpen   = false;
+            this.view.Hide();
+            Time.timeScale = 1f;
+            this.inputService.SwitchToGameplay();
+            var action    = this.onClose;
+            this.onClose  = null;
+            this.onCancel = null;
+            action?.Invoke();
         }
 
         void IDisposable.Dispose()
         {
             this.inputService.UIConfirm.performed -= OnConfirm;
+            this.inputService.UICancel.performed  -= OnCancel;
         }
     }
 }
