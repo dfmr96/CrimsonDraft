@@ -1,8 +1,8 @@
 #nullable enable
 
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -27,31 +27,43 @@ namespace CrimsonDraft.Navigation.Interactables
                 return;
             }
 
-            var keyItem  = this.data.KeyItem;
-            var keyIndex = FindKeyIndex(context, keyItem.ItemId);
+            var keyItemData = this.data.KeyItem;
+            var outcome     = context.InventoryService.TryUseKey(keyItemData.ItemId);
 
-            if (keyIndex < 0)
+            switch (outcome.Result)
             {
-                context.PoiController.Open(new[] { $"You need: {keyItem.DisplayName}." });
-                return;
+                case KeyUseResult.NotFound:
+                    context.PoiController.Open(new[] { $"You need: {keyItemData.DisplayName}." });
+                    break;
+
+                case KeyUseResult.AlreadyDepleted:
+                    context.PoiController.Open(new[] { "Locked." });
+                    break;
+
+                case KeyUseResult.Success:
+                    context.PoiController.Open(
+                        new[] { $"Used {keyItemData.DisplayName}." },
+                        onClose: () =>
+                        {
+                            this.unlocked = true;
+                            this.onOpen.Invoke();
+                        });
+                    break;
+
+                case KeyUseResult.DepletedAfterUse:
+                    context.PoiController.Open(
+                        new[] { $"Used {keyItemData.DisplayName}." },
+                        onClose: () =>
+                        {
+                            this.unlocked = true;
+                            this.onOpen.Invoke();
+                            context.PoiController.Open(
+                                new[] { $"Ya no necesitas {keyItemData.DisplayName}. ¿Deseas descartarla?" },
+                                onClose: () => context.InventoryService.RemoveItem(outcome.SlotIndex),
+                                onCancel: () => { });
+                        });
+                    break;
             }
-
-            context.PoiController.Open(
-                new[] { $"You used {keyItem.DisplayName} to unlock the door." },
-                onClose: () =>
-                {
-                    context.InventoryService.RemoveItem(keyIndex);
-                    this.unlocked = true;
-                    this.onOpen.Invoke();
-                });
-        }
-
-        private static int FindKeyIndex(InteractionContext context, string itemId)
-        {
-            var slots = context.InventoryService.Slots;
-            for (int i = 0; i < slots.Count; i++)
-                if (slots[i].Item?.Data.ItemId == itemId) return i;
-            return -1;
         }
     }
 }
