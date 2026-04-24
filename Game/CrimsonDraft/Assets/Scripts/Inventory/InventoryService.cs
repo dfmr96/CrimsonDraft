@@ -69,6 +69,7 @@ namespace CrimsonDraft.Inventory
                     WeaponData     wd => new WeaponItem(wd),
                     AmmoBoxData    ad => new AmmoBoxItem(ad, quantity),
                     ConsumableData cd => new ConsumableItem(cd),
+                    KeyItemData    kd => new KeyItem(kd),
                     _ => throw new ArgumentException($"Unknown ItemData subtype: {data.GetType().Name}")
                 };
                 s[i].Item     = item;
@@ -165,6 +166,25 @@ namespace CrimsonDraft.Inventory
             box.Quantity -= rounds;
             if (box.Quantity <= 0)
                 RemoveItem(slotIndex);
+        }
+
+        public KeyUseOutcome TryUseKey(string keyItemId)
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i].Item is not KeyItem key) continue;
+                if (key.Data.ItemId != keyItemId) continue;
+
+                if (key.UsesRemaining == 0)
+                    return new KeyUseOutcome(KeyUseResult.AlreadyDepleted, i);
+
+                bool depleted = key.Consume();
+                return new KeyUseOutcome(
+                    depleted ? KeyUseResult.DepletedAfterUse : KeyUseResult.Success,
+                    i);
+            }
+            return new KeyUseOutcome(KeyUseResult.NotFound, -1);
         }
 
         public bool TryCombine(int slotA, int slotB)

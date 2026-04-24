@@ -459,6 +459,74 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(svc.Slots[5].IsEmpty, "slotB consumed");
         }
 
+        // ── TryUseKey ─────────────────────────────────────────────────────────
+
+        [Test]
+        public void TryUseKey_returnsNotFound_whenKeyNotInInventory()
+        {
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            var outcome = service.TryUseKey("missing-key");
+            Assert.AreEqual(KeyUseResult.NotFound, outcome.Result);
+            Assert.AreEqual(-1, outcome.SlotIndex);
+        }
+
+        [Test]
+        public void TryUseKey_returnsSuccess_whenKeyHasMultipleUsesRemaining()
+        {
+            var data    = MakeKeyItemData(id: "key-b", maxUses: 3);
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+
+            var outcome = service.TryUseKey("key-b");
+
+            Assert.AreEqual(KeyUseResult.Success, outcome.Result);
+            Assert.AreEqual(0, outcome.SlotIndex);
+            Assert.IsFalse(service.Slots[0].IsEmpty, "key stays in slot");
+            Assert.AreEqual(2, ((KeyItem)service.Slots[0].Item!).UsesRemaining);
+        }
+
+        [Test]
+        public void TryUseKey_returnsDepletedAfterUse_onLastUse_andKeyRemainsInSlot()
+        {
+            var data    = MakeKeyItemData(id: "key-c", maxUses: 1);
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+
+            var outcome = service.TryUseKey("key-c");
+
+            Assert.AreEqual(KeyUseResult.DepletedAfterUse, outcome.Result);
+            Assert.AreEqual(0, outcome.SlotIndex);
+            Assert.IsFalse(service.Slots[0].IsEmpty, "key not auto-removed");
+            Assert.AreEqual(0, ((KeyItem)service.Slots[0].Item!).UsesRemaining);
+        }
+
+        [Test]
+        public void TryUseKey_returnsAlreadyDepleted_whenKeyIsAtZeroUses()
+        {
+            var data    = MakeKeyItemData(id: "key-d", maxUses: 1);
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+            service.TryUseKey("key-d");
+
+            var outcome = service.TryUseKey("key-d");
+
+            Assert.AreEqual(KeyUseResult.AlreadyDepleted, outcome.Result);
+            Assert.AreEqual(0, outcome.SlotIndex);
+        }
+
+        [Test]
+        public void AddItem_keyItem_placesKeyItemInSlot()
+        {
+            var data    = MakeKeyItemData(id: "key-e", maxUses: 2);
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            bool result = service.AddItem(data, operatorSlot: 0);
+
+            Assert.IsTrue(result);
+            var key = service.Slots[0].Item as KeyItem;
+            Assert.IsNotNull(key);
+            Assert.AreEqual(2, key!.UsesRemaining);
+        }
+
         // ── KeyItem.Consume ────────────────────────────────────────────────────
 
         [Test]

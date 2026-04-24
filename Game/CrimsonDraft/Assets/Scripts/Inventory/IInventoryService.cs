@@ -47,5 +47,11 @@ namespace CrimsonDraft.Inventory
         /// If found: removes both items and places the result in the first available slot via AddItemAuto.
         /// Returns false if either slot is empty or no recipe exists. No mutation on false.</summary>
         bool TryCombine(int slotA, int slotB);
+
+        /// <summary>
+        /// Finds the first KeyItem with the given itemId, decrements its uses, and returns the outcome.
+        /// The key is never auto-removed — caller must call RemoveItem(outcome.SlotIndex) to discard it.
+        /// </summary>
+        KeyUseOutcome TryUseKey(string keyItemId);
     }
 }
