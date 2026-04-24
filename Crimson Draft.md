@@ -25,6 +25,7 @@
 - [[Sistema de Inventario]]
 - [[Sistema de Combinación de Ítems]]
 - [[Sistema de Interactuables]]
+- [[Sistema de Item Socket]]
 - [[Sistema de Movimiento]]
 - [[Mecanicas de Supervivencia]]
 - [[Tactical Survival Horror]]

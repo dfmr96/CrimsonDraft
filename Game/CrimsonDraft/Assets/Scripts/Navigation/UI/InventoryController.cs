@@ -7,6 +7,7 @@ using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation.UI
@@ -15,10 +16,11 @@ namespace CrimsonDraft.Navigation.UI
     {
         private enum State { Closed, List, Reorder, ContextMenu, Combine }
 
-        private readonly IInputService     inputService;
-        private readonly IInventoryService inventoryService;
-        private readonly IOperatorRoster   roster;
-        private readonly InventoryView     view;
+        private readonly IInputService      inputService;
+        private readonly IInventoryService  inventoryService;
+        private readonly IOperatorRoster    roster;
+        private readonly InventoryView      view;
+        private readonly IInteractionCaster interactionCaster;
 
         private State state              = State.Closed;
         private int   cursorSlotIndex;
@@ -28,15 +30,17 @@ namespace CrimsonDraft.Navigation.UI
 
         [Preserve]
         public InventoryController(
-            IInputService     inputService,
-            IInventoryService inventoryService,
-            IOperatorRoster   roster,
-            InventoryView     view)
+            IInputService      inputService,
+            IInventoryService  inventoryService,
+            IOperatorRoster    roster,
+            InventoryView      view,
+            IInteractionCaster interactionCaster)
         {
-            this.inputService     = inputService;
-            this.inventoryService = inventoryService;
-            this.roster           = roster;
-            this.view             = view;
+            this.inputService      = inputService;
+            this.inventoryService  = inventoryService;
+            this.roster            = roster;
+            this.view              = view;
+            this.interactionCaster = interactionCaster;
         }
 
         void IInitializable.Initialize()
@@ -232,12 +236,27 @@ namespace CrimsonDraft.Navigation.UI
                     break;
 
                 case ContextMenuAction.Use:
+                {
+                    var item = this.inventoryService.Slots[this.cursorSlotIndex].Item;
+                    if (item?.Data.ItemType == ItemType.SocketItem)
+                    {
+                        int slotIndex = this.cursorSlotIndex;
+                        var itemData  = item.Data;
+                        if (!this.interactionCaster.CanUseItem(itemData)) break;
+                        Close();
+                        this.interactionCaster.TryUseItem(itemData);
+                        this.inventoryService.RemoveItem(slotIndex);
+                        return;
+                    }
                     break;
+                }
 
                 case ContextMenuAction.Examine:
+                {
                     var item = this.inventoryService.Slots[this.cursorSlotIndex].Item;
                     if (item != null) this.view.ShowExamineOverlay(item);
                     return;
+                }
             }
 
             RefreshView();

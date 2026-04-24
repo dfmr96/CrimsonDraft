@@ -70,6 +70,7 @@ namespace CrimsonDraft.Inventory
                     AmmoBoxData    ad => new AmmoBoxItem(ad, quantity),
                     ConsumableData cd => new ConsumableItem(cd),
                     KeyItemData    kd => new KeyItem(kd),
+                    SocketItemData sd => new SocketItem(sd),
                     _ => throw new ArgumentException($"Unknown ItemData subtype: {data.GetType().Name}")
                 };
                 s[i].Item     = item;

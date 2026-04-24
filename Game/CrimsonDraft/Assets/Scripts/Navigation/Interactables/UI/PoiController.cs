@@ -18,6 +18,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private string[] lines = Array.Empty<string>();
         private int      lineIndex;
         private bool     isOpen;
+        private int      openedAtFrame = -1;
         private Action?  onClose;
         private Action?  onCancel;
 
@@ -36,12 +37,13 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Open(string[] poiLines, Action? onClose = null, Action? onCancel = null)
         {
-            this.lines     = poiLines;
-            this.lineIndex = 0;
-            this.isOpen    = true;
-            this.onClose   = onClose;
-            this.onCancel  = onCancel;
-            Time.timeScale  = 0f;
+            this.lines          = poiLines;
+            this.lineIndex      = 0;
+            this.isOpen         = true;
+            this.openedAtFrame  = Time.frameCount;
+            this.onClose        = onClose;
+            this.onCancel       = onCancel;
+            Time.timeScale       = 0f;
             this.inputService.SwitchToUI();
             this.view.Show(this.lines[0]);
         }
@@ -49,6 +51,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private void OnConfirm(InputAction.CallbackContext _)
         {
             if (!this.isOpen) return;
+            if (Time.frameCount == this.openedAtFrame) return;
 
             this.lineIndex++;
 

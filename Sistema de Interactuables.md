@@ -97,6 +97,16 @@ Muestra texto de examinación como diálogo en panel inferior, línea a línea.
 - Cierre: Interact en la última línea restaura `timeScale = 1` y vuelve a Gameplay map
 - Solo muestra la **línea actual** — sin log acumulativo
 
+#### ItemSocketInteractable
+
+Requiere uno o más ítems de tipo [[Sistema de Item Socket|SocketItem]] para activarse. Ver [[Sistema de Item Socket]] para el diseño completo.
+
+- Datos en campos serializados directamente en el MonoBehaviour: `requiredItems` (SocketItemData[]), `onActivated` (UnityEvent)
+- Al presionar Interact sin ítem activo: muestra estado actual (`[✓] / [ ]` por slot) via PoiController
+- Al usar un SocketItem desde el inventario: el socket valida por `itemId`, consume el ítem si coincide
+- Cuando todos los slots están satisfechos: dispara `onActivated`
+- No pausa el juego
+
 #### ContainerInteractable
 
 Abre un sub-inventario junto al inventario del jugador para transferir ítems.
@@ -121,6 +131,7 @@ Abre un sub-inventario junto al inventario del jugador para transferir ítems.
 | DoorInteractable | No | Gameplay | Ninguna (o línea de feedback) |
 | PoiInteractable | Sí | UI map | Panel inferior, línea a línea |
 | ContainerInteractable | Sí | UI map | Panel lateral junto al inventario |
+| ItemSocketInteractable | No | Gameplay | Línea de feedback via PoiController |
 
 ---
 
@@ -187,4 +198,4 @@ Los POIs mantienen la tensión de movimiento: el jugador sigue presente en el mu
 
 ---
 
-Volver a [[Crimson Draft]] | Ver [[Sistema de Inventario]] | Ver [[Documentos del Marinera]] | Ver [[Acto I - Diseño Detallado]]
+Volver a [[Crimson Draft]] | Ver [[Sistema de Inventario]] | Ver [[Sistema de Item Socket]] | Ver [[Documentos del Marinera]] | Ver [[Acto I - Diseño Detallado]]

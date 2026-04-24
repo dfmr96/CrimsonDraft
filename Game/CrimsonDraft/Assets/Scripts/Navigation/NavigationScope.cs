@@ -46,7 +46,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
 
-            builder.RegisterComponentInHierarchy<PlayerInteractionCaster>();
+            builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
             builder.RegisterComponentInHierarchy<PoiDialogView>();
             builder.Register<PoiController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 

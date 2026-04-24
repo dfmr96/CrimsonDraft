@@ -113,6 +113,17 @@ namespace CrimsonDraft.Tests
             return d;
         }
 
+        private static SocketItemData MakeSocketItemData(string? id = null)
+        {
+            var d  = ScriptableObject.CreateInstance<SocketItemData>();
+            var so = new UnityEditor.SerializedObject(d);
+            so.FindProperty("itemId").stringValue      = id ?? System.Guid.NewGuid().ToString();
+            so.FindProperty("itemType").enumValueIndex = (int)ItemType.SocketItem;
+            so.FindProperty("displayName").stringValue = "Test Socket Item";
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return d;
+        }
+
         // ── AddItem ────────────────────────────────────────────────────────────
 
         [Test]
@@ -555,6 +566,21 @@ namespace CrimsonDraft.Tests
             bool result = key.Consume();
             Assert.IsTrue(result);
             Assert.AreEqual(0, key.UsesRemaining, "must not go below 0");
+        }
+
+        // ── SocketItem ─────────────────────────────────────────────────────────
+
+        [Test]
+        public void AddItem_socketItem_placesSocketItemInSlot()
+        {
+            var data    = MakeSocketItemData(id: "socket-a");
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            bool result = service.AddItem(data, operatorSlot: 0);
+
+            Assert.IsTrue(result);
+            var item = service.Slots[0].Item as SocketItem;
+            Assert.IsNotNull(item);
+            Assert.AreEqual("socket-a", item!.Data.ItemId);
         }
     }
 }

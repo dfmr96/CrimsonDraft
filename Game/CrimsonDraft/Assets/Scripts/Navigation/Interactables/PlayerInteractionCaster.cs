@@ -9,7 +9,7 @@ using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class PlayerInteractionCaster : MonoBehaviour
+    public sealed class PlayerInteractionCaster : MonoBehaviour, IInteractionCaster
     {
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
@@ -57,6 +57,26 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.documentController,
                 this.containerController);
             interactable.Interact(context);
+        }
+
+        public bool CanUseItem(ItemData item)
+        {
+            if (!Physics.Raycast(transform.position, transform.forward, out var hit, this.rayDistance, this.interactableLayer))
+                return false;
+            if (!hit.collider.TryGetComponent<ItemSocketInteractable>(out var socket))
+                return false;
+            return socket.CanInsert(item);
+        }
+
+        public bool TryUseItem(ItemData item)
+        {
+            if (!Physics.Raycast(transform.position, transform.forward, out var hit, this.rayDistance, this.interactableLayer))
+                return false;
+
+            if (!hit.collider.TryGetComponent<ItemSocketInteractable>(out var socket))
+                return false;
+
+            return socket.TryInsert(item, this.poiController);
         }
 
 #if UNITY_EDITOR

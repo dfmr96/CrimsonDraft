@@ -44,6 +44,7 @@ El slot siempre existe aunque esté vacío. No hay slots nulos.
 | Caja de balas | Sí | Recargar, Combinar, Examinar |
 | Consumible | No | Usar, Combinar, Examinar |
 | Llave | No | Combinar, Examinar |
+| Socket Item | No | Usar, Combinar, Examinar |
 
 `ItemData` expone un campo `Stackable`. Las cajas de balas del mismo tipo que ya están en el bloque del operador destino apilan cantidad en lugar de ocupar un slot nuevo.
 
@@ -55,6 +56,7 @@ El slot siempre existe aunque esté vacío. No hay slots nulos.
 | Equipar / Desequipar | Solo desde slots del operador dueño |
 | Recargar | Solo desde slots del operador dueño |
 | Usar consumible | Solo desde slots del operador dueño |
+| Usar Socket Item | Solo desde slots del operador dueño |
 | Combinar | Libre — cualquier slot de la grilla completa (ver [[Sistema de Combinación de Ítems]]) |
 
 ### Inventario lleno
@@ -108,8 +110,10 @@ Acción directa — equipar un arma del slot de Op1 la equipa a Op1 inmediatamen
 #### Recargar (cajas de balas)
 Disponible solo desde slots del operador dueño. Si no hay operador compatible (calibre + ammo por debajo del máximo): acción deshabilitada.
 
-#### Usar (consumibles)
-Comportamiento específico por consumible. TBD según tipo.
+#### Usar (consumibles y Socket Items)
+Los consumibles aplican un efecto sobre el operador dueño. Comportamiento específico TBD según tipo.
+
+Los Socket Items se insertan en el [[Sistema de Item Socket|Item Socket]] apuntado por el raycast de interacción. Si el socket no está en rango o no acepta el ítem, no ocurre nada.
 
 #### Combinar (cualquier ítem)
 Activa el modo Combinar — el cursor cambia de color y el jugador selecciona un segundo ítem. Si existe una receta válida, ambos se consumen y el resultado aparece en el primer slot disponible. Ver [[Sistema de Combinación de Ítems]].
@@ -145,4 +149,4 @@ La grilla única detrás de escenas garantiza que reorganizar el equipo entre mi
 
 ---
 
-Volver a [[Crimson Draft]] | Ver [[Sistema de Combinación de Ítems]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]
+Volver a [[Crimson Draft]] | Ver [[Sistema de Combinación de Ítems]] | Ver [[Sistema de Item Socket]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]

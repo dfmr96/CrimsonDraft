@@ -186,6 +186,7 @@ namespace CrimsonDraft.Navigation.UI
                 ItemType.AmmoBox    => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
                 ItemType.Consumable => new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine },
                 ItemType.KeyItem    => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
+                ItemType.SocketItem => new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine },
                 _                   => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine }
             };
     }
