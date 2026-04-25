@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using Yarn.Unity;
@@ -70,14 +69,12 @@ namespace CrimsonDraft.Navigation.Dialogue
                 }
             }
 
-            Time.timeScale = 0f;
             this.inputService.SwitchToUI();
             _ = this.runner.StartDialogue(nodeName);
         }
 
         private void OnDialogueComplete()
         {
-            Time.timeScale = 1f;
             this.inputService.SwitchToGameplay();
 
             foreach (var name in this.sessionCommandNames)
