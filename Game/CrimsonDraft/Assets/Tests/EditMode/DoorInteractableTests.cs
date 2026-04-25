@@ -19,11 +19,11 @@ namespace CrimsonDraft.Tests
         {
             var data = ScriptableObject.CreateInstance<DoorData>();
             var so   = new SerializedObject(data);
-            so.FindProperty("locked").boolValue         = locked;
-            so.FindProperty("yarnNodeName").stringValue = yarnNodeName;
+            so.FindProperty("locked").boolValue = locked;
             if (keyItem != null)
                 so.FindProperty("keyItem").objectReferenceValue = keyItem;
             so.ApplyModifiedPropertiesWithoutUndo();
+            data.DialogueReference.nodeName = yarnNodeName;
             return data;
         }
 

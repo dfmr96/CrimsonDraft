@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Yarn.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 
@@ -12,7 +13,7 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         [SerializeField] private SocketItemData[] requiredItems = System.Array.Empty<SocketItemData>();
         [SerializeField] private UnityEvent       onActivated   = new();
-        [SerializeField] private string           yarnNodeName  = "";
+        [SerializeField] private DialogueReference dialogueReference = new();
 
         private bool[] inserted = System.Array.Empty<bool>();
 
@@ -46,7 +47,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 int filled = CountFilled();
 
                 dialogueService?.StartDialogue(
-                    this.yarnNodeName,
+                    this.dialogueReference.nodeName ?? "",
                     new Dictionary<string, object>
                     {
                         ["$insert_result"] = "success",
@@ -65,7 +66,7 @@ namespace CrimsonDraft.Navigation.Interactables
             }
 
             dialogueService?.StartDialogue(
-                this.yarnNodeName,
+                this.dialogueReference.nodeName ?? "",
                 new Dictionary<string, object>
                 {
                     ["$insert_result"] = "wrong_item",
@@ -80,7 +81,7 @@ namespace CrimsonDraft.Navigation.Interactables
             int total  = this.requiredItems.Length;
 
             context.DialogueService.StartDialogue(
-                this.yarnNodeName,
+                this.dialogueReference.nodeName ?? "",
                 new Dictionary<string, object>
                 {
                     ["$activated"]    = this.IsActivated,

@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Yarn.Unity;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -27,7 +28,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (keyItem == null)
             {
                 context.DialogueService.StartDialogue(
-                    this.data.YarnNodeName,
+                    this.data.DialogueReference.nodeName ?? "",
                     new Dictionary<string, object> { ["$outcome"] = "locked" });
                 return;
             }
@@ -38,7 +39,7 @@ namespace CrimsonDraft.Navigation.Interactables
             {
                 case KeyUseResult.NotFound:
                     context.DialogueService.StartDialogue(
-                        this.data.YarnNodeName,
+                        this.data.DialogueReference.nodeName ?? "",
                         new Dictionary<string, object>
                         {
                             ["$outcome"]  = "needs_key",
@@ -48,13 +49,13 @@ namespace CrimsonDraft.Navigation.Interactables
 
                 case KeyUseResult.AlreadyDepleted:
                     context.DialogueService.StartDialogue(
-                        this.data.YarnNodeName,
+                        this.data.DialogueReference.nodeName ?? "",
                         new Dictionary<string, object> { ["$outcome"] = "locked" });
                     break;
 
                 case KeyUseResult.Success:
                     context.DialogueService.StartDialogue(
-                        this.data.YarnNodeName,
+                        this.data.DialogueReference.nodeName ?? "",
                         new Dictionary<string, object>
                         {
                             ["$outcome"]  = "opened",
@@ -70,7 +71,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 case KeyUseResult.DepletedAfterUse:
                     context.InventoryService.RemoveItem(outcome.SlotIndex);
                     context.DialogueService.StartDialogue(
-                        this.data.YarnNodeName,
+                        this.data.DialogueReference.nodeName ?? "",
                         new Dictionary<string, object>
                         {
                             ["$outcome"]  = "opened",

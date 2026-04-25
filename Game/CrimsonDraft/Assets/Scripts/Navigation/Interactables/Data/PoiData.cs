@@ -1,14 +1,15 @@
 #nullable enable
 
 using UnityEngine;
+using Yarn.Unity;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
     [CreateAssetMenu(menuName = "CrimsonDraft/Interactables/PoiData")]
     public sealed class PoiData : ScriptableObject
     {
-        [SerializeField] private string yarnNodeName = "";
+        [SerializeField] private DialogueReference dialogueReference = new();
 
-        public string YarnNodeName => this.yarnNodeName;
+        public DialogueReference DialogueReference => this.dialogueReference;
     }
 }
