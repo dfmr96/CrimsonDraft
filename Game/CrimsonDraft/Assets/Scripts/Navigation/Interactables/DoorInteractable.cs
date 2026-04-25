@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using CrimsonDraft.Inventory;
@@ -21,29 +22,45 @@ namespace CrimsonDraft.Navigation.Interactables
                 return;
             }
 
-            if (this.data.KeyItem == null)
+            var keyItem = this.data.KeyItem;
+
+            if (keyItem == null)
             {
-                context.PoiController.Open(new[] { "Locked." });
+                context.DialogueService.StartDialogue(
+                    this.data.YarnNodeName,
+                    new Dictionary<string, object> { ["$outcome"] = "locked" });
                 return;
             }
 
-            var keyItemData = this.data.KeyItem;
-            var outcome     = context.InventoryService.TryUseKey(keyItemData.ItemId);
+            var outcome = context.InventoryService.TryUseKey(keyItem.ItemId);
 
             switch (outcome.Result)
             {
                 case KeyUseResult.NotFound:
-                    context.PoiController.Open(new[] { $"You need: {keyItemData.DisplayName}." });
+                    context.DialogueService.StartDialogue(
+                        this.data.YarnNodeName,
+                        new Dictionary<string, object>
+                        {
+                            ["$outcome"]  = "needs_key",
+                            ["$key_name"] = keyItem.DisplayName
+                        });
                     break;
 
                 case KeyUseResult.AlreadyDepleted:
-                    context.PoiController.Open(new[] { "Locked." });
+                    context.DialogueService.StartDialogue(
+                        this.data.YarnNodeName,
+                        new Dictionary<string, object> { ["$outcome"] = "locked" });
                     break;
 
                 case KeyUseResult.Success:
-                    context.PoiController.Open(
-                        new[] { $"Used {keyItemData.DisplayName}." },
-                        onClose: () =>
+                    context.DialogueService.StartDialogue(
+                        this.data.YarnNodeName,
+                        new Dictionary<string, object>
+                        {
+                            ["$outcome"]  = "opened",
+                            ["$key_name"] = keyItem.DisplayName
+                        },
+                        onComplete: () =>
                         {
                             this.unlocked = true;
                             this.onOpen.Invoke();
@@ -51,13 +68,18 @@ namespace CrimsonDraft.Navigation.Interactables
                     break;
 
                 case KeyUseResult.DepletedAfterUse:
-                    context.PoiController.Open(
-                        new[] { $"Used {keyItemData.DisplayName}." },
-                        onClose: () =>
+                    context.InventoryService.RemoveItem(outcome.SlotIndex);
+                    context.DialogueService.StartDialogue(
+                        this.data.YarnNodeName,
+                        new Dictionary<string, object>
+                        {
+                            ["$outcome"]  = "opened",
+                            ["$key_name"] = keyItem.DisplayName
+                        },
+                        onComplete: () =>
                         {
                             this.unlocked = true;
                             this.onOpen.Invoke();
-                            context.InventoryService.RemoveItem(outcome.SlotIndex);
                         });
                     break;
             }

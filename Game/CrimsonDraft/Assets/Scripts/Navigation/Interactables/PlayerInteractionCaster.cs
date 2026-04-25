@@ -6,6 +6,7 @@ using UnityEngine.Scripting;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -16,7 +17,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private IInputService       inputService        = null!;
         private IInventoryService   inventoryService    = null!;
-        private PoiController       poiController       = null!;
+        private IDialogueService    dialogueService     = null!;
         private DocumentController  documentController  = null!;
         private ContainerController containerController = null!;
 
@@ -24,13 +25,13 @@ namespace CrimsonDraft.Navigation.Interactables
         public void Construct(
             IInputService       inputService,
             IInventoryService   inventoryService,
-            PoiController       poiController,
+            IDialogueService    dialogueService,
             DocumentController  documentController,
             ContainerController containerController)
         {
             this.inputService        = inputService;
             this.inventoryService    = inventoryService;
-            this.poiController       = poiController;
+            this.dialogueService     = dialogueService;
             this.documentController  = documentController;
             this.containerController = containerController;
             this.inputService.Interact.performed += OnInteract;
@@ -53,7 +54,7 @@ namespace CrimsonDraft.Navigation.Interactables
             var context = new InteractionContext(
                 this.inventoryService,
                 this.inputService,
-                this.poiController,
+                this.dialogueService,
                 this.documentController,
                 this.containerController);
             interactable.Interact(context);
@@ -76,7 +77,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<ItemSocketInteractable>(out var socket))
                 return false;
 
-            return socket.TryInsert(item, this.poiController);
+            return socket.TryInsert(item, this.dialogueService);
         }
 
 #if UNITY_EDITOR
