@@ -38,7 +38,7 @@ El `IDialogueService` es el único punto de entrada para los interactuables. Nin
 ### Ciclo de vida de un diálogo
 
 ```
-Interactuable llama StartDialogue(nodeName, variables, comandos)
+Interactuable llama StartDialogue(nodeName, variables, onComplete, comandos)
   → IDialogueService pausa Time.timeScale
   → IDialogueService cambia input map a UI
   → Variables cargadas en el almacén de variables Yarn
@@ -49,9 +49,12 @@ Interactuable llama StartDialogue(nodeName, variables, comandos)
   → IDialogueService restaura Time.timeScale
   → IDialogueService vuelve a input map Gameplay
   → Handlers de comandos de la sesión eliminados
+  → onComplete se invoca (si fue provisto)
 ```
 
 El juego está **siempre pausado** mientras hay un diálogo activo. El input cambia a **UI map** para toda la duración.
+
+El parámetro `onComplete` permite al interactuable ejecutar lógica después de que el diálogo cierra — por ejemplo, abrir una puerta tras mostrar el feedback de uso de llave.
 
 ---
 
@@ -91,13 +94,28 @@ No recibe variables. El contenido del nodo es texto fijo (monólogo de examinaci
 
 #### DoorInteractable
 
+La lógica de inventario se ejecuta en C# **antes** de iniciar el diálogo. Yarn solo muestra el resultado — nunca presenta opciones para puertas.
+
 | Variable | Tipo | Significado |
 |---|---|---|
-| `$key_required` | bool | La puerta exige una llave específica |
-| `$has_key` | bool | El jugador tiene la llave en este momento |
-| `$key_name` | string | Nombre de la llave requerida |
+| `$outcome` | string | `"opened"` / `"needs_key"` / `"locked"` |
+| `$key_name` | string | Nombre de la llave (presente cuando `$outcome` es `"opened"` o `"needs_key"`) |
 
-El nodo de puerta rama según estas variables. Si `$has_key` es verdadero, presenta opciones Sí/No.
+Flujo completo:
+
+```
+Jugador interactúa con puerta bloqueada
+  → Si no requiere llave específica:
+      StartDialogue(yarnNodeName, { $outcome: "locked" })
+  → Si requiere llave y el jugador la tiene:
+      TryUseKey() → éxito
+      StartDialogue(yarnNodeName, { $outcome: "opened", $key_name: "..." },
+                    onComplete: () → unlocked=true, onOpen.Invoke())
+  → Si requiere llave y el jugador no la tiene:
+      StartDialogue(yarnNodeName, { $outcome: "needs_key", $key_name: "..." })
+```
+
+La puerta abre **después** de que el diálogo cierra, via `onComplete`. El jugador lee el feedback y luego la puerta se activa.
 
 #### ItemSocketInteractable — Interact (estado del socket)
 
@@ -120,25 +138,34 @@ El nodo de puerta rama según estas variables. Si `$has_key` es verdadero, prese
 
 ### Comandos Yarn
 
-Los comandos son llamadas desde el script `.yarn` hacia el juego. Permiten que la elección del jugador desencadene lógica de juego.
+Los comandos son llamadas desde el script `.yarn` hacia el juego. Se usan cuando la elección del jugador dentro del diálogo debe desencadenar lógica — por ejemplo, al seleccionar una opción en un prompt de ítems.
 
 **Comandos por sesión** (registrados por el interactuable, eliminados al cerrar el diálogo):
 
 | Comando | Registrado por | Efecto |
 |---|---|---|
-| `<<doorConfirmed>>` | DoorInteractable | Consume la llave del inventario y ejecuta `onOpen` |
+| `<<itemUsed>>` | Ítem con confirmación | Ejecuta la lógica de uso del ítem |
 
-**Patrón de uso en `.yarn`:**
+**Patrón de uso en `.yarn` (ítem con confirmación):**
+
+```
+title: item_uso_medkit
+---
+¿Usar el Medkit ahora?
+-> Sí
+    <<itemUsed>>
+-> No
+===
+```
+
+**Patrón de uso en `.yarn` (puerta — sin opciones):**
 
 ```
 title: door_bodega_principal
 ---
-<<if $has_key>>
-La puerta está bloqueada. Tienes {$key_name}.
--> Desbloquear
-    <<doorConfirmed>>
--> Cancelar
-<<elseif $key_required>>
+<<if $outcome == "opened">>
+Usaste {$key_name}.
+<<elseif $outcome == "needs_key">>
 Necesitas {$key_name} para abrir esta puerta.
 <<else>>
 La puerta está bloqueada.
@@ -181,7 +208,7 @@ Los comandos globales permanentes (sonidos, efectos) se registran una sola vez a
 
 Mover todo el texto a Yarn Spinner resuelve un problema práctico —localización— pero también impone una disciplina de diseño: si quieres que el jugador vea un texto, tienes que escribirlo intencionalmente en un archivo de diálogo. No hay atajos de `Debug.Log` disfrazados de UI.
 
-Las opciones Sí/No en puertas e ítems no son confirmaciones de seguridad. Son momentos de decisión: el jugador elige conscientemente consumir un recurso. Esa fricción es intencional en un survival horror donde cada llave y cada dosis importa.
+Las puertas no piden confirmación — la llave se usa automáticamente, igual que en los referentes del género. El feedback de Yarn informa al jugador qué ocurrió, no le pide permiso. Las opciones Sí/No se reservan para ítems consumibles donde el jugador puede querer conservar el recurso para otro momento.
 
 > La información que el jugador recibe al examinar un POI debe justificar la pausa. Si el texto no agrega tensión, misterio o contexto narrativo, no debería existir.
 

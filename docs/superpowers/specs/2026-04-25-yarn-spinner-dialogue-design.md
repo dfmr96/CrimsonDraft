@@ -25,9 +25,10 @@ Registered in `NavigationScope`. Wraps the `DialogueRunner`.
 interface IDialogueService
     bool IsRunning
     void StartDialogue(
-        nodeName  : string,
-        variables : IReadOnlyDictionary<string, object>?   = null,
-        commands  : IReadOnlyDictionary<string, Action>?   = null)
+        nodeName   : string,
+        variables  : IReadOnlyDictionary<string, object>?   = null,
+        onComplete : Action?                                 = null,
+        commands   : IReadOnlyDictionary<string, Action>?   = null)
 ```
 
 **`DialogueService` behavior:**
@@ -118,9 +119,9 @@ Interact(context):
 
 ### DoorInteractable
 
-The C# logic determines the outcome first, then passes it as a Yarn variable. The Yarn script branches on `$outcome`. If the player has the key, the `<<doorConfirmed>>` command is registered; it consumes the key and fires `onOpen`.
+C# runs all inventory logic first — key is consumed before Yarn starts. Yarn only shows the result. No options presented for doors. The door opens via `onComplete` after the dialogue closes.
 
-`IInventoryService` gains a new read-only query `HasItem(itemId: string): bool` to check key presence without consuming.
+No `HasItem` query needed — `TryUseKey` is called directly; its result determines which `$outcome` value is passed.
 
 ```
 Interact(context):
@@ -130,37 +131,34 @@ Interact(context):
 
     if data.KeyItem == null:
         context.DialogueService.StartDialogue(data.YarnNodeName,
-            variables: { "$key_required": false })
+            variables: { "$outcome": "locked" })
         return
 
-    hasKey = context.InventoryService.HasItem(data.KeyItem.ItemId)
+    outcome = context.InventoryService.TryUseKey(data.KeyItem.ItemId)
 
-    context.DialogueService.StartDialogue(
-        data.YarnNodeName,
-        variables: {
-            "$key_required": true,
-            "$has_key":      hasKey,
-            "$key_name":     data.KeyItem.DisplayName
-        },
-        commands: hasKey ? {
-            "doorConfirmed": () =>
-                outcome = context.InventoryService.TryUseKey(data.KeyItem.ItemId)
-                if outcome.Result is Success or DepletedAfterUse:
-                    unlocked = true
-                    onOpen.Invoke()
-                    if outcome.Result == DepletedAfterUse:
-                        context.InventoryService.RemoveItem(outcome.SlotIndex)
-        } : null
-    )
+    switch outcome.Result:
+        case NotFound:
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "needs_key", "$key_name": data.KeyItem.DisplayName })
+
+        case AlreadyDepleted:
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "locked" })
+
+        case Success or DepletedAfterUse:
+            if outcome.Result == DepletedAfterUse:
+                context.InventoryService.RemoveItem(outcome.SlotIndex)
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "opened", "$key_name": data.KeyItem.DisplayName },
+                onComplete: () => { unlocked = true; onOpen.Invoke() })
 ```
 
 **Yarn variables contract for door nodes:**
 
 | Variable | Type | Meaning |
 |---|---|---|
-| `$key_required` | bool | Door needs a specific key |
-| `$has_key` | bool | Player currently has the key |
-| `$key_name` | string | Display name of the required key |
+| `$outcome` | string | `"opened"` / `"needs_key"` / `"locked"` |
+| `$key_name` | string | Display name of the key (when outcome is `"opened"` or `"needs_key"`) |
 
 ### ItemSocketInteractable — Interact (checklist display)
 
@@ -252,7 +250,7 @@ Each `.yarn` file has one `title:` node matching the `yarnNodeName` value set on
 
 | Command | Registered by | Fires |
 |---|---|---|
-| `<<doorConfirmed>>` | `DoorInteractable` per-dialogue | `TryUseKey` + `onOpen.Invoke()` |
+| `<<itemUsed>>` | Item with confirmation per-dialogue | Item use logic |
 | `<<socketItemPlaced>>` | *(reserved for future use)* | — |
 
 Global permanent commands (sounds, VFX) can be registered in `DialogueService.Initialize()` and never cleared.
