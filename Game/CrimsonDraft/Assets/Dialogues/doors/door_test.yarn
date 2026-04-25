@@ -1,0 +1,10 @@
+title: door_test
+---
+<<if $outcome == "opened">>
+Usaste {$key_name}.
+<<elseif $outcome == "needs_key">>
+Necesitas {$key_name} para abrir esta puerta.
+<<else>>
+La puerta esta bloqueada.
+<<endif>>
+===
