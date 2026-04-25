@@ -8,6 +8,7 @@ using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
+using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Inventory;
