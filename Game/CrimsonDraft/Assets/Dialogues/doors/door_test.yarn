@@ -1,5 +1,7 @@
 title: door_test
 ---
+<<declare $outcome = "" as string>>
+<<declare $key_name = "" as string>>
 <<if $outcome == "opened">>
 Usaste {$key_name}.
 <<elseif $outcome == "needs_key">>
