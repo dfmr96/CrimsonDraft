@@ -8,10 +8,12 @@ namespace CrimsonDraft.Navigation.Interactables
     [CreateAssetMenu(menuName = "CrimsonDraft/Interactables/DoorData")]
     public sealed class DoorData : ScriptableObject
     {
-        [SerializeField] private bool         locked  = false;
-        [SerializeField] private KeyItemData? keyItem = null;
+        [SerializeField] private bool         locked       = false;
+        [SerializeField] private KeyItemData? keyItem      = null;
+        [SerializeField] private string       yarnNodeName = "";
 
-        public bool         Locked  => this.locked;
-        public KeyItemData? KeyItem => this.keyItem;
+        public bool         Locked       => this.locked;
+        public KeyItemData? KeyItem      => this.keyItem;
+        public string       YarnNodeName => this.yarnNodeName;
     }
 }
