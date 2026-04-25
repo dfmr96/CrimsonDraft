@@ -24,6 +24,7 @@
 - [[Sistema ECG de Operadores]]
 - [[Sistema de Inventario]]
 - [[Sistema de Combinación de Ítems]]
+- [[Sistema de Diálogos]]
 - [[Sistema de Interactuables]]
 - [[Sistema de Item Socket]]
 - [[Sistema de Movimiento]]
