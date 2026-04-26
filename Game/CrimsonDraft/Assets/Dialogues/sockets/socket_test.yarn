@@ -3,9 +3,14 @@ title: socket_test
 <<declare $activated = false as bool>>
 <<declare $slots_filled = 0 as number>>
 <<declare $slots_total = 0 as number>>
-<<if $activated>>
-Ya esta activado.
+<<declare $insert_result = "" as string>>
+<<if $insert_result == "success">>
+{$item_name} inserted. {$slots_filled} of {$slots_total} filled.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does not fit here.
+<<elseif $activated>>
+Already activated.
 <<else>>
-Slots completados: {$slots_filled} de {$slots_total}.
+Slots filled: {$slots_filled} of {$slots_total}. [Replace with custom socket description]
 <<endif>>
 ===

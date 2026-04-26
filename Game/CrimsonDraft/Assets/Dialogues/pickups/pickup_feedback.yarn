@@ -1,0 +1,10 @@
+title: pickup_feedback
+---
+<<declare $pickup_result = "" as string>>
+<<declare $item_name = "" as string>>
+<<if $pickup_result == "success">>
+{$item_name} picked up.
+<<else>>
+Not enough space for {$item_name}.
+<<endif>>
+===
