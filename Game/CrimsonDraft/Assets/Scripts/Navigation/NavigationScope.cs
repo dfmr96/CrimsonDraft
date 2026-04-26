@@ -3,7 +3,6 @@
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
-using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
@@ -42,8 +41,6 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
-            builder.RegisterComponentInHierarchy<DialogueRunner>();
-            builder.RegisterComponentInHierarchy<InMemoryVariableStorage>();
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
