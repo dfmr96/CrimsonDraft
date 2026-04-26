@@ -2,24 +2,22 @@
 
 using System.Collections.Generic;
 using UnityEngine;
-using Yarn.Unity;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PickupInteractable : MonoBehaviour, IInteractable
     {
-        [SerializeField] private ItemData          item              = null!;
-        [SerializeField] private DialogueReference dialogueReference = new();
+        private const string NodeName = "pickup_feedback";
+
+        [SerializeField] private ItemData item = null!;
 
         public void Interact(InteractionContext context)
         {
-            var nodeName = this.dialogueReference.nodeName ?? "";
-
             if (!context.InventoryService.AddItemAuto(this.item))
             {
                 context.DialogueService.StartDialogue(
-                    nodeName,
+                    NodeName,
                     new Dictionary<string, object>
                     {
                         ["$pickup_result"] = "no_space",
@@ -29,7 +27,7 @@ namespace CrimsonDraft.Navigation.Interactables
             }
 
             context.DialogueService.StartDialogue(
-                nodeName,
+                NodeName,
                 new Dictionary<string, object>
                 {
                     ["$pickup_result"] = "success",

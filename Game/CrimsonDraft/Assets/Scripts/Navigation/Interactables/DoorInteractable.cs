@@ -10,6 +10,8 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class DoorInteractable : MonoBehaviour, IInteractable
     {
+        private const string OpenedNodeName = "door_opened_feedback";
+
         [SerializeField] private DoorData   data   = null!;
         [SerializeField] private UnityEvent onOpen = new();
 
@@ -27,9 +29,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (keyItem == null)
             {
-                context.DialogueService.StartDialogue(
-                    this.data.DialogueReference.nodeName ?? "",
-                    new Dictionary<string, object> { ["$outcome"] = "locked" });
+                context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                 return;
             }
 
@@ -38,24 +38,13 @@ namespace CrimsonDraft.Navigation.Interactables
             switch (outcome.Result)
             {
                 case KeyUseResult.NotFound:
-                    context.DialogueService.StartDialogue(
-                        this.data.DialogueReference.nodeName ?? "",
-                        new Dictionary<string, object>
-                        {
-                            ["$outcome"]  = "needs_key",
-                            ["$key_name"] = keyItem.DisplayName
-                        });
-                    break;
-
                 case KeyUseResult.AlreadyDepleted:
-                    context.DialogueService.StartDialogue(
-                        this.data.DialogueReference.nodeName ?? "",
-                        new Dictionary<string, object> { ["$outcome"] = "locked" });
+                    context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                     break;
 
                 case KeyUseResult.Success:
                     context.DialogueService.StartDialogue(
-                        this.data.DialogueReference.nodeName ?? "",
+                        OpenedNodeName,
                         new Dictionary<string, object>
                         {
                             ["$outcome"]  = "opened",
@@ -71,10 +60,10 @@ namespace CrimsonDraft.Navigation.Interactables
                 case KeyUseResult.DepletedAfterUse:
                     context.InventoryService.RemoveItem(outcome.SlotIndex);
                     context.DialogueService.StartDialogue(
-                        this.data.DialogueReference.nodeName ?? "",
+                        OpenedNodeName,
                         new Dictionary<string, object>
                         {
-                            ["$outcome"]  = "opened",
+                            ["$outcome"]  = "opened_depleted",
                             ["$key_name"] = keyItem.DisplayName
                         },
                         onComplete: () =>
