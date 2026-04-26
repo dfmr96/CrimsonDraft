@@ -492,9 +492,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
   item: {fileID: 11400000, guid: 8713882fca610894da4bb0895fa12ae8, type: 2}
-  dialogueReference:
-    project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-    nodeName: poi_test
 --- !u!23 &78816242
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -619,9 +616,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
   item: {fileID: 11400000, guid: 8cff2dfa8f201e64786f0cf5bf908582, type: 2}
-  dialogueReference:
-    project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-    nodeName: door_test
 --- !u!4 &106073964
 Transform:
   m_ObjectHideFlags: 0
@@ -1130,9 +1124,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
   item: {fileID: 11400000, guid: b9b357e614286324687397a1b5a6af10, type: 2}
-  dialogueReference:
-    project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-    nodeName: poi_test
 --- !u!4 &238236890
 Transform:
   m_ObjectHideFlags: 0
@@ -2340,9 +2331,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
   item: {fileID: 11400000, guid: d1a71f3d056e2e644a51668cd26700af, type: 2}
-  dialogueReference:
-    project: {fileID: 0}
-    nodeName: 
 --- !u!4 &603921197
 Transform:
   m_ObjectHideFlags: 0
@@ -3128,6 +3116,7 @@ GameObject:
   - component: {fileID: 831760180}
   - component: {fileID: 831760183}
   - component: {fileID: 831760182}
+  - component: {fileID: 831760184}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -3237,6 +3226,50 @@ MonoBehaviour:
     positionOffset: {x: 0, y: 0, z: 0}
   m_posOffsetData: {fileID: 0}
   listenerMask: 1
+--- !u!114 &831760184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 831760178}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &847516437
 GameObject:
   m_ObjectHideFlags: 0
@@ -4510,10 +4543,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78083f88052d4de4eadfabecbd9ebc46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
-  item: {fileID: 11400000, guid: 37b2647dca4a475449d5bcc6f57474d8, type: 2}
-  dialogueReference:
-    project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-    nodeName: poi_test
+  item: {fileID: 11400000, guid: 4942cdc0a58fbb34bbe8fa469706745c, type: 2}
 --- !u!4 &983684986
 Transform:
   m_ObjectHideFlags: 0
@@ -4807,7 +4837,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fb6c30feb396649a0a997fb0c6b4bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.DoorInteractable
-  data: {fileID: 11400000, guid: c77df788c2a99174aa662ec458e34593, type: 2}
+  data: {fileID: 11400000, guid: 60f3f83f829774b4995ae6d29f1c0df4, type: 2}
   onOpen:
     m_PersistentCalls:
       m_Calls:
@@ -5399,9 +5429,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
   item: {fileID: 11400000, guid: 81d991f7bedc5cb478dd55d91e0c775a, type: 2}
-  dialogueReference:
-    project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-    nodeName: poi_test
 --- !u!23 &1223861657
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -6650,7 +6677,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fb6c30feb396649a0a997fb0c6b4bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.DoorInteractable
-  data: {fileID: 11400000, guid: c77df788c2a99174aa662ec458e34593, type: 2}
+  data: {fileID: 11400000, guid: 60f3f83f829774b4995ae6d29f1c0df4, type: 2}
   onOpen:
     m_PersistentCalls:
       m_Calls:
@@ -7502,6 +7529,7 @@ GameObject:
   - component: {fileID: 1990407643}
   - component: {fileID: 1990407646}
   - component: {fileID: 1990407645}
+  - component: {fileID: 1990407647}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -7611,6 +7639,50 @@ MonoBehaviour:
     positionOffset: {x: 0, y: 0, z: 0}
   m_posOffsetData: {fileID: 0}
   listenerMask: 1
+--- !u!114 &1990407647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990407641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &2051476723
 GameObject:
   m_ObjectHideFlags: 0
