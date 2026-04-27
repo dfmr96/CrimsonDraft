@@ -10,7 +10,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
-            context.PoiController.Open(this.data.Lines);
+            context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
         }
     }
 }

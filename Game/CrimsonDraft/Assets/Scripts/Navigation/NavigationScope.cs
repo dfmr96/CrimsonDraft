@@ -5,6 +5,7 @@ using VContainer.Unity;
 using UnityEngine;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Navigation.Combat;
+using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
@@ -14,17 +15,10 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation
 {
-    /// <summary>
-    /// DI scope for the ship navigation scene (top-down exploration).
-    /// Parent: GameLifetimeScope. Child: CombatScope (loaded additively).
-    ///
-    /// Assign this component to a GameObject in Navigation.unity.
-    /// Set the Parent field in the Inspector to the GameLifetimeScope prefab.
-    /// </summary>
     public sealed class NavigationScope : LifetimeScope
     {
         [SerializeField] private StartingLoadout        startingLoadout      = null!;
-        [SerializeField] private CombineRecipeLibrary  combineRecipeLibrary = null!;
+        [SerializeField] private CombineRecipeLibrary   combineRecipeLibrary = null!;
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -47,14 +41,12 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
-            builder.RegisterComponentInHierarchy<PoiDialogView>();
-            builder.Register<PoiController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+            builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-
         }
     }
 }

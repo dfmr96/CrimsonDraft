@@ -1,0 +1,262 @@
+# Yarn Spinner Dialogue System — Design Spec
+_Date: 2026-04-25_
+
+## Summary
+
+Install Yarn Spinner Unity and introduce an `IDialogueService` that wraps Yarn's `DialogueRunner`. All player-facing text in the Navigation scene moves to `.yarn` files — no strings in C# code. The existing `PoiController` and `PoiDialogView` are deleted; their concerns (time scale, input switching, line progression) move into `DialogueService`. Every interactable data asset gains a `yarnNodeName` field pointing to the Yarn node that handles its dialogue.
+
+---
+
+## Package
+
+- **Install:** `YarnSpinner-Unity` via UPM git URL:
+  `https://github.com/YarnSpinnerTool/YarnSpinner-Unity.git`
+- **YarnProject asset:** `Assets/Dialogues/Navigation.yarnproject`
+  Compiles all `.yarn` files in `Assets/Dialogues/`.
+- **Scene setup:** A `DialogueRunner` MonoBehaviour in the Navigation scene references the `Navigation.yarnproject`. Yarn's built-in `LineView` and `OptionsListView` are used as presenters (visual configuration deferred).
+
+---
+
+## IDialogueService
+
+Registered in `NavigationScope`. Wraps the `DialogueRunner`.
+
+```
+interface IDialogueService
+    bool IsRunning
+    void StartDialogue(
+        nodeName   : string,
+        variables  : IReadOnlyDictionary<string, object>?   = null,
+        onComplete : Action?                                 = null,
+        commands   : IReadOnlyDictionary<string, Action>?   = null)
+```
+
+**`DialogueService` behavior:**
+
+1. On `StartDialogue`:
+   - Populates `InMemoryVariableStorage` with `variables` (cleared from previous run first).
+   - Registers each entry in `commands` as a one-time `AddCommandHandler` on the `DialogueRunner`.
+   - Sets `Time.timeScale = 0f`.
+   - Calls `inputService.SwitchToUI()`.
+   - Calls `dialogueRunner.StartDialogue(nodeName)`.
+
+2. On `DialogueRunner.onDialogueComplete`:
+   - Restores `Time.timeScale = 1f`.
+   - Calls `inputService.SwitchToGameplay()`.
+   - Removes all one-time command handlers registered for this run.
+
+---
+
+## InteractionContext
+
+`PoiController` field is replaced by `IDialogueService`:
+
+```
+class InteractionContext
+    IInventoryService   InventoryService
+    IInputService       InputService
+    IDialogueService    DialogueService      // replaces PoiController
+    DocumentController  DocumentController
+    ContainerController ContainerController
+```
+
+---
+
+## Deleted Types
+
+| Type | Reason |
+|---|---|
+| `PoiController` | Logic absorbed by `DialogueService` |
+| `PoiDialogView` | Replaced by Yarn's built-in `LineView` + `OptionsListView` |
+
+---
+
+## Data Layer Changes
+
+### PoiData
+
+`string[] lines` is removed. Replaced by a single Yarn node reference:
+
+```
+PoiData : ScriptableObject
+    string yarnNodeName
+```
+
+### DoorData
+
+New field added:
+
+```
+DoorData : ScriptableObject
+    bool         locked
+    KeyItemData? keyItem
+    string       yarnNodeName    // new
+```
+
+### ItemSocketInteractable
+
+No separate data SO — `yarnNodeName` is serialized directly on the MonoBehaviour:
+
+```
+ItemSocketInteractable : MonoBehaviour, IInteractable
+    SocketItemData[] requiredItems
+    UnityEvent       onActivated
+    string           yarnNodeName    // new
+```
+
+---
+
+## Interactable Changes
+
+### PoiInteractable
+
+`Open(data.Lines)` → `StartDialogue(data.YarnNodeName)`. No variables or commands needed.
+
+```
+Interact(context):
+    context.DialogueService.StartDialogue(data.YarnNodeName)
+```
+
+### DoorInteractable
+
+C# runs all inventory logic first — key is consumed before Yarn starts. Yarn only shows the result. No options presented for doors. The door opens via `onComplete` after the dialogue closes.
+
+No `HasItem` query needed — `TryUseKey` is called directly; its result determines which `$outcome` value is passed.
+
+```
+Interact(context):
+    if !data.Locked or unlocked:
+        onOpen.Invoke()
+        return
+
+    if data.KeyItem == null:
+        context.DialogueService.StartDialogue(data.YarnNodeName,
+            variables: { "$outcome": "locked" })
+        return
+
+    outcome = context.InventoryService.TryUseKey(data.KeyItem.ItemId)
+
+    switch outcome.Result:
+        case NotFound:
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "needs_key", "$key_name": data.KeyItem.DisplayName })
+
+        case AlreadyDepleted:
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "locked" })
+
+        case Success or DepletedAfterUse:
+            if outcome.Result == DepletedAfterUse:
+                context.InventoryService.RemoveItem(outcome.SlotIndex)
+            context.DialogueService.StartDialogue(data.YarnNodeName,
+                variables: { "$outcome": "opened", "$key_name": data.KeyItem.DisplayName },
+                onComplete: () => { unlocked = true; onOpen.Invoke() })
+```
+
+**Yarn variables contract for door nodes:**
+
+| Variable | Type | Meaning |
+|---|---|---|
+| `$outcome` | string | `"opened"` / `"needs_key"` / `"locked"` |
+| `$key_name` | string | Display name of the key (when outcome is `"opened"` or `"needs_key"`) |
+
+### ItemSocketInteractable — Interact (checklist display)
+
+Passes slot state as variables. No commands.
+
+```
+Interact(context):
+    if IsActivated:
+        context.DialogueService.StartDialogue(yarnNodeName,
+            variables: { "$activated": true, "$slots_filled": total, "$slots_total": total })
+        return
+
+    context.DialogueService.StartDialogue(yarnNodeName,
+        variables: {
+            "$activated":    false,
+            "$slots_filled": countFilled,
+            "$slots_total":  requiredItems.Length
+        })
+```
+
+### ItemSocketInteractable — TryInsert (inventory "Use")
+
+Called from `InventoryController`. No Yes/No prompt — the player already confirmed via the inventory "Use" action. Shows feedback via Yarn.
+
+```
+TryInsert(item, dialogueService):
+    // insertion logic unchanged
+    // on success:
+    dialogueService.StartDialogue(yarnNodeName,
+        variables: {
+            "$insert_result": "success",
+            "$item_name":     item.DisplayName,
+            "$slots_filled":  newFilledCount,
+            "$slots_total":   requiredItems.Length
+        })
+    // on fail (wrong item):
+    dialogueService.StartDialogue(yarnNodeName,
+        variables: {
+            "$insert_result": "wrong_item",
+            "$item_name":     item.DisplayName
+        })
+```
+
+`TryInsert` signature changes: replaces `PoiController? poi` parameter with `IDialogueService dialogueService`.
+
+**Yarn variables contract for socket nodes:**
+
+| Variable | Type | Meaning |
+|---|---|---|
+| `$activated` | bool | Socket is already fully filled |
+| `$slots_filled` | number | How many slots are currently filled |
+| `$slots_total` | number | Total slots required |
+| `$insert_result` | string | `"success"` / `"wrong_item"` (only in TryInsert flow) |
+| `$item_name` | string | Display name of the item being inserted (only in TryInsert flow) |
+
+---
+
+## NavigationScope Changes
+
+- Remove `PoiController` and `PoiDialogView` registrations.
+- Add `DialogueRunner` (RegisterComponentInHierarchy).
+- Add `InMemoryVariableStorage` (RegisterComponentInHierarchy).
+- Register `DialogueService` as `IDialogueService` (Scoped, AsImplementedInterfaces).
+- `InteractionContext` constructor updated: `PoiController` → `IDialogueService`.
+
+---
+
+## Yarn File Structure
+
+```
+Assets/Dialogues/
+    Navigation.yarnproject
+    poi/
+        poi_cargo_hold.yarn
+        ...
+    doors/
+        door_cargo_hold.yarn
+        ...
+    sockets/
+        socket_main_panel.yarn
+        ...
+```
+
+Each `.yarn` file has one `title:` node matching the `yarnNodeName` value set on the data asset. Localization string tables are generated automatically by the `YarnProject` importer.
+
+---
+
+## Yarn Commands
+
+| Command | Registered by | Fires |
+|---|---|---|
+| `<<itemUsed>>` | Item with confirmation per-dialogue | Item use logic |
+| `<<socketItemPlaced>>` | *(reserved for future use)* | — |
+
+Global permanent commands (sounds, VFX) can be registered in `DialogueService.Initialize()` and never cleared.
+
+---
+
+## New Branch
+
+All work happens on a dedicated branch: `feature/yarn-spinner`.

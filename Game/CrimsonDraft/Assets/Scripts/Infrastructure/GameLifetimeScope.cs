@@ -5,6 +5,7 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -41,6 +42,9 @@ namespace CrimsonDraft.Infrastructure
 
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
+
+            builder.RegisterComponentInHierarchy<DialogueRunner>();
+            builder.RegisterComponentInHierarchy<InMemoryVariableStorage>();
         }
     }
 }

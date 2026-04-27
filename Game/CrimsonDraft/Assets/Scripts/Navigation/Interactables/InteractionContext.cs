@@ -2,6 +2,7 @@
 
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -9,20 +10,20 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         public readonly IInventoryService   InventoryService;
         public readonly IInputService       InputService;
-        public readonly PoiController       PoiController;
+        public readonly IDialogueService    DialogueService;
         public readonly DocumentController  DocumentController;
         public readonly ContainerController ContainerController;
 
         public InteractionContext(
             IInventoryService   inventoryService,
             IInputService       inputService,
-            PoiController       poiController,
+            IDialogueService    dialogueService,
             DocumentController  documentController,
             ContainerController containerController)
         {
             InventoryService    = inventoryService;
             InputService        = inputService;
-            PoiController       = poiController;
+            DialogueService     = dialogueService;
             DocumentController  = documentController;
             ContainerController = containerController;
         }

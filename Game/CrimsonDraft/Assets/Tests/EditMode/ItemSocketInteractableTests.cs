@@ -54,7 +54,7 @@ namespace CrimsonDraft.Tests
             var data   = MakeSocketItemData("panel-a");
             var socket = MakeSocket(data);
 
-            bool result = socket.TryInsert(data, poi: null);
+            bool result = socket.TryInsert(data, null);
 
             Assert.IsTrue(result);
         }
@@ -66,7 +66,7 @@ namespace CrimsonDraft.Tests
             var wrong    = MakeSocketItemData("panel-b");
             var socket   = MakeSocket(required);
 
-            bool result = socket.TryInsert(wrong, poi: null);
+            bool result = socket.TryInsert(wrong, null);
 
             Assert.IsFalse(result);
         }
@@ -78,7 +78,7 @@ namespace CrimsonDraft.Tests
             var consumable = MakeConsumableData("consumable-x");
             var socket     = MakeSocket(socketData);
 
-            bool result = socket.TryInsert(consumable, poi: null);
+            bool result = socket.TryInsert(consumable, null);
 
             Assert.IsFalse(result);
         }
@@ -88,9 +88,9 @@ namespace CrimsonDraft.Tests
         {
             var data   = MakeSocketItemData("panel-a");
             var socket = MakeSocket(data);
-            socket.TryInsert(data, poi: null); // activates (single-slot socket)
+            socket.TryInsert(data, null); // activates (single-slot socket)
 
-            bool result = socket.TryInsert(data, poi: null);
+            bool result = socket.TryInsert(data, null);
 
             Assert.IsFalse(result);
         }
@@ -102,10 +102,10 @@ namespace CrimsonDraft.Tests
             var dataB  = MakeSocketItemData("panel-b");
             var socket = MakeSocket(dataA, dataB);
 
-            socket.TryInsert(dataA, poi: null);
+            socket.TryInsert(dataA, null);
             Assert.IsFalse(socket.IsActivated, "still one slot remaining");
 
-            socket.TryInsert(dataB, poi: null);
+            socket.TryInsert(dataB, null);
             Assert.IsTrue(socket.IsActivated, "all slots satisfied");
         }
 
@@ -115,8 +115,8 @@ namespace CrimsonDraft.Tests
             var data   = MakeSocketItemData("battery");
             var socket = MakeSocket(data, data);
 
-            bool first  = socket.TryInsert(data, poi: null);
-            bool second = socket.TryInsert(data, poi: null);
+            bool first  = socket.TryInsert(data, null);
+            bool second = socket.TryInsert(data, null);
 
             Assert.IsTrue(first,  "first insert accepted");
             Assert.IsTrue(second, "second insert accepted");
@@ -130,8 +130,8 @@ namespace CrimsonDraft.Tests
             var dataB  = MakeSocketItemData("panel-b");
             var socket = MakeSocket(dataA, dataB);
 
-            socket.TryInsert(dataA, poi: null);            // satisfies slot 0
-            bool duplicate = socket.TryInsert(dataA, poi: null); // no unsatisfied slot for panel-a
+            socket.TryInsert(dataA, null);            // satisfies slot 0
+            bool duplicate = socket.TryInsert(dataA, null); // no unsatisfied slot for panel-a
 
             Assert.IsFalse(duplicate, "panel-a slot already satisfied, no second slot for it");
             Assert.IsFalse(socket.IsActivated, "panel-b still missing");

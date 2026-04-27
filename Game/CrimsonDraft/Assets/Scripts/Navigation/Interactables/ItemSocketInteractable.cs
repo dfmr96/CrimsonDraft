@@ -1,9 +1,11 @@
 #nullable enable
 
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Yarn.Unity;
 using CrimsonDraft.Inventory;
-using CrimsonDraft.Navigation.Interactables.UI;
+using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -11,6 +13,7 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         [SerializeField] private SocketItemData[] requiredItems = System.Array.Empty<SocketItemData>();
         [SerializeField] private UnityEvent       onActivated   = new();
+        [SerializeField] private DialogueReference dialogueReference = new();
 
         private bool[] inserted = System.Array.Empty<bool>();
 
@@ -29,7 +32,7 @@ namespace CrimsonDraft.Navigation.Interactables
             return false;
         }
 
-        public bool TryInsert(ItemData item, PoiController? poi)
+        public bool TryInsert(ItemData item, IDialogueService? dialogueService)
         {
             if (this.IsActivated) return false;
             if (item is not SocketItemData) return false;
@@ -41,7 +44,17 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (this.requiredItems[i].ItemId != item.ItemId) continue;
 
                 ins[i] = true;
-                poi?.Open(new[] { $"Inserted: {item.DisplayName}." });
+                int filled = CountFilled();
+
+                dialogueService?.StartDialogue(
+                    this.dialogueReference.nodeName ?? "",
+                    new Dictionary<string, object>
+                    {
+                        ["$insert_result"] = "success",
+                        ["$item_name"]     = item.DisplayName,
+                        ["$slots_filled"]  = filled,
+                        ["$slots_total"]   = this.requiredItems.Length
+                    });
 
                 if (IsComplete())
                 {
@@ -52,23 +65,29 @@ namespace CrimsonDraft.Navigation.Interactables
                 return true;
             }
 
-            poi?.Open(new[] { $"Can't use {item.DisplayName} here." });
+            dialogueService?.StartDialogue(
+                this.dialogueReference.nodeName ?? "",
+                new Dictionary<string, object>
+                {
+                    ["$insert_result"] = "wrong_item",
+                    ["$item_name"]     = item.DisplayName
+                });
             return false;
         }
 
         public void Interact(InteractionContext context)
         {
-            if (this.IsActivated)
-            {
-                context.PoiController.Open(new[] { "Already activated." });
-                return;
-            }
+            int filled = CountFilled();
+            int total  = this.requiredItems.Length;
 
-            var ins   = EnsureInserted();
-            var lines = new string[this.requiredItems.Length];
-            for (int i = 0; i < this.requiredItems.Length; i++)
-                lines[i] = $"{(ins[i] ? "[✓]" : "[ ]")} {this.requiredItems[i].DisplayName}";
-            context.PoiController.Open(lines);
+            context.DialogueService.StartDialogue(
+                this.dialogueReference.nodeName ?? "",
+                new Dictionary<string, object>
+                {
+                    ["$activated"]    = this.IsActivated,
+                    ["$slots_filled"] = filled,
+                    ["$slots_total"]  = total
+                });
         }
 
         private bool[] EnsureInserted()
@@ -76,6 +95,15 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.inserted.Length != this.requiredItems.Length)
                 this.inserted = new bool[this.requiredItems.Length];
             return this.inserted;
+        }
+
+        private int CountFilled()
+        {
+            var ins   = EnsureInserted();
+            int count = 0;
+            for (int i = 0; i < ins.Length; i++)
+                if (ins[i]) count++;
+            return count;
         }
 
         private bool IsComplete()
