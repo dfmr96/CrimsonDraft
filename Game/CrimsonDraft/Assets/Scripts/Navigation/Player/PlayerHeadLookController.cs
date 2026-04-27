@@ -53,6 +53,39 @@ namespace CrimsonDraft.Navigation.Player
                 m_Animator.SetLookAtPosition(m_LastLookPosition);
         }
 
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            var origin = transform.parent != null ? transform.parent.position : transform.position;
+            var fwd    = transform.forward;
+
+            // Detection sphere
+            UnityEngine.Gizmos.color = new UnityEngine.Color(1f, 1f, 0f, 0.15f);
+            UnityEngine.Gizmos.DrawWireSphere(origin, detectionRadius);
+
+            // Cone boundary
+            UnityEngine.Gizmos.color = UnityEngine.Color.yellow;
+            var leftDir  = UnityEngine.Quaternion.Euler(0f, -maxAngle, 0f) * fwd;
+            var rightDir = UnityEngine.Quaternion.Euler(0f,  maxAngle, 0f) * fwd;
+            UnityEngine.Gizmos.DrawRay(origin, fwd      * detectionRadius);
+            UnityEngine.Gizmos.DrawRay(origin, leftDir  * detectionRadius);
+            UnityEngine.Gizmos.DrawRay(origin, rightDir * detectionRadius);
+
+            // Head look ray (play mode only, when actively looking)
+            if (m_Weight > 0.01f)
+            {
+                var anim = GetComponent<Animator>();
+                var head = anim != null ? anim.GetBoneTransform(UnityEngine.HumanBodyBones.Head) : null;
+                if (head != null)
+                {
+                    UnityEngine.Gizmos.color = UnityEngine.Color.cyan;
+                    UnityEngine.Gizmos.DrawLine(head.position, m_LastLookPosition);
+                    UnityEngine.Gizmos.DrawSphere(m_LastLookPosition, 0.04f);
+                }
+            }
+        }
+#endif
+
         public static Lookable? SelectBest(
             Collider[] colliders, int count,
             Vector3 origin, Vector3 forward, float maxAngle)

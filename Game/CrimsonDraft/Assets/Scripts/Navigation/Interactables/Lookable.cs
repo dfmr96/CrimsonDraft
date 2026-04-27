@@ -11,5 +11,14 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public int Priority => priority;
         public Vector3 LookPosition => transform.TransformPoint(offset);
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            UnityEngine.Gizmos.color = UnityEngine.Color.yellow;
+            UnityEngine.Gizmos.DrawLine(transform.position, LookPosition);
+            UnityEngine.Gizmos.DrawSphere(LookPosition, 0.05f);
+        }
+#endif
     }
 }
