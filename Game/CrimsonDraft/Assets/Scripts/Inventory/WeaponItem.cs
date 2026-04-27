@@ -4,7 +4,7 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Inventory
 {
-    public sealed class WeaponItem : InventoryItem, IWeaponSlot
+    public sealed class WeaponItem : InventoryItem, IWeaponSlot, IHasDisplayCount
     {
         public new WeaponData Data    => (WeaponData)base.Data;
         public string Caliber        => this.Data.Caliber;
@@ -15,6 +15,8 @@ namespace CrimsonDraft.Inventory
         {
             this.CurrentAmmo = data.MagazineCapacity;
         }
+
+        public int DisplayCount => this.CurrentAmmo;
 
         public void SetAmmo(int value) =>
             this.CurrentAmmo = value < 0 ? 0 : value > this.MaxAmmo ? this.MaxAmmo : value;
