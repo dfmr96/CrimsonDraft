@@ -1,6 +1,6 @@
 ---
 estado: borrador
-ultima-revision: 2026-04-02
+ultima-revision: 2026-04-25
 tags:
   - game-design
 ---
@@ -45,6 +45,7 @@ IInteractable
 |---|---|---|
 | `InventoryService` | IInventoryService | Pickups y containers |
 | `InputService` | IInputService | Cambio de input map en UI |
+| `DialogueService` | IDialogueService | Texto al jugador vía [[Sistema de Diálogos\|Yarn Spinner]] |
 
 El `PlayerInteractionCaster` construye el contexto y lo pasa al interactuable. No conoce el tipo concreto.
 
@@ -80,29 +81,22 @@ Abre o bloquea el paso según configuración.
 
 - Datos en **`DoorData`**: `bloqueada` (bool), `itemLlave` (ItemData?, nullable)
 - **Puerta libre**: se activa inmediatamente al interactuar (animación o teleport configurado via UnityEvent)
-- **Puerta bloqueada**: busca `itemLlave` en el inventario
-  - Si está: consume el ítem, ejecuta la apertura
-  - Si no está: muestra texto de feedback via `PoiDialogView` con una sola línea ("Bloqueada.")
+- **Puerta bloqueada**: evalúa el inventario e inicia un nodo Yarn con variables de estado. Si el jugador tiene la llave, el nodo presenta opciones Sí/No. Ver [[Sistema de Diálogos]].
 
 #### PoiInteractable
 
 Muestra texto de examinación como diálogo en panel inferior, línea a línea.
 
-- Datos en **`PoiData`**: líneas (string[])
-- Al interactuar:
-  1. `Time.timeScale = 0`
-  2. Cambia input a UI map
-  3. Abre `PoiDialogView` con la primera línea
-- Avance: cada press de Interact muestra la siguiente línea
-- Cierre: Interact en la última línea restaura `timeScale = 1` y vuelve a Gameplay map
-- Solo muestra la **línea actual** — sin log acumulativo
+- Datos en **`PoiData`**: `yarnNodeName` (string) — nombre del nodo Yarn a ejecutar
+- Al interactuar: inicia el nodo Yarn correspondiente vía [[Sistema de Diálogos|IDialogueService]]
+- El sistema de diálogos gestiona la pausa, el input y la progresión de líneas
 
 #### ItemSocketInteractable
 
 Requiere uno o más ítems de tipo [[Sistema de Item Socket|SocketItem]] para activarse. Ver [[Sistema de Item Socket]] para el diseño completo.
 
 - Datos en campos serializados directamente en el MonoBehaviour: `requiredItems` (SocketItemData[]), `onActivated` (UnityEvent)
-- Al presionar Interact sin ítem activo: muestra estado actual (`[✓] / [ ]` por slot) via PoiController
+- Al presionar Interact sin ítem activo: muestra estado actual del socket vía [[Sistema de Diálogos|IDialogueService]] con variables `$slots_filled` y `$slots_total`
 - Al usar un SocketItem desde el inventario: el socket valida por `itemId`, consume el ítem si coincide
 - Cuando todos los slots están satisfechos: dispara `onActivated`
 - No pausa el juego
@@ -128,10 +122,10 @@ Abre un sub-inventario junto al inventario del jugador para transferir ítems.
 |---|---|---|---|
 | PickupInteractable | No | Gameplay | Ninguna |
 | DocumentInteractable | Sí | UI map | Pantalla completa, paginado |
-| DoorInteractable | No | Gameplay | Ninguna (o línea de feedback) |
-| PoiInteractable | Sí | UI map | Panel inferior, línea a línea |
+| DoorInteractable | Sí* | UI map* | Nodo Yarn via [[Sistema de Diálogos]] |
+| PoiInteractable | Sí | UI map | Nodo Yarn via [[Sistema de Diálogos]] |
 | ContainerInteractable | Sí | UI map | Panel lateral junto al inventario |
-| ItemSocketInteractable | No | Gameplay | Línea de feedback via PoiController |
+| ItemSocketInteractable | Sí* | UI map* | Nodo Yarn via [[Sistema de Diálogos]] |
 
 ---
 
@@ -140,8 +134,8 @@ Abre un sub-inventario junto al inventario del jugador para transferir ítems.
 | ScriptableObject | Campos |
 |---|---|
 | `DocumentData` | título: string, páginas: string[] |
-| `PoiData` | líneas: string[] |
-| `DoorData` | bloqueada: bool, itemLlave: ItemData? |
+| `PoiData` | yarnNodeName: string |
+| `DoorData` | bloqueada: bool, itemLlave: ItemData?, yarnNodeName: string |
 | `ContainerData` | ítems: ItemData[], vaciado: bool |
 
 `PickupInteractable` referencia `ItemData` directamente — no requiere ScriptableObject propio.
@@ -153,7 +147,7 @@ Abre un sub-inventario junto al inventario del jugador para transferir ítems.
 | Vista | Descripción |
 |---|---|
 | `InteractionReaderView` | Canvas pantalla completa. Título + texto paginado. Usado por DocumentInteractable. |
-| `PoiDialogView` | Canvas panel inferior. Muestra una línea de texto. Usado por PoiInteractable y feedback de puerta bloqueada. |
+| `LineView` + `OptionsListView` | Vistas de Yarn Spinner. Panel inferior con línea actual y opciones. Usadas por POI, Door, Socket. Ver [[Sistema de Diálogos]]. |
 | `ContainerView` | Canvas panel lateral. Lista de ítems del container. Usado por ContainerInteractable. |
 
 ---
@@ -198,4 +192,4 @@ Los POIs mantienen la tensión de movimiento: el jugador sigue presente en el mu
 
 ---
 
-Volver a [[Crimson Draft]] | Ver [[Sistema de Inventario]] | Ver [[Sistema de Item Socket]] | Ver [[Documentos del Marinera]] | Ver [[Acto I - Diseño Detallado]]
+Volver a [[Crimson Draft]] | Ver [[Sistema de Diálogos]] | Ver [[Sistema de Inventario]] | Ver [[Sistema de Item Socket]] | Ver [[Documentos del Marinera]] | Ver [[Acto I - Diseño Detallado]]
