@@ -1,0 +1,16 @@
+title: socket_knife_block
+---
+<<declare $activated = false as bool>>
+<<declare $slots_filled = 0 as number>>
+<<declare $slots_total = 0 as number>>
+<<declare $insert_result = "" as string>>
+<<if $insert_result == "success">>
+You inserted {$item_name}. 
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does not fit here.
+<<elseif $activated>>
+All the knives are in their place.
+<<else>>
+It’s a knife block, it looks empty —like it has space for two knives.
+<<endif>>
+===
