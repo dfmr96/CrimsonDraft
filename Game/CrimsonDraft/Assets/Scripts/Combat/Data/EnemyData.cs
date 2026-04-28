@@ -7,9 +7,10 @@ namespace CrimsonDraft.Combat
     [CreateAssetMenu(fileName = "EnemyData", menuName = "CrimsonDraft/Combat/Enemy Data")]
     public sealed class EnemyData : ScriptableObject
     {
-        [SerializeField] private string             enemyId        = string.Empty;
-        [SerializeField] private Sprite             sprite         = null!;
-        [SerializeField] private AimHitMaskProfile? hitMaskProfile = null;
+        [SerializeField] private string             enemyId           = string.Empty;
+        [SerializeField] private GameObject?        battlefieldPrefab = null;
+        [SerializeField] private Sprite             sprite            = null!;
+        [SerializeField] private AimHitMaskProfile? hitMaskProfile    = null;
         [SerializeField] private int                maxHp          = 100;
         [SerializeField, Min(0f)] private float     attackBaseSec = 7f;
         [SerializeField, Min(0f)] private float     attackJitterSec = 1.25f;
@@ -17,6 +18,7 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0)] private int        attackDamage = 10;
 
         public string EnemyId                    => this.enemyId;
+        public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
         public Sprite Sprite                     => this.sprite;
         public AimHitMaskProfile? HitMaskProfile => this.hitMaskProfile;
         public int MaxHp                         => this.maxHp;

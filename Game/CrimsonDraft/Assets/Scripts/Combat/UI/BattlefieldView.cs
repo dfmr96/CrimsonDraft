@@ -25,6 +25,7 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
+        [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
         [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
         [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
@@ -60,14 +61,22 @@ namespace CrimsonDraft.Combat
                 if (enemy == null) continue;
 
                 occupied.Add(i);
-                var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                GameObject go;
+                if (enemy.BattlefieldPrefab != null)
+                {
+                    go = Instantiate(enemy.BattlefieldPrefab, this.enemySlotTransforms[i], false);
+                }
+                else
+                {
+                    go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    go.transform.SetParent(this.enemySlotTransforms[i], false);
+                    go.GetComponent<MeshRenderer>().material.color = Color.red;
+                }
                 go.name = $"Enemy_{i}";
-                go.transform.SetParent(this.enemySlotTransforms[i], false);
-                var mr = go.GetComponent<MeshRenderer>();
-                mr.material.color = Color.red;
+                var mr = go.GetComponentInChildren<MeshRenderer>();
                 this.spawnedSprites.Add(go);
                 this.enemyGoBySlot[i] = go;
-                this.enemyRendererBySlot[i] = mr;
+                if (mr != null) this.enemyRendererBySlot[i] = mr;
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
                     CurrentHp = Mathf.Max(1, enemy.MaxHp),
@@ -82,11 +91,18 @@ namespace CrimsonDraft.Combat
                 var op = encounter.Operators[i];
                 if (op == null) continue;
 
-                var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                GameObject go;
+                if (op.BattlefieldPrefab != null)
+                {
+                    go = Instantiate(op.BattlefieldPrefab, this.playerSlotTransforms[i], false);
+                }
+                else
+                {
+                    go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    go.transform.SetParent(this.playerSlotTransforms[i], false);
+                    go.GetComponent<MeshRenderer>().material.color = Color.blue;
+                }
                 go.name = $"Operator_{i}";
-                go.transform.SetParent(this.playerSlotTransforms[i], false);
-                var mr = go.GetComponent<MeshRenderer>();
-                mr.material.color = Color.blue;
                 this.spawnedSprites.Add(go);
             }
         }
@@ -259,7 +275,7 @@ namespace CrimsonDraft.Combat
         {
             if (slotIndex < 0 || slotIndex >= this.enemySlotTransforms.Length) return;
             this.enemyTargetIndicator.SetActive(true);
-            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position;
+            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position + this.enemyTargetIndicatorOffset;
         }
 
         public void HideEnemyTargetIndicator()
