@@ -8,8 +8,8 @@ namespace CrimsonDraft.Navigation
     public class CameraTriggerSwitch : MonoBehaviour
     {
         [Header("Camaras")]
-        [SerializeField] private CinemachineCamera camA;
-        [SerializeField] private CinemachineCamera camB;
+        [SerializeField] private CinemachineCamera camOFF;
+        [SerializeField] private CinemachineCamera camON;
 
         private void OnTriggerEnter(Collider other)
         {
@@ -21,14 +21,14 @@ namespace CrimsonDraft.Navigation
 
         private void ActivateCameraB()
         {
-            if (camA == null || camB == null)
+            if (camOFF == null || camON == null)
             {
                 Debug.LogWarning($"{nameof(CameraTriggerSwitch)} requiere dos camaras asignadas.", this);
                 return;
             }
 
-            camA.gameObject.SetActive(false);
-            camB.gameObject.SetActive(true);
+            camOFF.gameObject.SetActive(false);
+            camON.gameObject.SetActive(true);
         }
     }
 }
