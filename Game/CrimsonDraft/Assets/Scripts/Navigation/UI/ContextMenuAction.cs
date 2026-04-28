@@ -2,5 +2,5 @@
 
 namespace CrimsonDraft.Navigation.UI
 {
-    public enum ContextMenuAction { Equip, Unequip, Reload, Use, Examine }
+    public enum ContextMenuAction { Equip, Unequip, Use, Combine, Examine }
 }

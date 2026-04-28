@@ -6,24 +6,52 @@ namespace CrimsonDraft.Inventory
 {
     public interface IInventoryService
     {
-        IReadOnlyList<InventoryItem> Items { get; }
+        /// <summary>
+        /// Flat array of rosterCount × 4 slots. Never null.
+        /// Grid layout: 2 rows × (rosterCount * 2) columns.
+        /// slotIndex / 4 = owning operatorSlot.
+        /// See Grid Index Layout in the implementation plan for col/row formulas.
+        /// </summary>
+        IReadOnlyList<InventorySlot> Slots { get; }
+        int SlotCount { get; }
 
-        /// <summary>Creates the correct InventoryItem subtype based on ItemData type. quantity is used for AmmoBox.</summary>
-        void AddItem(ItemData data, int quantity = 0);
+        /// <summary>Adds item to operatorSlot's 4-slot section. Stacks if Stackable and same ItemId exists.
+        /// Returns false if all 4 slots are occupied and item cannot stack.</summary>
+        bool AddItem(ItemData data, int operatorSlot, int quantity = 0);
 
-        /// <summary>Equips weapon at itemIndex to operatorSlot. Unequips any weapon that slot was previously carrying.</summary>
-        void EquipWeapon(int itemIndex, int operatorSlot);
+        /// <summary>Tries each operator in order until one has space. Returns false only if all operators are full.</summary>
+        bool AddItemAuto(ItemData data, int quantity = 0);
 
-        /// <summary>Unequips weapon at itemIndex. No-op if not equipped.</summary>
-        void UnequipWeapon(int itemIndex);
+        /// <summary>Clears the slot at slotIndex (Item = null, Quantity = 0).</summary>
+        void RemoveItem(int slotIndex);
 
-        /// <summary>Returns the index of the weapon equipped by operatorSlot, or -1 if none.</summary>
+        /// <summary>Swaps the full contents of fromSlot and toSlot.</summary>
+        void MoveItem(int fromSlot, int toSlot);
+
+        /// <summary>Equips the weapon at slotIndex to operatorSlot. Unequips any previous weapon on that operator.</summary>
+        void EquipWeapon(int slotIndex, int operatorSlot);
+
+        /// <summary>Unequips the weapon at slotIndex. No-op if not equipped.</summary>
+        void UnequipWeapon(int slotIndex);
+
+        /// <summary>Returns the slot index of the weapon equipped by operatorSlot, or -1.</summary>
         int GetEquippedWeaponIndex(int operatorSlot);
 
-        /// <summary>Returns true if ammoBox at ammoBoxIndex can reload operatorSlot.</summary>
-        bool CanReload(int ammoBoxIndex, int operatorSlot);
+        /// <summary>Returns true if the ammo box at slotIndex can reload operatorSlot's weapon.</summary>
+        bool CanReload(int slotIndex, int operatorSlot);
 
-        /// <summary>Reloads weapon using ammo from box. Partially deducts box.Quantity. Removes box if exhausted.</summary>
-        void ReloadOperator(int ammoBoxIndex, int operatorSlot);
+        /// <summary>Reloads operatorSlot's weapon using the ammo box at slotIndex. Clears slot if box exhausted.</summary>
+        void ReloadOperator(int slotIndex, int operatorSlot);
+
+        /// <summary>Checks for a recipe matching the items in slotA and slotB (symmetric).
+        /// If found: removes both items and places the result in the first available slot via AddItemAuto.
+        /// Returns false if either slot is empty or no recipe exists. No mutation on false.</summary>
+        bool TryCombine(int slotA, int slotB);
+
+        /// <summary>
+        /// Finds the first KeyItem with the given itemId, decrements its uses, and returns the outcome.
+        /// The key is never auto-removed — caller must call RemoveItem(outcome.SlotIndex) to discard it.
+        /// </summary>
+        KeyUseOutcome TryUseKey(string keyItemId);
     }
 }

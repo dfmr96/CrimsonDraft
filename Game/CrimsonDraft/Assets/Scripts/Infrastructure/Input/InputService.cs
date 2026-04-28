@@ -9,9 +9,10 @@ namespace CrimsonDraft.Infrastructure.Input
 {
     public sealed class InputService : IInputService, IInitializable, IDisposable
     {
-        private const string GameplayMapName = "Gameplay";
-        private const string CombatMapName   = "Combat";
-        private const string UIMapName       = "UI";
+        private const string GameplayMapName  = "Gameplay";
+        private const string CombatMapName    = "Combat";
+        private const string UIMapName        = "UI";
+        private const string DialogueMapName  = "Dialogue";
 
         private const string NavigateAction = "Navigate";
         private const string ConfirmAction  = "Confirm";
@@ -22,11 +23,15 @@ namespace CrimsonDraft.Infrastructure.Input
         private readonly InputActionMap gameplayMap;
         private readonly InputActionMap combatMap;
         private readonly InputActionMap uiMap;
+        private readonly InputActionMap dialogueMap;
 
         public InputAction Move { get; }
         public InputAction Interact { get; }
         public InputAction OpenInventory { get; }
+        public InputAction OpenMap { get; }
+        public InputAction Aim { get; }
         public InputAction Pause { get; }
+        public InputAction Sprint { get; }
         public InputAction CombatNavigate { get; }
         public InputAction CombatConfirm { get; }
         public InputAction CombatCancel { get; }
@@ -35,19 +40,27 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction UINavigate { get; }
         public InputAction UIConfirm  { get; }
         public InputAction UICancel   { get; }
+        public InputAction UIBack     { get; }
+
+        public InputAction DialogueAdvanceLine    { get; }
+        public InputAction DialogueCancelDialogue { get; }
 
         [Preserve]
         public InputService(InputActionAsset asset)
         {
             this.asset = asset;
-            this.gameplayMap = asset.FindActionMap(GameplayMapName, throwIfNotFound: true);
-            this.combatMap   = asset.FindActionMap(CombatMapName,   throwIfNotFound: true);
-            this.uiMap       = asset.FindActionMap(UIMapName,        throwIfNotFound: true);
+            this.gameplayMap  = asset.FindActionMap(GameplayMapName,  throwIfNotFound: true);
+            this.combatMap    = asset.FindActionMap(CombatMapName,    throwIfNotFound: true);
+            this.uiMap        = asset.FindActionMap(UIMapName,        throwIfNotFound: true);
+            this.dialogueMap  = asset.FindActionMap(DialogueMapName,  throwIfNotFound: true);
 
             Move          = this.gameplayMap[nameof(Move)];
             Interact      = this.gameplayMap[nameof(Interact)];
             OpenInventory = this.gameplayMap[nameof(OpenInventory)];
+            OpenMap       = this.gameplayMap[nameof(OpenMap)];
+            Aim           = this.gameplayMap[nameof(Aim)];
             Pause         = this.gameplayMap[nameof(Pause)];
+            Sprint        = this.gameplayMap[nameof(Sprint)];
 
             CombatNavigate = this.combatMap[NavigateAction];
             CombatConfirm  = this.combatMap[ConfirmAction];
@@ -57,6 +70,10 @@ namespace CrimsonDraft.Infrastructure.Input
             UINavigate = this.uiMap[NavigateAction];
             UIConfirm  = this.uiMap["Submit"];
             UICancel   = this.uiMap[CancelAction];
+            UIBack     = this.uiMap["UIBack"];
+
+            DialogueAdvanceLine    = this.dialogueMap["AdvanceLine"];
+            DialogueCancelDialogue = this.dialogueMap["CancelDialogue"];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();
@@ -79,6 +96,12 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap.Enable();
         }
 
+        public void SwitchToDialogue()
+        {
+            DisableAll();
+            this.dialogueMap.Enable();
+        }
+
         void IDisposable.Dispose()
         {
             DisableAll();
@@ -90,6 +113,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.gameplayMap.Disable();
             this.combatMap.Disable();
             this.uiMap.Disable();
+            this.dialogueMap.Disable();
         }
     }
 }

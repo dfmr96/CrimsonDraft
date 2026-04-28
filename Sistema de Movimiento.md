@@ -1,120 +1,124 @@
+---
+estado: revision
+ultima-revision: 2026-04-02
+tags:
+  - game-design
+---
+
 # Sistema de Movimiento
 
-## Concepto Central
-
-El movimiento de exploración es **4-direccional cardinal** — sin diagonales, sin strafe, sin apuntar. El personaje se mueve hacia donde el jugador empuja el stick y mira hacia esa dirección.
-
-La referencia es Zelda clásico y Final Fantasy vista superior: movimiento libre pero cuantizado al eje dominante. El objetivo es legibilidad inmediata del estado del personaje y una sensación de peso deliberado coherente con el tono de survival horror.
-
-> No hay botón de correr en la exploración. La velocidad única refuerza la tensión: el jugador nunca puede "huir rápido" de una situación, solo retroceder con el mismo ritmo.
+Describe el movimiento de exploración del personaje en tercera persona: velocidades, sprint, animaciones y cámara.
 
 ---
 
-## Controles
+## Diseño
+
+### Concepto Central
+
+El movimiento de exploración es cuantizado en 8 direcciones — el personaje siempre mira hacia donde el jugador empuja. Sin strafe, sin apuntar libre. La referencia es Zelda clásico adaptado a un personaje 3D en vista de tercera persona.
+
+Hay dos velocidades: caminar y correr. Correr requiere mantener un botón presionado. Es una elección deliberada, no el estado por defecto.
+
+> Correr no es gratuito. Es una decisión táctica con consecuencias: más ruido, más exposición. El jugador en tensión caminará porque la situación lo exige.
+
+### Controles
 
 | Acción | Teclado | Gamepad |
 |---|---|---|
 | Mover | WASD / Flechas | Stick izquierdo / D-pad |
+| Sprint (mantener) | V | ButtonWest (X Xbox / Cuadrado PS) |
 | Interactuar | F / E | Botón Sur |
 | Abrir inventario | Tab | Select |
 | Pausa | Esc | Start |
 
 No existe input de ratón en ninguna pantalla del juego.
 
----
+### Velocidades
 
-## Comportamiento del Movimiento
-
-### Cuantización cardinal
-
-El input análogo del stick (Vector2 continuo) se cuantiza al eje de mayor magnitud:
-
-- Si `|X| ≥ |Y|` → el personaje se mueve en el eje horizontal puro (izquierda o derecha)
-- Si `|Y| > |X|` → el personaje se mueve en el eje vertical puro (arriba o abajo)
-
-Las diagonales se resuelven automáticamente: presionar W+D mueve hacia arriba si Y domina, o hacia la derecha si X domina. No existe movimiento diagonal.
-
-### Zona muerta
-
-Se descarta cualquier input con `magnitud² < 0.01`. Esto elimina drift de gamepad y evita animaciones de caminata espurias al soltar el stick.
-
-### Velocidad
-
-| Parámetro | Valor | Configurable |
+| Parámetro | Valor | Condición |
 |---|---|---|
-| Velocidad de caminata | 4 unidades/s | Sí (Inspector) |
+| `walkSpeed` | 4 unidades/s | Sprint no presionado |
+| `runSpeed` | 7 unidades/s | Sprint presionado |
 
-La velocidad se aplica como `Rigidbody2D.linearVelocity` en `FixedUpdate`. La física de Unity maneja las colisiones con paredes y obstáculos.
+La velocidad se aplica como `Rigidbody.linearVelocity` en `FixedUpdate`. No hay aceleración gradual — el cambio de velocidad es inmediato.
+
+### Cuantización del Input
+
+El input análogo del stick (Vector2 continuo) se procesa según dispositivo:
+
+- **Gamepad:** el vector se normaliza directamente. Permite las 8 direcciones con cualquier ángulo.
+- **Teclado:** se aplica `Quantize8Way` — cada eje se redondea a -1, 0 o +1 y el resultado se normaliza. Garantiza que WASD produzca exactamente las 8 direcciones cardinales e intercarddinales.
+
+**Zona muerta:** se descarta cualquier input con `magnitud² < 0.01`. Elimina drift de gamepad y evita transiciones de animación espurias al soltar el stick.
 
 ### Física
 
 | Propiedad | Configuración |
 |---|---|
-| Body Type | Dynamic |
-| Gravity Scale | 0 (vista superior) |
-| Freeze Rotation Z | Activado |
-| Colisionador | CapsuleCollider2D |
+| Tipo | Rigidbody 3D, Dynamic |
+| Gravedad | Activada |
+| Freeze Rotation | X, Y, Z activados |
+| Colisionador | CapsuleCollider |
+
+La rotación del personaje se asigna directamente a `transform.forward` — la física no controla la orientación.
 
 ---
 
-## Dirección y Animación
+## Diseño — Animación
 
-### Estados del Animator
+### Parámetro del Animator
 
-El personaje tiene 8 estados de animación activos:
+| Parámetro | Tipo | Valores | Semántica |
+|---|---|---|---|
+| `Speed` | Float | 0 / 0.5 / 1.0 | 0 = Idle, 0.5 = Walk, 1.0 = Run |
 
-| Estado | Condición de entrada |
-|---|---|
-| **WalkDown** | IsMoving=true + FacingDirection=0 |
-| **WalkUp** | IsMoving=true + FacingDirection=1 |
-| **WalkLeft** | IsMoving=true + FacingDirection=2 |
-| **WalkRight** | IsMoving=true + FacingDirection=3 |
-| **IdleDown** | IsMoving=false + FacingDirection=0 |
-| **IdleUp** | IsMoving=false + FacingDirection=1 |
-| **IdleLeft** | IsMoving=false + FacingDirection=2 |
-| **IdleRight** | IsMoving=false + FacingDirection=3 |
+El parámetro se escribe de forma discreta desde `PlayerController` cada `FixedUpdate`. Unity no interpola el valor — se asigna el destino directo.
 
-Todas las transiciones tienen `transitionDuration = 0` (corte directo, sin blend). El blend entre sprites pixel art produce artefactos visuales y no aporta nada al look del juego.
+### Blend Tree — LocomotionBlend
 
-### Parámetros del Animator
+Estado único en el Animator: `LocomotionBlend` (1D Blend Tree). Es el estado default.
 
-| Parámetro | Tipo | Descripción |
+| Threshold | Clip | Fuente FBX |
 |---|---|---|
-| `IsMoving` | Bool | True si hay input activo |
-| `FacingDirection` | Int | 0=Abajo, 1=Arriba, 2=Izquierda, 3=Derecha |
+| 0.0 | Breathing Idle | `HumanoidBase_Overlapping@Breathing Idle.fbx` |
+| 0.5 | Walking | `HumanoidBase_Overlapping@Walking.fbx` |
+| 1.0 | Running | `HumanoidBase_Overlapping@Running (1).fbx` |
 
-`FacingDirection` se preserva al soltar el input — el Idle muestra la dirección donde el personaje quedó mirando.
-
-### Configuración de clips
-
-| Propiedad | Valor |
-|---|---|
-| Frame rate | 8 fps |
-| Loop | Activado |
-| Frames por dirección | 4 |
+La interpolación entre clips la gestiona Unity internamente — no hay transiciones de estado explícitas. Al pasar de Walk a Run, el blend tree mezcla ambos clips durante la transición de `Speed`.
 
 ---
 
-## Cámara
+## Diseño — Cámara
 
-La cámara sigue al jugador mediante **Cinemachine** con extensión **Pixel Perfect**:
+La cámara sigue al jugador mediante **Cinemachine** en tercera persona:
 
-| Componente | Función |
+| Componente | Configuración |
 |---|---|
 | CinemachineCamera | Follow y LookAt apuntan al Transform del Player |
-| CinemachinePixelPerfect | Mantiene alineación pixel-perfect al seguir |
-| PixelPerfectCamera | Renderizado ortográfico a resolución de referencia |
+| Binding Mode | World Space |
 
-La cámara no tiene zoom ni shake configurado en esta fase. Se puede añadir un CinemachineImpulse para feedback de daño en el futuro.
+La cámara mantiene una posición relativa fija al personaje. Sin zoom ni shake en esta fase.
+
+---
+
+## Intención
+
+El movimiento cuantizado y el sprint como elección consciente refuerzan el tono del juego. Caminar es el estado normal de un operativo bajo control. Correr es emergencia.
+
+> En Silent Hill caminas porque tienes miedo. En Crimson Draft caminas porque eres un operativo disciplinado. El sprint es una decisión táctica, no un reflejo.
+
+La diferencia entre walkSpeed (4) y runSpeed (7) es suficiente para sentir urgencia sin convertir el sprint en un dash. El personaje nunca teleporta — el movimiento es siempre legible.
 
 ---
 
 ## Pendiente
 
-| Feature | Prioridad | Notas |
-|---|---|---|
-| Detección de interactivo cercano (highlight) | Alta | Necesita sistema de interacción |
-| Animación de apertura de puertas | Alta | Clip dedicado o trigger en Animator |
-| Sonido de pasos | Media | Programático, varía por superficie |
-| Animación de agacharse / cubrirse | Media | Para mecánica de sigilo futura |
-| Correr (si se decide añadir) | Baja | Requiere decisión de diseño |
+- [ ] Sonido de pasos diferenciado por velocidad (caminar vs correr)
+- [ ] Sonido de pasos diferenciado por superficie
+- [ ] Animación de agacharse / cubrirse (mecánica de sigilo futura)
+- [ ] Detección de interactivo cercano (highlight de objeto)
+- [ ] Animación de apertura de puertas
+
+---
+
+Volver a [[Crimson Draft]] | Ver [[Sistema de Combate en Tiempo Real]] | Ver [[Mecanicas de Supervivencia]]

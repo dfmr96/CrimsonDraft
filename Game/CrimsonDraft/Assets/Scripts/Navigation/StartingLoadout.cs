@@ -12,6 +12,7 @@ namespace CrimsonDraft.Navigation
     {
         public ItemData item;
         public int      quantity;
+        public int      operatorSlot;  // which operator's 4-slot section this item goes to
     }
 
     [CreateAssetMenu(fileName = "StartingLoadout", menuName = "CrimsonDraft/Starting Loadout")]

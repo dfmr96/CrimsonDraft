@@ -19,7 +19,7 @@ namespace CrimsonDraft.Navigation.Combat
             this.sceneTransitionService = sceneTransitionService;
         }
 
-        private void OnTriggerEnter2D(Collider2D other)
+        private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player"))
                 return;

@@ -1,13 +1,13 @@
 ---
 estado: aprobado
-ultima-revision: 2026-03-07
+ultima-revision: 2026-04-23
 tags:
   - game-design
 ---
 
 # Sistema de Inventario
 
-El inventario es un pool compartido por todo el roster. Cada operador tiene un único slot de equipamiento: su arma principal.
+El inventario es una grilla compartida por todo el roster. Cada operador tiene su propio bloque de slots dentro de la grilla global — los ítems se mueven libremente entre bloques, pero cada operador solo puede usar los ítems que están en sus propios slots.
 
 ---
 
@@ -15,117 +15,138 @@ El inventario es un pool compartido por todo el roster. Cada operador tiene un �
 
 ### Estructura
 
-El inventario es una **lista plana compartida** entre todos los operadores. No tiene límite de capacidad. No hay grillas, no hay tamaños físicos.
+El inventario es una **grilla única** de `rosterCount × 4` slots. Visualmente se presenta como bloques 2×2 contiguos, uno por operador:
 
-Cada **ítem** tiene: identificador, tipo, nombre, y calibre (solo si es arma o caja de balas).
+```
+[ Op1 ][ Op1 ] | [ Op2 ][ Op2 ] | [ Op3 ][ Op3 ] | ...
+[ Op1 ][ Op1 ] | [ Op2 ][ Op2 ] | [ Op3 ][ Op3 ] | ...
+```
 
-### Tipos de ítems
+El índice global de un slot determina su dueño: `slotIndex / 4` = operador, `slotIndex % 4` = posición dentro del bloque 2×2.
 
-| Tipo | Acciones disponibles |
+### `InventorySlot`
+
+Cada slot tiene tres estados:
+
+| Estado | Descripción |
 |---|---|
-| Arma | Equipar / Desequipar, Examinar |
-| Caja de balas | Recargar, Examinar |
-| Consumible | Usar, Examinar |
+| Vacío | `Item = null`, `Quantity = 0` |
+| Ocupado | `Item = <ítem>`, `Quantity = 1` |
+| Apilado | `Item = <ítem>`, `Quantity = N` — solo si `ItemData.Stackable = true` |
 
-### Equipamiento
+El slot siempre existe aunque esté vacío. No hay slots nulos.
 
-Cada operador tiene un único slot: **arma equipada** (puede estar vacío).
+### Tipos de ítems y stackability
 
-El arma equipada permanece en la lista compartida marcada con el nombre del operador que la lleva — `[Eq: García]`. Si un operador muere, su arma vuelve al pool sin dueño.
+| Tipo | Stackable por defecto | Acciones disponibles |
+|---|---|---|
+| Arma | No | Equipar / Desequipar, Combinar, Examinar |
+| Caja de balas | Sí | Recargar, Combinar, Examinar |
+| Consumible | No | Usar, Combinar, Examinar |
+| Llave | No | Combinar, Examinar |
+| Socket Item | No | Usar, Combinar, Examinar |
 
-Equipar un arma a un operador que ya tiene otra: el arma anterior queda sin dueño en la lista. No se pierde.
+`ItemData` expone un campo `Stackable`. Las cajas de balas del mismo tipo que ya están en el bloque del operador destino apilan cantidad en lugar de ocupar un slot nuevo.
+
+### Reglas de uso vs. movimiento
+
+| Acción | Restricción |
+|---|---|
+| Mover ítem (reorder) | Libre — cualquier slot de la grilla completa |
+| Equipar / Desequipar | Solo desde slots del operador dueño |
+| Recargar | Solo desde slots del operador dueño |
+| Usar consumible | Solo desde slots del operador dueño |
+| Usar Socket Item | Solo desde slots del operador dueño |
+| Combinar | Libre — cualquier slot de la grilla completa (ver [[Sistema de Combinación de Ítems]]) |
+
+### Inventario lleno
+
+Si todos los slots del operador destino están ocupados y el ítem no puede apilarse, `AddItem` devuelve `false`. El interactable de pickup muestra: `"No tienes espacio para: {nombre}."` sin recoger el ítem.
+
+---
 
 ### Pantalla de inventario
 
-La pantalla tiene dos paneles:
-
-**Panel izquierdo — lista de ítems (navegable):**
-El jugador navega ítem por ítem con D-pad / flechas. Los ítems equipados muestran `[Eq: NombreOperador]`.
-
-**Panel derecho — estado del roster (solo visual):**
-Muestra cada operador con su arma equipada actual. No recibe foco de navegación — es referencia para el jugador.
+La pantalla muestra la grilla completa. Cada bloque 2×2 tiene el nombre del operador como cabecera.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  INVENTARIO                                          │
-│                                                      │
-│  ┌─────────────────────┐  ┌──────────────────────┐   │
-│  │ > Benelli M4        │  │ García               │   │
-│  │   Mk18 [Eq: García] │  │   Arma: Mk18         │   │
-│  │   9mm Box ×32       │  │                      │   │
-│  │   9mm Box ×18       │  │ Torres               │   │
-│  │                     │  │   Arma: ---          │   │
-│  └─────────────────────┘  └──────────────────────┘   │
-│                                                      │
-│  [A] Acción   [B] Cerrar                            │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  INVENTARIO                                                  │
+│                                                              │
+│  García          Torres                                      │
+│  ┌─────┬─────┐   ┌─────┬─────┐                              │
+│  │Mk18 │9mm×32│  │     │     │                              │
+│  │     │     │   │Bnli │     │                              │
+│  └─────┴─────┘   └─────┴─────┘                              │
+│                                                              │
+│  [A] Acción   [Y] Mover   [B] Cerrar                        │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+El cursor se mueve en 2D sobre la grilla completa. Cruzar la frontera entre bloques de operador es navegación normal.
 
 ### Controles
 
 > El juego se juega exclusivamente con joystick / teclado. Sin input de mouse.
 
-| Input | Acción |
-|---|---|
-| D-pad / Flechas | Navegar por la lista de ítems |
-| A (confirmar) | Abrir menú contextual del ítem seleccionado |
-| B | Cerrar inventario |
-| Tab / Select | Abrir inventario (desde exploración) |
-
-Al abrir el inventario, el input de movimiento del jugador se desactiva. Al cerrar, se restaura inmediatamente.
+| Input | Estado | Acción |
+|---|---|---|
+| D-pad / Flechas | List | Mover cursor por la grilla |
+| A (confirmar) | List | Abrir menú contextual (solo si slot tiene ítem) |
+| Y (reorder) | List | Levantar ítem del slot actual (solo si tiene ítem) |
+| A (confirmar) | Reorder | Soltar ítem — swap si destino tiene ítem, mover si está vacío |
+| B | List | Cerrar inventario |
+| B | Reorder | Cancelar — devolver ítem al slot origen |
 
 ### Menú contextual
 
-Al confirmar sobre un ítem aparece un menú vertical con las acciones disponibles para ese tipo.
+Al confirmar sobre un slot con ítem aparece el menú contextual. Las acciones disponibles dependen del tipo de ítem **y** de si el slot pertenece al operador en turno.
+
+> Si el ítem está en un slot ajeno, el menú contextual solo muestra **Examinar** (no se puede usar, equipar ni recargar desde slots de otro operador).
 
 #### Equipar / Desequipar (armas)
-
-Submenú con la lista de operadores. El operador que ya lleva el arma seleccionada aparece con `✓`. Seleccionar un operador diferente transfiere el arma directamente.
+Acción directa — equipar un arma del slot de Op1 la equipa a Op1 inmediatamente, sin submenu de selección de operador. Si Op1 ya tenía otra arma equipada, la anterior queda sin dueño en su slot original (sigue ocupando el slot).
 
 #### Recargar (cajas de balas)
+Disponible solo desde slots del operador dueño. Si no hay operador compatible (calibre + ammo por debajo del máximo): acción deshabilitada.
 
-Submenú con los operadores que tienen un arma equipada del **calibre compatible** y ammo por debajo del máximo. Seleccionar un operador consume la caja y lleva su ammo al máximo.
+#### Usar (consumibles y Socket Items)
+Los consumibles aplican un efecto sobre el operador dueño. Comportamiento específico TBD según tipo.
 
-Si no hay operadores compatibles: la acción aparece deshabilitada.
+Los Socket Items se insertan en el [[Sistema de Item Socket|Item Socket]] apuntado por el raycast de interacción. Si el socket no está en rango o no acepta el ítem, no ocurre nada.
 
-#### Usar (consumibles)
-
-Comportamiento específico por consumible. En algunos casos: acción inmediata. En otros: submenú de operadores destino. TBD según consumible.
+#### Combinar (cualquier ítem)
+Activa el modo Combinar — el cursor cambia de color y el jugador selecciona un segundo ítem. Si existe una receta válida, ambos se consumen y el resultado aparece en el primer slot disponible. Ver [[Sistema de Combinación de Ítems]].
 
 #### Examinar (cualquier ítem)
-
-Overlay con la descripción completa del ítem. B para volver al inventario.
-
-### Descarte
-
-Los ítems no se descartan desde el inventario. Se depositan en zonas seguras del barco (sistema pendiente de diseño).
-
-### Acceso
-
-El inventario está disponible **solo durante exploración**. Queda bloqueado mientras el jugador está en combate.
+Overlay con descripción completa. B para volver.
 
 ---
 
 ## Intención
 
-> El inventario compartido elimina la microgestión por personaje. El jugador decide qué lleva el equipo como unidad, no individualmente.
+> La grilla sectorial hace que el inventario sea una decisión táctica de asignación de recursos, no solo de transporte.
 
-La lista es deliberadamente simple: sin grillas, sin tamaños, sin rotaciones. El peso de la decisión recae en qué ítems tiene el jugador, no en cómo los organiza espacialmente.
+El jugador decide conscientemente qué lleva cada operador. Mover ítems entre secciones es posible pero requiere acción deliberada — el slot "pertenece" a alguien. Esto crea tensión: si García tiene el único botiquín, ¿lo movemos a Torres para esta misión o lo dejamos donde está?
 
-El slot único por operador hace que armar al roster sea una decisión táctica clara: con armas limitadas y varios operadores, el jugador elige quién va armado y quién no.
+Los 4 slots por operador son intencionalmente restrictivos. El jugador no puede llevarse todo — tiene que priorizar por operador.
 
-El arma de un operador muerto no se pierde — vuelve al pool. Esto evita que una muerte accidental destruya el progreso de equipo, pero sí obliga a volver a asignar en la siguiente oportunidad.
+La grilla única detrás de escenas garantiza que reorganizar el equipo entre misiones sea fluido, sin fricciones técnicas entre "inventarios separados".
 
 ---
 
 ## Pendiente
 
-- [ ] Máximo de ammo por arma / por operador (definir valor concreto)
-- [ ] Sistema de zonas seguras para depositar ítems
+- [x] Sistema de llaves con usos múltiples — ver [[Sistema de Llaves]] (spec: `docs/superpowers/specs/2026-04-24-key-item-design.md`)
+
+
 - [ ] Comportamiento concreto de consumibles (Usar → qué efecto, sobre qué operador)
 - [ ] Integración con [[Krokonil]] si existe como ítem consumible
-- [ ] Decidir si las cajas de balas son stackeables en la lista o entradas separadas
+- [ ] Sistema de zonas seguras para depositar ítems
+- [ ] Máximo de ammo por arma / por operador (definir valor concreto)
+- [ ] Decidir si las cajas de balas del mismo calibre apilan automáticamente al recoger o requieren mover manual
+- [ ] Definir a qué bloque de operador va un ítem cuando se recoge durante exploración (¿primer slot libre del primer operador? ¿operador activo?)
 
 ---
 
-Volver a [[Crimson Draft]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]
+Volver a [[Crimson Draft]] | Ver [[Sistema de Combinación de Ítems]] | Ver [[Sistema de Item Socket]] | Ver [[Diseño de Combate y Armas]] | Ver [[Sistema de Salud]]

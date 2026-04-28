@@ -1,0 +1,9 @@
+title: door_opened_feedback
+---
+<<declare $outcome = "" as string>>
+<<declare $key_name = "" as string>>
+You used {$key_name}.
+<<if $outcome == "opened_depleted">>
+You no longer need {$key_name}. It has been discarded.
+<<endif>>
+===

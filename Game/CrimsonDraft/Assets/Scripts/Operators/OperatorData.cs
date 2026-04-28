@@ -7,12 +7,14 @@ namespace CrimsonDraft.Operators
     [CreateAssetMenu(fileName = "OperatorData", menuName = "CrimsonDraft/Operators/Operator Data")]
     public sealed class OperatorData : ScriptableObject
     {
-        [SerializeField] private string operatorId  = string.Empty;
-        [SerializeField] private string displayName = string.Empty;
-        [SerializeField] private Sprite sprite      = null!;
+        [SerializeField] private string     operatorId        = string.Empty;
+        [SerializeField] private string     displayName       = string.Empty;
+        [SerializeField] private GameObject? battlefieldPrefab = null;
+        [SerializeField] private Sprite     portrait          = null!;
 
-        public string OperatorId   => this.operatorId;
-        public string DisplayName  => this.displayName;
-        public Sprite Sprite       => this.sprite;
+        public string      OperatorId        => this.operatorId;
+        public string      DisplayName       => this.displayName;
+        public GameObject? BattlefieldPrefab => this.battlefieldPrefab;
+        public Sprite      Portrait          => this.portrait;
     }
 }

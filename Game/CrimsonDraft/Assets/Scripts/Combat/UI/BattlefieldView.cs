@@ -22,10 +22,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Transform[] playerSlotTransforms = Array.Empty<Transform>();
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
-        [SerializeField] private Material?   enemyDeathFadeMaterial;
         [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
+        [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
         [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
         [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
@@ -34,10 +34,9 @@ namespace CrimsonDraft.Combat
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
         private readonly Dictionary<int, GameObject> enemyGoBySlot = new();
-        private readonly Dictionary<int, SpriteRenderer> enemyRendererBySlot = new();
+        private readonly Dictionary<int, MeshRenderer> enemyRendererBySlot = new();
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
-        private static readonly int FadePropId = Shader.PropertyToID("_Fade");
 
         private void Awake()
         {
@@ -62,22 +61,22 @@ namespace CrimsonDraft.Combat
                 if (enemy == null) continue;
 
                 occupied.Add(i);
-                var go = new GameObject($"Enemy_{i}");
-                go.transform.SetParent(this.enemySlotTransforms[i], false);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = enemy.Sprite;
-                sr.sortingLayerName = "Combat";
-                sr.sortingOrder = 0;
-                if (this.enemyDeathFadeMaterial != null)
+                GameObject go;
+                if (enemy.BattlefieldPrefab != null)
                 {
-                    var materialInstance = new Material(this.enemyDeathFadeMaterial);
-                    if (materialInstance.HasProperty(FadePropId))
-                        materialInstance.SetFloat(FadePropId, 0f);
-                    sr.sharedMaterial = materialInstance;
+                    go = Instantiate(enemy.BattlefieldPrefab, this.enemySlotTransforms[i], false);
                 }
+                else
+                {
+                    go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    go.transform.SetParent(this.enemySlotTransforms[i], false);
+                    go.GetComponent<MeshRenderer>().material.color = Color.red;
+                }
+                go.name = $"Enemy_{i}";
+                var mr = go.GetComponentInChildren<MeshRenderer>();
                 this.spawnedSprites.Add(go);
                 this.enemyGoBySlot[i] = go;
-                this.enemyRendererBySlot[i] = sr;
+                if (mr != null) this.enemyRendererBySlot[i] = mr;
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
                     CurrentHp = Mathf.Max(1, enemy.MaxHp),
@@ -92,12 +91,18 @@ namespace CrimsonDraft.Combat
                 var op = encounter.Operators[i];
                 if (op == null) continue;
 
-                var go = new GameObject($"Operator_{i}");
-                go.transform.SetParent(this.playerSlotTransforms[i], false);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = op.Sprite;
-                sr.sortingLayerName = "Combat";
-                sr.sortingOrder = 0;
+                GameObject go;
+                if (op.BattlefieldPrefab != null)
+                {
+                    go = Instantiate(op.BattlefieldPrefab, this.playerSlotTransforms[i], false);
+                }
+                else
+                {
+                    go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    go.transform.SetParent(this.playerSlotTransforms[i], false);
+                    go.GetComponent<MeshRenderer>().material.color = Color.blue;
+                }
+                go.name = $"Operator_{i}";
                 this.spawnedSprites.Add(go);
             }
         }
@@ -128,13 +133,7 @@ namespace CrimsonDraft.Combat
 
             state.IsDead = true;
             if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-            {
-                if (this.enemyRendererBySlot.TryGetValue(slotIndex, out var sr) && sr != null && sr.sharedMaterial != null &&
-                    sr.sharedMaterial.HasProperty(FadePropId))
-                    StartCoroutine(this.FadeOutAndHideEnemy(go, sr));
-                else
-                    go.SetActive(false);
-            }
+                StartCoroutine(this.FadeOutAndHideEnemy(go));
 
             var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
             foreach (int slot in this.occupiedEnemySlots)
@@ -149,16 +148,13 @@ namespace CrimsonDraft.Combat
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
-        private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo, SpriteRenderer sr)
+        private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo)
         {
-            if (enemyGo == null || sr == null || sr.sharedMaterial == null)
-            {
-                if (enemyGo != null) enemyGo.SetActive(false);
+            if (enemyGo == null)
                 yield break;
-            }
 
-            var mat = sr.sharedMaterial;
-            if (!mat.HasProperty(FadePropId))
+            var mr = enemyGo.GetComponent<MeshRenderer>();
+            if (mr == null)
             {
                 enemyGo.SetActive(false);
                 yield break;
@@ -166,14 +162,15 @@ namespace CrimsonDraft.Combat
 
             float elapsed = 0f;
             float duration = Mathf.Max(0.01f, this.enemyDeathFadeDuration);
+            var startColor = mr.material.color;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
-                mat.SetFloat(FadePropId, Mathf.Clamp01(elapsed / duration));
+                float alpha = Mathf.Clamp01(1f - elapsed / duration);
+                mr.material.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
                 yield return null;
             }
 
-            mat.SetFloat(FadePropId, 1f);
             enemyGo.SetActive(false);
         }
 
@@ -182,14 +179,14 @@ namespace CrimsonDraft.Combat
             if (slotIndex < 0 || slotIndex >= this.playerSlotTransforms.Length) return;
             this.operatorIndicator.SetActive(true);
             this.operatorIndicator.transform.position = this.playerSlotTransforms[slotIndex].position;
-            var sr = this.operatorIndicator.GetComponent<SpriteRenderer>();
-            if (sr != null) sr.color = Color.white;
+            var mr = this.operatorIndicator.GetComponent<MeshRenderer>();
+            if (mr != null) mr.material.color = Color.white;
         }
 
         public void DimOperatorIndicator()
         {
-            var sr = this.operatorIndicator.GetComponent<SpriteRenderer>();
-            if (sr != null) sr.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            var mr = this.operatorIndicator.GetComponent<MeshRenderer>();
+            if (mr != null) mr.material.color = new Color(0.4f, 0.4f, 0.4f, 1f);
         }
 
         public void PlayEnemyAttackFeedback(int enemySlotIndex)
@@ -278,7 +275,7 @@ namespace CrimsonDraft.Combat
         {
             if (slotIndex < 0 || slotIndex >= this.enemySlotTransforms.Length) return;
             this.enemyTargetIndicator.SetActive(true);
-            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position;
+            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position + this.enemyTargetIndicatorOffset;
         }
 
         public void HideEnemyTargetIndicator()

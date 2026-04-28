@@ -2,5 +2,5 @@
 
 namespace CrimsonDraft.Inventory
 {
-    public enum ItemType { Weapon, AmmoBox, Consumable }
+    public enum ItemType { Weapon, AmmoBox, Consumable, KeyItem, SocketItem }
 }

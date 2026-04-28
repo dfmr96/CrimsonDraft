@@ -1,6 +1,8 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 
@@ -8,57 +10,66 @@ namespace CrimsonDraft.Navigation.Player
 {
     public sealed class PlayerController : MonoBehaviour
     {
-        private static readonly int FacingDirectionHash = Animator.StringToHash("FacingDirection");
-        private static readonly int IsMovingHash        = Animator.StringToHash("IsMoving");
-
-        [SerializeField] private Rigidbody2D rb = null!;
+        [SerializeField] private Rigidbody rb = null!;
         [SerializeField] private Animator animator = null!;
-        [SerializeField] private float moveSpeed = 4f;
+        [SerializeField] private float walkSpeed = 4f;
+        [SerializeField] private float runSpeed = 7f;
+
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
         private IInputService inputService = null!;
-        private FacingDirection facing = FacingDirection.Down;
+        private InputDevice? lastDevice;
 
         [Inject]
         public void Construct(IInputService inputService)
         {
             this.inputService = inputService;
+            this.inputService.Move.performed += OnMovePerformed;
+        }
+
+        private void OnDestroy()
+        {
+            if (this.inputService != null)
+                this.inputService.Move.performed -= OnMovePerformed;
+        }
+
+        private void OnMovePerformed(InputAction.CallbackContext ctx)
+        {
+            this.lastDevice = ctx.control.device;
         }
 
         private void FixedUpdate()
         {
             var raw = this.inputService.Move.ReadValue<Vector2>();
-            var direction = QuantizeToCardinal(raw);
 
-            this.rb.linearVelocity = direction * this.moveSpeed;
-
-            var isMoving = direction != Vector2.zero;
-            this.animator.SetBool(IsMovingHash, isMoving);
-
-            if (isMoving)
-                UpdateFacing(direction);
-        }
-
-        private static Vector2 QuantizeToCardinal(Vector2 input)
-        {
-            if (input.sqrMagnitude < 0.01f)
-                return Vector2.zero;
-
-            return Mathf.Abs(input.x) >= Mathf.Abs(input.y)
-                ? new Vector2(Mathf.Sign(input.x), 0f)
-                : new Vector2(0f, Mathf.Sign(input.y));
-        }
-
-        private void UpdateFacing(Vector2 direction)
-        {
-            this.facing = direction switch
+            if (raw.sqrMagnitude < 0.01f)
             {
-                { x: > 0 } => FacingDirection.Right,
-                { x: < 0 } => FacingDirection.Left,
-                { y: > 0 } => FacingDirection.Up,
-                _           => FacingDirection.Down,
-            };
+                this.rb.linearVelocity = Vector3.zero;
+                this.animator.SetFloat(SpeedHash, 0f);
+                return;
+            }
 
-            this.animator.SetInteger(FacingDirectionHash, (int)this.facing);
+            var direction = this.lastDevice is Gamepad
+                ? raw.normalized
+                : Quantize8Way(raw);
+
+            var moveDir = new Vector3(direction.x, 0f, direction.y);
+            transform.forward = moveDir;
+
+            var isSprinting = this.inputService.Sprint.IsPressed();
+            var speed       = isSprinting ? this.runSpeed  : this.walkSpeed;
+            var animSpeed   = isSprinting ? 1f             : 0.5f;
+
+            this.rb.linearVelocity = moveDir * speed;
+            this.animator.SetFloat(SpeedHash, animSpeed);
+        }
+
+        private static Vector2 Quantize8Way(Vector2 input)
+        {
+            return new Vector2(
+                Mathf.Round(input.x),
+                Mathf.Round(input.y)
+            ).normalized;
         }
     }
 }
