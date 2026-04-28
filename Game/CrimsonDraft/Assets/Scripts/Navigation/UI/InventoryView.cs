@@ -43,7 +43,12 @@ namespace CrimsonDraft.Navigation.UI
 
         // ── Show / Hide ────────────────────────────────────────────────────────
 
-        public void Show() => gameObject.SetActive(true);
+        public void Show()
+        {
+            this.examineOverlayRoot.SetActive(false);
+            gameObject.SetActive(true);
+        }
+
         public void Hide() => gameObject.SetActive(false);
 
         // ── Operator cards ─────────────────────────────────────────────────────

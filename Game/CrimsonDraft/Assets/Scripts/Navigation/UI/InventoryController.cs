@@ -7,6 +7,7 @@ using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Operators;
 
@@ -14,10 +15,11 @@ namespace CrimsonDraft.Navigation.UI
 {
     public sealed class InventoryController : IInitializable, IDisposable
     {
-        private enum State { Closed, List, Reorder, ContextMenu, Combine }
+        private enum State { Closed, List, Reorder, ContextMenu, Combine, Examining }
 
         private readonly IInputService      inputService;
         private readonly IInventoryService  inventoryService;
+        private readonly IDialogueService   dialogueService;
         private readonly IOperatorRoster    roster;
         private readonly InventoryView      view;
         private readonly IInteractionCaster interactionCaster;
@@ -32,12 +34,14 @@ namespace CrimsonDraft.Navigation.UI
         public InventoryController(
             IInputService      inputService,
             IInventoryService  inventoryService,
+            IDialogueService   dialogueService,
             IOperatorRoster    roster,
             InventoryView      view,
             IInteractionCaster interactionCaster)
         {
             this.inputService      = inputService;
             this.inventoryService  = inventoryService;
+            this.dialogueService   = dialogueService;
             this.roster            = roster;
             this.view              = view;
             this.interactionCaster = interactionCaster;
@@ -131,6 +135,8 @@ namespace CrimsonDraft.Navigation.UI
                 case State.Combine:
                     AttemptCombination();
                     break;
+                case State.Examining:
+                    break;
             }
         }
 
@@ -153,6 +159,8 @@ namespace CrimsonDraft.Navigation.UI
                     this.combineSourceSlot = -1;
                     this.state             = State.List;
                     RefreshView();
+                    break;
+                case State.Examining:
                     break;
             }
         }
@@ -254,7 +262,21 @@ namespace CrimsonDraft.Navigation.UI
                 case ContextMenuAction.Examine:
                 {
                     var item = this.inventoryService.Slots[this.cursorSlotIndex].Item;
-                    if (item != null) this.view.ShowExamineOverlay(item);
+                    if (item == null) break;
+                    this.state     = State.Examining;
+                    Time.timeScale = 1f;
+                    int savedIndex = this.contextActionIndex;
+                    this.dialogueService.StartDialogue(
+                        item.Data.ExamineDialogue.nodeName ?? "",
+                        onComplete: () =>
+                        {
+                            Time.timeScale = 0f;
+                            this.inputService.SwitchToUI();
+                            RefreshView();
+                            OpenContextMenuOrIgnore();
+                            this.contextActionIndex = savedIndex;
+                            this.view.SetContextMenuCursor(this.contextActionIndex);
+                        });
                     return;
                 }
             }
