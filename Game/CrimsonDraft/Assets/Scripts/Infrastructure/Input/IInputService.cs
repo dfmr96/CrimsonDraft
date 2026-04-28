@@ -25,8 +25,12 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction UICancel   { get; }
         InputAction UIBack     { get; }
 
+        InputAction DialogueAdvanceLine    { get; }
+        InputAction DialogueCancelDialogue { get; }
+
         void SwitchToGameplay();
         void SwitchToCombat();
         void SwitchToUI();
+        void SwitchToDialogue();
     }
 }

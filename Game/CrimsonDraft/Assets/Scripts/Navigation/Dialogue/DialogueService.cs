@@ -69,7 +69,7 @@ namespace CrimsonDraft.Navigation.Dialogue
                 }
             }
 
-            this.inputService.SwitchToUI();
+            this.inputService.SwitchToDialogue();
             _ = this.runner.StartDialogue(nodeName);
         }
 
