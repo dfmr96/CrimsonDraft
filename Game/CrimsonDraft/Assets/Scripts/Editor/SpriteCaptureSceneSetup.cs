@@ -9,7 +9,7 @@ namespace CrimsonDraft.Editor
 {
     public static class SpriteCaptureSceneSetup
     {
-        private const string ScenePath = "Assets/Scenes/SpriteCaptureScene.unity";
+        private const string ScenePath = "Assets/Scenes/Tools/SpriteCaptureScene.unity";
 
         [MenuItem("CrimsonDraft/Scenes/Create Sprite Capture Scene", priority = 14)]
         public static void CreateSpriteCaptureScene()
