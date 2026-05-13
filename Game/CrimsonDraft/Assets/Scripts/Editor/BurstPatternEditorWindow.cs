@@ -449,9 +449,33 @@ namespace CrimsonDraft.Editor
             }
         }
 
-        // ── Simulation tick (stub) ─────────────────────────────────────
+        // ── Simulation tick ────────────────────────────────────────────
 
-        private void OnEditorUpdate() { }
+        private void OnEditorUpdate()
+        {
+            if (simState != SimState.Playing) return;
+            if (EditorApplication.timeSinceStartup - lastShotTime < simDelay) return;
+
+            lastShotTime = EditorApplication.timeSinceStartup;
+
+            EnforceConstraints();
+
+            if (simShotIndex >= shots.Count)
+            {
+                simState = SimState.Done;
+                Repaint();
+                return;
+            }
+
+            var point = BurstPatternData.SamplePoint(shots[simShotIndex]);
+            scatterDots.Add((simShotIndex, point));
+            simShotIndex++;
+
+            if (simShotIndex >= shots.Count)
+                simState = SimState.Done;
+
+            Repaint();
+        }
 
         // ── Coordinate helpers ─────────────────────────────────────────
 
