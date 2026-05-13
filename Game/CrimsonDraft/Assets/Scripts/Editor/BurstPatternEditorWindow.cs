@@ -19,8 +19,8 @@ namespace CrimsonDraft.Editor
         private const float DefaultSemiAxisX = 20f;
         private const float DefaultSemiAxisY = 30f;
         private const float MinSemiAxis      = 1f;
-        private const float MinPPU            = 4f;
-        private const float MaxPPU            = 32f;
+        private const float MinPPU            = 1f;
+        private const float MaxPPU            = 512f;
         private const float MoveGizmoHitRadius = 14f;
         private const float MoveGizmoArmLen    = 11f;
         private const float TableColIdx        = 22f;
@@ -42,11 +42,17 @@ namespace CrimsonDraft.Editor
         private Vector2              shotListScrollPos;
 
         // ── State — canvas ─────────────────────────────────────────────
-        private float   pixelsPerUnit      = 8f;
-        private int     selectedIndex      = -1;
-        private Vector2 canvasOffset       = Vector2.zero;
-        private Sprite? referenceSprite    = null;
+        private float   pixelsPerUnit        = 8f;
+        private int     selectedIndex        = -1;
+        private Vector2 canvasOffset         = Vector2.zero;
+        private Sprite? referenceSprite      = null;
+        private Sprite? prevReferenceSprite  = null;
         private float   referenceSpriteAlpha = 0.4f;
+        private Rect    cachedCanvasRect;
+
+        // ── State — visual style ───────────────────────────────────────
+        private float labelFontSize    = 13f;
+        private float ellipseThickness = 2f;
 
         // ── State — drag ───────────────────────────────────────────────
         private enum DragTarget { None, ShotCenter, HandleRight, HandleTop }
@@ -56,21 +62,35 @@ namespace CrimsonDraft.Editor
         private Vector2    dragStartValue;
 
         // ── State — simulation ─────────────────────────────────────────
-        private enum SimState { Idle, Playing, Done }
+        private enum SimState { Idle, WaitingForAimPoint, Playing, Done }
         private SimState                     simState     = SimState.Idle;
         private int                          simShotIndex = 0;
         private double                       lastShotTime = 0;
         private float                        simDelay     = 0.3f;
+        private Vector2                      aimPoint;
         private List<(int idx, Vector2 pos)> scatterDots  = new();
+
+        // ── State — rebase mode ────────────────────────────────────────
+        private bool      rebaseMode               = false;
+        private Vector2[] rebaseDragStartPositions = new Vector2[0];
 
         // ── Label style (lazy — GUIStyle can't be created at static init time) ──
         private GUIStyle? labelStyle;
-        private GUIStyle LabelStyle => labelStyle ??= new GUIStyle
+        private GUIStyle LabelStyle
         {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize  = 9,
-            normal    = { textColor = Color.white },
-        };
+            get
+            {
+                if (labelStyle == null)
+                    labelStyle = new GUIStyle
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                        fontStyle = FontStyle.Bold,
+                        normal    = { textColor = new Color(0.05f, 0.05f, 0.05f) },
+                    };
+                labelStyle.fontSize = Mathf.Max(6, Mathf.RoundToInt(labelFontSize));
+                return labelStyle;
+            }
+        }
 
         // ── Menu ───────────────────────────────────────────────────────
 
@@ -125,10 +145,49 @@ namespace CrimsonDraft.Editor
                 GUI.enabled = true;
             }
 
+            EditorGUILayout.Space(2);
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = rebaseMode ? new Color(1f, 0.65f, 0.1f) : Color.white;
+            if (GUILayout.Button(rebaseMode ? "✓ Salir del modo rebase" : "Mover posición base"))
+            {
+                if (rebaseMode) ExitRebaseMode();
+                else rebaseMode = true;
+                Repaint();
+            }
+            GUI.backgroundColor = prevBg;
+
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Silueta de Referencia", EditorStyles.boldLabel);
             referenceSprite      = (Sprite?)EditorGUILayout.ObjectField(referenceSprite, typeof(Sprite), allowSceneObjects: false);
             referenceSpriteAlpha = EditorGUILayout.Slider("Alpha", referenceSpriteAlpha, 0f, 1f);
+
+            // Auto-scale when sprite changes
+            if (referenceSprite != prevReferenceSprite)
+            {
+                prevReferenceSprite = referenceSprite;
+                if (referenceSprite != null)
+                {
+                    var tr = referenceSprite.textureRect;
+                    if (cachedCanvasRect.height > 0 && tr.height > 0)
+                        pixelsPerUnit = Mathf.Clamp(cachedCanvasRect.height * 0.8f / tr.height, MinPPU, MaxPPU);
+                    canvasOffset = Vector2.zero;
+                }
+            }
+
+            GUI.enabled = referenceSprite != null;
+            if (GUILayout.Button("Ajustar escala") && referenceSprite != null)
+            {
+                var tr = referenceSprite.textureRect;
+                if (cachedCanvasRect.height > 0 && tr.height > 0)
+                    pixelsPerUnit = Mathf.Clamp(cachedCanvasRect.height * 0.8f / tr.height, MinPPU, MaxPPU);
+                canvasOffset = Vector2.zero;
+            }
+            GUI.enabled = true;
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("Visualización", EditorStyles.boldLabel);
+            labelFontSize    = EditorGUILayout.FloatField("Tamaño fuente", labelFontSize);
+            ellipseThickness = EditorGUILayout.FloatField("Grosor elipse", ellipseThickness);
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Disparos", EditorStyles.boldLabel);
@@ -225,19 +284,18 @@ namespace CrimsonDraft.Editor
 
             simDelay = EditorGUILayout.Slider("Delay (s)", simDelay, 0.05f, 2.0f);
 
-            string btnLabel = simState == SimState.Playing ? "Detener" : "Probar Ráfaga";
+            bool isActive = simState == SimState.Playing || simState == SimState.WaitingForAimPoint;
+            string btnLabel = isActive ? "Detener" : "Probar Ráfaga";
             if (GUILayout.Button(btnLabel))
             {
-                if (simState == SimState.Playing)
+                if (isActive)
                 {
                     simState = SimState.Idle;
                 }
                 else
                 {
                     scatterDots.Clear();
-                    simShotIndex = 0;
-                    lastShotTime = EditorApplication.timeSinceStartup - simDelay;
-                    simState     = SimState.Playing;
+                    simState = SimState.WaitingForAimPoint;
                 }
             }
 
@@ -297,6 +355,7 @@ namespace CrimsonDraft.Editor
                 GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
             if (canvasRect.width < 1 || canvasRect.height < 1) return;
 
+            cachedCanvasRect = canvasRect;
             EditorGUI.DrawRect(canvasRect, new Color(0.15f, 0.15f, 0.15f));
 
             var origin = new Vector2(
@@ -304,6 +363,7 @@ namespace CrimsonDraft.Editor
                 canvasRect.y + canvasRect.height / 2f + canvasOffset.y);
 
             HandleZoom(canvasRect);
+            DrawSpriteAreaBackground(canvasRect, origin);
 
             DrawBackgroundSprite(canvasRect, origin);
 
@@ -314,6 +374,8 @@ namespace CrimsonDraft.Editor
             Handles.EndGUI();
 
             DrawShotLabels(origin);
+            DrawAimCursor(canvasRect, origin);
+            DrawRebaseBanner(canvasRect);
 
             ProcessCanvasEvents(canvasRect, origin);
         }
@@ -322,36 +384,48 @@ namespace CrimsonDraft.Editor
         {
             if (referenceSprite == null) return;
 
-            var   tex      = referenceSprite.texture;
-            var   tr       = referenceSprite.textureRect;
-            float sprPPU   = referenceSprite.pixelsPerUnit;
-            float screenW  = (tr.width  / sprPPU) * pixelsPerUnit;
-            float screenH  = (tr.height / sprPPU) * pixelsPerUnit;
+            var   tex     = referenceSprite.texture;
+            var   tr      = referenceSprite.textureRect;
+            float screenW = tr.width  * pixelsPerUnit;
+            float screenH = tr.height * pixelsPerUnit;
 
-            var screenRect = new Rect(
+            // Sprite center at world (0,0) = screen origin
+            var fullRect = new Rect(
                 origin.x - screenW / 2f,
                 origin.y - screenH / 2f,
                 screenW,
                 screenH);
 
-            // Clip to canvas bounds
-            screenRect = Rect.MinMaxRect(
-                Mathf.Max(screenRect.xMin, canvasRect.xMin),
-                Mathf.Max(screenRect.yMin, canvasRect.yMin),
-                Mathf.Min(screenRect.xMax, canvasRect.xMax),
-                Mathf.Min(screenRect.yMax, canvasRect.yMax));
+            var clippedRect = Rect.MinMaxRect(
+                Mathf.Max(fullRect.xMin, canvasRect.xMin),
+                Mathf.Max(fullRect.yMin, canvasRect.yMin),
+                Mathf.Min(fullRect.xMax, canvasRect.xMax),
+                Mathf.Min(fullRect.yMax, canvasRect.yMax));
 
-            if (screenRect.width <= 0 || screenRect.height <= 0) return;
+            if (clippedRect.width <= 0 || clippedRect.height <= 0) return;
 
-            var uvRect = new Rect(
+            var baseUV = new Rect(
                 tr.x      / tex.width,
                 tr.y      / tex.height,
                 tr.width  / tex.width,
                 tr.height / tex.height);
 
+            // Proportionally adjust UV to the visible portion of the screen rect.
+            // Screen Y is top-down; UV Y is bottom-up, so the Y fractions are inverted.
+            float xFracMin = (clippedRect.xMin - fullRect.xMin) / fullRect.width;
+            float xFracMax = (clippedRect.xMax - fullRect.xMin) / fullRect.width;
+            float yFracMin = (clippedRect.yMin - fullRect.yMin) / fullRect.height;
+            float yFracMax = (clippedRect.yMax - fullRect.yMin) / fullRect.height;
+
+            var uvRect = new Rect(
+                baseUV.x + xFracMin * baseUV.width,
+                baseUV.y + (1f - yFracMax) * baseUV.height,
+                (xFracMax - xFracMin) * baseUV.width,
+                (yFracMax - yFracMin) * baseUV.height);
+
             var prev  = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, referenceSpriteAlpha);
-            GUI.DrawTextureWithTexCoords(screenRect, tex, uvRect, alphaBlend: true);
+            GUI.DrawTextureWithTexCoords(clippedRect, tex, uvRect, alphaBlend: true);
             GUI.color = prev;
         }
 
@@ -360,12 +434,95 @@ namespace CrimsonDraft.Editor
             var e = Event.current;
             if (e.type != EventType.ScrollWheel) return;
             if (!canvasRect.Contains(e.mousePosition)) return;
-            pixelsPerUnit = Mathf.Clamp(pixelsPerUnit - e.delta.y * 0.4f, MinPPU, MaxPPU);
+            pixelsPerUnit = Mathf.Clamp(pixelsPerUnit * (1f - e.delta.y * 0.1f), MinPPU, MaxPPU);
             e.Use();
             Repaint();
         }
 
+        private void DrawSpriteAreaBackground(Rect canvasRect, Vector2 origin)
+        {
+            if (referenceSprite == null) return;
+            var   tr       = referenceSprite.textureRect;
+            float halfW    = tr.width  / 2f;
+            float halfH    = tr.height / 2f;
+            var   topLeft  = WorldToWindow(new Vector2(-halfW,  halfH), origin);
+            var   botRight = WorldToWindow(new Vector2( halfW, -halfH), origin);
+            var   area   = Rect.MinMaxRect(
+                Mathf.Max(topLeft.x,  canvasRect.xMin),
+                Mathf.Max(topLeft.y,  canvasRect.yMin),
+                Mathf.Min(botRight.x, canvasRect.xMax),
+                Mathf.Min(botRight.y, canvasRect.yMax));
+            if (area.width > 0 && area.height > 0)
+                EditorGUI.DrawRect(area, new Color(0.20f, 0.20f, 0.20f));
+        }
+
         private void DrawGrid(Rect canvasRect, Vector2 origin)
+        {
+            if (referenceSprite == null)
+            {
+                DrawInfiniteGrid(canvasRect, origin);
+                return;
+            }
+
+            var   tr   = referenceSprite.textureRect;
+            float sprW = tr.width;
+            float sprH = tr.height;
+            float halfW = sprW / 2f;
+            float halfH = sprH / 2f;
+
+            // Adaptive interval (powers of 10) so lines are at least 8px apart on screen
+            int interval = 1;
+            while (interval * pixelsPerUnit < 8f) interval *= 10;
+
+            var minorColor  = new Color(0.28f, 0.28f, 0.28f);
+            var majorColor  = new Color(0.42f, 0.42f, 0.42f);
+            var borderColor = new Color(0.65f, 0.65f, 0.65f);
+
+            float screenLeft  = WorldToWindow(new Vector2(-halfW, 0f), origin).x;
+            float screenRight = WorldToWindow(new Vector2( halfW, 0f), origin).x;
+            float screenTop   = WorldToWindow(new Vector2(0f,  halfH), origin).y;
+            float screenBot   = WorldToWindow(new Vector2(0f, -halfH), origin).y;
+
+            // Clip drawing to canvas
+            float lineLeft  = Mathf.Max(screenLeft,  canvasRect.xMin);
+            float lineRight = Mathf.Min(screenRight, canvasRect.xMax);
+            float lineTop   = Mathf.Max(screenTop,   canvasRect.yMin);
+            float lineBot   = Mathf.Min(screenBot,   canvasRect.yMax);
+
+            if (lineLeft >= lineRight || lineTop >= lineBot) return;
+
+            // Vertical lines: iterate from -halfW to +halfW in world units
+            int xMin = Mathf.FloorToInt(-halfW / interval);
+            int xMax = Mathf.CeilToInt ( halfW / interval);
+            for (int i = xMin; i <= xMax; i++)
+            {
+                float wx = Mathf.Clamp(i * interval, -halfW, halfW);
+                float px = WorldToWindow(new Vector2(wx, 0f), origin).x;
+                if (px < canvasRect.xMin || px > canvasRect.xMax) continue;
+
+                bool isBorder = (wx <= -halfW + 0.01f || wx >= halfW - 0.01f);
+                bool isMajor  = (i % 10 == 0);
+                var  col      = isBorder ? borderColor : (isMajor ? majorColor : minorColor);
+                DrawLine(new Vector2(px, lineTop), new Vector2(px, lineBot), col, isBorder ? 1.5f : 1f);
+            }
+
+            // Horizontal lines: iterate from -halfH to +halfH in world units
+            int yMin = Mathf.FloorToInt(-halfH / interval);
+            int yMax = Mathf.CeilToInt ( halfH / interval);
+            for (int i = yMin; i <= yMax; i++)
+            {
+                float wy = Mathf.Clamp(i * interval, -halfH, halfH);
+                float py = WorldToWindow(new Vector2(0f, wy), origin).y;
+                if (py < canvasRect.yMin || py > canvasRect.yMax) continue;
+
+                bool isBorder = (wy <= -halfH + 0.01f || wy >= halfH - 0.01f);
+                bool isMajor  = (i % 10 == 0);
+                var  col      = isBorder ? borderColor : (isMajor ? majorColor : minorColor);
+                DrawLine(new Vector2(lineLeft, py), new Vector2(lineRight, py), col, isBorder ? 1.5f : 1f);
+            }
+        }
+
+        private void DrawInfiniteGrid(Rect canvasRect, Vector2 origin)
         {
             float wLeft   = (canvasRect.xMin - origin.x) / pixelsPerUnit;
             float wRight  = (canvasRect.xMax - origin.x) / pixelsPerUnit;
@@ -394,33 +551,39 @@ namespace CrimsonDraft.Editor
         private void DrawShots(Vector2 origin)
         {
             EnforceConstraints();
+            bool hasPrev = scatterDots.Count > 0;
+            if (simState == SimState.WaitingForAimPoint && !hasPrev) return;
+
+            bool inSim = simState == SimState.Playing || simState == SimState.Done
+                         || (simState == SimState.WaitingForAimPoint && hasPrev);
+
             for (int i = 0; i < shots.Count; i++)
             {
-                var  s   = shots[i];
-                var  col = ShotColors[i % ShotColors.Length];
-                var  wp  = WorldToWindow(s.center, origin);
-                bool sel = (i == selectedIndex);
+                var  s      = shots[i];
+                var  col    = ShotColors[i % ShotColors.Length];
+                var  center = inSim ? aimPoint + s.center : s.center;
+                var  wp     = WorldToWindow(center, origin);
+                bool sel    = (i == selectedIndex);
 
-                var ellCol = new Color(col.r, col.g, col.b, sel ? 0.85f : 0.45f);
-                DrawEllipse(wp, s.semiAxisX * pixelsPerUnit, s.semiAxisY * pixelsPerUnit, ellCol, sel ? 1.5f : 1f);
+                var ellCol = new Color(col.r, col.g, col.b, inSim ? 0.55f : (sel ? 0.85f : 0.45f));
+                DrawEllipse(wp, s.semiAxisX * pixelsPerUnit, s.semiAxisY * pixelsPerUnit, ellCol, inSim ? ellipseThickness : (sel ? ellipseThickness * 1.5f : ellipseThickness));
 
-                if (sel)
+                if (!inSim && sel)
                 {
-                    var hRight = WorldToWindow(new Vector2(s.center.x + s.semiAxisX, s.center.y), origin);
-                    var hTop   = WorldToWindow(new Vector2(s.center.x, s.center.y + s.semiAxisY), origin);
-                    DrawLine(wp, hRight, new Color(1f, 1f, 1f, 0.35f));
-                    DrawLine(wp, hTop,   new Color(1f, 1f, 1f, 0.35f));
+                    var hRight = WorldToWindow(new Vector2(center.x + s.semiAxisX, center.y), origin);
+                    var hTop   = WorldToWindow(new Vector2(center.x, center.y + s.semiAxisY), origin);
+                    DrawLine(wp, hRight, new Color(col.r, col.g, col.b, 0.35f));
+                    DrawLine(wp, hTop,   new Color(col.r, col.g, col.b, 0.35f));
                     DrawFilledSquare(hRight, HandleHalfSize, col);
                     DrawFilledSquare(hTop,   HandleHalfSize, col);
                     DrawCircle(hRight, HandleHalfSize + 1f, col, 1f);
                     DrawCircle(hTop,   HandleHalfSize + 1f, col, 1f);
                 }
 
-                DrawCircle(wp, ShotRadius, sel ? Color.white : col, sel ? 2f : 1.5f);
+                DrawCircle(wp, ShotRadius, col, sel && !inSim ? 2f : 1.5f);
 
-                // Move gizmo — only for selected non-locked shot
-                if (sel && i > 0)
-                    DrawMoveGizmo(wp, Color.white);
+                if (!inSim && sel && (i > 0 || rebaseMode))
+                    DrawMoveGizmo(wp, col);
             }
         }
 
@@ -443,16 +606,89 @@ namespace CrimsonDraft.Editor
 
         private void DrawShotLabels(Vector2 origin)
         {
+            bool hasPrev = scatterDots.Count > 0;
+            if (simState == SimState.WaitingForAimPoint && !hasPrev) return;
+            bool inSim = simState == SimState.Playing || simState == SimState.Done
+                         || (simState == SimState.WaitingForAimPoint && hasPrev);
             for (int i = 0; i < shots.Count; i++)
             {
-                var wp = WorldToWindow(shots[i].center, origin);
-                GUI.Label(new Rect(wp.x - 8f, wp.y - 8f, 16f, 16f), i.ToString(), LabelStyle);
+                var center = inSim ? aimPoint + shots[i].center : shots[i].center;
+                var wp     = WorldToWindow(center, origin);
+                GUI.Label(new Rect(wp.x - 10f, wp.y - 10f, 20f, 20f), i.ToString(), LabelStyle);
             }
+        }
+
+        private void DrawRebaseBanner(Rect canvasRect)
+        {
+            if (!rebaseMode) return;
+            var bannerRect = new Rect(canvasRect.x, canvasRect.yMax - 30f, canvasRect.width, 22f);
+            EditorGUI.DrawRect(bannerRect, new Color(0f, 0f, 0f, 0.6f));
+            GUI.Label(bannerRect, "Modo rebase — arrastra #0 para reposicionar todos | Salir para normalizar", new GUIStyle(EditorStyles.centeredGreyMiniLabel)
+            {
+                fontSize  = 11,
+                fontStyle = FontStyle.Bold,
+                normal    = { textColor = new Color(1f, 0.65f, 0.1f) },
+            });
+        }
+
+        private void DrawAimCursor(Rect canvasRect, Vector2 origin)
+        {
+            if (simState != SimState.WaitingForAimPoint) return;
+
+            // Instruction banner
+            var bannerRect = new Rect(canvasRect.x, canvasRect.y + 8f, canvasRect.width, 22f);
+            EditorGUI.DrawRect(bannerRect, new Color(0f, 0f, 0f, 0.55f));
+            GUI.Label(bannerRect, "Haz clic donde apuntaría el jugador", new GUIStyle(EditorStyles.centeredGreyMiniLabel)
+            {
+                fontSize  = 11,
+                fontStyle = FontStyle.Bold,
+                normal    = { textColor = new Color(1f, 0.85f, 0.3f) },
+            });
+
+            // Crosshair at mouse position
+            var mp = Event.current.mousePosition;
+            if (!canvasRect.Contains(mp)) return;
+
+            const float arm = 14f;
+            const float gap =  4f;
+            var col = new Color(1f, 0.85f, 0.3f, 0.9f);
+
+            Handles.BeginGUI();
+            DrawLine(new Vector2(mp.x - arm, mp.y), new Vector2(mp.x - gap, mp.y), col, 1.5f);
+            DrawLine(new Vector2(mp.x + gap, mp.y), new Vector2(mp.x + arm, mp.y), col, 1.5f);
+            DrawLine(new Vector2(mp.x, mp.y - arm), new Vector2(mp.x, mp.y - gap), col, 1.5f);
+            DrawLine(new Vector2(mp.x, mp.y + gap), new Vector2(mp.x, mp.y + arm), col, 1.5f);
+            DrawCircle(mp, gap + 1f, col, 1f);
+            Handles.EndGUI();
         }
 
         private void ProcessCanvasEvents(Rect canvasRect, Vector2 origin)
         {
             var e = Event.current;
+
+            // While waiting for the player to pick an aim point, intercept all canvas clicks
+            if (simState == SimState.WaitingForAimPoint)
+            {
+                if (canvasRect.Contains(e.mousePosition))
+                {
+                    // Keep the canvas repainting so the crosshair cursor updates
+                    if (e.type == EventType.MouseMove || e.type == EventType.MouseDrag)
+                        Repaint();
+
+                    if (e.type == EventType.MouseDown && e.button == 0)
+                    {
+                        scatterDots.Clear();
+                        aimPoint     = WindowToWorld(e.mousePosition, origin);
+                        simShotIndex = 0;
+                        lastShotTime = EditorApplication.timeSinceStartup - simDelay;
+                        simState     = SimState.Playing;
+                        e.Use();
+                        Repaint();
+                    }
+                }
+                return;
+            }
+
             if (!canvasRect.Contains(e.mousePosition)) return;
 
             switch (e.type)
@@ -511,8 +747,8 @@ namespace CrimsonDraft.Editor
                     return;
                 }
 
-                // Priority 2: move gizmo of selected shot (index > 0 only)
-                if (selectedIndex > 0)
+                // Priority 2: move gizmo (index > 0 always; index 0 only in rebase mode)
+                if (selectedIndex > 0 || rebaseMode)
                 {
                     var wp = WorldToWindow(s.center, origin);
                     if (Vector2.Distance(mousePos, wp) <= MoveGizmoHitRadius)
@@ -521,6 +757,12 @@ namespace CrimsonDraft.Editor
                         dragShotIndex  = selectedIndex;
                         dragStartMouse = mousePos;
                         dragStartValue = s.center;
+                        if (rebaseMode && selectedIndex == 0)
+                        {
+                            rebaseDragStartPositions = new Vector2[shots.Count];
+                            for (int k = 0; k < shots.Count; k++)
+                                rebaseDragStartPositions[k] = shots[k].center;
+                        }
                         return;
                     }
                 }
@@ -547,11 +789,24 @@ namespace CrimsonDraft.Editor
 
             if (dragging == DragTarget.ShotCenter)
             {
-                var s    = shots[dragShotIndex];
-                s.center = new Vector2(
-                    dragStartValue.x + delta.x / pixelsPerUnit,
-                    dragStartValue.y - delta.y / pixelsPerUnit);
-                shots[dragShotIndex] = s;
+                if (rebaseMode && dragShotIndex == 0 && rebaseDragStartPositions.Length == shots.Count)
+                {
+                    var worldDelta = new Vector2(delta.x / pixelsPerUnit, -delta.y / pixelsPerUnit);
+                    for (int k = 0; k < shots.Count; k++)
+                    {
+                        var s = shots[k];
+                        s.center = rebaseDragStartPositions[k] + worldDelta;
+                        shots[k] = s;
+                    }
+                }
+                else
+                {
+                    var s    = shots[dragShotIndex];
+                    s.center = new Vector2(
+                        dragStartValue.x + delta.x / pixelsPerUnit,
+                        dragStartValue.y - delta.y / pixelsPerUnit);
+                    shots[dragShotIndex] = s;
+                }
             }
             else if (dragging == DragTarget.HandleRight)
             {
@@ -580,17 +835,17 @@ namespace CrimsonDraft.Editor
 
             if (simShotIndex >= shots.Count)
             {
-                simState = SimState.Done;
+                simState = SimState.WaitingForAimPoint;
                 Repaint();
                 return;
             }
 
-            var point = BurstPatternData.SamplePoint(shots[simShotIndex]);
+            var point = aimPoint + BurstPatternData.SamplePoint(shots[simShotIndex]);
             scatterDots.Add((simShotIndex, point));
             simShotIndex++;
 
             if (simShotIndex >= shots.Count)
-                simState = SimState.Done;
+                simState = SimState.WaitingForAimPoint;
 
             Repaint();
         }
@@ -661,7 +916,7 @@ namespace CrimsonDraft.Editor
                 shots.Add(new BurstShotEntry { center = Vector2.zero, semiAxisX = DefaultSemiAxisX, semiAxisY = DefaultSemiAxisY });
 
             var s0 = shots[0];
-            s0.center    = Vector2.zero;
+            if (!rebaseMode) s0.center = Vector2.zero;
             s0.semiAxisX = Mathf.Max(MinSemiAxis, s0.semiAxisX);
             s0.semiAxisY = Mathf.Max(MinSemiAxis, s0.semiAxisY);
             shots[0] = s0;
@@ -673,6 +928,19 @@ namespace CrimsonDraft.Editor
                 s.semiAxisY = Mathf.Max(MinSemiAxis, s.semiAxisY);
                 shots[i] = s;
             }
+        }
+
+        private void ExitRebaseMode()
+        {
+            var offset = shots[0].center;
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var s = shots[i];
+                s.center -= offset;
+                shots[i] = s;
+            }
+            rebaseMode = false;
+            MarkDirty();
         }
 
         private void MarkDirty()
