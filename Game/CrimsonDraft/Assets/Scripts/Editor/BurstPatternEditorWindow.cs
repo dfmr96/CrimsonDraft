@@ -42,8 +42,9 @@ namespace CrimsonDraft.Editor
         private Vector2              shotListScrollPos;
 
         // ── State — canvas ─────────────────────────────────────────────
-        private float pixelsPerUnit = 8f;
-        private int   selectedIndex = -1;
+        private float   pixelsPerUnit = 8f;
+        private int     selectedIndex = -1;
+        private Vector2 canvasOffset  = Vector2.zero;
 
         // ── State — drag ───────────────────────────────────────────────
         private enum DragTarget { None, ShotCenter, HandleRight, HandleTop }
@@ -246,6 +247,7 @@ namespace CrimsonDraft.Editor
             asset         = newAsset;
             selectedIndex = -1;
             simState      = SimState.Idle;
+            canvasOffset  = Vector2.zero;
             shots.Clear();
             scatterDots.Clear();
 
@@ -291,8 +293,8 @@ namespace CrimsonDraft.Editor
             EditorGUI.DrawRect(canvasRect, new Color(0.15f, 0.15f, 0.15f));
 
             var origin = new Vector2(
-                canvasRect.x + canvasRect.width  / 2f,
-                canvasRect.y + canvasRect.height / 2f);
+                canvasRect.x + canvasRect.width  / 2f + canvasOffset.x,
+                canvasRect.y + canvasRect.height / 2f + canvasOffset.y);
 
             HandleZoom(canvasRect);
 
@@ -412,6 +414,12 @@ namespace CrimsonDraft.Editor
                 case EventType.MouseDown when e.button == 0:
                     HandleMouseDown(e.mousePosition, origin);
                     e.Use();
+                    break;
+
+                case EventType.MouseDrag when e.button == 2:
+                    canvasOffset += e.delta;
+                    e.Use();
+                    Repaint();
                     break;
 
                 case EventType.MouseDrag when e.button == 0 && dragging != DragTarget.None:
