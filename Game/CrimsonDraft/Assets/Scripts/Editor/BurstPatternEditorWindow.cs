@@ -345,7 +345,109 @@ namespace CrimsonDraft.Editor
             }
         }
 
-        private void ProcessCanvasEvents(Rect canvasRect, Vector2 origin) { }
+        private void ProcessCanvasEvents(Rect canvasRect, Vector2 origin)
+        {
+            var e = Event.current;
+            if (!canvasRect.Contains(e.mousePosition)) return;
+
+            switch (e.type)
+            {
+                case EventType.MouseDown when e.button == 0:
+                    HandleMouseDown(e.mousePosition, origin);
+                    e.Use();
+                    break;
+
+                case EventType.MouseDrag when e.button == 0 && dragging != DragTarget.None:
+                    HandleMouseDrag(e.mousePosition);
+                    e.Use();
+                    Repaint();
+                    break;
+
+                case EventType.MouseUp when e.button == 0:
+                    if (dragging != DragTarget.None)
+                    {
+                        dragging = DragTarget.None;
+                        MarkDirty();
+                    }
+                    e.Use();
+                    break;
+            }
+        }
+
+        private void HandleMouseDown(Vector2 mousePos, Vector2 origin)
+        {
+            // Priority 1: handles of the selected shot
+            if (selectedIndex >= 0 && selectedIndex < shots.Count)
+            {
+                var s      = shots[selectedIndex];
+                var hRight = WorldToWindow(new Vector2(s.center.x + s.semiAxisX, s.center.y), origin);
+                var hTop   = WorldToWindow(new Vector2(s.center.x, s.center.y + s.semiAxisY), origin);
+
+                if (Vector2.Distance(mousePos, hRight) <= HandleHitRadius)
+                {
+                    dragging       = DragTarget.HandleRight;
+                    dragShotIndex  = selectedIndex;
+                    dragStartMouse = mousePos;
+                    dragStartValue = new Vector2(s.semiAxisX, 0f);
+                    return;
+                }
+                if (Vector2.Distance(mousePos, hTop) <= HandleHitRadius)
+                {
+                    dragging       = DragTarget.HandleTop;
+                    dragShotIndex  = selectedIndex;
+                    dragStartMouse = mousePos;
+                    dragStartValue = new Vector2(0f, s.semiAxisY);
+                    return;
+                }
+            }
+
+            // Priority 2: shot circles
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var wp = WorldToWindow(shots[i].center, origin);
+                if (Vector2.Distance(mousePos, wp) > ShotHitRadius) continue;
+
+                selectedIndex = i;
+                if (i > 0)
+                {
+                    dragging       = DragTarget.ShotCenter;
+                    dragShotIndex  = i;
+                    dragStartMouse = mousePos;
+                    dragStartValue = shots[i].center;
+                }
+                Repaint();
+                return;
+            }
+
+            selectedIndex = -1;
+            Repaint();
+        }
+
+        private void HandleMouseDrag(Vector2 mousePos)
+        {
+            var delta = mousePos - dragStartMouse;
+
+            if (dragging == DragTarget.ShotCenter)
+            {
+                var s    = shots[dragShotIndex];
+                s.center = new Vector2(
+                    dragStartValue.x + delta.x / pixelsPerUnit,
+                    dragStartValue.y - delta.y / pixelsPerUnit);
+                shots[dragShotIndex] = s;
+            }
+            else if (dragging == DragTarget.HandleRight)
+            {
+                var s       = shots[dragShotIndex];
+                s.semiAxisX = Mathf.Max(MinSemiAxis, dragStartValue.x + delta.x / pixelsPerUnit);
+                shots[dragShotIndex] = s;
+            }
+            else if (dragging == DragTarget.HandleTop)
+            {
+                var s       = shots[dragShotIndex];
+                s.semiAxisY = Mathf.Max(MinSemiAxis, dragStartValue.y - delta.y / pixelsPerUnit);
+                shots[dragShotIndex] = s;
+            }
+        }
 
         // ── Simulation tick (stub) ─────────────────────────────────────
 
