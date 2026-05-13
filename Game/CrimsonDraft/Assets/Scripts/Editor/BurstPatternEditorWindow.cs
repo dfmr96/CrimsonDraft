@@ -95,12 +95,143 @@ namespace CrimsonDraft.Editor
             }
         }
 
-        // ── Left panel (stub) ──────────────────────────────────────────
+        // ── Left panel ─────────────────────────────────────────────────
 
         private void DrawLeftPanel()
         {
             using var _ = new EditorGUILayout.VerticalScope(GUILayout.Width(LeftPanelWidth));
-            EditorGUILayout.LabelField("Burst Pattern Editor", EditorStyles.boldLabel);
+
+            EditorGUILayout.Space(4);
+
+            var newAsset = (BurstPatternData?)EditorGUILayout.ObjectField(
+                "Pattern Asset", asset, typeof(BurstPatternData), allowSceneObjects: false);
+            if (newAsset != asset)
+                LoadAsset(newAsset);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("New Pattern"))
+                    CreateNewAsset();
+                GUI.enabled = asset != null;
+                if (GUILayout.Button("Save"))
+                    SaveAsset();
+                GUI.enabled = true;
+            }
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("Disparos", EditorStyles.boldLabel);
+
+            shotListScrollPos = EditorGUILayout.BeginScrollView(shotListScrollPos, GUILayout.Height(180));
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var  s     = shots[i];
+                bool isSel = (i == selectedIndex);
+                var  style = isSel ? EditorStyles.helpBox : EditorStyles.label;
+                var  label = i == 0
+                    ? $"#0  (locked)  a={s.semiAxisX:F1} b={s.semiAxisY:F1}"
+                    : $"#{i}  ({s.center.x:F1},{s.center.y:F1})  a={s.semiAxisX:F1} b={s.semiAxisY:F1}";
+
+                if (GUILayout.Button(label, style))
+                {
+                    selectedIndex = i;
+                    Repaint();
+                }
+            }
+            EditorGUILayout.EndScrollView();
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("+ Agregar Disparo"))
+                {
+                    shots.Add(new BurstShotEntry
+                    {
+                        center    = Vector2.zero,
+                        semiAxisX = DefaultSemiAxisX,
+                        semiAxisY = DefaultSemiAxisY,
+                    });
+                    selectedIndex = shots.Count - 1;
+                    MarkDirty();
+                    Repaint();
+                }
+
+                GUI.enabled = shots.Count > 1;
+                if (GUILayout.Button("− Eliminar Último"))
+                {
+                    shots.RemoveAt(shots.Count - 1);
+                    if (selectedIndex >= shots.Count)
+                        selectedIndex = shots.Count - 1;
+                    MarkDirty();
+                    Repaint();
+                }
+                GUI.enabled = true;
+            }
+
+            EditorGUILayout.Space(12);
+            EditorGUILayout.LabelField("Simulación", EditorStyles.boldLabel);
+
+            simDelay = EditorGUILayout.Slider("Delay (s)", simDelay, 0.05f, 2.0f);
+
+            string btnLabel = simState == SimState.Playing ? "Detener" : "Probar Ráfaga";
+            if (GUILayout.Button(btnLabel))
+            {
+                if (simState == SimState.Playing)
+                {
+                    simState = SimState.Idle;
+                }
+                else
+                {
+                    scatterDots.Clear();
+                    simShotIndex = 0;
+                    lastShotTime = EditorApplication.timeSinceStartup - simDelay;
+                    simState     = SimState.Playing;
+                }
+            }
+
+            if (GUILayout.Button("Limpiar Resultados"))
+            {
+                scatterDots.Clear();
+                simState = SimState.Idle;
+                Repaint();
+            }
+        }
+
+        private void LoadAsset(BurstPatternData? newAsset)
+        {
+            asset         = newAsset;
+            selectedIndex = -1;
+            simState      = SimState.Idle;
+            shots.Clear();
+            scatterDots.Clear();
+
+            if (asset != null)
+                shots.AddRange(asset.Shots);
+            else
+                shots.Add(new BurstShotEntry { center = Vector2.zero, semiAxisX = DefaultSemiAxisX, semiAxisY = DefaultSemiAxisY });
+
+            EnforceConstraints();
+            Repaint();
+        }
+
+        private void SaveAsset()
+        {
+            if (asset == null) return;
+            EnforceConstraints();
+            asset.SetShots(shots.ToArray());
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+        }
+
+        private void CreateNewAsset()
+        {
+            var path = EditorUtility.SaveFilePanelInProject(
+                "New Burst Pattern", "BurstPattern", "asset",
+                "Choose location for the new Burst Pattern asset");
+            if (string.IsNullOrEmpty(path)) return;
+
+            var newAsset = CreateInstance<BurstPatternData>();
+            AssetDatabase.CreateAsset(newAsset, path);
+            AssetDatabase.SaveAssets();
+            LoadAsset(newAsset);
         }
 
         // ── Canvas panel (stub) ────────────────────────────────────────
