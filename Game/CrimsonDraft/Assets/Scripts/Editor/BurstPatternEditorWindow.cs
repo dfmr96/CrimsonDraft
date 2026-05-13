@@ -234,13 +234,118 @@ namespace CrimsonDraft.Editor
             LoadAsset(newAsset);
         }
 
-        // ── Canvas panel (stub) ────────────────────────────────────────
+        // ── Canvas panel ───────────────────────────────────────────────
 
         private void DrawCanvasPanel()
         {
-            var canvasRect = GUILayoutUtility.GetRect(0, 0, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            var canvasRect = GUILayoutUtility.GetRect(0, 0,
+                GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            if (canvasRect.width < 1 || canvasRect.height < 1) return;
+
             EditorGUI.DrawRect(canvasRect, new Color(0.15f, 0.15f, 0.15f));
+
+            var origin = new Vector2(
+                canvasRect.x + canvasRect.width  / 2f,
+                canvasRect.y + canvasRect.height / 2f);
+
+            HandleZoom(canvasRect);
+
+            Handles.BeginGUI();
+            DrawGrid(canvasRect, origin);
+            DrawScatterDots(origin);
+            DrawShots(origin);
+            Handles.EndGUI();
+
+            DrawShotLabels(origin);
+
+            ProcessCanvasEvents(canvasRect, origin);
         }
+
+        private void HandleZoom(Rect canvasRect)
+        {
+            var e = Event.current;
+            if (e.type != EventType.ScrollWheel) return;
+            if (!canvasRect.Contains(e.mousePosition)) return;
+            pixelsPerUnit = Mathf.Clamp(pixelsPerUnit - e.delta.y * 0.4f, MinPPU, MaxPPU);
+            e.Use();
+            Repaint();
+        }
+
+        private void DrawGrid(Rect canvasRect, Vector2 origin)
+        {
+            float wLeft   = (canvasRect.xMin - origin.x) / pixelsPerUnit;
+            float wRight  = (canvasRect.xMax - origin.x) / pixelsPerUnit;
+            float wBottom = -(canvasRect.yMax - origin.y) / pixelsPerUnit;
+            float wTop    = -(canvasRect.yMin - origin.y) / pixelsPerUnit;
+
+            var minorColor = new Color(0.25f, 0.25f, 0.25f);
+            var majorColor = new Color(0.35f, 0.35f, 0.35f);
+            var axisColor  = new Color(0.55f, 0.55f, 0.55f);
+
+            for (int wx = Mathf.FloorToInt(wLeft); wx <= Mathf.CeilToInt(wRight); wx++)
+            {
+                float px = origin.x + wx * pixelsPerUnit;
+                var   c  = wx == 0 ? axisColor : (wx % 5 == 0 ? majorColor : minorColor);
+                DrawLine(new Vector2(px, canvasRect.yMin), new Vector2(px, canvasRect.yMax), c);
+            }
+
+            for (int wy = Mathf.FloorToInt(wBottom); wy <= Mathf.CeilToInt(wTop); wy++)
+            {
+                float py = origin.y - wy * pixelsPerUnit;
+                var   c  = wy == 0 ? axisColor : (wy % 5 == 0 ? majorColor : minorColor);
+                DrawLine(new Vector2(canvasRect.xMin, py), new Vector2(canvasRect.xMax, py), c);
+            }
+        }
+
+        private void DrawShots(Vector2 origin)
+        {
+            EnforceConstraints();
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var  s   = shots[i];
+                var  col = ShotColors[i % ShotColors.Length];
+                var  wp  = WorldToWindow(s.center, origin);
+                bool sel = (i == selectedIndex);
+
+                var ellCol = new Color(col.r, col.g, col.b, sel ? 0.85f : 0.45f);
+                DrawEllipse(wp, s.semiAxisX * pixelsPerUnit, s.semiAxisY * pixelsPerUnit, ellCol, sel ? 1.5f : 1f);
+
+                if (sel)
+                {
+                    var hRight = WorldToWindow(new Vector2(s.center.x + s.semiAxisX, s.center.y), origin);
+                    var hTop   = WorldToWindow(new Vector2(s.center.x, s.center.y + s.semiAxisY), origin);
+                    DrawLine(wp, hRight, new Color(1f, 1f, 1f, 0.35f));
+                    DrawLine(wp, hTop,   new Color(1f, 1f, 1f, 0.35f));
+                    DrawFilledSquare(hRight, HandleHalfSize, col);
+                    DrawFilledSquare(hTop,   HandleHalfSize, col);
+                    DrawCircle(hRight, HandleHalfSize + 1f, col, 1f);
+                    DrawCircle(hTop,   HandleHalfSize + 1f, col, 1f);
+                }
+
+                DrawCircle(wp, ShotRadius, sel ? Color.white : col, sel ? 2f : 1.5f);
+            }
+        }
+
+        private void DrawScatterDots(Vector2 origin)
+        {
+            foreach (var (idx, pos) in scatterDots)
+            {
+                var col = ShotColors[idx % ShotColors.Length];
+                col.a = 0.8f;
+                DrawFilledSquare(WorldToWindow(pos, origin), ScatterHalfSize, col);
+            }
+        }
+
+        private void DrawShotLabels(Vector2 origin)
+        {
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var wp = WorldToWindow(shots[i].center, origin);
+                GUI.Label(new Rect(wp.x - 8f, wp.y - 8f, 16f, 16f), i.ToString(), LabelStyle);
+            }
+        }
+
+        private void ProcessCanvasEvents(Rect canvasRect, Vector2 origin) { }
 
         // ── Simulation tick (stub) ─────────────────────────────────────
 
