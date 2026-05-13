@@ -42,9 +42,11 @@ namespace CrimsonDraft.Editor
         private Vector2              shotListScrollPos;
 
         // ── State — canvas ─────────────────────────────────────────────
-        private float   pixelsPerUnit = 8f;
-        private int     selectedIndex = -1;
-        private Vector2 canvasOffset  = Vector2.zero;
+        private float   pixelsPerUnit      = 8f;
+        private int     selectedIndex      = -1;
+        private Vector2 canvasOffset       = Vector2.zero;
+        private Sprite? referenceSprite    = null;
+        private float   referenceSpriteAlpha = 0.4f;
 
         // ── State — drag ───────────────────────────────────────────────
         private enum DragTarget { None, ShotCenter, HandleRight, HandleTop }
@@ -122,6 +124,11 @@ namespace CrimsonDraft.Editor
                     SaveAsset();
                 GUI.enabled = true;
             }
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("Silueta de Referencia", EditorStyles.boldLabel);
+            referenceSprite      = (Sprite?)EditorGUILayout.ObjectField(referenceSprite, typeof(Sprite), allowSceneObjects: false);
+            referenceSpriteAlpha = EditorGUILayout.Slider("Alpha", referenceSpriteAlpha, 0f, 1f);
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Disparos", EditorStyles.boldLabel);
@@ -298,6 +305,8 @@ namespace CrimsonDraft.Editor
 
             HandleZoom(canvasRect);
 
+            DrawBackgroundSprite(canvasRect, origin);
+
             Handles.BeginGUI();
             DrawGrid(canvasRect, origin);
             DrawScatterDots(origin);
@@ -307,6 +316,43 @@ namespace CrimsonDraft.Editor
             DrawShotLabels(origin);
 
             ProcessCanvasEvents(canvasRect, origin);
+        }
+
+        private void DrawBackgroundSprite(Rect canvasRect, Vector2 origin)
+        {
+            if (referenceSprite == null) return;
+
+            var   tex      = referenceSprite.texture;
+            var   tr       = referenceSprite.textureRect;
+            float sprPPU   = referenceSprite.pixelsPerUnit;
+            float screenW  = (tr.width  / sprPPU) * pixelsPerUnit;
+            float screenH  = (tr.height / sprPPU) * pixelsPerUnit;
+
+            var screenRect = new Rect(
+                origin.x - screenW / 2f,
+                origin.y - screenH / 2f,
+                screenW,
+                screenH);
+
+            // Clip to canvas bounds
+            screenRect = Rect.MinMaxRect(
+                Mathf.Max(screenRect.xMin, canvasRect.xMin),
+                Mathf.Max(screenRect.yMin, canvasRect.yMin),
+                Mathf.Min(screenRect.xMax, canvasRect.xMax),
+                Mathf.Min(screenRect.yMax, canvasRect.yMax));
+
+            if (screenRect.width <= 0 || screenRect.height <= 0) return;
+
+            var uvRect = new Rect(
+                tr.x      / tex.width,
+                tr.y      / tex.height,
+                tr.width  / tex.width,
+                tr.height / tex.height);
+
+            var prev  = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, referenceSpriteAlpha);
+            GUI.DrawTextureWithTexCoords(screenRect, tex, uvRect, alphaBlend: true);
+            GUI.color = prev;
         }
 
         private void HandleZoom(Rect canvasRect)
