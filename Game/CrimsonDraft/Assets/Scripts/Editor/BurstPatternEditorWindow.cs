@@ -19,8 +19,12 @@ namespace CrimsonDraft.Editor
         private const float DefaultSemiAxisX = 20f;
         private const float DefaultSemiAxisY = 30f;
         private const float MinSemiAxis      = 1f;
-        private const float MinPPU           = 4f;
-        private const float MaxPPU           = 32f;
+        private const float MinPPU            = 4f;
+        private const float MaxPPU            = 32f;
+        private const float MoveGizmoHitRadius = 14f;
+        private const float MoveGizmoArmLen    = 11f;
+        private const float TableColIdx        = 22f;
+        private const float TableColVal        = 47f;
 
         private static readonly Color[] ShotColors = new Color[]
         {
@@ -121,22 +125,64 @@ namespace CrimsonDraft.Editor
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Disparos", EditorStyles.boldLabel);
 
+            // Table
             shotListScrollPos = EditorGUILayout.BeginScrollView(shotListScrollPos, GUILayout.Height(180));
+
+            // Header row
+            var headerRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+            EditorGUI.DrawRect(headerRect, new Color(0.18f, 0.18f, 0.18f));
+            {
+                float hx = headerRect.x + TableColIdx;
+                var hs = EditorStyles.centeredGreyMiniLabel;
+                EditorGUI.LabelField(new Rect(hx, headerRect.y, TableColVal, headerRect.height), "X", hs); hx += TableColVal;
+                EditorGUI.LabelField(new Rect(hx, headerRect.y, TableColVal, headerRect.height), "Y", hs); hx += TableColVal;
+                EditorGUI.LabelField(new Rect(hx, headerRect.y, TableColVal, headerRect.height), "a", hs); hx += TableColVal;
+                EditorGUI.LabelField(new Rect(hx, headerRect.y, TableColVal, headerRect.height), "b", hs);
+            }
+
+            // Data rows
+            float rowH = EditorGUIUtility.singleLineHeight + 2f;
             for (int i = 0; i < shots.Count; i++)
             {
                 var  s     = shots[i];
                 bool isSel = (i == selectedIndex);
-                var  style = isSel ? EditorStyles.helpBox : EditorStyles.label;
-                var  label = i == 0
-                    ? $"#0  (locked)  a={s.semiAxisX:F1} b={s.semiAxisY:F1}"
-                    : $"#{i}  ({s.center.x:F1},{s.center.y:F1})  a={s.semiAxisX:F1} b={s.semiAxisY:F1}";
 
-                if (GUILayout.Button(label, style))
+                var rowRect = EditorGUILayout.GetControlRect(false, rowH);
+
+                if (isSel)
+                    EditorGUI.DrawRect(rowRect, new Color(0.25f, 0.45f, 0.85f, 0.3f));
+
+                // Clicking anywhere on the row selects it (don't consume — let FloatFields also get the event)
+                if (Event.current.type == EventType.MouseDown && rowRect.Contains(Event.current.mousePosition))
                 {
                     selectedIndex = i;
                     Repaint();
                 }
+
+                float cx = rowRect.x;
+                float cy = rowRect.y;
+
+                EditorGUI.LabelField(new Rect(cx, cy, TableColIdx, rowH), $"#{i}");
+                cx += TableColIdx;
+
+                GUI.enabled = (i > 0);
+                EditorGUI.BeginChangeCheck();
+                float nx = EditorGUI.FloatField(new Rect(cx, cy, TableColVal, rowH), s.center.x);   cx += TableColVal;
+                float ny = EditorGUI.FloatField(new Rect(cx, cy, TableColVal, rowH), s.center.y);   cx += TableColVal;
+                GUI.enabled = true;
+                float na = EditorGUI.FloatField(new Rect(cx, cy, TableColVal, rowH), s.semiAxisX);  cx += TableColVal;
+                float nb = EditorGUI.FloatField(new Rect(cx, cy, TableColVal, rowH), s.semiAxisY);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (i > 0) s.center = new Vector2(nx, ny);
+                    s.semiAxisX = Mathf.Max(MinSemiAxis, na);
+                    s.semiAxisY = Mathf.Max(MinSemiAxis, nb);
+                    shots[i] = s;
+                    MarkDirty();
+                    Repaint();
+                }
             }
+
             EditorGUILayout.EndScrollView();
 
             using (new EditorGUILayout.HorizontalScope())
@@ -323,7 +369,18 @@ namespace CrimsonDraft.Editor
                 }
 
                 DrawCircle(wp, ShotRadius, sel ? Color.white : col, sel ? 2f : 1.5f);
+
+                // Move gizmo — only for selected non-locked shot
+                if (sel && i > 0)
+                    DrawMoveGizmo(wp, Color.white);
             }
+        }
+
+        private static void DrawMoveGizmo(Vector2 center, Color color)
+        {
+            DrawLine(center + new Vector2(-MoveGizmoArmLen, 0), center + new Vector2(MoveGizmoArmLen, 0), color, 2f);
+            DrawLine(center + new Vector2(0, -MoveGizmoArmLen), center + new Vector2(0, MoveGizmoArmLen), color, 2f);
+            DrawFilledSquare(center, 3f, color);
         }
 
         private void DrawScatterDots(Vector2 origin)
@@ -376,7 +433,7 @@ namespace CrimsonDraft.Editor
 
         private void HandleMouseDown(Vector2 mousePos, Vector2 origin)
         {
-            // Priority 1: handles of the selected shot
+            // Priority 1: ellipse handles of the selected shot
             if (selectedIndex >= 0 && selectedIndex < shots.Count)
             {
                 var s      = shots[selectedIndex];
@@ -399,22 +456,29 @@ namespace CrimsonDraft.Editor
                     dragStartValue = new Vector2(0f, s.semiAxisY);
                     return;
                 }
+
+                // Priority 2: move gizmo of selected shot (index > 0 only)
+                if (selectedIndex > 0)
+                {
+                    var wp = WorldToWindow(s.center, origin);
+                    if (Vector2.Distance(mousePos, wp) <= MoveGizmoHitRadius)
+                    {
+                        dragging       = DragTarget.ShotCenter;
+                        dragShotIndex  = selectedIndex;
+                        dragStartMouse = mousePos;
+                        dragStartValue = s.center;
+                        return;
+                    }
+                }
             }
 
-            // Priority 2: shot circles
+            // Priority 3: any shot circle → selection only, no drag
             for (int i = 0; i < shots.Count; i++)
             {
                 var wp = WorldToWindow(shots[i].center, origin);
                 if (Vector2.Distance(mousePos, wp) > ShotHitRadius) continue;
 
                 selectedIndex = i;
-                if (i > 0)
-                {
-                    dragging       = DragTarget.ShotCenter;
-                    dragShotIndex  = i;
-                    dragStartMouse = mousePos;
-                    dragStartValue = shots[i].center;
-                }
                 Repaint();
                 return;
             }
