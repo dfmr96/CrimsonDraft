@@ -61,9 +61,6 @@ namespace CrimsonDraft.Navigation
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
                    .AsImplementedInterfaces();
-
-            foreach (var door in FindObjectsOfType<RoomDoorInteractable>(true))
-                builder.RegisterComponent(door);
         }
     }
 }

@@ -7,7 +7,8 @@ namespace CrimsonDraft.Navigation.Rooms
 {
     public sealed class DoorTransitionController : MonoBehaviour
     {
-        [SerializeField] private float animationTimeout = 5f;
+        [SerializeField] private float      animationTimeout = 5f;
+        [SerializeField] private GameObject? defaultDoorPrefab;
 
         private RoomTransitionContext? context;
         private bool completed;
@@ -22,25 +23,30 @@ namespace CrimsonDraft.Navigation.Rooms
                 return;
             }
 
-            if (this.context.DoorPrefab == null)
+            var prefab = this.context.DoorPrefab ?? this.defaultDoorPrefab;
+
+            if (prefab == null)
             {
-                Debug.LogError("[DoorTransitionController] DoorPrefab is null — calling NotifyComplete immediately.");
+                Debug.LogWarning("[DoorTransitionController] No door prefab — completing transition immediately.");
                 this.context.NotifyComplete();
                 return;
             }
 
-            var door = Instantiate(this.context.DoorPrefab, transform);
+            var door = Instantiate(prefab, transform);
             door.transform.localPosition = Vector3.zero;
             door.transform.localRotation = Quaternion.identity;
 
-            var animator = door.GetComponent<Animator>();
+            var animator = door.GetComponentInChildren<Animator>();
             if (animator != null)
+            {
+                animator.gameObject.AddComponent<DoorAnimationRelay>().Init(this);
                 animator.Play(0);
+            }
 
             StartCoroutine(TimeoutFallback());
         }
 
-        public void OnAnimationComplete()
+        internal void OnAnimationComplete()
         {
             if (this.completed) return;
             this.completed = true;

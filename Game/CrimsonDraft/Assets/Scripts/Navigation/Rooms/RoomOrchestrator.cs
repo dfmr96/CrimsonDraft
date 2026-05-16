@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Rooms
@@ -69,6 +70,9 @@ namespace CrimsonDraft.Navigation.Rooms
             }
 
             this.currentRoom = active;
+
+            foreach (var door in Object.FindObjectsOfType<RoomDoorInteractable>(true))
+                door.Construct(this);
         }
 
         public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
