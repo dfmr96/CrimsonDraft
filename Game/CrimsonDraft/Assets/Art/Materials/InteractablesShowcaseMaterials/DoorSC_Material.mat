@@ -1,18 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-529114216771561681
-MonoBehaviour:
-  m_ObjectHideFlags: 11
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
-  version: 10
 --- !u!21 &2100000
 Material:
   serializedVersion: 8
@@ -20,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Triplanar_Black
+  m_Name: DoorSC_Material
   m_Shader: {fileID: 4800000, guid: 055eab4e84dc70a47ae75b3125a22de6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -32,40 +19,23 @@ Material:
   - _SHADING_EVALUATION_MODE_PER_VERTEX
   - _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS
   m_InvalidKeywords: []
-  m_LightmapFlags: 6
+  m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: 2000
   stringTagMap:
     RenderType: Opaque
-  disabledShaderPasses:
-  - MOTIONVECTORS
+  disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _AlphaTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _EmissionTexture:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTexture:
-        m_Texture: {fileID: 2800000, guid: 5c4f62dda14f6a8409abd93d35e78032, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MaskTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _NormalMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: a2e32bd6d71ed84468fc30395fd6fce6, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ReflectionCubemap:
@@ -76,25 +46,13 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - unity_Lightmaps:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_LightmapsInd:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_ShadowMasks:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _AffineTextureWarpingWeight: 1
     - _AlphaClip: 0
     - _AlphaClippingDitherIsEnabled: 0
     - _BRDFMode: 0
-    - _Blend: 1
+    - _Blend: 0
     - _BlendOp: 0
     - _ColorMask: 15
     - _Cull: 2
@@ -102,7 +60,6 @@ Material:
     - _DrawDistanceOverrideMode: 0
     - _DstBlend: 0
     - _EmissionBakedMultiplier: 1
-    - _EnableExternalAlpha: 0
     - _FogWeight: 1
     - _LightingBaked: 1
     - _LightingDynamic: 1
@@ -110,8 +67,6 @@ Material:
     - _PrecisionColorOverrideMode: 0
     - _PrecisionGeometryOverrideMode: 0
     - _PrecisionGeometryWeight: 1
-    - _QueueControl: 0
-    - _QueueOffset: 0
     - _Reflection: 0
     - _ReflectionBlendMode: 0
     - _ReflectionDirectionMode: 0
@@ -120,22 +75,19 @@ Material:
     - _SrcBlend: 1
     - _Surface: 0
     - _TextureFilterMode: 0
-    - _Tiling: 1
     - _UVAnimationMode: 0
     - _VertexColorBlendMode: 0
     - _VertexColorMode: 0
     - _ZWrite: 1
     m_Colors:
     - _AlphaClippingScaleBiasMinMax: {r: 1, g: 0, b: 0, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DoubleSidedConstants: {r: 1, g: 1, b: 1, a: 0}
     - _DrawDistanceOverride: {r: 100, g: 10000, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
-    - _MainColor: {r: 0.4245283, g: 0.4245283, b: 0.4245283, a: 1}
+    - _MainColor: {r: 0.34680167, g: 1, b: 0.23113209, a: 1}
     - _PrecisionColorOverrideParameters: {r: 0, g: 0, b: 0, a: 0}
     - _PrecisionGeometryOverrideParameters: {r: 0, g: 0, b: 0, a: 0}
     - _ReflectionColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _UVAnimationParameters: {r: 1, g: 1, b: 0, a: 0}
     - _UVAnimationParametersFrameLimit: {r: 0, g: 60, b: 0, a: 0}
   m_BuildTextureStacks: []
