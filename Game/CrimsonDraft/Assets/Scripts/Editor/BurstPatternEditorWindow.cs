@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using CrimsonDraft.Combat;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Editor
 {

@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-namespace CrimsonDraft.Combat
+namespace CrimsonDraft.Inventory
 {
     [Serializable]
     public struct BurstShotEntry
@@ -13,7 +13,7 @@ namespace CrimsonDraft.Combat
         public float   semiAxisY;
     }
 
-    [CreateAssetMenu(fileName = "BurstPattern", menuName = "CrimsonDraft/Combat/Burst Pattern")]
+    [CreateAssetMenu(fileName = "BurstPattern", menuName = "CrimsonDraft/Inventory/Burst Pattern")]
     public sealed class BurstPatternData : ScriptableObject
     {
         [SerializeField] private BurstShotEntry[] shots = new[]
