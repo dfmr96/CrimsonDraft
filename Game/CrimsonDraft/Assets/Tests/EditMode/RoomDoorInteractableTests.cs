@@ -90,9 +90,9 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(prefab, orchestrator.LastDoorPrefab,
                 "should pass the configured door prefab");
 
-            Object.DestroyImmediate(door.gameObject);
-            Object.DestroyImmediate(destination.gameObject);
-            Object.DestroyImmediate(prefab);
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
         }
 
         [Test]
@@ -110,9 +110,9 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual("door_locked", dialogue.LastNodeName);
             Assert.IsNull(orchestrator.LastDestination, "must not transition when locked with no key");
 
-            Object.DestroyImmediate(door.gameObject);
-            Object.DestroyImmediate(destination.gameObject);
-            Object.DestroyImmediate(prefab);
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
         }
 
         [Test]
@@ -132,9 +132,9 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual("door_locked", dialogue.LastNodeName);
             Assert.IsNull(orchestrator.LastDestination);
 
-            Object.DestroyImmediate(door.gameObject);
-            Object.DestroyImmediate(destination.gameObject);
-            Object.DestroyImmediate(prefab);
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
         }
 
         [Test]
@@ -158,9 +158,9 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(destination, orchestrator.LastDestination,
                 "must transition after dialogue completes");
 
-            Object.DestroyImmediate(door.gameObject);
-            Object.DestroyImmediate(destination.gameObject);
-            Object.DestroyImmediate(prefab);
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
         }
 
         [Test]
@@ -180,9 +180,9 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(inventory.RemoveItemCalled, "must remove item from inventory when key is depleted");
             Assert.AreEqual(3, inventory.RemovedSlotIndex);
 
-            Object.DestroyImmediate(door.gameObject);
-            Object.DestroyImmediate(destination.gameObject);
-            Object.DestroyImmediate(prefab);
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
         }
 
         // ── fakes ─────────────────────────────────────────────────────────────
