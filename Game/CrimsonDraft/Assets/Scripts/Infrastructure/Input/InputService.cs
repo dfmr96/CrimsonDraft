@@ -62,9 +62,9 @@ namespace CrimsonDraft.Infrastructure.Input
             Pause         = this.gameplayMap[nameof(Pause)];
             Sprint        = this.gameplayMap[nameof(Sprint)];
 
-            CombatNavigate = this.combatMap[NavigateAction];
-            CombatConfirm  = this.combatMap[ConfirmAction];
-            CombatCancel   = this.combatMap[CancelAction];
+            CombatNavigate = this.uiMap[NavigateAction];
+            CombatConfirm  = this.uiMap["Submit"];
+            CombatCancel   = this.uiMap[CancelAction];
             CombatUseItem  = this.combatMap[UseItemAction];
 
             UINavigate = this.uiMap[NavigateAction];
@@ -87,7 +87,7 @@ namespace CrimsonDraft.Infrastructure.Input
         public void SwitchToCombat()
         {
             DisableAll();
-            this.combatMap.Enable();
+            this.uiMap.Enable();
         }
 
         public void SwitchToUI()
