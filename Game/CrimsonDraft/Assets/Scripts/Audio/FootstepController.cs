@@ -7,9 +7,8 @@ namespace CrimsonDraft.Audio
     public sealed class FootstepController : MonoBehaviour
     {
         [Header("Wwise")]
-        [SerializeField] private AK.Wwise.Event walkEvent   = new AK.Wwise.Event();
-        [SerializeField] private AK.Wwise.Event runEvent    = new AK.Wwise.Event();
-        [SerializeField] private string         switchGroup = "SurfaceType";
+        [SerializeField] private AK.Wwise.Event walkEvent = new AK.Wwise.Event();
+        [SerializeField] private AK.Wwise.Event runEvent  = new AK.Wwise.Event();
 
         [Header("Surface")]
         [SerializeField] private SurfaceTypeMapping mapping     = null!;
@@ -43,11 +42,11 @@ namespace CrimsonDraft.Audio
         private void DetectAndPost(AK.Wwise.Event wwiseEvent)
         {
             var surface = DetectSurface();
-            var state   = mapping.Resolve(surface);
+            var sw      = mapping.Resolve(surface);
 #if UNITY_EDITOR
-            Debug.Log($"[Footstep] DetectAndPost — surface: {(surface != null ? surface.name : "null(fallback)")} → switch: {state} — event valid: {wwiseEvent.IsValid()}");
+            Debug.Log($"[Footstep] DetectAndPost — surface: {(surface != null ? surface.name : "null(fallback)")} — switch valid: {sw.IsValid()} — event valid: {wwiseEvent.IsValid()}");
 #endif
-            AkSoundEngine.SetSwitch(switchGroup, state, gameObject);
+            sw.SetValue(gameObject);
             var playingId = wwiseEvent.Post(gameObject);
 #if UNITY_EDITOR
             Debug.Log($"[Footstep] Post result — playingId: {playingId} (0 = failed)");
