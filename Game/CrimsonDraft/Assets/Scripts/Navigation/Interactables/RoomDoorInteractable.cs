@@ -17,6 +17,7 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private DoorData       data                 = null!;
         [SerializeField] private RoomController destination          = null!;
         [SerializeField] private GameObject     doorTransitionPrefab = null!;
+        [SerializeField] private Transform      spawnPoint           = null!;
 
         private IRoomOrchestrator roomOrchestrator = null!;
         private bool              unlocked;
@@ -32,7 +33,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!this.data.Locked || this.unlocked)
             {
                 this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab, this.spawnPoint)
                     .Forget();
                 return;
             }
@@ -66,7 +67,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab, this.spawnPoint)
                                 .Forget();
                         });
                     break;
@@ -84,7 +85,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab, this.spawnPoint)
                                 .Forget();
                         });
                     break;

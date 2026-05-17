@@ -22,6 +22,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private StartingLoadout       startingLoadout      = null!;
         [SerializeField] private CombineRecipeLibrary  combineRecipeLibrary = null!;
         [SerializeField] private RoomTransitionContext roomTransitionContext = null!;
+        [SerializeField] private RoomController        startingRoom         = null!;
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -52,6 +53,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
             // ── Room transition ──────────────────────────────────────────────
+            this.roomTransitionContext.SetStartingRoom(this.startingRoom);
             builder.RegisterInstance(this.roomTransitionContext);
 
             var msgOptions = builder.RegisterMessagePipe();
