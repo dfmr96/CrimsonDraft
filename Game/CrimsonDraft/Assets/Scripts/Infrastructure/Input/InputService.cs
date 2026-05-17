@@ -9,10 +9,11 @@ namespace CrimsonDraft.Infrastructure.Input
 {
     public sealed class InputService : IInputService, IInitializable, IDisposable
     {
-        private const string GameplayMapName  = "Gameplay";
-        private const string CombatMapName    = "Combat";
-        private const string UIMapName        = "UI";
-        private const string DialogueMapName  = "Dialogue";
+        private const string GameplayMapName       = "Gameplay";
+        private const string CombatMapName         = "Combat";
+        private const string UIMapName             = "UI";
+        private const string DialogueMapName       = "Dialogue";
+        private const string DoorTransitionMapName = "DoorTransition";
 
         private const string NavigateAction = "Navigate";
         private const string ConfirmAction  = "Confirm";
@@ -24,6 +25,7 @@ namespace CrimsonDraft.Infrastructure.Input
         private readonly InputActionMap combatMap;
         private readonly InputActionMap uiMap;
         private readonly InputActionMap dialogueMap;
+        private readonly InputActionMap doorTransitionMap;
 
         public InputAction Move { get; }
         public InputAction Interact { get; }
@@ -45,14 +47,17 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction DialogueAdvanceLine    { get; }
         public InputAction DialogueCancelDialogue { get; }
 
+        public InputAction DoorTransitionSkip { get; }
+
         [Preserve]
         public InputService(InputActionAsset asset)
         {
             this.asset = asset;
-            this.gameplayMap  = asset.FindActionMap(GameplayMapName,  throwIfNotFound: true);
-            this.combatMap    = asset.FindActionMap(CombatMapName,    throwIfNotFound: true);
-            this.uiMap        = asset.FindActionMap(UIMapName,        throwIfNotFound: true);
-            this.dialogueMap  = asset.FindActionMap(DialogueMapName,  throwIfNotFound: true);
+            this.gameplayMap        = asset.FindActionMap(GameplayMapName,       throwIfNotFound: true);
+            this.combatMap          = asset.FindActionMap(CombatMapName,         throwIfNotFound: true);
+            this.uiMap              = asset.FindActionMap(UIMapName,             throwIfNotFound: true);
+            this.dialogueMap        = asset.FindActionMap(DialogueMapName,       throwIfNotFound: true);
+            this.doorTransitionMap  = asset.FindActionMap(DoorTransitionMapName, throwIfNotFound: true);
 
             Move          = this.gameplayMap[nameof(Move)];
             Interact      = this.gameplayMap[nameof(Interact)];
@@ -74,6 +79,8 @@ namespace CrimsonDraft.Infrastructure.Input
 
             DialogueAdvanceLine    = this.dialogueMap["AdvanceLine"];
             DialogueCancelDialogue = this.dialogueMap["CancelDialogue"];
+
+            DoorTransitionSkip = this.doorTransitionMap["Skip"];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();
@@ -102,6 +109,12 @@ namespace CrimsonDraft.Infrastructure.Input
             this.dialogueMap.Enable();
         }
 
+        public void SwitchToDoorTransition()
+        {
+            DisableAll();
+            this.doorTransitionMap.Enable();
+        }
+
         void IDisposable.Dispose()
         {
             DisableAll();
@@ -114,6 +127,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.combatMap.Disable();
             this.uiMap.Disable();
             this.dialogueMap.Disable();
+            this.doorTransitionMap.Disable();
         }
     }
 }

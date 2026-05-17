@@ -1,17 +1,45 @@
 #nullable enable
 
-using System.Collections;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace CrimsonDraft.Navigation.Rooms
 {
     public sealed class DoorTransitionController : MonoBehaviour
     {
-        [SerializeField] private float      animationTimeout = 5f;
-        [SerializeField] private GameObject? defaultDoorPrefab;
+        [SerializeField] private float        animationTimeout = 5f;
+        [SerializeField] private float        fadeInDuration   = 0.8f;
+        [SerializeField] private float        fadeOutDuration  = 0.4f;
+        [SerializeField] private Ease         fadeInEase       = Ease.InQuad;
+        [SerializeField] private Ease         fadeOutEase      = Ease.OutQuad;
+        [SerializeField] private CanvasGroup? fadeOverlay;
+        [SerializeField] private GameObject?  defaultDoorPrefab;
 
         private RoomTransitionContext? context;
-        private bool completed;
+        private bool                   completed;
+        private bool                   canSkip;
+
+        private void Awake()
+        {
+            if (this.fadeOverlay != null)
+                this.fadeOverlay.alpha = 1f;
+        }
+
+        private void OnDestroy()
+        {
+            if (this.context?.SkipAction != null)
+                this.context.SkipAction.performed -= OnSkip;
+        }
+
+        private void OnSkip(InputAction.CallbackContext _)
+        {
+            if (!this.canSkip) return;
+            this.canSkip = false;
+            DOTween.Kill(this.fadeOverlay);
+            OnAnimationComplete();
+        }
 
         private void Start()
         {
@@ -23,45 +51,80 @@ namespace CrimsonDraft.Navigation.Rooms
                 return;
             }
 
-            var prefab = this.context.DoorPrefab ?? this.defaultDoorPrefab;
+            if (this.context.SkipAction != null)
+                this.context.SkipAction.performed += OnSkip;
 
-            if (prefab == null)
+            var prefab    = this.context.DoorPrefab ?? this.defaultDoorPrefab;
+            Animator? animator = null;
+
+            if (prefab != null)
             {
-                Debug.LogWarning("[DoorTransitionController] No door prefab — completing transition immediately.");
-                this.context.NotifyComplete();
+                var door = Instantiate(prefab, transform);
+                door.transform.localPosition = Vector3.zero;
+                door.transform.localRotation = Quaternion.identity;
+
+                animator = door.GetComponentInChildren<Animator>();
+                if (animator != null)
+                    animator.gameObject.AddComponent<DoorAnimationRelay>().Init(this);
+            }
+            else
+            {
+                Debug.LogWarning("[DoorTransitionController] No door prefab assigned — transition will fade without door.");
+            }
+
+            RunTransition(animator).Forget();
+        }
+
+        private async UniTaskVoid RunTransition(Animator? animator)
+        {
+            this.canSkip = true;
+            await Fade(0f, this.fadeInDuration, this.fadeInEase);
+
+            if (animator == null)
+            {
+                OnAnimationComplete();
                 return;
             }
 
-            var door = Instantiate(prefab, transform);
-            door.transform.localPosition = Vector3.zero;
-            door.transform.localRotation = Quaternion.identity;
-
-            var animator = door.GetComponentInChildren<Animator>();
-            if (animator != null)
-            {
-                animator.gameObject.AddComponent<DoorAnimationRelay>().Init(this);
-                animator.Play(0);
-            }
-
-            StartCoroutine(TimeoutFallback());
+            TimeoutFallback().Forget();
         }
 
         internal void OnAnimationComplete()
         {
             if (this.completed) return;
             this.completed = true;
+            FadeOutAndComplete().Forget();
+        }
+
+        private async UniTaskVoid FadeOutAndComplete()
+        {
+            await Fade(1f, this.fadeOutDuration, this.fadeOutEase);
             this.context?.NotifyComplete();
         }
 
-        private IEnumerator TimeoutFallback()
+        private async UniTaskVoid TimeoutFallback()
         {
-            yield return new WaitForSeconds(this.animationTimeout);
+            await UniTask.WaitForSeconds(this.animationTimeout, ignoreTimeScale: true);
 
             if (!this.completed)
             {
                 Debug.LogWarning("[DoorTransitionController] Animation timeout — forcing transition complete.");
                 OnAnimationComplete();
             }
+        }
+
+        private UniTask Fade(float to, float duration, Ease ease)
+        {
+            if (this.fadeOverlay == null)
+                return UniTask.CompletedTask;
+
+            var tcs = new UniTaskCompletionSource();
+            this.fadeOverlay
+                .DOFade(to, duration)
+                .SetEase(ease)
+                .SetUpdate(true)
+                .OnComplete(() => tcs.TrySetResult());
+            return tcs.Task;
         }
     }
 }

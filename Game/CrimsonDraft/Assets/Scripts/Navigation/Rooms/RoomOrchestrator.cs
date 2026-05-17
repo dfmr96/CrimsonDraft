@@ -50,50 +50,43 @@ namespace CrimsonDraft.Navigation.Rooms
                 return;
             }
 
-            RoomController? active = null;
+            var starting = this.context.StartingRoom;
+
             foreach (var room in rooms)
+                room.Deactivate();
+
+            if (starting == null)
             {
-                if (room.gameObject.activeSelf)
-                {
-                    if (active == null)
-                        active = room;
-                    else
-                        room.Deactivate();
-                }
+                Debug.LogWarning("[RoomOrchestrator] No starting room set in RoomTransitionContext — using first found.");
+                starting = rooms[0];
             }
 
-            if (active == null)
-            {
-                Debug.LogError("[RoomOrchestrator] No active RoomController found. Activating first room.");
-                active = rooms[0];
-                active.Activate();
-            }
-
-            this.currentRoom = active;
+            starting.Activate();
+            this.currentRoom = starting;
 
             foreach (var door in Object.FindObjectsOfType<RoomDoorInteractable>(true))
                 door.Construct(this);
         }
 
-        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
+        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Transform spawnPoint)
         {
             if (this.isTransitioning) return;
             this.isTransitioning = true;
 
             this.startedPublisher.Publish(new RoomTransitionStartedEvent(this.currentRoom!, destination));
-            this.inputService.SwitchToUI();
+            this.inputService.SwitchToDoorTransition();
             AudioListener.pause = true;
 
             var tcs = new UniTaskCompletionSource();
-            this.context.Set(doorPrefab, () => tcs.TrySetResult());
+            this.context.Set(doorPrefab, this.inputService.DoorTransitionSkip, () => tcs.TrySetResult());
 
             await SceneManager.LoadSceneAsync(TransitionSceneName, LoadSceneMode.Additive).ToUniTask();
 
             this.currentRoom!.Deactivate();
             destination.Activate();
             this.player.transform.SetPositionAndRotation(
-                destination.SpawnPoint.position,
-                destination.SpawnPoint.rotation);
+                spawnPoint.position,
+                spawnPoint.rotation);
 
             await tcs.Task;
 
