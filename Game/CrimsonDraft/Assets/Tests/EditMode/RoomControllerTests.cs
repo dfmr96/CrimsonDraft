@@ -34,20 +34,5 @@ namespace CrimsonDraft.Tests
             Object.DestroyImmediate(go);
         }
 
-        [Test]
-        public void SpawnPoint_returnsSerializedTransform()
-        {
-            var go      = new GameObject();
-            var room    = go.AddComponent<RoomController>();
-            var spawnGo = new GameObject();
-
-            var so = new SerializedObject(room);
-            so.FindProperty("spawnPoint").objectReferenceValue = spawnGo.transform;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            Assert.AreEqual(spawnGo.transform, room.SpawnPoint);
-            Object.DestroyImmediate(go);
-            Object.DestroyImmediate(spawnGo);
-        }
     }
 }

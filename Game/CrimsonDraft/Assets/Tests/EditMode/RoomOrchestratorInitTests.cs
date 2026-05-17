@@ -16,9 +16,39 @@ namespace CrimsonDraft.Tests
     public sealed class RoomOrchestratorInitTests
     {
         [Test]
-        public void Initialize_withOneActiveRoom_keepsItActive_andInactivesRemainInactive()
+        public void Initialize_withStartingRoom_activatesOnlyThatRoom()
         {
-            var goA = new GameObject("RoomA"); goA.SetActive(true);
+            var goA    = new GameObject("RoomA"); goA.SetActive(true);
+            var roomA  = goA.AddComponent<RoomController>();
+            var goB    = new GameObject("RoomB"); goB.SetActive(true);
+            goB.AddComponent<RoomController>();
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            context.SetStartingRoom(roomA);
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context);
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(goA.activeSelf,  "starting room must be active");
+                Assert.IsFalse(goB.activeSelf, "other rooms must be deactivated");
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+            }
+        }
+
+        [Test]
+        public void Initialize_withNoStartingRoom_activatesFirstFound()
+        {
+            var goA = new GameObject("RoomA"); goA.SetActive(false);
             goA.AddComponent<RoomController>();
             var goB = new GameObject("RoomB"); goB.SetActive(false);
             goB.AddComponent<RoomController>();
@@ -32,37 +62,8 @@ namespace CrimsonDraft.Tests
                 var orchestrator = MakeOrchestrator(player, context);
                 ((IInitializable)orchestrator).Initialize();
 
-                Assert.IsTrue(goA.activeSelf,  "active room must remain active");
-                Assert.IsFalse(goB.activeSelf, "inactive room must remain inactive");
-            }
-            finally
-            {
-                Object.DestroyImmediate(goA);
-                Object.DestroyImmediate(goB);
-                Object.DestroyImmediate(playerGo);
-                Object.DestroyImmediate(context);
-            }
-        }
-
-        [Test]
-        public void Initialize_withMultipleActiveRooms_deactivatesAllButFirst()
-        {
-            var goA = new GameObject("RoomA"); goA.SetActive(true);
-            goA.AddComponent<RoomController>();
-            var goB = new GameObject("RoomB"); goB.SetActive(true);
-            goB.AddComponent<RoomController>();
-
-            var playerGo = new GameObject("Player");
-            var player   = playerGo.AddComponent<PlayerController>();
-            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
-
-            try
-            {
-                var orchestrator = MakeOrchestrator(player, context);
-                ((IInitializable)orchestrator).Initialize();
-
                 int activeCount = (goA.activeSelf ? 1 : 0) + (goB.activeSelf ? 1 : 0);
-                Assert.AreEqual(1, activeCount, "exactly one room must be active after initialize");
+                Assert.AreEqual(1, activeCount, "exactly one room must be active when no starting room set");
             }
             finally
             {
@@ -102,11 +103,13 @@ namespace CrimsonDraft.Tests
             public InputAction UIBack                 => null!;
             public InputAction DialogueAdvanceLine    => null!;
             public InputAction DialogueCancelDialogue => null!;
-            public void SwitchToGameplay() { }
-            public void SwitchToCombat()   { }
-            public void SwitchToUI()       { }
-            public void SwitchToDialogue() { }
-            public void Dispose()          { }
+            public InputAction DoorTransitionSkip     => null!;
+            public void SwitchToGameplay()       { }
+            public void SwitchToCombat()         { }
+            public void SwitchToUI()             { }
+            public void SwitchToDialogue()       { }
+            public void SwitchToDoorTransition() { }
+            public void Dispose()                { }
         }
 
         private sealed class FakePublisher<T> : IPublisher<T>
