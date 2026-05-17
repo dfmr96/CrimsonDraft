@@ -23,7 +23,7 @@ namespace CrimsonDraft.Audio
         public void OnWalkStep()
         {
 #if UNITY_EDITOR
-            Debug.Log($"[Footstep] OnWalkStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
+            //Debug.Log($"[Footstep] OnWalkStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
 #endif
             if (rb.linearVelocity.sqrMagnitude < minSpeedSqr) return;
             DetectAndPost(walkEvent);
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Audio
         public void OnRunStep()
         {
 #if UNITY_EDITOR
-            Debug.Log($"[Footstep] OnRunStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
+            //Debug.Log($"[Footstep] OnRunStep — velocity sqr: {rb.linearVelocity.sqrMagnitude:F3} (threshold: {minSpeedSqr})");
 #endif
             if (rb.linearVelocity.sqrMagnitude < minSpeedSqr) return;
             DetectAndPost(runEvent);
@@ -44,12 +44,12 @@ namespace CrimsonDraft.Audio
             var surface = DetectSurface();
             var sw      = mapping.Resolve(surface);
 #if UNITY_EDITOR
-            Debug.Log($"[Footstep] DetectAndPost — surface: {(surface != null ? surface.name : "null(fallback)")} — switch valid: {sw.IsValid()} — event valid: {wwiseEvent.IsValid()}");
+            //Debug.Log($"[Footstep] DetectAndPost — surface: {(surface != null ? surface.name : "null(fallback)")} — switch valid: {sw.IsValid()} — event valid: {wwiseEvent.IsValid()}");
 #endif
             sw.SetValue(gameObject);
             var playingId = wwiseEvent.Post(gameObject);
 #if UNITY_EDITOR
-            Debug.Log($"[Footstep] Post result — playingId: {playingId} (0 = failed)");
+            //Debug.Log($"[Footstep] Post result — playingId: {playingId} (0 = failed)");
 #endif
         }
 
