@@ -2,7 +2,6 @@
 
 using System;
 using MessagePipe;
-using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Events;
 
@@ -12,7 +11,7 @@ namespace CrimsonDraft.Combat
     {
         private readonly IPublisher<CombatEndedEvent> combatEndedPublisher;
 
-        [Preserve]
+        [UnityEngine.Scripting.Preserve]
         public CombatSessionController(IPublisher<CombatEndedEvent> combatEndedPublisher)
         {
             this.combatEndedPublisher = combatEndedPublisher;

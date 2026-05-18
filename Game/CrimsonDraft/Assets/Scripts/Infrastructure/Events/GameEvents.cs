@@ -63,6 +63,16 @@ namespace CrimsonDraft.Infrastructure.Events
         public float CumulativeExposureMg { get; init; }
     }
 
+    public readonly struct ShootConfigurationRequestedEvent
+    {
+        public int OperatorSlot { get; }
+
+        public ShootConfigurationRequestedEvent(int operatorSlot)
+        {
+            this.OperatorSlot = operatorSlot;
+        }
+    }
+
     public readonly struct GuardAlertChangedEvent
     {
         public string GuardId { get; init; }

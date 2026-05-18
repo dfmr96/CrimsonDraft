@@ -6,7 +6,6 @@ using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Yarn.Unity;
-using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;

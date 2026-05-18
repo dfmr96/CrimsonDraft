@@ -3,10 +3,10 @@
 using System.Collections.Generic;
 using MessagePipe;
 using UnityEngine;
-using UnityEngine.Scripting;
 using VContainer;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
@@ -38,7 +38,7 @@ namespace CrimsonDraft.Combat
         private IOperatorEcgFeedback? ecgFeedback;
 
         [Inject]
-        [Preserve]
+        [UnityEngine.Scripting.Preserve]
         public void Construct(
             ATBSystem                                    atbSystem,
             CombatActionQueue                            actionQueue,

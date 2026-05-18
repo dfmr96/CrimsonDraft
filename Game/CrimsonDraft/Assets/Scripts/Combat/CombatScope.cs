@@ -1,5 +1,6 @@
 #nullable enable
 
+using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
@@ -40,6 +41,10 @@ namespace CrimsonDraft.Combat
 
             builder.Register<CombatMenuController>(Lifetime.Scoped)
                 .AsSelf().AsImplementedInterfaces();
+
+#if UNITY_EDITOR || DEBUG_COMBAT
+            builder.RegisterComponentInHierarchy<CombatDebugView>().AsSelf();
+#endif
         }
     }
 }
