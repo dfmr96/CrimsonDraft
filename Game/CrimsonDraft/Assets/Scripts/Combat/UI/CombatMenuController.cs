@@ -4,6 +4,7 @@ using System;
 using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -64,7 +65,7 @@ namespace CrimsonDraft.Combat
         private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
         private IDisposable? shootSubscription;
 
-        [UnityEngine.Scripting.Preserve]
+        [Preserve]
         public CombatMenuController(
             ICombatActionMenuView                          menuView,
             ICommandPanelView                              commandPanel,

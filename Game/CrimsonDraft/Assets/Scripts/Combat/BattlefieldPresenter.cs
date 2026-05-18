@@ -1,5 +1,6 @@
 #nullable enable
 
+using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Scenes;
 
@@ -11,7 +12,7 @@ namespace CrimsonDraft.Combat
         private readonly EncounterDatabase  encounterDatabase;
         private readonly IBattlefieldView   battlefieldView;
 
-        [UnityEngine.Scripting.Preserve]
+        [Preserve]
         public BattlefieldPresenter(
             IEncounterContext encounterContext,
             EncounterDatabase encounterDatabase,
