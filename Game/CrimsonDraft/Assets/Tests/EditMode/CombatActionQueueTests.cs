@@ -81,5 +81,30 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0,  action.TargetOperatorSlot);
             Assert.AreEqual(25, action.Damage);
         }
+
+        [Test]
+        public void PendingAction_Shoot_storesSlotIndex()
+        {
+            var action = PendingAction.Shoot(operatorSlot: 3);
+            Assert.AreEqual(PendingActionType.Shoot, action.Type);
+            Assert.AreEqual(3, action.SlotIndex);
+        }
+
+        [Test]
+        public void PendingAction_UseItem_storesPayload()
+        {
+            var action = PendingAction.UseItem(operatorSlot: 1, itemIndex: 4);
+            Assert.AreEqual(PendingActionType.UseItem, action.Type);
+            Assert.AreEqual(1, action.SlotIndex);
+            Assert.AreEqual(4, action.ItemIndex);
+        }
+
+        [Test]
+        public void PendingAction_Defend_storesSlotIndex()
+        {
+            var action = PendingAction.Defend(operatorSlot: 2);
+            Assert.AreEqual(PendingActionType.Defend, action.Type);
+            Assert.AreEqual(2, action.SlotIndex);
+        }
     }
 }
