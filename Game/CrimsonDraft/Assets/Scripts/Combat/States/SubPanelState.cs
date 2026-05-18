@@ -9,10 +9,7 @@ namespace CrimsonDraft.Combat
 
         internal SubPanelState(
             CombatMenuController  context,
-            ISubPanelView         subPanel,
-            IInventoryService     inventory,
-            IOperatorRoster       roster,
-            ICombatActionMenuView menuView)
+            ISubPanelView         subPanel)
         {
             this.context  = context;
             this.subPanel = subPanel;
