@@ -95,5 +95,16 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0f, sys.GetActor(0, ATBActorKind.Operator)!.Gauge, 0.0001f);
             Assert.AreEqual(1f, sys.GetActor(0, ATBActorKind.Enemy)!.Gauge, 0.0001f);
         }
+
+        [Test]
+        public void ResetActor_clearsIsAwaitingCommand()
+        {
+            var sys   = new ATBSystem();
+            sys.Initialize(new[] { Op(0, 1f) });
+            ATBActorState actor = sys.GetActor(0, ATBActorKind.Operator)!;
+            actor.IsAwaitingCommand = true;
+            sys.ResetActor(0, ATBActorKind.Operator);
+            Assert.IsFalse(actor.IsAwaitingCommand);
+        }
     }
 }
