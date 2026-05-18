@@ -27,6 +27,8 @@ namespace CrimsonDraft.Combat
 
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
+        private readonly HashSet<int>   syncAliveSet         = new();
+        private readonly List<int>      syncDeadBuf          = new();
 
         private float          animationLockUntil;
         private bool           shootConfigurationInProgress;
@@ -101,8 +103,6 @@ namespace CrimsonDraft.Combat
             SyncAllEcgStates();
         }
 
-        // ICombatOrchestrator
-
         public void EnqueueAction(PendingAction action)
         {
             this.actionQueue.Enqueue(action);
@@ -125,8 +125,6 @@ namespace CrimsonDraft.Combat
             this.shootConfigurationInProgress = false;
             this.animationLockUntil = Time.time + 0.5f;
         }
-
-        // Internal loop
 
         private void NotifyReadyOperators()
         {
@@ -209,17 +207,16 @@ namespace CrimsonDraft.Combat
 
         private void ApplyEnemyAttack(PendingAction action)
         {
+            if (action.TargetOperatorSlot >= this.roster.Count) return;
+
             this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
             this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
-            if (this.roster.Count > action.TargetOperatorSlot)
-            {
-                this.ecgFeedback?.SetOperatorHealthState(
-                    action.TargetOperatorSlot,
-                    this.roster[action.TargetOperatorSlot].HpRatio,
-                    this.roster[action.TargetOperatorSlot].IsAlive);
-            }
+            this.ecgFeedback?.SetOperatorHealthState(
+                action.TargetOperatorSlot,
+                this.roster[action.TargetOperatorSlot].HpRatio,
+                this.roster[action.TargetOperatorSlot].IsAlive);
 
             EnemyData? data = (this.encounter != null && action.SlotIndex < this.encounter.EnemySlots.Length)
                 ? this.encounter.EnemySlots[action.SlotIndex]
@@ -229,20 +226,23 @@ namespace CrimsonDraft.Combat
 
         private void SyncDeadEnemies()
         {
-            int[]       aliveEnemySlots = this.battlefieldView.GetOccupiedEnemySlots();
-            var         aliveSet        = new HashSet<int>(aliveEnemySlots);
-            var         dead            = new List<int>();
+            int[] aliveEnemySlots = this.battlefieldView.GetOccupiedEnemySlots();
 
+            this.syncAliveSet.Clear();
+            for (int i = 0; i < aliveEnemySlots.Length; i++)
+                this.syncAliveSet.Add(aliveEnemySlots[i]);
+
+            this.syncDeadBuf.Clear();
             foreach (int slot in this.knownAliveEnemySlots)
             {
-                if (!aliveSet.Contains(slot))
-                    dead.Add(slot);
+                if (!this.syncAliveSet.Contains(slot))
+                    this.syncDeadBuf.Add(slot);
             }
 
-            for (int i = 0; i < dead.Count; i++)
+            for (int i = 0; i < this.syncDeadBuf.Count; i++)
             {
-                this.atbSystem.MarkDead(dead[i], ATBActorKind.Enemy);
-                this.knownAliveEnemySlots.Remove(dead[i]);
+                this.atbSystem.MarkDead(this.syncDeadBuf[i], ATBActorKind.Enemy);
+                this.knownAliveEnemySlots.Remove(this.syncDeadBuf[i]);
             }
         }
 
@@ -283,7 +283,7 @@ namespace CrimsonDraft.Combat
             if (this.ecgFeedback == null) return;
             for (int i = 0; i < this.roster.Count; i++)
             {
-                bool isPresent = i < this.roster.Count && this.roster[i].IsPresent;
+                bool isPresent = this.roster[i].IsPresent;
                 this.ecgFeedback.SetOperatorHealthState(
                     i,
                     isPresent ? this.roster[i].HpRatio : 0f,
