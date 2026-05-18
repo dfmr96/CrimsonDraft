@@ -28,7 +28,7 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<ShotCountView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();
-            builder.RegisterComponentInHierarchy<EnemyAttackController>().AsSelf();
+            // builder.RegisterComponentInHierarchy<EnemyAttackController>().AsSelf();
 
             builder.RegisterInstance(this.encounterDatabase);
 
