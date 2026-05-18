@@ -53,6 +53,7 @@ namespace CrimsonDraft.Combat
 
         public void OnOperatorSelected(int index)
         {
+            if (!this.context.Orchestrator.IsOperatorReady(index)) return;
             this.context.SelectedOperator = index;
             bool hasAmmo = this.roster.Count > index && (this.roster[index].EquippedWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);

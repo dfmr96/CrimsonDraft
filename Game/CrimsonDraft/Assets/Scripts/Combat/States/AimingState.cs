@@ -39,13 +39,17 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
+            this.context.Orchestrator.SetWaitMode(true);
             this.awaitingDismiss = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
             this.aimView.Show();
         }
 
-        public void Exit() =>
+        public void Exit()
+        {
+            this.context.Orchestrator.SetWaitMode(false);
             this.aimView.OnShotsResolved -= HandleShotsResolved;
+        }
 
         public void OnConfirm()
         {
@@ -91,6 +95,7 @@ namespace CrimsonDraft.Combat
 
         private void CloseAimAndReturnToOperatorSelection()
         {
+            this.context.Orchestrator.NotifyShootCompleted();
             this.context.CurrentTargetSlot  = -1;
             this.context.SelectedShotCount  = 1;
             this.awaitingDismiss            = false;
