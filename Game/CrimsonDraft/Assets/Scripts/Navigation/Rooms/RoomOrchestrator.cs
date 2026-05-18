@@ -68,7 +68,7 @@ namespace CrimsonDraft.Navigation.Rooms
                 door.Construct(this);
         }
 
-        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Transform spawnPoint)
+        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
         {
             if (this.isTransitioning) return;
             this.isTransitioning = true;
@@ -84,6 +84,8 @@ namespace CrimsonDraft.Navigation.Rooms
 
             this.currentRoom!.Deactivate();
             destination.Activate();
+
+            var spawnPoint = FindSpawnPoint(destination, this.currentRoom);
             this.player.transform.SetPositionAndRotation(
                 spawnPoint.position,
                 spawnPoint.rotation);
@@ -98,6 +100,18 @@ namespace CrimsonDraft.Navigation.Rooms
 
             this.endedPublisher.Publish(new RoomTransitionedEvent(this.currentRoom));
             this.isTransitioning = false;
+        }
+
+        private static Transform FindSpawnPoint(RoomController destination, RoomController fromRoom)
+        {
+            foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
+            {
+                if (sp.FromRoom == fromRoom)
+                    return sp.transform;
+            }
+
+            Debug.LogWarning($"[RoomOrchestrator] No SpawnPoint for '{fromRoom.name}' in '{destination.name}' — using room root.");
+            return destination.transform;
         }
     }
 }

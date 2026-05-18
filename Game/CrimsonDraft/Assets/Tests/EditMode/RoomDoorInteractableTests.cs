@@ -23,15 +23,12 @@ namespace CrimsonDraft.Tests
             GameObject doorPrefab,
             IRoomOrchestrator orchestrator)
         {
-            var go      = new GameObject();
-            var spawnGo = new GameObject("Spawn");
-            spawnGo.transform.SetParent(go.transform);
-            var door    = go.AddComponent<RoomDoorInteractable>();
-            var so      = new SerializedObject(door);
+            var go   = new GameObject();
+            var door = go.AddComponent<RoomDoorInteractable>();
+            var so   = new SerializedObject(door);
             so.FindProperty("data").objectReferenceValue                 = data;
             so.FindProperty("destination").objectReferenceValue          = destination;
             so.FindProperty("doorTransitionPrefab").objectReferenceValue = doorPrefab;
-            so.FindProperty("spawnPoint").objectReferenceValue           = spawnGo.transform;
             so.ApplyModifiedPropertiesWithoutUndo();
             door.Construct(orchestrator);
             return door;
@@ -194,13 +191,11 @@ namespace CrimsonDraft.Tests
         {
             public RoomController? LastDestination { get; private set; }
             public GameObject?     LastDoorPrefab  { get; private set; }
-            public Transform?      LastSpawnPoint  { get; private set; }
 
-            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Transform spawnPoint)
+            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
             {
                 LastDestination = destination;
                 LastDoorPrefab  = doorPrefab;
-                LastSpawnPoint  = spawnPoint;
                 return UniTask.CompletedTask;
             }
         }

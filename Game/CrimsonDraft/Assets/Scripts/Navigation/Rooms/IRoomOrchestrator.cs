@@ -7,6 +7,6 @@ namespace CrimsonDraft.Navigation.Rooms
 {
     public interface IRoomOrchestrator
     {
-        UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Transform spawnPoint);
+        UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab);
     }
 }
