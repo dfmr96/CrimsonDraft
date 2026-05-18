@@ -46,9 +46,10 @@ namespace CrimsonDraft.Combat
 
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
-        private int      shotCount              = 1;
-        private int      activeDispersionRadius = 10;
-        private Sprite?  activeDispersionSprite;
+        private int               shotCount              = 1;
+        private int               activeDispersionRadius = 10;
+        private Sprite?           activeDispersionSprite;
+        private BurstPatternData? activeBurstPattern;
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
@@ -90,6 +91,7 @@ namespace CrimsonDraft.Combat
         {
             this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
+            this.activeBurstPattern     = weaponData?.BurstPattern;
         }
 
         public void SetShotCount(int shotCount)
@@ -201,9 +203,26 @@ namespace CrimsonDraft.Combat
         {
             int clampedCount = Mathf.Max(1, count);
             var resolved     = new ResolvedShot[clampedCount];
+            var shots        = this.activeBurstPattern?.Shots;
+
             for (int i = 0; i < clampedCount; i++)
             {
-                Vector2             shotLocal  = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
+                Vector2 shotLocal;
+                if (shots != null && shots.Length > 0)
+                {
+                    // Burst pattern: confirmedLocalPos is the aim point; each entry's ellipse
+                    // provides the per-shot dispersion (including shot 0 whose center is at origin).
+                    var entry  = shots[Mathf.Min(i, shots.Length - 1)];
+                    var offset = BurstPatternData.SamplePoint(in entry);
+                    shotLocal  = new Vector2(
+                        Mathf.Round(this.confirmedLocalPos.x + offset.x),
+                        Mathf.Round(this.confirmedLocalPos.y + offset.y));
+                }
+                else
+                {
+                    shotLocal = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
+                }
+
                 Vector2             normalized = this.NormalizeShotLocal(shotLocal);
                 ShotZoneDefinition? def        = this.SampleSilhouette(shotLocal);
                 ShotZone            zone       = def?.zone ?? ShotZone.Miss;

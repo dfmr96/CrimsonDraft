@@ -71,7 +71,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Interact_whenLockedNoKeyItem_startsDialogueWithLockedOutcome()
+        public void Interact_whenLockedNoKeyItem_startsDialogueWithDoorNodeName()
         {
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: null);
             var door      = MakeDoor(data);
@@ -81,11 +81,10 @@ namespace CrimsonDraft.Tests
             door.Interact(MakeContext(dialogue, inventory));
 
             Assert.AreEqual("door_test", dialogue.LastNodeName);
-            Assert.AreEqual("locked", dialogue.LastVariables!["$outcome"]);
         }
 
         [Test]
-        public void Interact_whenLockedKeyNotFound_startsDialogueWithNeedsKeyOutcome()
+        public void Interact_whenLockedKeyNotFound_startsDialogueWithDoorNodeName()
         {
             var keyData   = MakeKeyItemData("keycard-a", "Keycard A");
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: keyData);
@@ -99,12 +98,10 @@ namespace CrimsonDraft.Tests
             door.Interact(MakeContext(dialogue, inventory));
 
             Assert.AreEqual("door_test", dialogue.LastNodeName);
-            Assert.AreEqual("needs_key", dialogue.LastVariables!["$outcome"]);
-            Assert.AreEqual("Keycard A", dialogue.LastVariables["$key_name"]);
         }
 
         [Test]
-        public void Interact_whenKeySuccess_startsDialogueWithOpenedOutcome_andOnCompleteOpens()
+        public void Interact_whenKeySuccess_startsOpenedFeedbackDialogue_andOnCompleteOpens()
         {
             var keyData   = MakeKeyItemData("keycard-a", "Keycard A");
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: keyData);
@@ -117,8 +114,9 @@ namespace CrimsonDraft.Tests
 
             door.Interact(MakeContext(dialogue, inventory));
 
-            Assert.AreEqual("door_test", dialogue.LastNodeName);
+            Assert.AreEqual("door_opened_feedback", dialogue.LastNodeName);
             Assert.AreEqual("opened", dialogue.LastVariables!["$outcome"]);
+            Assert.AreEqual("Keycard A", dialogue.LastVariables["$key_name"]);
             Assert.IsNotNull(dialogue.LastOnComplete, "onComplete callback should be set");
 
             dialogue.LastOnComplete!.Invoke();

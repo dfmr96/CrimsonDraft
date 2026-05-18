@@ -1,0 +1,298 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7270682254887301401
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74f7b4b43d392da4aa0edc7aa47211ca, type: 3}
+  m_Name: QualityOverrideVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.QualityOverrideVolume
+  active: 1
+  isPSXQualityEnabled:
+    m_OverrideState: 1
+    m_Value: 0
+--- !u!114 &-5520675111934992360
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bd3a97acc7ef644da680b9eb611919e, type: 3}
+  m_Name: CathodeRayTubeVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.CathodeRayTubeVolume
+  active: 1
+  isEnabled:
+    m_OverrideState: 1
+    m_Value: 0
+  bloom:
+    m_OverrideState: 1
+    m_Value: 0.49
+  grateMaskMode:
+    m_OverrideState: 1
+    m_Value: 0
+  grateMaskTexture:
+    m_OverrideState: 1
+    m_Value: {fileID: 0}
+    dimension: 1
+  grateMaskScale:
+    m_OverrideState: 1
+    m_Value: 1
+  scanlineSharpness:
+    m_OverrideState: 1
+    m_Value: 0.345
+  imageSharpness:
+    m_OverrideState: 1
+    m_Value: 0.771
+  bloomSharpnessX:
+    m_OverrideState: 1
+    m_Value: 0
+  bloomSharpnessY:
+    m_OverrideState: 1
+    m_Value: 0
+  noiseIntensity:
+    m_OverrideState: 1
+    m_Value: 0.494
+  noiseSaturation:
+    m_OverrideState: 1
+    m_Value: 1
+  grateMaskIntensityMin:
+    m_OverrideState: 1
+    m_Value: 0.25
+  grateMaskIntensityMax:
+    m_OverrideState: 1
+    m_Value: 0.75
+  barrelDistortionX:
+    m_OverrideState: 1
+    m_Value: 0.125
+  barrelDistortionY:
+    m_OverrideState: 1
+    m_Value: 0.33333334
+  vignette:
+    m_OverrideState: 1
+    m_Value: 0.5
+--- !u!114 &-2665536102922955151
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4315c5d81c1274fb8120ba49e62c21, type: 3}
+  m_Name: LightingVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.LightingVolume
+  active: 1
+  lightingIsEnabled:
+    m_OverrideState: 1
+    m_Value: 0
+  bakedLightingMultiplier:
+    m_OverrideState: 1
+    m_Value: 2
+  vertexColorLightingMultiplier:
+    m_OverrideState: 1
+    m_Value: 0
+  dynamicLightingMultiplier:
+    m_OverrideState: 1
+    m_Value: 0.5
+  dynamicLightsMaxCount:
+    m_OverrideState: 1
+    m_Value: 256
+  dynamicLightsMaxPerObjectCount:
+    m_OverrideState: 1
+    m_Value: 4
+  lightingClampMode:
+    m_OverrideState: 1
+    m_Value: 0
+  lightingClamp:
+    m_OverrideState: 1
+    m_Value: 1
+  lightingClampSharpness:
+    m_OverrideState: 1
+    m_Value: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
+  m_Name: Global Volume Profile 1
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
+  components:
+  - {fileID: -7270682254887301401}
+  - {fileID: -5520675111934992360}
+  - {fileID: 3408222990494232481}
+  - {fileID: 4293434603662095044}
+  - {fileID: -2665536102922955151}
+  - {fileID: 2838766069859166501}
+--- !u!114 &2838766069859166501
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdadb30f615c5d5499a6de3fe4216ef6, type: 3}
+  m_Name: SkyVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.SkyVolume
+  active: 1
+  skyMode:
+    m_OverrideState: 1
+    m_Value: 1
+  framebufferDitherWeight:
+    m_OverrideState: 0
+    m_Value: 1
+  skyRotation:
+    m_OverrideState: 0
+    m_Value: {x: 0, y: 0, z: 0}
+  textureFilterMode:
+    m_OverrideState: 0
+    m_Value: 0
+  skyboxTexture:
+    m_OverrideState: 0
+    m_Value: {fileID: 0}
+    dimension: 1
+  tiledLayersSkyHeightScale:
+    m_OverrideState: 0
+    m_Value: 0.25
+  tiledLayersSkyHorizonOffset:
+    m_OverrideState: 0
+    m_Value: 0
+  tiledLayersSkyColorLayer0:
+    m_OverrideState: 0
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
+  tiledLayersSkyTextureLayer0:
+    m_OverrideState: 0
+    m_Value: {fileID: 0}
+    dimension: 1
+  tiledLayersSkyTextureScaleOffsetLayer0:
+    m_OverrideState: 0
+    m_Value: {x: 1, y: 1, z: 0, w: 0}
+  tiledLayersSkyRotationLayer0:
+    m_OverrideState: 0
+    m_Value: 0
+  tiledLayersSkyScrollScaleLayer0:
+    m_OverrideState: 0
+    m_Value: {x: 0.125, y: 0.125}
+  tiledLayersSkyScrollRotationLayer0:
+    m_OverrideState: 0
+    m_Value: 0
+  tiledLayersSkyColorLayer1:
+    m_OverrideState: 0
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
+  tiledLayersSkyTextureLayer1:
+    m_OverrideState: 0
+    m_Value: {fileID: 0}
+    dimension: 1
+  tiledLayersSkyTextureScaleOffsetLayer1:
+    m_OverrideState: 0
+    m_Value: {x: 1, y: 1, z: 0, w: 0}
+  tiledLayersSkyRotationLayer1:
+    m_OverrideState: 0
+    m_Value: 0
+  tiledLayersSkyScrollScaleLayer1:
+    m_OverrideState: 0
+    m_Value: {x: -0.25, y: -0.25}
+  tiledLayersSkyScrollRotationLayer1:
+    m_OverrideState: 0
+    m_Value: 0
+--- !u!114 &3408222990494232481
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bffa9ddd307306479a0e3689eb72441, type: 3}
+  m_Name: PrecisionVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.PrecisionVolume
+  active: 1
+  geometryEnabled:
+    m_OverrideState: 1
+    m_Value: 0
+  geometry:
+    m_OverrideState: 1
+    m_Value: 0.8
+  geometryPushbackEnabled:
+    m_OverrideState: 1
+    m_Value: 0
+  geometryPushbackMinMax:
+    m_OverrideState: 1
+    m_Value: {x: 0, y: 1}
+  color:
+    m_OverrideState: 1
+    m_Value: 0.65
+  chroma:
+    m_OverrideState: 1
+    m_Value: 0.73
+  alpha:
+    m_OverrideState: 1
+    m_Value: 1
+  affineTextureWarping:
+    m_OverrideState: 1
+    m_Value: 0.1
+  framebufferDither:
+    m_OverrideState: 1
+    m_Value: 0.603
+  ditherSize:
+    m_OverrideState: 1
+    m_Value: 3
+  drawDistanceFalloffMode:
+    m_OverrideState: 1
+    m_Value: 0
+  drawDistance:
+    m_OverrideState: 1
+    m_Value: 200
+--- !u!114 &4293434603662095044
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb00c03fccc953a4387732e1392ffcf8, type: 3}
+  m_Name: CameraVolume
+  m_EditorClassIdentifier: com.hauntedpsx.render-pipelines.psx.Runtime::HauntedPSX.RenderPipelines.PSX.Runtime.CameraVolume
+  active: 1
+  isFrameLimitEnabled:
+    m_OverrideState: 0
+    m_Value: 1
+  frameLimit:
+    m_OverrideState: 0
+    m_Value: 24
+  aspectMode:
+    m_OverrideState: 1
+    m_Value: 3
+  targetRasterizationResolutionWidth:
+    m_OverrideState: 1
+    m_Value: 320
+  targetRasterizationResolutionHeight:
+    m_OverrideState: 1
+    m_Value: 240
+  isDepthBufferEnabled:
+    m_OverrideState: 1
+    m_Value: 1
+  isClearDepthAfterBackgroundEnabled:
+    m_OverrideState: 1
+    m_Value: 1
+  isClearDepthBeforeUIEnabled:
+    m_OverrideState: 1
+    m_Value: 1

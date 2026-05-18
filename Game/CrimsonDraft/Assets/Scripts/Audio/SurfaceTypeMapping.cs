@@ -12,30 +12,30 @@ namespace CrimsonDraft.Audio
         [Serializable]
         public struct Entry
         {
-            public SurfaceType SurfaceType;
-            public string      WwiseSwitchState;
+            public SurfaceType     SurfaceType;
+            public AK.Wwise.Switch WwiseSwitch;
         }
 
-        [SerializeField] private Entry[] entries      = Array.Empty<Entry>();
-        [SerializeField] private string  fallbackState = "Metal";
+        [SerializeField] private Entry[]           entries        = Array.Empty<Entry>();
+        [SerializeField] private AK.Wwise.Switch   fallbackSwitch = new AK.Wwise.Switch();
 
-        private Dictionary<SurfaceType, string>? lookup;
+        private Dictionary<SurfaceType, AK.Wwise.Switch>? lookup;
 
         private void OnEnable()
         {
-            lookup = new Dictionary<SurfaceType, string>(entries.Length);
+            lookup = new Dictionary<SurfaceType, AK.Wwise.Switch>(entries.Length);
             foreach (var e in entries)
             {
                 if (e.SurfaceType != null)
-                    lookup[e.SurfaceType] = e.WwiseSwitchState;
+                    lookup[e.SurfaceType] = e.WwiseSwitch;
             }
         }
 
-        public string Resolve(SurfaceType? surface)
+        public AK.Wwise.Switch Resolve(SurfaceType? surface)
         {
-            if (surface != null && lookup != null && lookup.TryGetValue(surface, out var state))
-                return state;
-            return fallbackState;
+            if (surface != null && lookup != null && lookup.TryGetValue(surface, out var sw))
+                return sw;
+            return fallbackSwitch;
         }
     }
 }

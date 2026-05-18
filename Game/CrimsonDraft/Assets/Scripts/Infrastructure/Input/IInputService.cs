@@ -28,9 +28,12 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction DialogueAdvanceLine    { get; }
         InputAction DialogueCancelDialogue { get; }
 
+        InputAction DoorTransitionSkip { get; }
+
         void SwitchToGameplay();
         void SwitchToCombat();
         void SwitchToUI();
         void SwitchToDialogue();
+        void SwitchToDoorTransition();
     }
 }
