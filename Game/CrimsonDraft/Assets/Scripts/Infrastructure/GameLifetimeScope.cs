@@ -6,6 +6,7 @@ using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Yarn.Unity;
+using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -36,6 +37,7 @@ namespace CrimsonDraft.Infrastructure
             var options = builder.RegisterMessagePipe();
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
+            builder.RegisterMessageBroker<ShootConfigurationRequestedEvent>(options);
 
             builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();

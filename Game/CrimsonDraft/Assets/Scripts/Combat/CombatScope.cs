@@ -1,6 +1,5 @@
 #nullable enable
 
-using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
@@ -28,9 +27,13 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<ShotCountView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();
-            // builder.RegisterComponentInHierarchy<EnemyAttackController>().AsSelf();
 
             builder.RegisterInstance(this.encounterDatabase);
+
+            builder.Register<ATBSystem>(Lifetime.Scoped).AsSelf();
+            builder.Register<CombatActionQueue>(Lifetime.Scoped).AsSelf();
+            builder.RegisterComponentInHierarchy<CombatOrchestrator>()
+                .AsSelf().AsImplementedInterfaces();
 
             builder.Register<BattlefieldPresenter>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CombatCameraRegistrar>().AsImplementedInterfaces();
