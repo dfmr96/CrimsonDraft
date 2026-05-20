@@ -32,6 +32,7 @@ namespace CrimsonDraft.Combat
 
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
+        private bool     isMasterDimmed;
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator = new();
 
         #endregion
@@ -43,6 +44,7 @@ namespace CrimsonDraft.Combat
             var le = this.selectorMark.GetComponent<LayoutElement>();
             if (le == null) le = this.selectorMark.gameObject.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
+            this.selectorMark.gameObject.SetActive(false);
             this.TryAutoWireOperatorAmmoLabels();
             this.ApplyPendingAmmoLabels();
         }
@@ -59,6 +61,7 @@ namespace CrimsonDraft.Combat
                 this.submitHandlers[i]   = () => this.OnOperatorSelected?.Invoke(index);
                 this.selectedHandlers[i] = () =>
                 {
+                    if (this.isMasterDimmed) return;
                     this.MoveSelector(index);
                     this.OnOperatorFocused?.Invoke(index);
                 };
@@ -67,14 +70,6 @@ namespace CrimsonDraft.Combat
                 this.operators[i].OnSelected += this.selectedHandlers[i];
             }
 
-            if (this.operators.Length > 0)
-                SelectFirstNextFrame().Forget();
-        }
-
-        private async UniTaskVoid SelectFirstNextFrame()
-        {
-            await UniTask.NextFrame();
-            EventSystem.current.SetSelectedGameObject(this.operators[0].gameObject);
         }
 
         private void OnDisable()
@@ -151,8 +146,15 @@ namespace CrimsonDraft.Combat
 
         private async UniTaskVoid FocusNextFrame(int index)
         {
-            await UniTask.NextFrame();
+            await UniTask.DelayFrame(2);
             EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
+        }
+
+        public void ClearFocus()
+        {
+            EventSystem.current?.SetSelectedGameObject(null);
+            this.selectorMark.DOKill();
+            this.selectorMark.gameObject.SetActive(false);
         }
 
         public RectTransform GetOperatorAnchor(int index) =>
@@ -163,6 +165,8 @@ namespace CrimsonDraft.Combat
 
         public void SetDimmed(bool dimmed)
         {
+            this.isMasterDimmed = dimmed;
+
             if (this.dimmingOverlay != null)
                 this.dimmingOverlay.DOFade(dimmed ? 0.6f : 0f, 0.1f);
 
@@ -177,6 +181,32 @@ namespace CrimsonDraft.Combat
                 this.selectorMark.DOKill();
                 this.selectorMark.gameObject.SetActive(false);
             }
+        }
+
+        public void SetOperatorDimmed(int index, bool dimmed)
+        {
+            if (index < 0 || index >= this.operators.Length) return;
+            var item = this.operators[index];
+            item.interactable = !dimmed;
+
+            var nav  = item.navigation;
+            nav.mode = dimmed ? Navigation.Mode.None : Navigation.Mode.Automatic;
+            item.navigation = nav;
+
+            if (!dimmed && EventSystem.current != null)
+            {
+                var selected = EventSystem.current.currentSelectedGameObject;
+                bool needsFocus = selected == null ||
+                    (selected.TryGetComponent<UnityEngine.UI.Selectable>(out var sel) && !sel.IsInteractable());
+                if (needsFocus)
+                    FocusNextFrame(index).Forget();
+            }
+
+            Transform overview = item.transform.parent;
+            if (overview == null) return;
+            CanvasGroup cg = overview.GetComponent<CanvasGroup>();
+            if (cg == null) cg = overview.gameObject.AddComponent<CanvasGroup>();
+            cg.DOFade(dimmed ? 0.4f : 1f, 0.15f);
         }
 
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)

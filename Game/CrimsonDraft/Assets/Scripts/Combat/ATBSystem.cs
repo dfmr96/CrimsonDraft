@@ -27,6 +27,12 @@ namespace CrimsonDraft.Combat
         public void ResetActor(int slotIndex, ATBActorKind kind)
             => GetActor(slotIndex, kind)?.Reset();
 
+        public void FreezeActor(int slotIndex, ATBActorKind kind)
+            => GetActor(slotIndex, kind)?.Freeze();
+
+        public void UnfreezeActor(int slotIndex, ATBActorKind kind)
+            => GetActor(slotIndex, kind)?.Unfreeze();
+
         public void MarkDead(int slotIndex, ATBActorKind kind)
             => GetActor(slotIndex, kind)?.MarkDead();
 

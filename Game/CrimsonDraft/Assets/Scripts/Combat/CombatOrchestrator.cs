@@ -25,15 +25,23 @@ namespace CrimsonDraft.Combat
         private IInventoryService                            inventory          = null!;
         private ICombatActionMenuView                        menuView           = null!;
 
+        [SerializeField] private float operatorActionDurationSec = 0.5f;
+        [SerializeField] private float defendDurationSec         = 0.3f;
+        [SerializeField] private float defaultEnemyAttackDurSec  = 1.2f;
+        [SerializeField] private float atbGaugeDivisor           = 100f;
+
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
 
         private float          animationLockUntil;
+        private float          animationLockDuration;
         private bool           shootConfigurationInProgress;
+        private bool           enemyAttackInProgress;
         private bool           waitModeActive;
         private bool           initialized;
+        private bool           combatEnded;
         private EncounterData? encounter;
         private IOperatorEcgFeedback? ecgFeedback;
 
@@ -71,8 +79,10 @@ namespace CrimsonDraft.Combat
             this.encounter = this.encounterDatabase.GetById(encounterId);
             if (this.encounter == null) return;
 
-            var configs = BuildATBConfigs(this.encounter, this.roster);
+            var configs = BuildATBConfigs(this.encounter, this.roster, this.atbGaugeDivisor);
             this.atbSystem.Initialize(configs);
+            for (int i = 0; i < this.roster.Count; i++)
+                this.menuView.SetOperatorDimmed(i, true);
 
             this.knownAliveEnemySlots.Clear();
             for (int i = 0; i < this.encounter.EnemySlots.Length; i++)
@@ -107,6 +117,7 @@ namespace CrimsonDraft.Combat
         {
             this.actionQueue.Enqueue(action);
             this.atbSystem.ResetActor(action.SlotIndex, ATBActorKind.Operator);
+            this.menuView.SetOperatorDimmed(action.SlotIndex, true);
         }
 
         public void SetWaitMode(bool paused) => this.waitModeActive = paused;
@@ -123,7 +134,16 @@ namespace CrimsonDraft.Combat
             if (this.actionQueue.Peek().Type != PendingActionType.Shoot) return;
             this.actionQueue.Dequeue();
             this.shootConfigurationInProgress = false;
-            this.animationLockUntil = Time.time + 0.5f;
+            SetAnimationLock(this.operatorActionDurationSec);
+        }
+
+        internal float AnimationLockRemaining => UnityEngine.Mathf.Max(0f, this.animationLockUntil - Time.time);
+        internal float AnimationLockDuration  => this.animationLockDuration;
+
+        private void SetAnimationLock(float duration)
+        {
+            this.animationLockUntil    = Time.time + duration;
+            this.animationLockDuration = duration;
         }
 
         private void NotifyReadyOperators()
@@ -133,7 +153,10 @@ namespace CrimsonDraft.Combat
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Operator);
                 if (actor == null || actor.IsDead || actor.IsAwaitingCommand) continue;
                 if (actor.IsReady)
+                {
                     actor.IsAwaitingCommand = true;
+                    this.menuView.SetOperatorDimmed(i, false);
+                }
             }
         }
 
@@ -156,16 +179,25 @@ namespace CrimsonDraft.Combat
 
                 this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, targetSlot, data.AttackDamage));
 
-                float jitter  = Mathf.Lerp(-data.AttackJitterSec, data.AttackJitterSec, this.random.NextFloat01());
-                float nextSec = Mathf.Max(0.1f, data.AttackBaseSec + jitter);
+                float nextSec = Mathf.Max(0.1f, data.AttackBaseSec);
                 this.atbSystem.ResetActor(i, ATBActorKind.Enemy);
+                this.atbSystem.FreezeActor(i, ATBActorKind.Enemy);
                 this.atbSystem.UpdateActorGaugeRate(i, ATBActorKind.Enemy, 1f / nextSec);
             }
         }
 
+        private bool IsActorDead(PendingAction action)
+        {
+            if (action.Type == PendingActionType.EnemyAttack)
+            {
+                ATBActorState? actor = this.atbSystem.GetActor(action.SlotIndex, ATBActorKind.Enemy);
+                return actor == null || actor.IsDead;
+            }
+            return action.SlotIndex >= this.roster.Count || !this.roster[action.SlotIndex].IsAlive;
+        }
+
         private void ProcessQueueHead()
         {
-            if (Time.time < this.animationLockUntil) return;
             if (!this.actionQueue.HasPending) return;
 
             PendingAction head = this.actionQueue.Peek();
@@ -174,12 +206,33 @@ namespace CrimsonDraft.Combat
             {
                 if (!this.shootConfigurationInProgress)
                 {
+                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
                     this.shootConfigurationInProgress = true;
                     this.shootPublisher.Publish(new ShootConfigurationRequestedEvent(head.SlotIndex));
                 }
                 return;
             }
 
+            if (head.Type == PendingActionType.EnemyAttack)
+            {
+                if (!this.enemyAttackInProgress)
+                {
+                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+                    if (Time.time < this.animationLockUntil) return;
+                    this.enemyAttackInProgress = true;
+                    ApplyEnemyAttack(head);
+                }
+                else if (Time.time >= this.animationLockUntil)
+                {
+                    this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
+                    this.actionQueue.Dequeue();
+                    this.enemyAttackInProgress = false;
+                }
+                return;
+            }
+
+            if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+            if (Time.time < this.animationLockUntil) return;
             this.actionQueue.Dequeue();
 
             switch (head.Type)
@@ -188,19 +241,15 @@ namespace CrimsonDraft.Combat
                     this.inventory.ReloadOperator(head.AmmoBoxIndex, head.SlotIndex);
                     var weapon = this.roster.Count > head.SlotIndex ? this.roster[head.SlotIndex].EquippedWeapon : null;
                     this.menuView.SetOperatorAmmo(head.SlotIndex, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
-                    this.animationLockUntil = Time.time + 0.5f;
+                    SetAnimationLock(this.operatorActionDurationSec);
                     break;
 
                 case PendingActionType.UseItem:
-                    this.animationLockUntil = Time.time + 0.5f;
+                    SetAnimationLock(this.operatorActionDurationSec);
                     break;
 
                 case PendingActionType.Defend:
-                    this.animationLockUntil = Time.time + 0.3f;
-                    break;
-
-                case PendingActionType.EnemyAttack:
-                    ApplyEnemyAttack(head);
+                    SetAnimationLock(this.defendDurationSec);
                     break;
             }
         }
@@ -218,10 +267,7 @@ namespace CrimsonDraft.Combat
                 this.roster[action.TargetOperatorSlot].HpRatio,
                 this.roster[action.TargetOperatorSlot].IsAlive);
 
-            EnemyData? data = (this.encounter != null && action.SlotIndex < this.encounter.EnemySlots.Length)
-                ? this.encounter.EnemySlots[action.SlotIndex]
-                : null;
-            this.animationLockUntil = Time.time + (data?.AttackDurationSec ?? 1.2f);
+            SetAnimationLock(this.defaultEnemyAttackDurSec);
         }
 
         private void SyncDeadEnemies()
@@ -244,16 +290,22 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.MarkDead(this.syncDeadBuf[i], ATBActorKind.Enemy);
                 this.knownAliveEnemySlots.Remove(this.syncDeadBuf[i]);
             }
+
+            if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0 && !this.combatEnded)
+            {
+                this.combatEnded = true;
+                this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
+            }
         }
 
-        private static List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster)
+        private static List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster, float divisor)
         {
             var configs = new List<ATBActorConfig>();
 
             for (int i = 0; i < roster.Count; i++)
             {
                 int speed = roster[i].Data?.Speed ?? 50;
-                configs.Add(new ATBActorConfig(i, ATBActorKind.Operator, speed / 100f));
+                configs.Add(new ATBActorConfig(i, ATBActorKind.Operator, speed / divisor));
             }
 
             for (int i = 0; i < encounter.EnemySlots.Length; i++)

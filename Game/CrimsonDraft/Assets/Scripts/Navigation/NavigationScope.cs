@@ -38,7 +38,8 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<PlaceholderOverlayView>();
             builder.Register<PlaceholderOverlayController>(Lifetime.Scoped).AsImplementedInterfaces();
 
-            builder.RegisterComponentInHierarchy<CombatTrigger>();
+            foreach (var trigger in FindObjectsByType<CombatTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(trigger);
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
@@ -56,7 +57,11 @@ namespace CrimsonDraft.Navigation
             this.roomTransitionContext.SetStartingRoom(this.startingRoom);
             builder.RegisterInstance(this.roomTransitionContext);
 
-            var msgOptions = builder.RegisterMessagePipe();
+            // Reuse parent's MessagePipeOptions so room events share the same
+            // pub/sub bus as global events (CombatEndedEvent, etc.).
+            // Calling RegisterMessagePipe() here would create a separate bus,
+            // breaking cross-scope subscriptions.
+            var msgOptions = Parent!.Container.Resolve<MessagePipeOptions>();
             builder.RegisterMessageBroker<RoomTransitionStartedEvent>(msgOptions);
             builder.RegisterMessageBroker<RoomTransitionedEvent>(msgOptions);
 

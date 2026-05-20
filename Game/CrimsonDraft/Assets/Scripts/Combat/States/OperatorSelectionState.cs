@@ -15,6 +15,8 @@ namespace CrimsonDraft.Combat
         private readonly IPublisher<CombatEndedEvent> publisher;
         private readonly IOperatorRoster              roster;
 
+        private float canAcceptSubmitAt;
+
         internal OperatorSelectionState(
             CombatMenuController         context,
             ICombatActionMenuView        menuView,
@@ -33,11 +35,23 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
+            this.canAcceptSubmitAt = UnityEngine.Time.unscaledTime + 0.15f;
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
             SyncAllOperatorAmmo();
-            this.battlefieldView.SetOperatorIndicator(this.context.SelectedOperator);
-            this.menuView.FocusOperator(this.context.SelectedOperator);
+
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                if (this.context.Orchestrator.IsOperatorReady(i))
+                {
+                    this.battlefieldView.SetOperatorIndicator(i);
+                    this.menuView.MoveSelectorTo(this.menuView.GetOperatorAnchor(i));
+                    this.menuView.FocusOperator(i);
+                    return;
+                }
+            }
+
+            this.menuView.ClearFocus();
         }
 
         public void OnCancel() =>
@@ -53,6 +67,7 @@ namespace CrimsonDraft.Combat
 
         public void OnOperatorSelected(int index)
         {
+            if (UnityEngine.Time.unscaledTime < this.canAcceptSubmitAt) return;
             if (!this.context.Orchestrator.IsOperatorReady(index)) return;
             this.context.SelectedOperator = index;
             bool hasAmmo = this.roster.Count > index && (this.roster[index].EquippedWeapon?.CurrentAmmo ?? 0) > 0;

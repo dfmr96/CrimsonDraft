@@ -26,6 +26,7 @@ namespace CrimsonDraft.Combat
         public bool  IsReady           => this.Gauge >= 1f;
         public bool  IsAwaitingCommand { get; set; }
         public bool  IsDead            { get; private set; }
+        public bool  IsFrozen          { get; private set; }
 
         private float gaugePerSecond;
 
@@ -37,7 +38,7 @@ namespace CrimsonDraft.Combat
 
         public void Tick(float deltaTime)
         {
-            if (this.IsDead) return;
+            if (this.IsDead || this.IsFrozen) return;
             this.Gauge = (float)System.Math.Min(1.0, this.Gauge + deltaTime * this.gaugePerSecond);
         }
 
@@ -47,6 +48,8 @@ namespace CrimsonDraft.Combat
             this.IsAwaitingCommand = false;
         }
 
+        public void Freeze()   => this.IsFrozen = true;
+        public void Unfreeze() => this.IsFrozen = false;
         public void MarkDead() => this.IsDead = true;
 
         public void UpdateGaugePerSecond(float newRate)

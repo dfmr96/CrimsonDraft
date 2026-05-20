@@ -131,7 +131,7 @@ namespace CrimsonDraft.Combat
             this.SubPanelState     = new SubPanelState(this, this.subPanel);
             this.ShotCountState    = new ShotCountSelectionState(this, this.commandPanel, this.shotCountView, this.battlefieldView, this.aimView, this.roster);
             this.TargetSelState    = new TargetSelectionState(this, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
-            this.AimingState       = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.combatEndedPublisher, this.roster);
+            this.AimingState       = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
 
             this.menuView.OnOperatorSelected    += this.HandleOperatorSelected;
             this.menuView.OnOperatorFocused     += this.HandleOperatorFocused;
@@ -185,6 +185,8 @@ namespace CrimsonDraft.Combat
         internal void BeginShootConfiguration(int slot)
         {
             this.SelectedOperator = slot;
+            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+            this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
         }
 

@@ -555,7 +555,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotFired_whenAllEnemiesDead_publishesVictoryTrue()
+        public void ShotFired_whenAllEnemiesDead_enemyHpReachesZero()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 10);
@@ -568,9 +568,9 @@ namespace CrimsonDraft.Tests
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
-            Assert.IsTrue(this.publisher.Published);
-            Assert.NotNull(this.publisher.LastEvent);
-            Assert.IsTrue(this.publisher.LastEvent!.Value.Victory);
+            Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
+            Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
+            Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
@@ -636,12 +636,14 @@ namespace CrimsonDraft.Tests
             public bool HasSubscribers => this.OnOperatorSelected != null || this.OnOperatorFocused != null;
             public void RaiseOnOperatorSelected(int index) => this.OnOperatorSelected?.Invoke(index);
             public void FocusOperator(int index) { }
+            public void ClearFocus() { }
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
                 this.ammoByOperator.TryGetValue(index, out ammo);
             public void SetDimmed(bool dimmed) { }
+            public void SetOperatorDimmed(int index, bool dimmed) { }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
@@ -656,8 +658,9 @@ namespace CrimsonDraft.Tests
             private readonly RectTransform panelRect = new GameObject().AddComponent<RectTransform>();
             private readonly Dictionary<CombatCommand, bool> enabledByCommand = new();
             public RectTransform PanelRect => this.panelRect;
-            public void Show(RectTransform _) => this.IsVisible = true;
-            public void Focus()               { }
+            public void Show(RectTransform _)         => this.IsVisible = true;
+            public void RepositionTo(RectTransform _) { }
+            public void Focus()                       { }
             public void SetCommandEnabled(CombatCommand command, bool enabled) => this.enabledByCommand[command] = enabled;
             public void SetDimmed(bool _)     { }
             public void Hide()                => this.IsVisible = false;
