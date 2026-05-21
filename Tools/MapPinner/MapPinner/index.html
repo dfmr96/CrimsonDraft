@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MapPinner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="mode-dev">
+
+<!-- ══════════════════════════════════════════
+     PANTALLA DE INICIO — selección de modo
+     ══════════════════════════════════════════ -->
+<div id="mode-select-screen">
+  <div class="mss-box">
+    <div class="mss-title">// MapPinner</div>
+    <div class="mss-subtitle">Seleccioná un modo para continuar</div>
+    <div class="mss-options">
+      <button class="mss-btn" id="mss-dev">
+        <span class="mss-btn-tag">DEV</span>
+        <span class="mss-btn-label">Crear y editar pins</span>
+        <span class="mss-btn-desc">Cargá un mapa, colocá pins, exportá bundles.</span>
+      </button>
+      <button class="mss-btn" id="mss-explore">
+        <span class="mss-btn-tag explore">EXPLORE</span>
+        <span class="mss-btn-label">Explorar el mapa</span>
+        <span class="mss-btn-desc">Navegá pins, filtrá categorías, guardá vistas.</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>// MapPinner</h1>
+  <div class="header-center">
+    <div class="mode-switcher">
+      <button class="btn-mode" id="btn-mode-dev">DEV</button>
+      <button class="btn-mode" id="btn-mode-explore">EXPLORE</button>
+    </div>
+    <span class="mode-badge" id="mode-badge">DEV</span>
+  </div>
+  <div class="header-right">
+    <span class="pin-count" id="pin-count">0 pins</span>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     PANEL IZQUIERDO — ACCIONES
+     ══════════════════════════════════════════ -->
+<div id="actions-panel" class="actions-panel collapsed">
+  <div class="actions-header">
+    <h3>ACCIONES</h3>
+    <button class="btn-toggle-actions" id="btn-toggle-actions">▶</button>
+  </div>
+  <div class="actions-body">
+
+    <!-- Solo DEV -->
+    <div class="actions-dev-only">
+      <div class="actions-label">DEV</div>
+      <button class="btn-action accent" id="btn-export">Exportar .json</button>
+      <button class="btn-action"        id="btn-import">Importar .json</button>
+      <input type="file" id="import-input" accept=".json" style="display:none">
+      <div class="actions-divider"></div>
+      <button class="btn-action" id="btn-change-map">Cambiar mapa</button>
+      <button class="btn-action accent" id="btn-export-bundle">Publicar → Explore</button>
+      <div class="actions-divider"></div>
+      <button class="btn-action danger" id="btn-clear">Limpiar todo</button>
+    </div>
+
+    <!-- Solo EXPLORE -->
+    <div class="actions-explore-only">
+      <div class="actions-label">MAPA</div>
+      <button class="btn-action"        id="btn-import-explore-bundle">Importar bundle</button>
+      <input type="file" id="import-bundle-input" accept=".json" style="display:none">
+      <div class="actions-divider"></div>
+      <div class="actions-label">VISTAS</div>
+      <button class="btn-action accent" id="btn-export-views">Exportar vistas</button>
+      <button class="btn-action"        id="btn-import-views">Importar vistas</button>
+      <input type="file" id="import-views-input" accept=".json" style="display:none">
+    </div>
+
+  </div>
+</div>
+
+<button class="btn-show-actions" id="btn-show-actions">☰</button>
+
+<!-- ══════════════════════════════════════════
+     WORKSPACE
+     ══════════════════════════════════════════ -->
+<div id="workspace">
+  <div id="map-container">
+    <img id="map-img" src="" alt="mapa" style="display:none;" draggable="false">
+  </div>
+  <div class="upload-prompt" id="upload-prompt">
+    <div class="upload-box" id="upload-box">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7a7970" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9l4-4 4 4 4-4 4 4"/>
+        <path d="M12 12v6"/>
+      </svg>
+      <strong>CARGAR MAPA</strong>
+      <p>Click derecho en el mapa para colocar un pin</p>
+      <p style="margin-top:8px; font-size:11px; color:#555">Los pins y el mapa se guardan automáticamente</p>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+  </div>
+  <!-- Aviso / carga en modo explore sin bundle -->
+  <div class="explore-no-map" id="explore-no-map" style="display:none">
+    <div class="explore-load-box" id="explore-load-box">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7a7970" stroke-width="1.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <strong>CARGAR BUNDLE</strong>
+      <p>Arrastrá o hacé click para cargar el mapa</p>
+      <input type="file" id="explore-bundle-input" accept=".json">
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL DERECHO
+     ══════════════════════════════════════════ -->
+<div id="presets-panel" class="presets-panel">
+  <div class="presets-header">
+    <h3>// MapPinner</h3>
+    <button class="btn-toggle-presets" id="btn-toggle-presets">◀</button>
+  </div>
+
+  <!-- FILTROS — siempre visible -->
+  <div class="filters-section">
+    <div class="filters-section-header">
+      <span class="filters-title">FILTROS</span>
+      <div class="filters-global-inline">
+        <button class="btn-filter-global" id="btn-show-all">Todo</button>
+        <button class="btn-filter-global" id="btn-hide-all">Ninguno</button>
+      </div>
+    </div>
+    <div class="filters-categories" id="filters-categories"></div>
+  </div>
+
+  <!-- PRESETS DEV — solo en modo dev -->
+  <div class="presets-section" id="dev-presets-section">
+    <div class="presets-section-header">
+      <span class="presets-section-title">PRESETS</span>
+      <div class="presets-section-actions">
+        <button class="btn-preset-sm" id="btn-new-preset">+ Nuevo</button>
+        <button class="btn-preset-sm accent" id="btn-save-preset">Guardar</button>
+      </div>
+    </div>
+    <div class="presets-list" id="presets-list"></div>
+  </div>
+
+  <!-- VISTAS EXPLORE — solo en modo explore -->
+  <div class="presets-section" id="explore-presets-section" style="display:none">
+    <div class="presets-section-header">
+      <span class="presets-section-title">VISTAS</span>
+      <div class="presets-section-actions">
+        <button class="btn-preset-sm" id="btn-new-explore-set">+ Nueva</button>
+        <button class="btn-preset-sm accent" id="btn-save-explore-set">Guardar</button>
+      </div>
+    </div>
+    <div class="presets-list" id="explore-sets-list"></div>
+  </div>
+</div>
+
+<button class="btn-show-presets" id="btn-show-presets">▶</button>
+
+<div id="overlay"></div>
+
+<!-- ══════════════════════════════════════════
+     PANEL CREAR / EDITAR PIN (solo DEV)
+     ══════════════════════════════════════════ -->
+<div id="pin-panel">
+  <div class="panel-header">
+    <h2 id="pin-panel-title">Nuevo pin</h2>
+    <button class="panel-close" id="panel-close">&times;</button>
+  </div>
+  <div class="panel-body">
+
+    <label class="field-label">Categoría</label>
+    <div class="type-grid" id="type-grid"></div>
+
+    <label class="field-label" for="pin-title">Nombre</label>
+    <input type="text" id="pin-title" placeholder="Nombre del pin...">
+
+    <label class="field-label" for="pin-desc">Descripción</label>
+    <textarea id="pin-desc" placeholder="Descripción opcional..."></textarea>
+
+    <label class="field-label">Imágenes <span class="field-label-hint">(máx. 2)</span></label>
+    <div class="pin-img-upload-row" id="pin-img-upload-row">
+      <div class="pin-img-slot" id="pin-img-slot-0">
+        <input type="file" accept="image/*" class="pin-img-input" id="pin-img-0">
+        <div class="pin-img-placeholder">＋</div>
+      </div>
+      <div class="pin-img-slot pin-img-slot-locked" id="pin-img-slot-1">
+        <input type="file" accept="image/*" class="pin-img-input" id="pin-img-1" disabled>
+        <div class="pin-img-placeholder">＋</div>
+      </div>
+    </div>
+
+    <div class="panel-divider"></div>
+
+    <div class="unlocks-row">
+      <label class="field-label" style="margin-bottom:0">Unlocks something</label>
+      <button class="btn-toggle-unlocks" id="btn-toggle-unlocks" aria-pressed="false">OFF</button>
+    </div>
+
+    <div class="requirements-block" id="requirements-block">
+      <label class="field-label">Requirements <span class="field-label-hint">(pins que lo desbloquean)</span></label>
+      <div class="req-list" id="req-list">
+        <!-- generado por JS -->
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn-cancel"  id="btn-cancel">Cancelar</button>
+      <button class="btn-confirm" id="btn-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL LEER PIN
+     ══════════════════════════════════════════ -->
+<div id="pin-modal">
+  <div class="modal-box">
+    <div class="modal-images" id="modal-images"></div>
+    <div class="modal-body">
+      <div class="modal-body-top">
+        <div class="modal-title-row">
+          <span class="modal-pin-icon" id="modal-pin-icon"></span>
+          <h2 class="modal-title" id="modal-title"></h2>
+        </div>
+        <div class="modal-type-tag" id="modal-tag"></div>
+        <p class="modal-desc" id="modal-desc"></p>
+
+        <!-- Sección requirements: pins que necesita este -->
+        <div class="modal-relations" id="modal-requirements" style="display:none">
+          <div class="modal-relations-label">Requiere</div>
+          <div class="modal-relations-list" id="modal-req-list"></div>
+        </div>
+
+        <!-- Sección used-in: pins que este desbloquea -->
+        <div class="modal-relations" id="modal-used-in" style="display:none">
+          <div class="modal-relations-label">Usado en</div>
+          <div class="modal-relations-list" id="modal-usedin-list"></div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn-hide" id="btn-hide">Hide</button>
+        <!-- Solo DEV -->
+        <button class="btn-edit dev-only" id="btn-edit">Editar</button>
+        <button class="btn-del  dev-only" id="btn-del">Eliminar</button>
+      </div>
+      <button class="btn-close-modal" id="btn-close-modal">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/pins.js"></script>
+<script src="js/map.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
