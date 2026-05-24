@@ -14,6 +14,7 @@ using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
+using CrimsonDraft.Navigation.Enemy;
 
 namespace CrimsonDraft.Navigation
 {
@@ -40,6 +41,8 @@ namespace CrimsonDraft.Navigation
 
             foreach (var trigger in FindObjectsByType<CombatTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(trigger);
+            foreach (var agent in FindObjectsByType<EnemyNavAgent>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(agent);
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
@@ -64,6 +67,7 @@ namespace CrimsonDraft.Navigation
             var msgOptions = Parent!.Container.Resolve<MessagePipeOptions>();
             builder.RegisterMessageBroker<RoomTransitionStartedEvent>(msgOptions);
             builder.RegisterMessageBroker<RoomTransitionedEvent>(msgOptions);
+            builder.RegisterMessageBroker<GuardAlertChangedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
