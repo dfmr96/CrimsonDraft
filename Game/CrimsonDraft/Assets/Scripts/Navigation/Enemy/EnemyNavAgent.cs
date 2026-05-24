@@ -30,6 +30,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private GuardAlertState  state           = GuardAlertState.Patrol;
         private float            suspiciousTimer;
         private IDisposable?     combatEndedSub;
+        private readonly NavMeshPath navPathCache = new NavMeshPath();
 
         [Inject]
         public void Construct(
@@ -50,6 +51,8 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
+            if (playerRb == null)
+                Debug.LogError($"[EnemyNavAgent] PlayerController on '{playerController.name}' has no Rigidbody. Sound detection will NullRef.", this);
             navAgent.speed = data.patrolSpeed;
 
             if (path.HasWaypoints)
@@ -127,13 +130,12 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private bool CanReachPlayer()
         {
-            var navPath = new NavMeshPath();
             NavMesh.CalculatePath(
                 transform.position,
                 playerController!.transform.position,
                 NavMesh.AllAreas,
-                navPath);
-            return navPath.status == NavMeshPathStatus.PathComplete;
+                navPathCache);
+            return navPathCache.status == NavMeshPathStatus.PathComplete;
         }
 
         private void TransitionTo(GuardAlertState next)
@@ -152,6 +154,7 @@ namespace CrimsonDraft.Navigation.Enemy
             {
                 case GuardAlertState.Patrol:
                     navAgent.speed = data.patrolSpeed;
+                    navAgent.updateRotation = true;
                     sensor.ResetState();
                     if (path.HasWaypoints)
                         navAgent.SetDestination(path.Current.position);
@@ -159,10 +162,12 @@ namespace CrimsonDraft.Navigation.Enemy
 
                 case GuardAlertState.Suspicious:
                     navAgent.ResetPath();
+                    navAgent.updateRotation = false;
                     suspiciousTimer = data.suspiciousDuration;
                     break;
 
                 case GuardAlertState.Alert:
+                    navAgent.updateRotation = true;
                     navAgent.speed = data.chaseSpeed;
                     break;
             }
