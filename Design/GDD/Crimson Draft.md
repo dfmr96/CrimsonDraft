@@ -29,6 +29,7 @@
 - [[Sistema de Interactuables]]
 - [[Sistema de Item Socket]]
 - [[Sistema de Movimiento]]
+- [[Sistema de IA de Navegacion]]
 - [[Mecanicas de Supervivencia]]
 - [[Tactical Survival Horror]]
 - [[Acto I - Diseño Detallado]]
@@ -48,6 +49,7 @@
 - [[Proyecto Meridian]]
 - [[Protocolo SCUTTLE]]
 - [[Referencias e Influencias]]
+- [[Vision Narrativa - Para Lorenzo]]
 
 ### Presentacion
 - [[High Concept]]
