@@ -30,7 +30,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private GuardAlertState  state           = GuardAlertState.Patrol;
         private float            suspiciousTimer;
         private IDisposable?     combatEndedSub;
-        private readonly NavMeshPath navPathCache = new NavMeshPath();
+        private NavMeshPath navPathCache = null!;
 
         [Inject]
         public void Construct(
@@ -49,6 +49,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Start()
         {
+            navPathCache = new NavMeshPath();
             navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
             if (playerRb == null)

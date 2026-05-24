@@ -15,6 +15,8 @@ using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 using CrimsonDraft.Navigation.Enemy;
+using CrimsonDraft.Infrastructure.Events;
+
 
 namespace CrimsonDraft.Navigation
 {
