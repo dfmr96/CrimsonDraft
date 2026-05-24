@@ -250,5 +250,26 @@ namespace CrimsonDraft.Tests
             Object.DestroyImmediate(playerGO);
             Object.DestroyImmediate(data);
         }
+
+        [Test]
+        public void Sound_NoDetectionForRunningPlayerOutsideRunRadius()
+        {
+            var sensorGO = new GameObject();
+            sensorGO.transform.position = Vector3.zero;
+            var sensor = sensorGO.AddComponent<EnemyDetectionSensor>();
+
+            var playerGO = new GameObject();
+            playerGO.transform.position = new Vector3(10f, 0f, 0f); // outside runRadius=9
+            var playerRb = playerGO.AddComponent<Rigidbody>();
+            playerRb.linearVelocity = new Vector3(6f, 0f, 0f); // run speed (6 > runThreshold 5.5)
+
+            var data = MakeData(detectRadius: 1f, undetectRadius: 1.5f, walkRadius: 5f, runRadius: 9f);
+
+            Assert.IsFalse(sensor.Evaluate(data, playerGO.transform, playerRb, null));
+
+            Object.DestroyImmediate(sensorGO);
+            Object.DestroyImmediate(playerGO);
+            Object.DestroyImmediate(data);
+        }
     }
 }

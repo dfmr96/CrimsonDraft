@@ -30,6 +30,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private GuardAlertState  state           = GuardAlertState.Patrol;
         private float            suspiciousTimer;
         private IDisposable?     combatEndedSub;
+        private bool             combatTriggered;
         private NavMeshPath navPathCache = null!;
 
         [Inject]
@@ -53,7 +54,11 @@ namespace CrimsonDraft.Navigation.Enemy
             navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
             if (playerRb == null)
+            {
                 Debug.LogError($"[EnemyNavAgent] PlayerController on '{playerController.name}' has no Rigidbody. Sound detection will NullRef.", this);
+                enabled = false;
+                return;
+            }
             navAgent.speed = data.patrolSpeed;
 
             if (path.HasWaypoints)
@@ -154,6 +159,7 @@ namespace CrimsonDraft.Navigation.Enemy
             switch (next)
             {
                 case GuardAlertState.Patrol:
+                    navAgent.isStopped = false;
                     navAgent.speed = data.patrolSpeed;
                     navAgent.updateRotation = true;
                     sensor.ResetState();
@@ -163,11 +169,13 @@ namespace CrimsonDraft.Navigation.Enemy
 
                 case GuardAlertState.Suspicious:
                     navAgent.ResetPath();
+                    navAgent.isStopped = true;
                     navAgent.updateRotation = false;
                     suspiciousTimer = data.suspiciousDuration;
                     break;
 
                 case GuardAlertState.Alert:
+                    navAgent.isStopped = false;
                     navAgent.updateRotation = true;
                     navAgent.speed = data.chaseSpeed;
                     break;
@@ -178,14 +186,15 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
+            combatTriggered = true;
             sceneTransitionService.StartCombatAsync(data.encounterId).Forget();
             gameObject.SetActive(false);
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)
         {
+            if (!combatTriggered) return;
             if (!ev.Victory) return;
-            if (encounterContext?.CurrentEncounterId != data.encounterId) return;
             gameObject.SetActive(false);
         }
     }
