@@ -116,5 +116,34 @@ namespace CrimsonDraft.Tests
             _decoder.Confirm();
             Assert.AreEqual("EN", _decoder.GetWord());
         }
+
+        [Test]
+        public void Backspace_WithCurrentSequenceNonEmpty_ClearsCurrentSequence()
+        {
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.Backspace();
+            Assert.AreEqual("", _decoder.CurrentSequence);
+            Assert.AreEqual(0, _decoder.Word.Count);
+        }
+
+        [Test]
+        public void Backspace_WithCurrentSequenceEmpty_RemovesLastWordLetter()
+        {
+            _decoder.InputDot();
+            _decoder.Confirm();
+            _decoder.InputDash();
+            _decoder.Confirm();
+            _decoder.Backspace();
+            Assert.AreEqual("E", _decoder.GetWord());
+        }
+
+        [Test]
+        public void Backspace_AllEmpty_DoesNothing()
+        {
+            Assert.DoesNotThrow(() => _decoder.Backspace());
+            Assert.AreEqual("", _decoder.CurrentSequence);
+            Assert.AreEqual("", _decoder.GetWord());
+        }
     }
 }

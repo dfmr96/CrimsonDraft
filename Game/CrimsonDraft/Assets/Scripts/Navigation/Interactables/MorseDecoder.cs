@@ -36,7 +36,16 @@ namespace CrimsonDraft.Navigation.Interactables
             _currentSequence.Clear();
         }
 
-        public void Backspace() { }
+        public void Backspace()
+        {
+            if (_currentSequence.Length > 0)
+            {
+                _currentSequence.Clear();
+                return;
+            }
+            if (_word.Count > 0)
+                _word.RemoveAt(_word.Count - 1);
+        }
         public void Reset()     { }
         public string GetWord() => new string(_word.ToArray());
     }
