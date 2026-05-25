@@ -14,10 +14,14 @@ namespace CrimsonDraft.Navigation.Enemy
 {
     public sealed class EnemyNavAgent : MonoBehaviour
     {
-        [SerializeField] private NavigationEnemyData  data      = null!;
-        [SerializeField] private EnemyPatrolPath      path      = null!;
-        [SerializeField] private EnemyDetectionSensor sensor    = null!;
+        [SerializeField] private NavigationEnemyData  data          = null!;
+        [SerializeField] private EnemyPatrolPath      path          = null!;
+        [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
+        [Tooltip("Si está desactivado, el enemigo permanece estático en su posición inicial en lugar de patrullar.")]
+        [SerializeField] private bool                 patrolEnabled        = true;
+        [Tooltip("Velocidad de giro en grados/segundo durante el estado Suspicious.")]
+        [SerializeField] private float                suspiciousTurnSpeed  = 120f;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -61,7 +65,7 @@ namespace CrimsonDraft.Navigation.Enemy
             }
             navAgent.speed = data.patrolSpeed;
 
-            if (path.HasWaypoints)
+            if (patrolEnabled && path.HasWaypoints)
                 navAgent.SetDestination(path.Current.position);
 
             combatEndedSub = combatEndedSubscriber?.Subscribe(OnCombatEnded);
@@ -86,7 +90,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void UpdatePatrol()
         {
-            if (path.HasWaypoints
+            if (patrolEnabled
+                && path.HasWaypoints
                 && !navAgent.pathPending
                 && navAgent.hasPath
                 && navAgent.remainingDistance < data.waypointStopDistance)
@@ -108,7 +113,10 @@ namespace CrimsonDraft.Navigation.Enemy
             var dir = (playerController!.transform.position - transform.position);
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f)
-                transform.rotation = Quaternion.LookRotation(dir.normalized);
+            {
+                var targetRotation = Quaternion.LookRotation(dir.normalized);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, suspiciousTurnSpeed * Time.deltaTime);
+            }
 
             suspiciousTimer -= Time.deltaTime;
 
@@ -126,8 +134,9 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             navAgent.SetDestination(playerController!.transform.position);
 
-            var distToPlayer = Vector3.Distance(transform.position, playerController.transform.position);
-            if (distToPlayer < data.catchRadius)
+            var toPlayer = playerController.transform.position - transform.position;
+            toPlayer.y = 0f;
+            if (toPlayer.magnitude < data.catchRadius)
                 TriggerCombat();
         }
 
@@ -163,7 +172,7 @@ namespace CrimsonDraft.Navigation.Enemy
                     navAgent.speed = data.patrolSpeed;
                     navAgent.updateRotation = true;
                     sensor.ResetState();
-                    if (path.HasWaypoints)
+                    if (patrolEnabled && path.HasWaypoints)
                         navAgent.SetDestination(path.Current.position);
                     break;
 
@@ -197,5 +206,55 @@ namespace CrimsonDraft.Navigation.Enemy
             if (!ev.Victory) return;
             gameObject.SetActive(false);
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            if (data == null) return;
+
+            var pos       = transform.position;
+            var eyeOrigin = eyePoint != null ? eyePoint.position : pos;
+
+            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
+            Gizmos.DrawWireSphere(pos, data.catchRadius);
+
+            Gizmos.color = new Color(1f, 1f, 0f, 0.4f);
+            Gizmos.DrawWireSphere(pos, data.detectRadius);
+
+            Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
+            Gizmos.DrawWireSphere(pos, data.undetectRadius);
+
+            Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
+            Gizmos.DrawWireSphere(pos, data.walkSoundRadius);
+
+            Gizmos.color = new Color(0f, 0.5f, 1f, 0.25f);
+            Gizmos.DrawWireSphere(pos, data.runSoundRadius);
+
+            DrawVisualFovGizmo(eyeOrigin, data.visualRange, data.visualFov);
+        }
+
+        private void DrawVisualFovGizmo(Vector3 origin, float range, float fov)
+        {
+            const int arcSegments = 24;
+
+            Gizmos.color = new Color(0f, 1f, 0f, 0.5f);
+            var halfFov   = fov * 0.5f;
+            var leftEdge  = Quaternion.Euler(0f, -halfFov, 0f) * transform.forward;
+            var rightEdge = Quaternion.Euler(0f,  halfFov, 0f) * transform.forward;
+
+            Gizmos.DrawLine(origin, origin + leftEdge  * range);
+            Gizmos.DrawLine(origin, origin + rightEdge * range);
+
+            var previous = origin + leftEdge * range;
+            for (var i = 1; i <= arcSegments; i++)
+            {
+                var angle   = -halfFov + fov * (i / (float)arcSegments);
+                var dir     = Quaternion.Euler(0f, angle, 0f) * transform.forward;
+                var next    = origin + dir * range;
+                Gizmos.DrawLine(previous, next);
+                previous = next;
+            }
+        }
+#endif
     }
 }
