@@ -35,7 +35,9 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
-            this.canAcceptSubmitAt = UnityEngine.Time.unscaledTime + 0.15f;
+            this.canAcceptSubmitAt = UnityEngine.Application.isPlaying
+                ? UnityEngine.Time.unscaledTime + 0.15f
+                : 0f;
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
             SyncAllOperatorAmmo();

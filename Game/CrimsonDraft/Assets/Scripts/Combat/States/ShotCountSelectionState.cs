@@ -45,7 +45,8 @@ namespace CrimsonDraft.Combat
             this.shotCountView.Hide();
         }
 
-        public void OnCancel() { }
+        public void OnCancel() =>
+            this.context.TransitionTo(this.context.CommandPanelState);
 
         public void OnConfirm()
         {

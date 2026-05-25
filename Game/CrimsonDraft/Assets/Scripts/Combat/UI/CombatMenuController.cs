@@ -148,7 +148,7 @@ namespace CrimsonDraft.Combat
             }
 
             this.Orchestrator      = this.orchestrator;
-            this.shootSubscription = this.shootSubscriber.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
+            this.shootSubscription = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
 
             this.TransitionTo(this.OperatorSelState);
         }
