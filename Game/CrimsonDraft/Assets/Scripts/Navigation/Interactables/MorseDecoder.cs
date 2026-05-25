@@ -30,10 +30,10 @@ namespace CrimsonDraft.Navigation.Interactables
         public void Confirm()
         {
             var seq = _currentSequence.ToString();
+            _currentSequence.Clear();
             if (seq.Length == 0) return;
             if (!s_table.TryGetValue(seq, out var letter)) return;
             _word.Add(letter);
-            _currentSequence.Clear();
         }
 
         public void Backspace()

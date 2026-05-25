@@ -81,7 +81,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Confirm_InvalidSequence_DoesNothing()
+        public void Confirm_InvalidSequence_DoesNotAddToWord_ButClearsSequence()
         {
             _decoder.InputDot();
             _decoder.InputDot();
@@ -90,7 +90,7 @@ namespace CrimsonDraft.Tests
             _decoder.InputDot();
             _decoder.Confirm();
             Assert.AreEqual(0, _decoder.Word.Count);
-            Assert.AreEqual(".....", _decoder.CurrentSequence);
+            Assert.AreEqual("", _decoder.CurrentSequence);
         }
 
         [Test]
