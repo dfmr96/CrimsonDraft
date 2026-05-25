@@ -145,5 +145,17 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual("", _decoder.CurrentSequence);
             Assert.AreEqual("", _decoder.GetWord());
         }
+
+        [Test]
+        public void Reset_ClearsCurrentSequenceAndWord()
+        {
+            _decoder.InputDot();
+            _decoder.InputDash();
+            _decoder.Confirm();
+            _decoder.InputDot();
+            _decoder.Reset();
+            Assert.AreEqual("", _decoder.CurrentSequence);
+            Assert.AreEqual("", _decoder.GetWord());
+        }
     }
 }

@@ -46,7 +46,11 @@ namespace CrimsonDraft.Navigation.Interactables
             if (_word.Count > 0)
                 _word.RemoveAt(_word.Count - 1);
         }
-        public void Reset()     { }
+        public void Reset()
+        {
+            _currentSequence.Clear();
+            _word.Clear();
+        }
         public string GetWord() => new string(_word.ToArray());
     }
 }
