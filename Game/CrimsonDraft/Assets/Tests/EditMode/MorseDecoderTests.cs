@@ -71,5 +71,50 @@ namespace CrimsonDraft.Tests
             _decoder.Confirm();
             Assert.AreEqual('S', _decoder.Word[0]);
         }
+
+        [Test]
+        public void Confirm_EmptySequence_DoesNothing()
+        {
+            _decoder.Confirm();
+            Assert.AreEqual(0, _decoder.Word.Count);
+            Assert.AreEqual("", _decoder.CurrentSequence);
+        }
+
+        [Test]
+        public void Confirm_InvalidSequence_DoesNothing()
+        {
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.Confirm();
+            Assert.AreEqual(0, _decoder.Word.Count);
+            Assert.AreEqual(".....", _decoder.CurrentSequence);
+        }
+
+        [Test]
+        public void Confirm_MultipleLetters_BuildsWord()
+        {
+            _decoder.InputDot();
+            _decoder.Confirm();
+            _decoder.InputDash();
+            _decoder.InputDot();
+            _decoder.Confirm();
+            Assert.AreEqual(2, _decoder.Word.Count);
+            Assert.AreEqual('E', _decoder.Word[0]);
+            Assert.AreEqual('N', _decoder.Word[1]);
+        }
+
+        [Test]
+        public void GetWord_ReturnsConfirmedLettersAsString()
+        {
+            _decoder.InputDot();
+            _decoder.Confirm();
+            _decoder.InputDash();
+            _decoder.InputDot();
+            _decoder.Confirm();
+            Assert.AreEqual("EN", _decoder.GetWord());
+        }
     }
 }

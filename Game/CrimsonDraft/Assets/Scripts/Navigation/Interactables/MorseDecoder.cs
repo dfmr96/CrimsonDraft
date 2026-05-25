@@ -38,6 +38,6 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Backspace() { }
         public void Reset()     { }
-        public string GetWord() => "";
+        public string GetWord() => new string(_word.ToArray());
     }
 }
