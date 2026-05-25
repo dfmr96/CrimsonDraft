@@ -34,5 +34,42 @@ namespace CrimsonDraft.Tests
             _decoder.InputDot();
             Assert.AreEqual(".-.", _decoder.CurrentSequence);
         }
+
+        [Test]
+        public void Confirm_DotDash_AddsLetterA()
+        {
+            _decoder.InputDot();
+            _decoder.InputDash();
+            _decoder.Confirm();
+            Assert.AreEqual(1, _decoder.Word.Count);
+            Assert.AreEqual('A', _decoder.Word[0]);
+        }
+
+        [Test]
+        public void Confirm_ClearsCurrentSequence()
+        {
+            _decoder.InputDot();
+            _decoder.InputDash();
+            _decoder.Confirm();
+            Assert.AreEqual("", _decoder.CurrentSequence);
+        }
+
+        [Test]
+        public void Confirm_SingleDash_AddsLetterT()
+        {
+            _decoder.InputDash();
+            _decoder.Confirm();
+            Assert.AreEqual('T', _decoder.Word[0]);
+        }
+
+        [Test]
+        public void Confirm_ThreeDots_AddsLetterS()
+        {
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.InputDot();
+            _decoder.Confirm();
+            Assert.AreEqual('S', _decoder.Word[0]);
+        }
     }
 }
