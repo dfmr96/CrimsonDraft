@@ -160,16 +160,29 @@ canvas{display:block}
         </div>
       </div>
       <div class="ddgroup">
-        <div class="ddgroup-title">Exportar</div>
+        <div class="ddgroup-title">Exportar PNG</div>
         <div class="ddrow">
-          <span class="ddlabel">Escala PNG</span>
-          <select class="psel" id="exp-scale"><option value="1">1×</option><option value="2" selected>2× alta res.</option><option value="3">3×</option><option value="4">4× máxima</option></select>
+          <span class="ddlabel">Escala</span>
+          <select class="psel" id="exp-scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option><option value="4">4×</option></select>
         </div>
         <div class="ddrow">
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="exp-grid" checked> Incluir grilla</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-left:8px"><input type="checkbox" id="exp-ref" checked> Incluir ref.</label>
+          <span class="ddlabel">Canvas</span>
+          <select class="psel" id="exp-mode" onchange="toggleExpManual()">
+            <option value="auto" selected>Ajustar a contenido</option>
+            <option value="manual">Tamaño manual</option>
+          </select>
         </div>
-        <div class="ddrow" style="gap:6px">
+        <div id="exp-manual-row" class="ddrow" style="display:none;gap:5px;align-items:center">
+          <input type="number" id="exp-w" value="1920" min="100" max="8000" style="width:62px"> ×
+          <input type="number" id="exp-h" value="1080" min="100" max="8000" style="width:62px">
+          <span style="font-size:10px;color:var(--muted)">px</span>
+        </div>
+        <div class="ddrow" style="gap:10px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><input type="checkbox" id="exp-grid" checked> Grilla</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><input type="checkbox" id="exp-ref" checked> Ref.</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><input type="number" id="exp-pad" value="40" min="0" max="200" style="width:40px"> pad</label>
+        </div>
+        <div class="ddrow">
           <button class="tbtn primary" style="flex:1;justify-content:center" onclick="doExport();closeDDMenu()">⬇ Exportar PNG</button>
         </div>
       </div>
@@ -179,6 +192,13 @@ canvas{display:block}
           <button class="tbtn" style="flex:1;justify-content:center" onclick="exportJSON();closeDDMenu()">⬇ Guardar .json</button>
           <button class="tbtn" style="flex:1;justify-content:center" onclick="document.getElementById('json-upload').click();closeDDMenu()">⬆ Cargar .json</button>
           <input type="file" id="json-upload" accept=".json,application/json" style="display:none">
+        </div>
+      </div>
+      <div class="ddgroup">
+        <div class="ddgroup-title">Exportar para MapPinner</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.5">Genera un .json que MapPinner puede cargar como mapa visual.</div>
+        <div class="ddrow">
+          <button class="tbtn primary" style="flex:1;justify-content:center" onclick="exportForMapPinner();closeDDMenu()">⬇ Exportar .mappinner</button>
         </div>
       </div>
     </div>
@@ -443,10 +463,15 @@ function closeDDMenu(){
 document.addEventListener('click',e=>{
   if(!e.target.closest('.ddmenu-wrap'))closeDDMenu();
 });
-document.getElementById('bg-wrap').addEventListener('click',()=>document.getElementById('bg-color').click());
-document.getElementById('grid-wrap').addEventListener('click',()=>document.getElementById('grid-color').click());
-document.getElementById('fbc-wrap').addEventListener('click',()=>document.getElementById('floor-border-color').click());
-document.getElementById('lc-wrap').addEventListener('click',()=>document.getElementById('label-color').click());
+document.getElementById('bg-wrap').addEventListener('click',e=>{e.stopPropagation();document.getElementById('bg-color').click();});
+document.getElementById('grid-wrap').addEventListener('click',e=>{e.stopPropagation();document.getElementById('grid-color').click();});
+document.getElementById('fbc-wrap').addEventListener('click',e=>{e.stopPropagation();document.getElementById('floor-border-color').click();});
+document.getElementById('lc-wrap').addEventListener('click',e=>{e.stopPropagation();document.getElementById('label-color').click();});
+// Prevent color inputs from closing dropdown
+['bg-color','grid-color','floor-border-color','label-color'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('click',e=>e.stopPropagation());
+});
 
 // ===================== REF IMAGE TOOL =====================
 function activateRefTool(){
@@ -651,74 +676,83 @@ function redraw(ec,ew,eh,es,eg,er){
 function drawAllFloors(c,sorted,sc,ox,oy,w,h){
   const floors=sorted.filter(o=>o.type==='floor'&&o.id!==selectedId&&o.id!==movingId);
   if(!floors.length)return;
-
   const cp=sc*CELL;
 
-  // Group by fill color — floors of the same color merge into one shape.
-  // Border color is tracked separately per group and drawn after.
   const groups=new Map();
   for(const obj of floors){
-    const key=obj.color;
-    if(!groups.has(key))groups.set(key,{objs:[],border:obj.border,borderColor:obj.borderColor});
-    groups.get(key).objs.push(obj);
+    if(!groups.has(obj.color))groups.set(obj.color,{objs:[],border:obj.border,borderColor:obj.borderColor});
+    groups.get(obj.color).objs.push(obj);
   }
 
-  const off=document.createElement('canvas');
-  off.width=w; off.height=h;
-  const oc=off.getContext('2d');
-
   for(const [color,{objs,border,borderColor}] of groups){
-    // 1. Draw all fills onto offscreen flat
-    oc.clearRect(0,0,w,h);
-    oc.fillStyle=color;
+    // Fill all rects — no seams because fills are opaque and overlap cleanly
+    c.fillStyle=color;
+    for(const obj of objs) c.fillRect(obj.x*cp+ox, obj.y*cp+oy, obj.w*cp, obj.h*cp);
+
+    if(!border||!borderColor) continue;
+
+    // Detect and draw only OUTER edges.
+    // An edge between two rects of the same group is internal — skip it.
+    // We work in world units (meters) to avoid float precision issues.
+    // Each rect has 4 edges: top, right, bottom, left.
+    // An edge is external if no other rect in the group shares that exact edge.
+    const bw=Math.max(1.5,sc*0.8);
+    c.save();
+    c.strokeStyle=borderColor;
+    c.lineWidth=bw;
+    c.lineCap='square';
+
     for(const obj of objs){
-      oc.fillRect(obj.x*cp+ox, obj.y*cp+oy, obj.w*cp, obj.h*cp);
-    }
-
-    // 2. Stamp fill onto main canvas (no shadow for floors)
-    c.drawImage(off,0,0);
-
-    // 3. Draw borders only on the outer edge using destination-out trick:
-    //    paint borders on offscreen, punch out interior overlaps, then draw.
-    if(border&&borderColor){
-      oc.clearRect(0,0,w,h);
-
-      // draw all filled rects in solid white
-      oc.globalCompositeOperation='source-over';
-      oc.fillStyle='#fff';
-      for(const obj of objs){
-        oc.fillRect(obj.x*cp+ox, obj.y*cp+oy, obj.w*cp, obj.h*cp);
+      const {x,y,w:rw,h:rh}=obj;
+      // Four edges: [x1,y1,x2,y2]
+      const edges=[
+        [x,   y,    x+rw, y   ],  // top
+        [x+rw,y,    x+rw, y+rh],  // right
+        [x,   y+rh, x+rw, y+rh],  // bottom
+        [x,   y,    x,    y+rh],  // left
+      ];
+      for(const [ex1,ey1,ex2,ey2] of edges){
+        // Check if any other rect in the group shares this exact edge
+        let shared=false;
+        for(const other of objs){
+          if(other===obj) continue;
+          const ox2=other.x, oy2=other.y, ow2=other.w, oh2=other.h;
+          // Edge is shared if it lies exactly on the boundary of the neighbor
+          // and the neighbor covers the full span of the edge
+          const horizontal=ey1===ey2;
+          if(horizontal){
+            // Check top edge of neighbor or bottom edge of neighbor
+            const onTop   =ey1===oy2      && ex1>=ox2 && ex2<=ox2+ow2;
+            const onBottom=ey1===oy2+oh2  && ex1>=ox2 && ex2<=ox2+ow2;
+            if(onTop||onBottom){shared=true;break;}
+          } else {
+            // vertical edge
+            const onLeft =ex1===ox2      && ey1>=oy2 && ey2<=oy2+oh2;
+            const onRight=ex1===ox2+ow2  && ey1>=oy2 && ey2<=oy2+oh2;
+            if(onLeft||onRight){shared=true;break;}
+          }
+        }
+        if(!shared){
+          // Convert back to screen and draw
+          const sx1=ex1*cp+ox, sy1=ey1*cp+oy;
+          const sx2=ex2*cp+ox, sy2=ey2*cp+oy;
+          c.beginPath();
+          c.moveTo(sx1,sy1);
+          c.lineTo(sx2,sy2);
+          c.stroke();
+        }
       }
-
-      // punch out inner area (shrink by border width) so only edge remains
-      const bw=Math.max(1,sc);
-      oc.globalCompositeOperation='destination-out';
-      oc.fillStyle='rgba(0,0,0,1)';
-      for(const obj of objs){
-        oc.fillRect(
-          obj.x*cp+ox+bw, obj.y*cp+oy+bw,
-          obj.w*cp-bw*2,  obj.h*cp-bw*2
-        );
-      }
-
-      // reset composite and use the mask to draw border color
-      oc.globalCompositeOperation='source-in';
-      oc.fillStyle=borderColor;
-      oc.fillRect(0,0,w,h);
-
-      oc.globalCompositeOperation='source-over';
-
-      // stamp the border onto main
-      c.drawImage(off,0,0);
     }
+    c.restore();
   }
 }
 
 function drawAllWalls(c,sorted,sc,ox,oy,w,h){
   const lines=sorted.filter(o=>o.type==='line'&&o.id!==selectedId&&o.id!==movingId);
   if(!lines.length)return;
+  const cp=sc*CELL;
 
-  // Group by color+width so same-style walls blend seamlessly
+  // Group by color+width
   const groups=new Map();
   for(const obj of lines){
     const key=obj.color+'|'+obj.width;
@@ -726,42 +760,39 @@ function drawAllWalls(c,sorted,sc,ox,oy,w,h){
     groups.get(key).push(obj);
   }
 
-  const cp=sc*CELL;
-  const lw0=lines[0].width*(sc>1?sc:1); // representative linewidth for shadow size
-
-  // Use an offscreen canvas: draw all strokes flat, then stamp onto main with shadow
-  const off=document.createElement('canvas');
-  off.width=w; off.height=h;
-  const oc=off.getContext('2d');
-
   for(const [key,group] of groups){
     const [color,widthStr]=key.split('|');
     const lw=parseFloat(widthStr)*(sc>1?sc:1);
 
-    // Clear offscreen and draw this group's lines without shadow
-    oc.clearRect(0,0,w,h);
-    oc.save();
-    oc.strokeStyle=color;
-    oc.lineWidth=lw;
-    oc.lineCap='round';
-    oc.lineJoin='round';
+    // Build one path for all lines in group — single stroke call eliminates seams
+    const path=new Path2D();
     for(const obj of group){
-      oc.beginPath();
       obj.points.forEach((p,i)=>{
         const px=p.x*cp+ox, py=p.y*cp+oy;
-        i===0?oc.moveTo(px,py):oc.lineTo(px,py);
+        i===0?path.moveTo(px,py):path.lineTo(px,py);
       });
-      oc.stroke();
     }
-    oc.restore();
 
-    // Stamp onto main canvas with a single shadow for the whole group
+    // Shadow pass (draw once, shadow applied to the whole group together)
     c.save();
-    c.shadowColor='rgba(0,0,0,.75)';
-    c.shadowBlur=lw*1.8;
-    c.shadowOffsetX=1.5;
-    c.shadowOffsetY=1.5;
-    c.drawImage(off,0,0);
+    c.strokeStyle=color;
+    c.lineWidth=lw;
+    c.lineCap='round';
+    c.lineJoin='round';
+    c.shadowColor='rgba(0,0,0,.7)';
+    c.shadowBlur=lw*1.6;
+    c.shadowOffsetX=1;
+    c.shadowOffsetY=1;
+    c.stroke(path);
+    c.restore();
+
+    // Clean pass on top (no shadow) to get crisp edges
+    c.save();
+    c.strokeStyle=color;
+    c.lineWidth=lw;
+    c.lineCap='round';
+    c.lineJoin='round';
+    c.stroke(path);
     c.restore();
   }
 }
@@ -1492,22 +1523,156 @@ document.getElementById('img-upload').addEventListener('change',function(e){
 });
 
 // ===================== EXPORT PNG =====================
+function toggleExpManual(){
+  const manual=document.getElementById('exp-mode').value==='manual';
+  document.getElementById('exp-manual-row').style.display=manual?'flex':'none';
+}
+
+// Returns {minX, minY, maxX, maxY} in world coords covering all objects
+function getContentBounds(){
+  if(!objects.length) return null;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const obj of objects){
+    if(obj.type==='line'){
+      for(const p of obj.points){
+        minX=Math.min(minX,p.x); minY=Math.min(minY,p.y);
+        maxX=Math.max(maxX,p.x); maxY=Math.max(maxY,p.y);
+      }
+    } else if(obj.type==='floor'||obj.type==='stair'){
+      minX=Math.min(minX,obj.x); minY=Math.min(minY,obj.y);
+      maxX=Math.max(maxX,obj.x+obj.w); maxY=Math.max(maxY,obj.y+obj.h);
+    } else if(obj.type==='door'||obj.type==='ddoor'){
+      const horiz=obj.orient==='h';
+      const dw=horiz?obj.size:0.5, dh=horiz?0.5:obj.size;
+      minX=Math.min(minX,obj.x); minY=Math.min(minY,obj.y);
+      maxX=Math.max(maxX,obj.x+dw); maxY=Math.max(maxY,obj.y+dh);
+    } else if(obj.type==='label'){
+      minX=Math.min(minX,obj.x); minY=Math.min(minY,obj.y);
+      maxX=Math.max(maxX,obj.x+4); maxY=Math.max(maxY,obj.y+1);
+    }
+  }
+  return {minX,minY,maxX,maxY};
+}
+
 function doExport(){
   const eScale=parseInt(document.getElementById('exp-scale').value)||2;
   const eGrid=document.getElementById('exp-grid').checked;
   const eRef=document.getElementById('exp-ref').checked;
+  const eMode=document.getElementById('exp-mode').value;
+  const ePad=parseInt(document.getElementById('exp-pad').value)||40;
   const ov=document.getElementById('export-overlay');
   ov.style.display='flex';
+
   setTimeout(()=>{
     try{
-      const W=canvasW*eScale,H=canvasH*eScale;
-      const off=document.createElement('canvas');off.width=W;off.height=H;
-      const oc=off.getContext('2d');oc.scale(eScale,eScale);
-      redraw(oc,canvasW,canvasH,scale,eGrid,eRef);
-      const a=document.createElement('a');a.download='mapa-2d-'+Date.now()+'.png';a.href=off.toDataURL('image/png');a.click();
-    }catch(err){alert('Error al exportar: '+err.message);}
+      // Save current viewport state
+      const savedScale=scale, savedOX=offsetX, savedOY=offsetY;
+      const savedSelId=selectedId, savedMovId=movingId;
+      const savedTool=tool;
+      selectedId=null; movingId=null;
+
+      let exportW, exportH;
+
+      if(eMode==='manual'){
+        exportW=(parseInt(document.getElementById('exp-w').value)||1920)*eScale;
+        exportH=(parseInt(document.getElementById('exp-h').value)||1080)*eScale;
+        // Keep current scale, just center the viewport on the export canvas size
+        scale=savedScale*eScale;
+        offsetX=savedOX*eScale;
+        offsetY=savedOY*eScale;
+      } else {
+        // Auto: fit all content
+        const bounds=getContentBounds();
+        if(!bounds){
+          alert('No hay objetos para exportar.');
+          ov.style.display='none';
+          selectedId=savedSelId; movingId=savedMovId;
+          return;
+        }
+        const pad=ePad;
+        const contentW=(bounds.maxX-bounds.minX)*CELL;
+        const contentH=(bounds.maxY-bounds.minY)*CELL;
+        exportW=Math.ceil((contentW+pad*2)*eScale);
+        exportH=Math.ceil((contentH+pad*2)*eScale);
+        scale=eScale;
+        offsetX=(pad-bounds.minX*CELL)*eScale;
+        offsetY=(pad-bounds.minY*CELL)*eScale;
+      }
+
+      // Resize canvas temporarily to export dimensions
+      const savedW=canvasW, savedH=canvasH;
+      canvas.width=exportW;
+      canvas.height=exportH;
+      canvasW=exportW;
+      canvasH=exportH;
+
+      // Draw using the SAME redraw function, no separate export path
+      const showGrid=eGrid;
+      const showRef=eRef;
+
+      // Temporarily override grid-vis checkbox state
+      const gridVis=document.getElementById('grid-vis');
+      const gridWasChecked=gridVis.checked;
+      gridVis.checked=showGrid;
+
+      // Temporarily disable ref image if not wanted
+      const savedRefImage=refImage;
+      if(!showRef) refImage=null;
+
+      redraw();
+
+      // Capture
+      const dataURL=canvas.toDataURL('image/png');
+
+      // Restore everything
+      refImage=savedRefImage;
+      gridVis.checked=gridWasChecked;
+      scale=savedScale; offsetX=savedOX; offsetY=savedOY;
+      selectedId=savedSelId; movingId=savedMovId;
+      canvasW=savedW; canvasH=savedH;
+      canvas.width=canvasW; canvas.height=canvasH;
+      redraw();
+
+      // Download
+      const a=document.createElement('a');
+      a.download='mapa-2d-'+Date.now()+'.png';
+      a.href=dataURL;
+      a.click();
+
+    }catch(err){
+      alert('Error al exportar: '+err.message);
+      console.error(err);
+    }
     ov.style.display='none';
   },80);
+}
+
+// ===================== EXPORT FOR MAPPINNER =====================
+function exportForMapPinner(){
+  if(!objects.length){ alert('No hay objetos para exportar.'); return; }
+
+  // Compute bounds
+  const bounds=getContentBounds();
+  if(!bounds){ alert('No hay objetos.'); return; }
+  const pad=40; // px at scale 1
+
+  const payload={
+    version: 1,
+    type: 'mappinner_map',
+    exportedAt: new Date().toISOString(),
+    bgColor,
+    gridColor,
+    bounds,           // world coords (meters)
+    cellSize: CELL,   // px per meter at scale 1
+    padding: pad,     // px padding around content at scale 1
+    objects: objects.map(o=>({...o}))
+  };
+
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.download='mapa-'+Date.now()+'.mappinner';
+  a.href=URL.createObjectURL(blob);
+  a.click();
 }
 
 // ===================== EXPORT/IMPORT JSON =====================
