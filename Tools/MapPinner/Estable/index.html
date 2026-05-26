@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MapPinner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>// MapPinner</h1>
+  <div class="header-right">
+    <span class="pin-count" id="pin-count">0 pins</span>
+  </div>
+</header>
+
+<!-- Panel izquierdo: acciones -->
+<div id="actions-panel" class="actions-panel collapsed">
+  <div class="actions-header">
+    <h3>ACCIONES</h3>
+    <button class="btn-toggle-actions" id="btn-toggle-actions">▶</button>
+  </div>
+  <div class="actions-body">
+    <button class="btn-action accent" id="btn-export">Exportar .json</button>
+    <button class="btn-action" id="btn-import">Importar .json</button>
+    <input type="file" id="import-input" accept=".json" style="display:none">
+    <button class="btn-action" id="btn-change-map">Cambiar mapa</button>
+    <div class="actions-divider"></div>
+    <button class="btn-action danger" id="btn-clear">Limpiar todo</button>
+  </div>
+</div>
+
+<button class="btn-show-actions" id="btn-show-actions">☰</button>
+
+<div id="workspace">
+  <div id="map-container">
+    <img id="map-img" src="" alt="mapa" style="display:none;" draggable="false">
+  </div>
+  <div class="upload-prompt" id="upload-prompt">
+    <div class="upload-box" id="upload-box">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7a7970" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9l4-4 4 4 4-4 4 4"/>
+        <path d="M12 12v6"/>
+      </svg>
+      <strong>CARGAR MAPA</strong>
+      <p>Click derecho en el mapa para colocar un pin</p>
+      <p style="margin-top:8px; font-size:11px; color:#555">Los pins y el mapa se guardan automáticamente</p>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+  </div>
+</div>
+
+<!-- Panel derecho -->
+<div id="presets-panel" class="presets-panel">
+  <div class="presets-header">
+    <h3>// MapPinner</h3>
+    <button class="btn-toggle-presets" id="btn-toggle-presets">◀</button>
+  </div>
+
+  <!-- FILTROS (arriba) -->
+  <div class="filters-section">
+    <div class="filters-section-header">
+      <span class="filters-title">FILTROS</span>
+      <div class="filters-global-inline">
+        <button class="btn-filter-global" id="btn-show-all">Todo</button>
+        <button class="btn-filter-global" id="btn-hide-all">Ninguno</button>
+      </div>
+    </div>
+    <div class="filters-categories" id="filters-categories">
+      <!-- generado por JS -->
+    </div>
+  </div>
+
+  <!-- PRESETS (abajo) -->
+  <div class="presets-section">
+    <div class="presets-section-header">
+      <span class="presets-section-title">PRESETS</span>
+      <div class="presets-section-actions">
+        <button class="btn-preset-sm" id="btn-new-preset">+ Nuevo</button>
+        <button class="btn-preset-sm accent" id="btn-save-preset">Guardar</button>
+      </div>
+    </div>
+    <div class="presets-list" id="presets-list">
+      <!-- generado por JS -->
+    </div>
+  </div>
+</div>
+
+<button class="btn-show-presets" id="btn-show-presets">▶</button>
+
+<div id="overlay"></div>
+
+<!-- Panel: crear pin -->
+<div id="pin-panel">
+  <div class="panel-header">
+    <h2>Nuevo pin</h2>
+    <button class="panel-close" id="panel-close">&times;</button>
+  </div>
+  <div class="panel-body">
+
+    <label class="field-label">Categoría</label>
+    <div class="type-grid" id="type-grid">
+      <!-- generado por JS -->
+    </div>
+
+    <label class="field-label" for="pin-title">Nombre</label>
+    <input type="text" id="pin-title" placeholder="Nombre del pin...">
+
+    <label class="field-label" for="pin-desc">Descripción</label>
+    <textarea id="pin-desc" placeholder="Descripción opcional..."></textarea>
+
+    <label class="field-label">Imágenes <span class="field-label-hint">(máx. 2)</span></label>
+    <div class="pin-img-upload-row" id="pin-img-upload-row">
+      <div class="pin-img-slot" id="pin-img-slot-0">
+        <input type="file" accept="image/*" class="pin-img-input" id="pin-img-0">
+        <div class="pin-img-placeholder">＋</div>
+      </div>
+      <div class="pin-img-slot pin-img-slot-locked" id="pin-img-slot-1">
+        <input type="file" accept="image/*" class="pin-img-input" id="pin-img-1" disabled>
+        <div class="pin-img-placeholder">＋</div>
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn-cancel" id="btn-cancel">Cancelar</button>
+      <button class="btn-confirm" id="btn-confirm">Confirmar pin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: leer pin -->
+<div id="pin-modal">
+  <div class="modal-box">
+    <!-- Zona de imagen (se oculta si no hay imagen) -->
+    <div class="modal-images" id="modal-images"></div>
+    <!-- Cuerpo de texto -->
+    <div class="modal-body">
+      <div class="modal-body-top">
+        <div class="modal-title-row">
+          <span class="modal-pin-icon" id="modal-pin-icon"></span>
+          <h2 class="modal-title" id="modal-title"></h2>
+        </div>
+        <div class="modal-type-tag" id="modal-tag"></div>
+        <p class="modal-desc" id="modal-desc"></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn-hide" id="btn-hide">Hide</button>
+        <button class="btn-del" id="btn-del">Eliminar</button>
+      </div>
+      <button class="btn-close-modal" id="btn-close-modal">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/pins.js"></script>
+<script src="js/map.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
