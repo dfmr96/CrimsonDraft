@@ -377,47 +377,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 772694705453107031, guid: 85ca7a9487f64f64f9aeb4008acab71a, type: 3}
   m_PrefabInstance: {fileID: 772389568}
   m_PrefabAsset: {fileID: 0}
---- !u!21 &175451193
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ECGSweep(Clone)(Clone)(Clone)(Clone)(Clone)
-  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _GapWidth: 0.2
-    - _HaloIntensity: 2
-    - _HaloWidth: 0.1
-    - _HaloX: 1
-    - _Sweep: 1
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
-    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!4 &328534124 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 772694705453107031, guid: 85ca7a9487f64f64f9aeb4008acab71a, type: 3}
@@ -707,6 +666,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b12e07f9b50445c85fa48ae6cb4a018, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.CombatOrchestrator
+  operatorActionDurationSec: 2
+  defendDurationSec: 0.3
+  defaultEnemyAttackDurSec: 4
+  atbGaugeDivisor: 100
 --- !u!4 &447943183
 Transform:
   m_ObjectHideFlags: 0
@@ -936,47 +899,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 522277037}
   m_CullTransparentMesh: 1
---- !u!21 &524396509
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ECGSweep(Clone)(Clone)
-  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _GapWidth: 0.2
-    - _HaloIntensity: 2
-    - _HaloWidth: 0.1
-    - _HaloX: 1
-    - _Sweep: 1
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
-    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1001 &540130570
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1088,6 +1010,47 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 557229902}
   m_CullTransparentMesh: 1
+--- !u!21 &573329914
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)(Clone)(Clone)(Clone)(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &628344094
 GameObject:
   m_ObjectHideFlags: 0
@@ -1680,7 +1643,12 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c200ce75f7d7e3c4f925bc73e66a6eef, type: 3}
---- !u!21 &954438328
+--- !u!224 &962890052 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 5565654260718611596, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
+  m_PrefabInstance: {fileID: 5461424452283274745}
+  m_PrefabAsset: {fileID: 0}
+--- !u!21 &995732238
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
@@ -1721,11 +1689,6 @@ Material:
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!224 &962890052 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 5565654260718611596, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
-  m_PrefabInstance: {fileID: 5461424452283274745}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1033374678
 GameObject:
   m_ObjectHideFlags: 0
@@ -2067,6 +2030,47 @@ MonoBehaviour:
   maxConcurrentFeedback: 10
   hitFeedbackColor: {r: 1, g: 0, b: 0.09565163, a: 1}
   missFeedbackColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+--- !u!21 &1136680574
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1001 &1145992789
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2264,47 +2268,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 5565654260718611596, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 1844153714}
   m_PrefabAsset: {fileID: 0}
---- !u!21 &1305626758
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ECGSweep(Clone)(Clone)
-  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _GapWidth: 0.2
-    - _HaloIntensity: 2
-    - _HaloWidth: 0.1
-    - _HaloX: 1
-    - _Sweep: 1
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
-    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &1337339599
 GameObject:
   m_ObjectHideFlags: 0
@@ -3156,6 +3119,47 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 33, y: 0, z: 0}
+--- !u!21 &1717876474
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ECGSweep(Clone)(Clone)
+  m_Shader: {fileID: 4800000, guid: 8a6f3e2b4c9b4b2a9a0f6f1d2c3e4f5a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GapWidth: 0.2
+    - _HaloIntensity: 2
+    - _HaloWidth: 0.1
+    - _HaloX: 1
+    - _Sweep: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HaloColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LeadColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1729760326
 GameObject:
   m_ObjectHideFlags: 0
