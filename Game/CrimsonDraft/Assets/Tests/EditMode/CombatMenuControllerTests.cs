@@ -23,6 +23,7 @@ namespace CrimsonDraft.Tests
         private FakeBattlefieldView      battlefieldView = null!;
         private FakeOperatorRoster       roster          = null!;
         private FakeInventoryService     inventory       = null!;
+        private FakeOrchestrator         orchestrator    = null!;
 
         [SetUp]
         public void SetUp()
@@ -36,13 +37,14 @@ namespace CrimsonDraft.Tests
             this.battlefieldView = new FakeBattlefieldView();
             this.roster          = new FakeOperatorRoster();
             this.inventory       = new FakeInventoryService();
+            this.orchestrator    = new FakeOrchestrator();
         }
 
         private CombatMenuController BuildAndInit(FakeInventoryService? inv = null)
         {
             var controller = new CombatMenuController(
                 this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster,
-                inv ?? this.inventory);
+                inv ?? this.inventory, this.orchestrator);
             ((IInitializable)controller).Initialize();
             return controller;
         }
@@ -172,10 +174,11 @@ namespace CrimsonDraft.Tests
 
             this.subPanel.RaiseOnItemSelected(0);
 
-            Assert.AreEqual(1, inv.ReloadCallCount,   "ReloadOperator called once");
-            Assert.AreEqual(0, inv.LastSlotIndex,    "correct inventory index");
-            Assert.AreEqual(0, inv.LastOperatorSlot,  "correct operator slot");
-            Assert.IsFalse(this.subPanel.IsVisible,   "SubPanel hidden after reload");
+            Assert.AreEqual(1, this.orchestrator.EnqueueCallCount,                       "Reload enqueued once");
+            Assert.AreEqual(PendingActionType.Reload, this.orchestrator.LastEnqueuedAction?.Type);
+            Assert.AreEqual(0, this.orchestrator.LastEnqueuedAction?.SlotIndex,    "correct operator slot");
+            Assert.AreEqual(0, this.orchestrator.LastEnqueuedAction?.AmmoBoxIndex, "correct ammo box index");
+            Assert.IsFalse(this.subPanel.IsVisible, "SubPanel hidden after reload");
         }
 
         [Test]
@@ -275,9 +278,9 @@ namespace CrimsonDraft.Tests
         [Test]
         public void ShootCommand_noEnemies_showsShotCountView()
         {
-            BuildAndInit();
+            var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             Assert.IsTrue(this.shotCountView.IsVisible);
             Assert.AreEqual(1, this.shotCountView.Value);
         }
@@ -296,7 +299,7 @@ namespace CrimsonDraft.Tests
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
 
             c.HandleCancelPressed();
 
@@ -309,7 +312,7 @@ namespace CrimsonDraft.Tests
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
 
             this.shotCountView.Increment();
             this.shotCountView.Increment();
@@ -325,7 +328,7 @@ namespace CrimsonDraft.Tests
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
@@ -337,7 +340,7 @@ namespace CrimsonDraft.Tests
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
@@ -367,7 +370,7 @@ namespace CrimsonDraft.Tests
 
             for (int i = 0; i < 6; i++)
             {
-                this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+                c.BeginShootConfiguration(0);
                 InvokeConfirm(c);
                 this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
                 InvokeConfirm(c);
@@ -390,7 +393,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetEnemyHp(1, 100);
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
 
             InvokeConfirm(c);
 
@@ -409,7 +412,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetEnemyHp(1, 100);
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
 
             InvokeConfirm(c);
 
@@ -430,7 +433,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetOccupiedSlots(new[] { 0, 2 });
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
 
             InvokeConfirm(c);
 
@@ -444,7 +447,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetOccupiedSlots(new[] { 0 });
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
             c.HandleCancelPressed();
             Assert.IsFalse(this.battlefieldView.EnemyTargetVisible);
@@ -460,7 +463,7 @@ namespace CrimsonDraft.Tests
 
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
             InvokeConfirm(c);
 
@@ -522,7 +525,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetEnemyHp(1, 100);
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             InvokeConfirm(c);
@@ -542,7 +545,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetEnemyHp(1, 10);
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             InvokeConfirm(c);
@@ -555,22 +558,22 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotFired_whenAllEnemiesDead_publishesVictoryTrue()
+        public void ShotFired_whenAllEnemiesDead_enemyHpReachesZero()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 10);
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+            c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
-            Assert.IsTrue(this.publisher.Published);
-            Assert.NotNull(this.publisher.LastEvent);
-            Assert.IsTrue(this.publisher.LastEvent!.Value.Victory);
+            Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
+            Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
+            Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
@@ -636,12 +639,14 @@ namespace CrimsonDraft.Tests
             public bool HasSubscribers => this.OnOperatorSelected != null || this.OnOperatorFocused != null;
             public void RaiseOnOperatorSelected(int index) => this.OnOperatorSelected?.Invoke(index);
             public void FocusOperator(int index) { }
+            public void ClearFocus() { }
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
                 this.ammoByOperator.TryGetValue(index, out ammo);
             public void SetDimmed(bool dimmed) { }
+            public void SetOperatorDimmed(int index, bool dimmed) { }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
@@ -656,8 +661,9 @@ namespace CrimsonDraft.Tests
             private readonly RectTransform panelRect = new GameObject().AddComponent<RectTransform>();
             private readonly Dictionary<CombatCommand, bool> enabledByCommand = new();
             public RectTransform PanelRect => this.panelRect;
-            public void Show(RectTransform _) => this.IsVisible = true;
-            public void Focus()               { }
+            public void Show(RectTransform _)         => this.IsVisible = true;
+            public void RepositionTo(RectTransform _) { }
+            public void Focus()                       { }
             public void SetCommandEnabled(CombatCommand command, bool enabled) => this.enabledByCommand[command] = enabled;
             public void SetDimmed(bool _)     { }
             public void Hide()                => this.IsVisible = false;
@@ -800,6 +806,20 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
+        }
+
+        private sealed class FakeOrchestrator : ICombatOrchestrator
+        {
+            public PendingAction? LastEnqueuedAction { get; private set; }
+            public int EnqueueCallCount              { get; private set; }
+            public void EnqueueAction(PendingAction action)
+            {
+                this.LastEnqueuedAction = action;
+                this.EnqueueCallCount++;
+            }
+            public void SetWaitMode(bool paused)       { }
+            public bool IsOperatorReady(int slotIndex) => true;
+            public void NotifyShootCompleted()         { }
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster

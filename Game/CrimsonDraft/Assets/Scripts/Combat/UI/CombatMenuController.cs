@@ -1,9 +1,9 @@
 #nullable enable
 
+using System;
 using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -20,6 +20,7 @@ namespace CrimsonDraft.Combat
         internal int   SelectedShotCount     { get; set; } = 1;
         internal int   CurrentTargetSlot     { get; set; } = -1;
         internal int[] ReloadAmmoBoxIndices  { get; set; } = System.Array.Empty<int>();
+        internal ICombatOrchestrator Orchestrator { get; private set; } = null!;
 
         internal const int BaseDamage   = 20;
         internal const int MaxShotCount = 6;
@@ -59,19 +60,24 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView              battlefieldView;
         private readonly IOperatorRoster               roster;
         private readonly IInventoryService             inventory;
+        private readonly ICombatOrchestrator                           orchestrator;
+        private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
+        private IDisposable? shootSubscription;
 
-        [Preserve]
+        [UnityEngine.Scripting.Preserve]
         public CombatMenuController(
-            ICombatActionMenuView        menuView,
-            ICommandPanelView            commandPanel,
-            ISubPanelView                subPanel,
-            IShotCountView               shotCountView,
-            IPublisher<CombatEndedEvent> combatEndedPublisher,
-            IAimView                     aimView,
-            IBattlefieldView             battlefieldView,
-            IOperatorRoster              roster,
-            IInventoryService            inventory,
-            IInputService                inputService)
+            ICombatActionMenuView                          menuView,
+            ICommandPanelView                              commandPanel,
+            ISubPanelView                                  subPanel,
+            IShotCountView                                 shotCountView,
+            IPublisher<CombatEndedEvent>                   combatEndedPublisher,
+            IAimView                                       aimView,
+            IBattlefieldView                               battlefieldView,
+            IOperatorRoster                                roster,
+            IInventoryService                              inventory,
+            IInputService                                  inputService,
+            ICombatOrchestrator                            orchestrator,
+            ISubscriber<ShootConfigurationRequestedEvent>  shootSubscriber)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
@@ -83,6 +89,8 @@ namespace CrimsonDraft.Combat
             this.roster               = roster;
             this.inventory            = inventory;
             this.inputService         = inputService;
+            this.orchestrator         = orchestrator;
+            this.shootSubscriber      = shootSubscriber;
         }
 
         // Internal constructor for tests (no inputService)
@@ -95,7 +103,9 @@ namespace CrimsonDraft.Combat
             IAimView                     aimView,
             IBattlefieldView             battlefieldView,
             IOperatorRoster              roster,
-            IInventoryService            inventory)
+            IInventoryService            inventory,
+            ICombatOrchestrator?         orchestrator    = null,
+            ISubscriber<ShootConfigurationRequestedEvent>? shootSubscriber = null)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
@@ -106,6 +116,8 @@ namespace CrimsonDraft.Combat
             this.battlefieldView      = battlefieldView;
             this.roster               = roster;
             this.inventory            = inventory;
+            this.orchestrator         = orchestrator!;
+            this.shootSubscriber      = shootSubscriber!;
         }
 
         #endregion
@@ -116,10 +128,10 @@ namespace CrimsonDraft.Combat
         {
             this.OperatorSelState  = new OperatorSelectionState(this, this.menuView, this.commandPanel, this.battlefieldView, this.combatEndedPublisher, this.roster);
             this.CommandPanelState = new CommandPanelState(this, this.menuView, this.commandPanel, this.subPanel, this.battlefieldView, this.roster, this.inventory);
-            this.SubPanelState     = new SubPanelState(this, this.subPanel, this.inventory, this.roster, this.menuView);
+            this.SubPanelState     = new SubPanelState(this, this.subPanel);
             this.ShotCountState    = new ShotCountSelectionState(this, this.commandPanel, this.shotCountView, this.battlefieldView, this.aimView, this.roster);
             this.TargetSelState    = new TargetSelectionState(this, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
-            this.AimingState       = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.combatEndedPublisher, this.roster);
+            this.AimingState       = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
 
             this.menuView.OnOperatorSelected    += this.HandleOperatorSelected;
             this.menuView.OnOperatorFocused     += this.HandleOperatorFocused;
@@ -134,6 +146,9 @@ namespace CrimsonDraft.Combat
                 this.inputService.CombatConfirm.performed  += this.OnConfirmPerformed;
                 this.inputService.CombatNavigate.performed += this.OnNavigatePerformed;
             }
+
+            this.Orchestrator      = this.orchestrator;
+            this.shootSubscription = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
 
             this.TransitionTo(this.OperatorSelState);
         }
@@ -157,6 +172,8 @@ namespace CrimsonDraft.Combat
                 this.inputService.CombatConfirm.performed  -= this.OnConfirmPerformed;
                 this.inputService.CombatNavigate.performed -= this.OnNavigatePerformed;
             }
+
+            this.shootSubscription?.Dispose();
         }
 
         #endregion
@@ -164,6 +181,14 @@ namespace CrimsonDraft.Combat
         #region Internal API (testable)
 
         internal void HandleCancelPressed() => this.currentState.OnCancel();
+
+        internal void BeginShootConfiguration(int slot)
+        {
+            this.SelectedOperator = slot;
+            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+            this.menuView.SetDimmed(true);
+            this.TransitionTo(this.ShotCountState);
+        }
 
         internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier)
         {

@@ -48,7 +48,7 @@ namespace CrimsonDraft.Combat
 
         public RectTransform PanelRect => (RectTransform)this.transform;
 
-        public void Show(RectTransform operatorRect)
+        public void RepositionTo(RectTransform operatorRect)
         {
             var panel   = (RectTransform)this.transform;
             var hudRoot = (RectTransform)this.transform.parent;
@@ -59,7 +59,11 @@ namespace CrimsonDraft.Combat
             var localPos  = hudRoot.InverseTransformPoint(topCenter);
 
             panel.localPosition = new Vector3(localPos.x + this.offset.x, localPos.y + this.offset.y, 0f);
+        }
 
+        public void Show(RectTransform operatorRect)
+        {
+            RepositionTo(operatorRect);
             this.gameObject.SetActive(true);
             SelectFirstNextFrame().Forget();
         }

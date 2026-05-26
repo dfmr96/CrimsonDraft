@@ -33,16 +33,22 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
+            this.context.Orchestrator.SetWaitMode(true);
             this.occupiedSlots = this.battlefieldView.GetOccupiedEnemySlots();
             this.cursor        = 0;
             if (this.occupiedSlots.Length > 0)
                 this.battlefieldView.SetEnemyTargetIndicator(this.occupiedSlots[0]);
         }
 
+        public void Exit()
+        {
+            this.context.Orchestrator.SetWaitMode(false);
+        }
+
         public void OnCancel()
         {
             this.battlefieldView.HideEnemyTargetIndicator();
-            this.context.TransitionTo(this.context.CommandPanelState);
+            this.context.TransitionTo(this.context.ShotCountState);
         }
 
         public void OnConfirm()

@@ -1,51 +1,50 @@
 #nullable enable
 
-using MessagePipe;
 using UnityEngine;
-using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
 {
     internal sealed class AimingState : ICombatMenuState
     {
-        private readonly CombatMenuController         context;
-        private readonly ICombatActionMenuView        menuView;
-        private readonly ICommandPanelView            commandPanel;
-        private readonly IBattlefieldView             battlefieldView;
-        private readonly IAimView                     aimView;
-        private readonly IPublisher<CombatEndedEvent> publisher;
-        private readonly IOperatorRoster              roster;
+        private readonly CombatMenuController context;
+        private readonly ICombatActionMenuView menuView;
+        private readonly ICommandPanelView     commandPanel;
+        private readonly IBattlefieldView      battlefieldView;
+        private readonly IAimView              aimView;
+        private readonly IOperatorRoster       roster;
 
         private bool awaitingDismiss;
 
         internal AimingState(
-            CombatMenuController         context,
-            ICombatActionMenuView        menuView,
-            ICommandPanelView            commandPanel,
-            IBattlefieldView             battlefieldView,
-            IAimView                     aimView,
-            IPublisher<CombatEndedEvent> publisher,
-            IOperatorRoster              roster)
+            CombatMenuController  context,
+            ICombatActionMenuView menuView,
+            ICommandPanelView     commandPanel,
+            IBattlefieldView      battlefieldView,
+            IAimView              aimView,
+            IOperatorRoster       roster)
         {
             this.context         = context;
             this.menuView        = menuView;
             this.commandPanel    = commandPanel;
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
-            this.publisher       = publisher;
             this.roster          = roster;
         }
 
         public void Enter()
         {
+            this.context.Orchestrator.SetWaitMode(true);
             this.awaitingDismiss = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
             this.aimView.Show();
         }
 
-        public void Exit() =>
+        public void Exit()
+        {
+            this.context.Orchestrator.SetWaitMode(false);
             this.aimView.OnShotsResolved -= HandleShotsResolved;
+        }
 
         public void OnConfirm()
         {
@@ -83,14 +82,12 @@ namespace CrimsonDraft.Combat
                     weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
             }
 
-            if (!this.battlefieldView.HasAliveEnemies())
-                this.publisher.Publish(new CombatEndedEvent { Victory = true });
-
             this.awaitingDismiss = true;
         }
 
         private void CloseAimAndReturnToOperatorSelection()
         {
+            this.context.Orchestrator.NotifyShootCompleted();
             this.context.CurrentTargetSlot  = -1;
             this.context.SelectedShotCount  = 1;
             this.awaitingDismiss            = false;

@@ -12,6 +12,7 @@
 > El documento principal de referencia es [[GDD]] — biblia única con resúmenes de todos los sistemas y links a los docs de detalle.
 
 ### Sistemas de Juego (detalle)
+- [[Sistema ATB de Combate]]
 - [[Sistema de Ataque de Enemigos]]
 - [[Sistema de Combate en Tiempo Real]]
 - [[Sistema de Conteo de Balas por Disparo]]
@@ -28,6 +29,7 @@
 - [[Sistema de Interactuables]]
 - [[Sistema de Item Socket]]
 - [[Sistema de Movimiento]]
+- [[Sistema de IA de Navegacion]]
 - [[Mecanicas de Supervivencia]]
 - [[Tactical Survival Horror]]
 - [[Acto I - Diseño Detallado]]
@@ -47,6 +49,7 @@
 - [[Proyecto Meridian]]
 - [[Protocolo SCUTTLE]]
 - [[Referencias e Influencias]]
+- [[Vision Narrativa - Para Lorenzo]]
 
 ### Presentacion
 - [[High Concept]]

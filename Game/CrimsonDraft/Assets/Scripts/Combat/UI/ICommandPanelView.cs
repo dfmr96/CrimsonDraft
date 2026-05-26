@@ -10,6 +10,7 @@ namespace CrimsonDraft.Combat
         event Action<RectTransform>? OnEntryFocused;
         RectTransform PanelRect { get; }
         void Show(RectTransform operatorAnchor);
+        void RepositionTo(RectTransform operatorAnchor);
         void Focus();
         void SetCommandEnabled(CombatCommand command, bool enabled);
         void SetDimmed(bool dimmed);
