@@ -33,12 +33,17 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
+            this.context.Orchestrator.SetWaitMode(true);
             int max = GetMaxAvailable();
             this.context.SelectedShotCount = 1;
             this.shotCountView.Show(this.commandPanel.PanelRect, 1, max);
         }
 
-        public void Exit() => this.shotCountView.Hide();
+        public void Exit()
+        {
+            this.context.Orchestrator.SetWaitMode(false);
+            this.shotCountView.Hide();
+        }
 
         public void OnCancel() =>
             this.context.TransitionTo(this.context.CommandPanelState);

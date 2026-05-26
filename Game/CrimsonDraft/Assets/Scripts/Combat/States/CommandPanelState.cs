@@ -53,9 +53,10 @@ namespace CrimsonDraft.Combat
             if (command == CombatCommand.Shoot)
             {
                 if (GetMaxAvailableShotCount() <= 0) return;
-                this.commandPanel.SetDimmed(true);
-                this.menuView.SetDimmed(true);
-                this.context.TransitionTo(this.context.ShotCountState);
+                this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
+                this.commandPanel.Hide();
+                this.menuView.SetDimmed(false);
+                this.context.TransitionTo(this.context.OperatorSelState);
                 return;
             }
 

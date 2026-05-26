@@ -1,0 +1,56 @@
+#nullable enable
+
+using System.Collections.Generic;
+using System.Text;
+
+namespace CrimsonDraft.Navigation.Interactables
+{
+    public sealed class MorseDecoder
+    {
+        private static readonly Dictionary<string, char> s_table = new()
+        {
+            ["-"]    = 'T', ["."]    = 'E',
+            ["--"]   = 'M', ["-."]   = 'N', [".-"]   = 'A', [".."]   = 'I',
+            ["---"]  = 'O', ["--."]  = 'G', ["-.-"]  = 'K', ["-.."]  = 'D',
+            [".--"]  = 'W', [".-."]  = 'R', ["..-"]  = 'U', ["..."]  = 'S',
+            ["--.-"] = 'Q', ["--.."] = 'Z', ["-.--"] = 'Y', ["-.-."] = 'C',
+            ["-..-"] = 'X', ["-..."] = 'B', [".---"] = 'J', [".--."]=  'P',
+            [".-.."] = 'L', ["..-."] = 'F', ["...-"] = 'V', ["...."] = 'H',
+        };
+
+        private readonly StringBuilder _currentSequence = new();
+        private readonly List<char>    _word            = new();
+
+        public string              CurrentSequence => _currentSequence.ToString();
+        public IReadOnlyList<char> Word            => _word;
+
+        public void InputDot()  => _currentSequence.Append('.');
+        public void InputDash() => _currentSequence.Append('-');
+
+        public void Confirm()
+        {
+            var seq = _currentSequence.ToString();
+            _currentSequence.Clear();
+            if (seq.Length == 0) return;
+            if (!s_table.TryGetValue(seq, out var letter)) return;
+            _word.Add(letter);
+        }
+
+        public void Backspace()
+        {
+            if (_currentSequence.Length > 0)
+            {
+                _currentSequence.Clear();
+                return;
+            }
+            if (_word.Count > 0)
+                _word.RemoveAt(_word.Count - 1);
+        }
+        public void Reset()
+        {
+            _currentSequence.Clear();
+            _word.Clear();
+        }
+        public string GetWord() => new string(_word.ToArray());
+    }
+}

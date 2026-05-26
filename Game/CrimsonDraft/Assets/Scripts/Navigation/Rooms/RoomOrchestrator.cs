@@ -85,10 +85,10 @@ namespace CrimsonDraft.Navigation.Rooms
             this.currentRoom!.Deactivate();
             destination.Activate();
 
-            var spawnPoint = FindSpawnPoint(destination, this.currentRoom);
-            this.player.transform.SetPositionAndRotation(
-                spawnPoint.position,
-                spawnPoint.rotation);
+            var spawnPoint      = FindSpawnPoint(destination, this.currentRoom);
+            var spawnTransform  = spawnPoint != null ? spawnPoint.transform : destination.transform;
+            this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
+            spawnPoint?.ActivateCamera();
 
             await tcs.Task;
 
@@ -102,16 +102,16 @@ namespace CrimsonDraft.Navigation.Rooms
             this.isTransitioning = false;
         }
 
-        private static Transform FindSpawnPoint(RoomController destination, RoomController fromRoom)
+        private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
         {
             foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
             {
                 if (sp.FromRoom == fromRoom)
-                    return sp.transform;
+                    return sp;
             }
 
             Debug.LogWarning($"[RoomOrchestrator] No SpawnPoint for '{fromRoom.name}' in '{destination.name}' — using room root.");
-            return destination.transform;
+            return null;
         }
     }
 }
