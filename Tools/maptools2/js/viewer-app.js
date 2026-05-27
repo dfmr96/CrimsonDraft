@@ -104,6 +104,10 @@ const App = (() => {
 
     document.getElementById('btn-viewer-pins')?.addEventListener('click', () => setMode('pins'));
     document.getElementById('btn-viewer-steps')?.addEventListener('click', () => setMode('steps'));
+
+    document.querySelectorAll('#app-shell .view-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => Editor.setViewMode(btn.dataset.mode));
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);

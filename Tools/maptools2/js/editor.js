@@ -24,6 +24,7 @@ const Editor = (() => {
   let refImage=null, refOpacity=0.4, refX=0, refY=0, refScale=1;
   let refDragging=false, refDragStart={x:0,y:0}, refPosStart={x:0,y:0};
   let bgColor='#1e1e1e', gridColor='#2e2e2e';
+  let viewMode='normal';
   let linePoints=null, floorStart=null, objectPoints=null;
   let isPanning=false, panStart={x:0,y:0}, panOffStart={x:0,y:0};
   let dragging=false, dragStart=null;
@@ -57,6 +58,7 @@ const Editor = (() => {
 
     buildToolbarListeners();
     buildDropdownListeners();
+    initViewModeButtons();
     initRefImageUpload();
     updateLayers();
     redraw();
@@ -100,9 +102,10 @@ const Editor = (() => {
   function redraw(){
     MapRender.renderToCanvas(canvas, { objects, bgColor, gridColor }, {
       sc: scale, ox: offsetX, oy: offsetY,
-      showGrid: document.getElementById('grid-vis')?.checked ?? false,
+      showGrid: viewMode === 'blueprint' || (document.getElementById('grid-vis')?.checked ?? false),
       noShadow: false,
-      selectedId, movingId
+      selectedId, movingId,
+      viewMode
     });
 
     // Imagen de referencia
@@ -141,6 +144,15 @@ const Editor = (() => {
       if(movingId) drawMovingHint(c,sc,ox,oy);
     }
   }
+
+  // ── View mode ──────────────────────────────────────────
+  function setViewMode(mode){
+    viewMode = mode;
+    document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-mode-'+mode)?.classList.add('active');
+    redraw();
+  }
+  function getViewMode(){ return viewMode; }
 
   // ── Tool management ──────────────────────────────────────
   function setTool(t){
@@ -485,6 +497,39 @@ const Editor = (() => {
   function updateRefScaleDisplay(){ const el=document.getElementById('ref-scale-display'); if(el)el.textContent=Math.round(refScale*100)+'%'; }
   function initRefImageUpload(){ document.getElementById('img-upload')?.addEventListener('change',function(e){ const file=e.target.files[0]; if(!file)return; const img=new Image(); img.onload=()=>{refImage=img;redraw();}; img.src=URL.createObjectURL(file); }); }
 
+  function initViewModeButtons(){
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => setViewMode(btn.dataset.mode));
+    });
+    document.getElementById('exp-quick')?.addEventListener('click', quickExport);
+  }
+
+  function quickExport(){
+    const mult = 2;
+    const savedW = canvasW, savedH = canvasH;
+    const savedScale = scale, savedOX = offsetX, savedOY = offsetY;
+    const savedSel = selectedId, savedMov = movingId;
+    selectedId = null; movingId = null;
+    canvas.width = canvasW * mult;
+    canvas.height = canvasH * mult;
+    canvasW *= mult; canvasH *= mult;
+    scale *= mult;
+    offsetX *= mult;
+    offsetY *= mult;
+    redraw();
+    const dataURL = canvas.toDataURL('image/png');
+    canvas.width = savedW;
+    canvas.height = savedH;
+    canvasW = savedW; canvasH = savedH;
+    scale = savedScale; offsetX = savedOX; offsetY = savedOY;
+    selectedId = savedSel; movingId = savedMov;
+    redraw();
+    const a = document.createElement('a');
+    a.download = 'mapa-2d-'+Date.now()+'.png';
+    a.href = dataURL;
+    a.click();
+  }
+
   // ── Swatches ─────────────────────────────────────────────
   function buildSwatches(containerId, category){
     const el=document.getElementById(containerId); if(!el)return;
@@ -708,7 +753,7 @@ const Editor = (() => {
   return {
     init, activate, deactivate, redraw,
     getData, loadData,
-    setTool, setDoorOrient, setDDoorOrient, setDDoorArrow, setStairOrient, setStairDir, setDoorArrowEnabled,
+    setTool, setViewMode, getViewMode, setDoorOrient, setDDoorOrient, setDDoorArrow, setStairOrient, setStairDir, setDoorArrowEnabled,
     zoomBy, resetView, panTo, clearAll, undoAction, redoAction, deleteSelected,
     doExport, toggleExpManual, activateRefTool, resetRefTransform, updateRefScaleDisplay,
     toggleDDMenu, closeDDMenu,

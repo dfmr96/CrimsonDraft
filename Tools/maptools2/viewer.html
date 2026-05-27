@@ -26,6 +26,15 @@
   }
   /* Ocultar coords en viewer */
   #coords { display: none !important; }
+  /* View mode buttons en topbar del viewer */
+  .viewer-viewmode { display:flex; gap:2px; align-items:center; }
+  .viewer-viewmode .view-mode-btn {
+    width:22px; height:20px; border:1px solid var(--border); border-radius:3px;
+    background:var(--btn); font-size:8px; font-weight:700; color:var(--muted);
+    cursor:pointer; transition:all .12s; font-family:inherit; padding:0;
+  }
+  .viewer-viewmode .view-mode-btn:hover { background:var(--btnhov); color:var(--fg); }
+  .viewer-viewmode .view-mode-btn.active { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
   /* Pantalla de carga */
   #viewer-loading {
     position: fixed; inset: 0;
@@ -123,6 +132,13 @@
   <div class="mode-switcher">
     <button class="btn-mode active" id="btn-viewer-pins">Pins</button>
     <button class="btn-mode" id="btn-viewer-steps">Steps</button>
+  </div>
+
+  <div class="vsep"></div>
+  <div class="viewer-viewmode">
+    <button class="view-mode-btn active" id="view-mode-normal" data-mode="normal" title="Normal">N</button>
+    <button class="view-mode-btn" id="view-mode-satellite" data-mode="satellite" title="Satellite">S</button>
+    <button class="view-mode-btn" id="view-mode-blueprint" data-mode="blueprint" title="Blueprint">B</button>
   </div>
 
   <!-- Derecha -->
