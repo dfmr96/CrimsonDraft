@@ -1017,6 +1017,10 @@ const Editor = (() => {
     refOpacity = data.refOpacity ?? 0.4;
     views         = data.views || [];
     activeViewId  = data.activeViewId || null;
+    if (activeViewId && views.find(v => v.id === activeViewId)) {
+      const v = views.find(v => v.id === activeViewId);
+      objects = JSON.parse(JSON.stringify(v.objects));
+    }
     // restaurar _uid
     let maxId=0; objects.forEach(o=>{const n=parseInt(o.id.replace('o',''));if(n>maxId)maxId=n;}); _uid=maxId;
     // sync UI
