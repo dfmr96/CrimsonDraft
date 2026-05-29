@@ -60,6 +60,7 @@ const Editor = (() => {
     buildDropdownListeners();
     initViewModeButtons();
     initRefImageUpload();
+    initViewsPanel();
     updateLayers();
     redraw();
   }
@@ -154,11 +155,110 @@ const Editor = (() => {
   }
   function getViewMode(){ return viewMode; }
 
+  // ── Views (state snapshots) ────────────────────────────
+  let views = [];
+  let activeViewId = null;
+
+  function initViewsPanel(){
+    document.getElementById('btn-new-view')?.addEventListener('click', createViewDialog);
+    buildViewsPanel();
+  }
+
+  function buildViewsPanel(){
+    const list = document.getElementById('views-list');
+    if (!list) return;
+    list.innerHTML = '';
+    views.forEach((v,i) => {
+      const item = document.createElement('div');
+      item.className = 'view-item' + (v.id === activeViewId ? ' active' : '');
+      const icon = document.createElement('img');
+      icon.className = 'view-icon';
+      icon.src = v.iconSvg || '/icons/tools/door.svg';
+      icon.width = 20; icon.height = 20;
+      const name = document.createElement('span');
+      name.className = 'view-name';
+      name.textContent = v.name;
+      const del = document.createElement('button');
+      del.className = 'view-del-btn';
+      del.textContent = '×';
+      del.onclick = e => { e.stopPropagation(); deleteView(v.id); };
+      item.appendChild(icon);
+      item.appendChild(name);
+      item.appendChild(del);
+      item.onclick = () => activateView(v.id);
+      list.appendChild(item);
+    });
+  }
+
+  function createViewDialog(){
+    const name = prompt('View name:');
+    if (!name) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.svg';
+    input.onchange = function(e){
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        createView(name, ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  function createView(name, iconSvg){
+    const snap = JSON.parse(JSON.stringify(objects));
+    views.push({ id:'vw'+Date.now(), name, iconSvg, objects: snap, doorColor: activeColor.door, ddoorColor: activeColor.ddoor });
+    activeViewId = views[views.length-1].id;
+    buildViewsPanel();
+    App.markDirty();
+  }
+
+  function activateView(id){
+    const v = views.find(v => v.id === id);
+    if (!v) return;
+    activeViewId = id;
+    pushUndo();
+    objects = JSON.parse(JSON.stringify(v.objects));
+    activeColor.door  = v.doorColor;
+    activeColor.ddoor = v.ddoorColor;
+    selectedId = null; movingId = null;
+    // Sync door swatches
+    document.querySelectorAll('#door-swatches .swatch').forEach(el => el.classList.toggle('selected', el.style.background===activeColor.door));
+    document.querySelectorAll('#door-swatches .swatch-custom').forEach(el => { el.style.background=activeColor.door; el.querySelector('input').value=activeColor.door; });
+    document.querySelectorAll('#ddoor-swatches .swatch').forEach(el => el.classList.toggle('selected', el.style.background===activeColor.ddoor));
+    document.querySelectorAll('#ddoor-swatches .swatch-custom').forEach(el => { el.style.background=activeColor.ddoor; el.querySelector('input').value=activeColor.ddoor; });
+    buildViewsPanel();
+    updateLayers();
+    redraw();
+    App.markDirty();
+  }
+
+  function deleteView(id){
+    const v = views.find(v => v.id === id);
+    if (!v || !confirm('Delete view "'+v.name+'"?')) return;
+    views = views.filter(x => x.id !== id);
+    if (activeViewId === id) activeViewId = views.length ? views[views.length-1].id : null;
+    buildViewsPanel();
+    App.markDirty();
+  }
+
+  function getActiveViewDoorColors(){
+    const v = views.find(v => v.id === activeViewId);
+    return v ? { door: v.doorColor, ddoor: v.ddoorColor } : null;
+  }
+
   // ── Tool management ──────────────────────────────────────
   function setTool(t){
     linePoints=null; floorStart=null; objectPoints=null;
-    // Unificar door y ddoor en 'door' internamente
     tool = t;
+    // Si el checkbox Arrow está marcado al entrar a door, usar ddoor
+    if (t === 'door') {
+      const ac = document.getElementById('door-arrow-check');
+      if (ac && ac.checked) tool = 'ddoor';
+    }
     const refSec=document.getElementById('ref-tool-sec'); if(refSec) refSec.style.display=(t==='ref')?'block':'none';
     // Activar boton de toolbar icon
     document.querySelectorAll('.tool-icon-btn').forEach(b=>b.classList.remove('active'));
@@ -202,6 +302,10 @@ const Editor = (() => {
     doorHasArrow = v;
     const row = document.getElementById('door-arrow-row');
     if(row) row.style.display = v ? 'flex' : 'none';
+    const dcr = document.getElementById('ddoor-color-row');
+    if(dcr) dcr.style.display = v ? 'flex' : 'none';
+    const ds = document.getElementById('ddoor-swatches');
+    if(ds) ds.style.display = v ? 'flex' : 'none';
     redraw();
   }
   function setDDoorArrow(a){
@@ -258,6 +362,11 @@ const Editor = (() => {
 
     if(tool==='select'){
       if(movingId){ confirmMove(); return; }
+      // If an object is already selected (via hierarchy), use it for dragging directly
+      if(selectedId){
+        dragging=true; dragStart={...mouseWorld};
+        updateLayers(); redraw(); return;
+      }
       const hit=hitTest(mouseWorld.x, mouseWorld.y);
       selectedId = hit ? hit.id : null;
       if(hit){ dragging=true; dragStart={...mouseWorld}; }
@@ -357,7 +466,7 @@ const Editor = (() => {
     const typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
     if((e.ctrlKey||e.metaKey)&&e.key==='z'){ e.preventDefault(); undoAction(); }
     if((e.ctrlKey||e.metaKey)&&e.key==='y'){ e.preventDefault(); redoAction(); }
-    if(e.key==='Escape'){ if(movingId){cancelMove();return;} if(objectPoints){objectPoints=null;redraw();return;} commitLineInProgress(); setTool('select'); return; }
+    if(e.key==='Escape'){ if(movingId){cancelMove();return;} if(objectPoints){objectPoints=null;redraw();return;} if(selectedId){selectedId=null; updateLayers(); redraw(); return;} commitLineInProgress(); setTool('select'); return; }
     if(e.key==='Enter'){ if(movingId){confirmMove();return;} }
     if((e.key==='Delete'||e.key==='Backspace')&&!typing&&selectedId&&!movingId) deleteSelected();
     if(!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
@@ -502,6 +611,8 @@ const Editor = (() => {
       btn.addEventListener('click', () => setViewMode(btn.dataset.mode));
     });
     document.getElementById('exp-quick')?.addEventListener('click', quickExport);
+    document.getElementById('btn-rotate-90')?.addEventListener('click', rotateAll);
+    document.getElementById('btn-snap-grid')?.addEventListener('click', snapAllToGrid);
   }
 
   function quickExport(){
@@ -535,8 +646,8 @@ const Editor = (() => {
     const el=document.getElementById(containerId); if(!el)return;
     const colors=PALETTE[category]||[];
     el.innerHTML='';
-    colors.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'+(activeColor[category]===c?' selected':''); d.style.background=c; d.title=c; d.onclick=()=>{ activeColor[category]=c; el.querySelectorAll('.swatch,.swatch-custom').forEach(s=>s.classList.remove('selected')); d.classList.add('selected'); }; el.appendChild(d); });
-    const cw=document.createElement('div'); cw.className='swatch-custom'; cw.title='Color personalizado'; cw.innerHTML='<span style="pointer-events:none;color:var(--muted);font-size:11px">+</span>'; const inp=document.createElement('input'); inp.type='color'; inp.value=CUSTOM[category]||'#888'; inp.addEventListener('input',()=>{ activeColor[category]=inp.value; cw.style.background=inp.value; el.querySelectorAll('.swatch,.swatch-custom').forEach(s=>s.classList.remove('selected')); cw.classList.add('selected'); }); cw.appendChild(inp); cw.addEventListener('click',()=>inp.click()); el.appendChild(cw);
+    colors.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'+(activeColor[category]===c?' selected':''); d.style.background=c; d.title=c; d.onclick=()=>{ activeColor[category]=c; if(category==='door')activeColor.ddoor=c; el.querySelectorAll('.swatch,.swatch-custom').forEach(s=>s.classList.remove('selected')); d.classList.add('selected'); }; el.appendChild(d); });
+    const cw=document.createElement('div'); cw.className='swatch-custom'; cw.title='Color personalizado'; cw.innerHTML='<span style="pointer-events:none;color:var(--muted);font-size:11px">+</span>'; const inp=document.createElement('input'); inp.type='color'; inp.value=CUSTOM[category]||'#888'; inp.addEventListener('input',()=>{ activeColor[category]=inp.value; if(category==='door')activeColor.ddoor=inp.value; cw.style.background=inp.value; el.querySelectorAll('.swatch,.swatch-custom').forEach(s=>s.classList.remove('selected')); cw.classList.add('selected'); }); cw.appendChild(inp); cw.addEventListener('click',()=>inp.click()); el.appendChild(cw);
   }
   function buildAllSwatches(){
     buildSwatches('wall-swatches','wall'); buildSwatches('floor-swatches','floor'); buildSwatches('door-swatches','door'); buildSwatches('stair-swatches','stair'); buildSwatches('object-swatches','object');
@@ -726,9 +837,174 @@ const Editor = (() => {
     c.save();c.fillStyle='rgba(255,200,60,.85)';c.font='bold 11px Segoe UI,sans-serif';c.textAlign='center';c.textBaseline='bottom';c.fillText('Double-click / Enter to confirm · Esc to cancel',sx,sy-8);c.restore();
   }
 
+  // ── Rotation 90° ────────────────────────────────────────
+  function getObjPoints(obj) {
+    if (obj.type === 'line') return obj.points;
+    if (obj.type === 'floor') return [{x:obj.x,y:obj.y},{x:obj.x+obj.w,y:obj.y+obj.h}];
+    if (obj.type === 'door' || obj.type === 'ddoor') {
+      const h = obj.orient === 'h';
+      const sw = h ? obj.size : 0.5, sh = h ? 0.5 : obj.size;
+      return [{x:obj.x,y:obj.y},{x:obj.x+sw,y:obj.y+sh}];
+    }
+    if (obj.type === 'stair') return [{x:obj.x,y:obj.y},{x:obj.x+obj.w,y:obj.y+obj.h}];
+    if (obj.type === 'object') return obj.points || [];
+    if (obj.type === 'label') return [{x:obj.x,y:obj.y}];
+    return [];
+  }
+
+  function getObjBounds(obj) {
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    getObjPoints(obj).forEach(p => { minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y); });
+    return {minX,minY,maxX,maxY};
+  }
+
+  function boxesTouch(a,b,t) {
+    return !(a.maxX+t<b.minX||b.maxX+t<a.minX||a.maxY+t<b.minY||b.maxY+t<a.minY);
+  }
+
+  function findZones(objs) {
+    if (!objs.length) return [];
+    const boxes = objs.map(o => getObjBounds(o));
+    const parent = objs.map((_,i) => i);
+    const find = x => { while (parent[x]!==x) {parent[x]=parent[parent[x]];x=parent[x];} return x; };
+    const union = (a,b) => { parent[find(a)]=find(b); };
+    for (let i=0;i<objs.length;i++)
+      for (let j=i+1;j<objs.length;j++)
+        if (boxesTouch(boxes[i],boxes[j],1)) union(i,j);
+    const groups = {};
+    objs.forEach((o,i) => { const r=find(i); if (!groups[r]) groups[r]=[]; groups[r].push(o); });
+    return Object.values(groups);
+  }
+
+  function zoneCenter(zone) {
+    let sx=0,sy=0,n=0;
+    zone.forEach(o => getObjPoints(o).forEach(p => { sx+=p.x; sy+=p.y; n++; }));
+    return n ? {x:sx/n,y:sy/n} : {x:0,y:0};
+  }
+
+  function rotatePoint(p,cx,cy) {
+    const dx=p.x-cx, dy=p.y-cy;
+    return {x:cx-dy, y:cy+dx};
+  }
+
+  function rotateObject(obj, cx, cy) {
+    if (obj.type === 'line' || obj.type === 'object') {
+      (obj.points||[]).forEach(p => { const r=rotatePoint(p,cx,cy); p.x=r.x; p.y=r.y; });
+    } else if (obj.type === 'floor') {
+      const ocx=obj.x+obj.w/2, ocy=obj.y+obj.h/2;
+      const nc=rotatePoint({x:ocx,y:ocy},cx,cy);
+      const ow=obj.w, oh=obj.h;
+      obj.w=oh; obj.h=ow;
+      obj.x=nc.x-obj.w/2; obj.y=nc.y-obj.h/2;
+    } else if (obj.type === 'door' || obj.type === 'ddoor') {
+      const h=obj.orient==='h';
+      const sw=h?obj.size:0.5, sh=h?0.5:obj.size;
+      const ocx=obj.x+sw/2, ocy=obj.y+sh/2;
+      const nc=rotatePoint({x:ocx,y:ocy},cx,cy);
+      obj.orient = h?'v':'h';
+      const nsw = obj.orient==='h'?obj.size:0.5, nsh = obj.orient==='h'?0.5:obj.size;
+      obj.x=nc.x-nsw/2; obj.y=nc.y-nsh/2;
+    } else if (obj.type === 'stair') {
+      const ocx=obj.x+obj.w/2, ocy=obj.y+obj.h/2;
+      const nc=rotatePoint({x:ocx,y:ocy},cx,cy);
+      const ow=obj.w, oh=obj.h;
+      obj.w=oh; obj.h=ow;
+      obj.orient = obj.orient==='h'?'v':'h';
+      obj.x=nc.x-obj.w/2; obj.y=nc.y-obj.h/2;
+    } else if (obj.type === 'label') {
+      const r=rotatePoint(obj,cx,cy);
+      obj.x=r.x; obj.y=r.y;
+    }
+  }
+
+  function rotateAll() {
+    // Save undo
+    undoStack.push(JSON.stringify(objects));
+    redoStack = [];
+
+    // Find zones
+    const zones = findZones(objects);
+    if (!zones.length) return;
+
+    const centers = zones.map(z => zoneCenter(z));
+    // Snap centers to grid so rotated coordinates stay grid-aligned
+    const s = parseFloat(document.getElementById('snap-size').value)||0.5;
+    centers.forEach(c => { c.x=Math.round(c.x/s)*s; c.y=Math.round(c.y/s)*s; });
+
+    // Rotate editor objects
+    zones.forEach((zone, zi) => {
+      const cx = centers[zi].x, cy = centers[zi].y;
+      zone.forEach(obj => rotateObject(obj, cx, cy));
+    });
+
+    // Rotate pins (pin-world coordinates = editor * CELL)
+    if (typeof Pinner !== 'undefined') {
+      const pins = Pinner.getData() || [];
+      pins.forEach(pin => {
+        const pex = pin.x / CELL, pey = pin.y / CELL;
+        let best = 0, bd = Infinity;
+        centers.forEach((c, i) => { const d=Math.hypot(pex-c.x,pey-c.y); if (d<bd) { bd=d; best=i; } });
+        const r = rotatePoint({x:pex,y:pey}, centers[best].x, centers[best].y);
+        pin.x = r.x * CELL;
+        pin.y = r.y * CELL;
+      });
+      // Only re-render pins if not in editor mode
+      const pp = document.getElementById('pinner-panel');
+      if (pp && !pp.classList.contains('hidden')) Pinner.renderPins();
+    }
+
+    // Rotate arrows (same coordinate system as pins)
+    if (typeof Steps !== 'undefined') {
+      const sd = Steps.getData();
+      (sd.steps||[]).forEach(step => {
+        (step.arrows||[]).forEach(arrow => {
+          (arrow.points||[]).forEach(p => {
+            const pex = p.x / CELL, pey = p.y / CELL;
+            let best = 0, bd = Infinity;
+            centers.forEach((c, i) => { const d=Math.hypot(pex-c.x,pey-c.y); if (d<bd) { bd=d; best=i; } });
+            const r = rotatePoint({x:pex,y:pey}, centers[best].x, centers[best].y);
+            p.x = r.x * CELL;
+            p.y = r.y * CELL;
+          });
+        });
+      });
+      if (document.getElementById('steps-list')) Steps.renderAllArrows();
+    }
+
+    selectedId = null; movingId = null;
+    updateLayers();
+    redraw();
+    App.markDirty();
+  }
+
+  function snapAllToGrid(){
+    pushUndo();
+    const s = parseFloat(document.getElementById('snap-size').value)||0.5;
+    objects.forEach(obj => {
+      if (obj.type === 'floor' || obj.type === 'stair') {
+        const x2 = Math.round(obj.x/s)*s, y2 = Math.round(obj.y/s)*s;
+        const rw = Math.round(obj.w/s)*s, rh = Math.round(obj.h/s)*s;
+        obj.x=x2; obj.y=y2; obj.w=Math.max(rw,s); obj.h=Math.max(rh,s);
+      } else if (obj.type === 'door' || obj.type === 'ddoor') {
+        obj.x = Math.round(obj.x/s)*s;
+        obj.y = Math.round(obj.y/s)*s;
+        obj.size = Math.round(obj.size/s)*s;
+      } else if (obj.type === 'line' || obj.type === 'object') {
+        (obj.points||[]).forEach(p => { p.x=Math.round(p.x/s)*s; p.y=Math.round(p.y/s)*s; });
+      } else if (obj.type === 'label') {
+        obj.x = Math.round(obj.x/s)*s;
+        obj.y = Math.round(obj.y/s)*s;
+      }
+    });
+    selectedId = null; movingId = null;
+    updateLayers();
+    redraw();
+    App.markDirty();
+  }
+
   // ── Serialización ────────────────────────────────────────
   function getData(){
-    return { bgColor, gridColor, refX, refY, refScale, refOpacity, objects };
+    return { bgColor, gridColor, refX, refY, refScale, refOpacity, objects, viewMode, views, activeViewId };
   }
   function loadData(data){
     if(!data) return;
@@ -739,13 +1015,17 @@ const Editor = (() => {
     refY       = data.refY       ?? 0;
     refScale   = data.refScale   ?? 1;
     refOpacity = data.refOpacity ?? 0.4;
+    views         = data.views || [];
+    activeViewId  = data.activeViewId || null;
     // restaurar _uid
     let maxId=0; objects.forEach(o=>{const n=parseInt(o.id.replace('o',''));if(n>maxId)maxId=n;}); _uid=maxId;
     // sync UI
     const bgEl=document.getElementById('bg-color'); if(bgEl){bgEl.value=bgColor;document.getElementById('bg-preview').style.background=bgColor;}
     const gcEl=document.getElementById('grid-color'); if(gcEl){gcEl.value=gridColor;document.getElementById('grid-preview').style.background=gridColor;}
     const roEl=document.getElementById('ref-opacity'); if(roEl){roEl.value=Math.round(refOpacity*100);document.getElementById('ref-opacity-val').textContent=roEl.value+'%';}
+    if (data.viewMode) setViewMode(data.viewMode);
     selectedId=null; movingId=null; undoStack=[]; redoStack=[];
+    buildViewsPanel();
     resetView(); updateLayers();
   }
 
@@ -755,8 +1035,9 @@ const Editor = (() => {
     getData, loadData,
     setTool, setViewMode, getViewMode, setDoorOrient, setDDoorOrient, setDDoorArrow, setStairOrient, setStairDir, setDoorArrowEnabled,
     zoomBy, resetView, panTo, clearAll, undoAction, redoAction, deleteSelected,
-    doExport, toggleExpManual, activateRefTool, resetRefTransform, updateRefScaleDisplay,
+    doExport, toggleExpManual, rotateAll, activateRefTool, resetRefTransform, updateRefScaleDisplay,
     toggleDDMenu, closeDDMenu,
+    createView, activateView, deleteView, getActiveViewDoorColors, buildViewsPanel, snapAllToGrid,
     getCanvas: ()=>canvas,
     getState: ()=>({ scale, offsetX, offsetY, objects, bgColor, gridColor })
   };

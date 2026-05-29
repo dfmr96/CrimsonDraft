@@ -2,6 +2,7 @@ const Steps = (() => {
 
   let steps = [];
   let activeStepId = null;
+  let expandedSteps = new Set();
   let isActive = false;
   let mapContainer = null;
   let cwrap = null;
@@ -610,19 +611,176 @@ const Steps = (() => {
 
     const list = document.getElementById('steps-list');
     if (list) {
+      let dragId = null;
       steps.forEach(step => {
-        const item = document.createElement('div');
-        item.className = 'step-item' + (step.id === activeStepId ? ' active' : '');
-        item.textContent = step.name;
-        item.dataset.id = step.id;
-        item.addEventListener('click', () => selectStep(step.id));
-        list.appendChild(item);
+        const wrap = document.createElement('div');
+        wrap.className = 'step-item-wrap' + (step.id === activeStepId ? ' active' : '');
+        wrap.dataset.id = step.id;
+        wrap.draggable = true;
+
+        const header = document.createElement('div');
+        header.className = 'step-item-header';
+
+        const toggle = document.createElement('span');
+        toggle.className = 'step-toggle';
+        toggle.textContent = '▸';
+
+        const titleInput = document.createElement('input');
+        titleInput.className = 'step-title-input';
+        titleInput.value = step.name;
+        titleInput.addEventListener('input', () => {
+          step.name = titleInput.value;
+          App.markDirty();
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'step-del-btn';
+        delBtn.textContent = '✕';
+        delBtn.title = 'Delete step';
+        delBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteStep(step.id);
+        });
+
+        header.appendChild(toggle);
+        header.appendChild(titleInput);
+        header.appendChild(delBtn);
+
+        toggle.addEventListener('click', e => {
+          e.stopPropagation();
+          const expanded = wrap.classList.toggle('expanded');
+          toggle.textContent = expanded ? '▾' : '▸';
+          if (expanded) expandedSteps.add(step.id); else expandedSteps.delete(step.id);
+        });
+
+        titleInput.addEventListener('click', e => {
+          e.stopPropagation();
+          selectStep(step.id, true);
+        });
+
+        // Drag and drop
+        wrap.addEventListener('dragstart', e => {
+          e.stopPropagation();
+          dragId = step.id;
+          wrap.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        wrap.addEventListener('dragend', e => {
+          e.stopPropagation();
+          wrap.classList.remove('dragging');
+          list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+          dragId = null;
+        });
+        wrap.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (step.id !== dragId) {
+            list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+            wrap.classList.add('drag-over');
+          }
+        });
+        wrap.addEventListener('dragleave', e => {
+          e.stopPropagation();
+          wrap.classList.remove('drag-over');
+        });
+        wrap.addEventListener('drop', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+          if (!dragId || dragId === step.id) return;
+          const fromIdx = steps.findIndex(s => s.id === dragId);
+          const toIdx = steps.findIndex(s => s.id === step.id);
+          if (fromIdx < 0 || toIdx < 0) return;
+          const [moved] = steps.splice(fromIdx, 1);
+          const insertAt = fromIdx < toIdx ? toIdx : toIdx;
+          steps.splice(insertAt, 0, moved);
+          buildPanel();
+          App.markDirty();
+        });
+
+        const body = document.createElement('div');
+        body.className = 'step-dropdown';
+
+        const itemsList = document.createElement('div');
+        itemsList.className = 'step-items-list';
+        (step.items || []).forEach((itemData, i) => {
+          const row = document.createElement('div');
+          row.className = 'step-item-row';
+          const label = document.createElement('span');
+          label.textContent = itemData.text;
+          const rm = document.createElement('button');
+          rm.textContent = '✕';
+          rm.className = 'step-item-rm';
+          rm.addEventListener('click', e => {
+            e.stopPropagation();
+            step.items.splice(i, 1);
+            buildPanel();
+            App.markDirty();
+          });
+          row.appendChild(label);
+          row.appendChild(rm);
+          itemsList.appendChild(row);
+        });
+
+        const addRow = document.createElement('div');
+        addRow.className = 'step-item-add';
+        const addInput = document.createElement('input');
+        addInput.type = 'text';
+        addInput.placeholder = 'Add item...';
+        addInput.className = 'step-item-add-input';
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.className = 'step-item-add-btn';
+        addBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const text = addInput.value.trim();
+          if (!text) return;
+          if (!step.items) step.items = [];
+          step.items.push({ text });
+          buildPanel();
+          App.markDirty();
+        });
+        addInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+        });
+        addRow.appendChild(addInput);
+        addRow.appendChild(addBtn);
+
+        body.appendChild(itemsList);
+        body.appendChild(addRow);
+        wrap.appendChild(header);
+        wrap.appendChild(body);
+        list.appendChild(wrap);
       });
     }
+
+    document.querySelectorAll('.step-item-wrap').forEach(el => {
+      if (expandedSteps.has(el.dataset.id)) {
+        el.classList.add('expanded');
+        el.querySelector('.step-toggle').textContent = '▾';
+      }
+    });
 
     document.getElementById('btn-add-step')?.addEventListener('click', addStep);
     document.getElementById('btn-steps-select')?.addEventListener('click', () => setArrowTool(false));
     document.getElementById('btn-steps-arrow')?.addEventListener('click', () => setArrowTool(true));
+  }
+
+  function deleteStep(id) {
+    const step = steps.find(s => s.id === id);
+    if (!step) return;
+    if (!confirm('Delete "' + step.name + '" and all its arrows?')) return;
+    const idx = steps.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    if (steps[idx].id === activeStepId) {
+      activeStepId = null;
+    }
+    steps.splice(idx, 1);
+    if (!activeStepId && steps.length) activeStepId = steps[0].id;
+    buildPanel();
+    applyStepVisibility();
+    renderAllArrows();
+    App.markDirty();
   }
 
   function setArrowTool(active) {
@@ -642,6 +800,7 @@ const Steps = (() => {
       name: 'Step ' + (steps.length + 1),
       shownPinIds: [],
       arrows: [],
+      items: [],
     };
     steps.push(step);
     selectStep(step.id);
@@ -649,11 +808,17 @@ const Steps = (() => {
     App.markDirty();
   }
 
-  function selectStep(id) {
+  function selectStep(id, skipPanel) {
     activeStepId = id;
     applyStepVisibility();
     renderAllArrows();
-    buildPanel();
+    if (skipPanel) {
+      document.querySelectorAll('.step-item-wrap').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+      });
+    } else {
+      buildPanel();
+    }
   }
 
   function applyStepVisibility() {
@@ -742,14 +907,17 @@ const Steps = (() => {
     if (!data) { steps = []; activeStepId = null; return; }
     steps = data.steps || [];
     // Ensure each step has arrows array
-    steps.forEach(s => { if (!s.arrows) s.arrows = []; });
+    steps.forEach(s => {
+      if (!s.arrows) s.arrows = [];
+      if (!s.items) s.items = [];
+    });
     activeStepId = data.activeStepId || null;
   }
 
   return {
     init, activate, deactivate,
     addStep, selectStep, togglePinInStep, applyStepVisibility,
-    getData, loadData
+    getData, loadData, renderAllArrows
   };
 
 })();

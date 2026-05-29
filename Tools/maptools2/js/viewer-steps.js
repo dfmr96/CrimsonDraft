@@ -265,12 +265,50 @@ const ViewerSteps = (() => {
     const list = document.getElementById('vsteps-list');
     if (list) {
       steps.forEach(step => {
-        const item = document.createElement('div');
-        item.className = 'step-item' + (step.id === activeStepId ? ' active' : '');
-        item.textContent = step.name;
-        item.dataset.id = step.id;
-        item.addEventListener('click', () => selectStep(step.id));
-        list.appendChild(item);
+        const wrap = document.createElement('div');
+        wrap.className = 'step-item-wrap' + (step.id === activeStepId ? ' active' : '');
+        wrap.dataset.id = step.id;
+
+        const header = document.createElement('div');
+        header.className = 'step-item-header';
+
+        const toggle = document.createElement('span');
+        toggle.className = 'step-toggle';
+        toggle.textContent = '▸';
+
+        const title = document.createElement('span');
+        title.className = 'step-title-text';
+        title.textContent = step.name;
+
+        header.appendChild(toggle);
+        header.appendChild(title);
+
+        toggle.addEventListener('click', e => {
+          e.stopPropagation();
+          wrap.classList.toggle('expanded');
+          toggle.textContent = wrap.classList.contains('expanded') ? '▾' : '▸';
+        });
+
+        title.addEventListener('click', () => selectStep(step.id));
+
+        const body = document.createElement('div');
+        body.className = 'step-dropdown';
+
+        const itemsList = document.createElement('div');
+        itemsList.className = 'step-items-list';
+        (step.items || []).forEach(itemData => {
+          const row = document.createElement('div');
+          row.className = 'step-item-row';
+          const label = document.createElement('span');
+          label.textContent = itemData.text;
+          row.appendChild(label);
+          itemsList.appendChild(row);
+        });
+
+        body.appendChild(itemsList);
+        wrap.appendChild(header);
+        wrap.appendChild(body);
+        list.appendChild(wrap);
       });
     }
 
@@ -342,7 +380,10 @@ const ViewerSteps = (() => {
   function loadData(data) {
     if (!data) { steps = []; activeStepId = null; return; }
     steps = data.steps || [];
-    steps.forEach(s => { if (!s.arrows) s.arrows = []; });
+    steps.forEach(s => {
+      if (!s.arrows) s.arrows = [];
+      if (!s.items) s.items = [];
+    });
     activeStepId = data.activeStepId || null;
   }
 

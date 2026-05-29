@@ -70,6 +70,65 @@ const App = (() => {
     }
   }
 
+  // ── Viewer Views dropdown ────────────────────────────────
+  function buildViewerViews() {
+    const data = Editor.getData();
+    const views = data.views || [];
+    const activeViewId = data.activeViewId;
+    const dd = document.getElementById('viewer-views-dropdown');
+    if (!dd) return;
+    dd.innerHTML = '';
+    if (views.length === 0) {
+      dd.innerHTML = '<div class="vv-empty">No views saved</div>';
+      return;
+    }
+    views.forEach(v => {
+      const item = document.createElement('div');
+      item.className = 'vv-item' + (v.id === activeViewId ? ' active' : '');
+      const icon = document.createElement('img');
+      icon.src = v.iconSvg || '/icons/tools/door.svg';
+      icon.width = 16; icon.height = 16;
+      const name = document.createElement('span');
+      name.textContent = v.name;
+      item.appendChild(icon);
+      item.appendChild(name);
+      item.onclick = () => {
+        Editor.activateView(v.id);
+        // Refresh active state in dropdown
+        dd.querySelectorAll('.vv-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        // Update views count in the button
+        updateViewsBtn();
+        dd.classList.add('hidden');
+      };
+      dd.appendChild(item);
+    });
+  }
+
+  function updateViewsBtn() {
+    const data = Editor.getData();
+    const views = data.views || [];
+    const btn = document.getElementById('viewer-views-btn');
+    if (btn) btn.textContent = `Views (${views.length}) ▾`;
+  }
+
+  function initViewerViews() {
+    buildViewerViews();
+    updateViewsBtn();
+    const btn = document.getElementById('viewer-views-btn');
+    const dd  = document.getElementById('viewer-views-dropdown');
+    if (btn && dd) {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        dd.classList.toggle('hidden');
+        buildViewerViews(); // refresh in case views changed
+        updateViewsBtn();
+      });
+      document.addEventListener('click', () => dd.classList.add('hidden'));
+      dd.addEventListener('click', e => e.stopPropagation());
+    }
+  }
+
   // ── Init ──────────────────────────────────────────────────
   async function init() {
     Editor.init();
@@ -108,6 +167,9 @@ const App = (() => {
     document.querySelectorAll('#app-shell .view-mode-btn').forEach(btn => {
       btn.addEventListener('click', () => Editor.setViewMode(btn.dataset.mode));
     });
+
+    // Init viewer views after data is loaded
+    initViewerViews();
   }
 
   document.addEventListener('DOMContentLoaded', init);
