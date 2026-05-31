@@ -26,9 +26,7 @@ namespace CrimsonDraft.UI
 
             closeAction = new InputAction("InspectClose", InputActionType.Button);
             closeAction.AddBinding("<Keyboard>/v");
-            closeAction.AddBinding("<Gamepad>/buttonEast");   // B / Circle
-            closeAction.AddBinding("<Gamepad>/buttonWest");   // Square
-            closeAction.AddBinding("<Keyboard>/c");
+            closeAction.AddBinding("<Gamepad>/buttonEast");   // Circle / B
             closeAction.performed += _ => Close();
 
             IsOpen = false;

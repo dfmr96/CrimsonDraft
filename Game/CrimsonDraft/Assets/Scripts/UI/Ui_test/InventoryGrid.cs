@@ -106,5 +106,33 @@ namespace CrimsonDraft.UI
             return GetItemAt(cell) != null;
         }
 
+        // Returns the single item overlapping the area, null if empty, or null if multiple items.
+        // outMultiple = true means more than one distinct item overlaps — swap not possible.
+        public InventoryItem GetOverlappingItem(Vector2Int origin, Vector2Int size, out bool outMultiple)
+        {
+            InventoryItem found = null;
+            outMultiple = false;
+
+            for (int c = origin.x; c < origin.x + size.x; c++)
+            {
+                for (int r = origin.y; r < origin.y + size.y; r++)
+                {
+                    if (c < 0 || c >= columns || r < 0 || r >= rows) continue;
+                    var item = itemGrid[c, r];
+                    if (item == null) continue;
+                    if (found == null) { found = item; }
+                    else if (found != item) { outMultiple = true; return null; }
+                }
+            }
+            return found;
+        }
+
+        // True if the area is within bounds (ignores occupancy).
+        public bool IsWithinBounds(Vector2Int origin, Vector2Int size)
+        {
+            return origin.x >= 0 && origin.y >= 0
+                && origin.x + size.x <= columns
+                && origin.y + size.y <= rows;
+        }
     }
 }
