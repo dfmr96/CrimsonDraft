@@ -26,6 +26,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
         [SerializeField] private Color colorNormalItem  = Color.white;
 
+        private InventorySoundManager sfx => InventorySoundManager.Instance;
+
         // Grid state
         private int        currentGridIndex;
         private Vector2Int currentCell;
@@ -167,6 +169,7 @@ namespace CrimsonDraft.UI
             if (dir.y != 0 && dir != lastDir)
             {
                 contextMenu.NavigateMenu(dir.y);
+                sfx?.PlayMenuNavigate();
                 lastDir      = dir;
                 holding      = true;
                 nextMoveTime = Time.unscaledTime + initialRepeatDelay;
@@ -174,6 +177,7 @@ namespace CrimsonDraft.UI
             else if (dir.y != 0 && holding && Time.unscaledTime >= nextMoveTime)
             {
                 contextMenu.NavigateMenu(dir.y);
+                sfx?.PlayMenuNavigate();
                 nextMoveTime = Time.unscaledTime + repeatInterval;
             }
         }
@@ -201,6 +205,14 @@ namespace CrimsonDraft.UI
 
             currentCell = next;
             PlaceSelectorAt(currentCell);
+
+            // Sound: item move if holding, otherwise cursor sound based on what's under
+            if (heldItem != null)
+                sfx?.PlayItemMove();
+            else if (CurrentGrid.GetItemAt(currentCell) != null)
+                sfx?.PlayCursorOnItem();
+            else
+                sfx?.PlayCursorMove();
         }
 
         // ── Input Callbacks ──────────────────────────────────────────────────
@@ -211,6 +223,7 @@ namespace CrimsonDraft.UI
             if (heldItem != null)
             {
                 heldItem.Rotate();
+                sfx?.PlayItemRotate();
                 UpdateHeldItemVisual();
                 PlaceSelectorAt(currentCell);
                 return;
@@ -220,6 +233,7 @@ namespace CrimsonDraft.UI
 
             if (contextMenu.IsOpen)
             {
+                sfx?.PlayMenuConfirm();
                 contextMenu.ConfirmSelection();
                 return;
             }
@@ -227,6 +241,7 @@ namespace CrimsonDraft.UI
             InventoryItem item = CurrentGrid.GetItemAt(currentCell);
             if (item != null)
             {
+                sfx?.PlayMenuOpen();
                 contextMenu.Open(item);
                 if (tooltip != null)
                     tooltip.ShowAboveSelector(selectorRect);
@@ -237,13 +252,17 @@ namespace CrimsonDraft.UI
         {
             if (contextMenu != null && contextMenu.IsOpen)
             {
+                sfx?.PlayMenuCancel();
                 contextMenu.Close();
                 return;
             }
 
             // Drop held item back to original position (cancel move)
             if (heldItem != null)
+            {
+                sfx?.PlayMenuCancel();
                 CancelPickup();
+            }
         }
 
         void OnPickup(InputAction.CallbackContext ctx)
@@ -281,6 +300,7 @@ namespace CrimsonDraft.UI
             currentCell = item.GridOrigin;
             PlaceSelectorAt(currentCell);
 
+            sfx?.PlayItemPickup();
             heldFromGrid = CurrentGrid;
             heldItem     = item;
 
@@ -298,7 +318,10 @@ namespace CrimsonDraft.UI
 
             // 1. Check bounds
             if (!targetGrid.IsWithinBounds(currentCell, heldItem.GridSize))
+            {
+                sfx?.PlayItemPlaceInvalid();
                 return;
+            }
 
             // 2. Check what's in the area
             bool multipleItems;
@@ -312,6 +335,7 @@ namespace CrimsonDraft.UI
             if (overlapping == null)
             {
                 // 3a. Empty space → place
+                sfx?.PlayItemPlace();
                 PlaceHeldItem(targetGrid, currentCell);
             }
             else
@@ -322,6 +346,7 @@ namespace CrimsonDraft.UI
                 if (targetGrid.CanPlace(currentCell, heldItem.GridSize))
                 {
                     // Place held item, then pick up the other
+                    sfx?.PlayItemSwap();
                     PlaceHeldItem(targetGrid, currentCell);
 
                     // Pick up the swapped item from its origin
@@ -333,6 +358,7 @@ namespace CrimsonDraft.UI
                 else
                 {
                     // No room even after removing → restore the overlapping item
+                    sfx?.PlayItemPlaceInvalid();
                     targetGrid.PlaceItem(overlapping);
                 }
             }
@@ -504,8 +530,19 @@ namespace CrimsonDraft.UI
 
         // ── Public ───────────────────────────────────────────────────────────
 
-        public Vector2Int  CurrentCell         => currentCell;
-        public InventoryGrid CurrentGrid_Public => CurrentGrid;
-        public bool        IsHoldingItem        => heldItem != null;
+        public Vector2Int    CurrentCell         => currentCell;
+        public InventoryGrid CurrentGrid_Public  => CurrentGrid;
+        public bool          IsHoldingItem        => heldItem != null;
+
+        // Called by TabManager before switching away from this tab
+        public void CancelAll()
+        {
+            if (heldItem != null)                            CancelPickup();
+            if (contextMenu  != null && contextMenu.IsOpen) contextMenu.Close();
+            if (inspectPanel != null && inspectPanel.IsOpen) inspectPanel.Close();
+            tooltip?.Hide();
+            holding = false;
+            lastDir = Vector2Int.zero;
+        }
     }
 }

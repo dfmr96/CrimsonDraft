@@ -53,6 +53,7 @@ namespace CrimsonDraft.UI
             IsOpen = true;
             Show();
             closeAction.Enable();
+            InventorySoundManager.Instance?.PlayInspectOpen();
         }
 
         public void Close()
@@ -61,6 +62,7 @@ namespace CrimsonDraft.UI
             IsOpen = false;
             Hide();
             closeAction.Disable();
+            InventorySoundManager.Instance?.PlayInspectClose();
             OnClose?.Invoke();
         }
 
