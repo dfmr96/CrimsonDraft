@@ -33,15 +33,16 @@ namespace CrimsonDraft.UI
             Hide();
         }
 
-        public void Open(InventoryItemView item)
+        public void Open(InventoryItemView item, ContextMenuOptions options)
         {
             this.currentItem   = item;
             this.selectedIndex = 0;
             this.isOpen        = true;
 
-            this.options[2].SetDisabled(!item.Data.Combinable);
+            this.options[0].SetDisabled(!options.CanEquip && !options.CanUse);
+            this.options[2].SetDisabled(!options.CanCombine);
 
-            if (item.Data.ItemType == CrimsonDraft.Inventory.ItemType.Weapon)
+            if (options.CanEquip)
                 this.options[0].SetLabel(item.BoundItem.IsEquipped ? "Unequip" : "Equip");
             else
                 this.options[0].SetLabel("Use");

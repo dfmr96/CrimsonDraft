@@ -21,6 +21,7 @@ namespace CrimsonDraft.UI
         public Vector2Int    GridOrigin => this.gridOrigin;
         public bool        IsInspected => this.inspected;
         public int         Rotation    => this.rotationState;
+        public int         SlotIndex   { get; private set; } = -1;
 
         // GridSize swaps X/Y when vertical (rotationState == 1)
         public Vector2Int GridSize
@@ -34,8 +35,9 @@ namespace CrimsonDraft.UI
             }
         }
 
-        public void SetInspected(bool value)    => this.inspected   = value;
-        public void SetGridOrigin(Vector2Int o) => this.gridOrigin  = o;
+        public void SetInspected(bool value)    => this.inspected  = value;
+        public void SetGridOrigin(Vector2Int o) => this.gridOrigin = o;
+        public void SetSlotIndex(int index)     => this.SlotIndex  = index;
 
         public void Bind(Inventory.InventoryItem item)
         {
@@ -78,7 +80,7 @@ namespace CrimsonDraft.UI
             ApplyRotation();
         }
 
-        void ApplyRotation()
+        private void ApplyRotation()
         {
             // 0 = horizontal (0°), 1 = vertical (-90° so item extends right+down from pivot)
             this.rectTransform.localEulerAngles = new Vector3(0f, 0f, -this.rotationState * 90f);

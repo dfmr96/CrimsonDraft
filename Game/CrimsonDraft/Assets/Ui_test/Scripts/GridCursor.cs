@@ -6,7 +6,6 @@ using UnityEngine.UI;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
-using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
 {
@@ -19,9 +18,6 @@ namespace CrimsonDraft.UI
         [SerializeField] private ItemContextMenu     contextMenu  = null!;
         [SerializeField] private ItemTooltip         tooltip      = null!;
         [SerializeField] private InspectPanel        inspectPanel = null!;
-
-        [Header("Party Panel")]
-        [SerializeField] private PartyPanelView? partyPanel;
 
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
@@ -38,13 +34,16 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
         [SerializeField] private Color colorNormalItem  = Color.white;
 
-        [Inject] private IInputService     inputService    = null!;
-        [Inject] private IInventoryService? inventoryService;
-        [Inject] private IOperatorRoster?   roster;
+        [Inject] private IInputService inputService = null!;
 
-        // Combine mode state
-        private InventoryItemView? combineSourceItem;
-        private bool               isCombineMode;
+        // Combine mode — set by InventoryHUDController
+        public bool IsCombineMode { get; set; }
+
+        // Events consumed by InventoryHUDController
+        public event System.Action<InventoryItemView>?               OnCellConfirmed;
+        public event System.Action<InventoryItemView>?               OnCombineTargetConfirmed;
+        public event System.Action<InventoryItemView, InventoryGrid>? OnItemMovedToNewGrid;
+        public event System.Action?                                   OnCombineCancelled;
 
         // Grid state
         private int        currentGridIndex;
@@ -58,8 +57,7 @@ namespace CrimsonDraft.UI
         private InventoryItemView? heldItem;
         private InventoryGrid?     heldFromGrid;
 
-        private InventoryGrid CurrentGrid  => this.gridGroup.GetGrid(this.currentGridIndex);
-        private IOperatorRoster? ActiveRoster => this.roster ?? this.partyPanel?.Roster;
+        private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
 
         private static readonly Color ColorSelectorNormal = Color.white;
         private static readonly Color ColorSelectorOnItem = Color.yellow;
@@ -90,12 +88,8 @@ namespace CrimsonDraft.UI
         {
             this.selectorImage = this.selectorRect.GetComponent<Image>();
 
-            if (this.contextMenu  != null)
-            {
-                this.contextMenu.OnClose           += OnMenuClosed;
-                this.contextMenu.OnCombineRequested += EnterCombineMode;
-                this.contextMenu.OnUseRequested     += HandleUse;
-            }
+            if (this.contextMenu != null)
+                this.contextMenu.OnClose += OnMenuClosed;
             if (this.inspectPanel != null) this.inspectPanel.OnClose += OnInspectClosed;
 
             AttachSelectorToGrid(CurrentGrid);
@@ -209,12 +203,11 @@ namespace CrimsonDraft.UI
 
         void OnConfirm(InputAction.CallbackContext ctx)
         {
-            // Combine mode: segundo ítem seleccionado
-            if (this.isCombineMode)
+            if (this.IsCombineMode)
             {
                 InventoryItemView? target = CurrentGrid.GetItemAt(this.currentCell);
-                if (target != null && target != this.combineSourceItem)
-                    HandleCombineConfirm(target);
+                if (target != null)
+                    OnCombineTargetConfirmed?.Invoke(target);
                 return;
             }
 
@@ -240,7 +233,7 @@ namespace CrimsonDraft.UI
             if (item != null)
             {
                 this.sfx?.PlayMenuOpen();
-                this.contextMenu.Open(item);
+                OnCellConfirmed?.Invoke(item);
                 if (this.tooltip != null)
                     this.tooltip.ShowAboveSelector(this.selectorRect);
             }
@@ -248,9 +241,10 @@ namespace CrimsonDraft.UI
 
         void OnCancel(InputAction.CallbackContext ctx)
         {
-            if (this.isCombineMode)
+            if (this.IsCombineMode)
             {
-                ExitCombineMode();
+                this.IsCombineMode = false;
+                OnCombineCancelled?.Invoke();
                 this.sfx?.PlayMenuCancel();
                 return;
             }
@@ -364,18 +358,11 @@ namespace CrimsonDraft.UI
 
         void PlaceHeldItem(InventoryGrid targetGrid, Vector2Int origin)
         {
-            // Si el item equipado se mueve a un grid distinto, desequipar del operador original
             if (targetGrid != this.heldFromGrid)
             {
                 var weapon = this.heldItem!.BoundItem as WeaponItem;
                 if (weapon != null && weapon.IsEquipped)
-                {
-                    int opSlot  = weapon.EquippedBySlot;
-                    int wepSlot = weapon.EquippedWeaponSlot;
-                    weapon.ClearEquipped();
-                    this.partyPanel?.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
-                    ActiveRoster?[opSlot].SetEquippedWeapon(null, wepSlot);
-                }
+                    OnItemMovedToNewGrid?.Invoke(this.heldItem, this.heldFromGrid!);
             }
 
             this.heldItem!.SetGridOrigin(origin);
@@ -511,99 +498,6 @@ namespace CrimsonDraft.UI
             return raw.y > 0 ? Vector2Int.up : Vector2Int.down;
         }
 
-        // ── Combine Mode ─────────────────────────────────────────────────────
-
-        void EnterCombineMode(InventoryItemView source)
-        {
-            this.combineSourceItem = source;
-            this.isCombineMode     = true;
-            // Tint source para indicar que está seleccionado para combinar
-            source.GetComponent<UnityEngine.UI.Image>().color = new Color(1f, 0.8f, 0f, 0.9f);
-        }
-
-        void ExitCombineMode()
-        {
-            if (this.combineSourceItem != null)
-                this.combineSourceItem.GetComponent<UnityEngine.UI.Image>().color = this.colorNormalItem;
-            this.combineSourceItem = null;
-            this.isCombineMode     = false;
-        }
-
-        void HandleCombineConfirm(InventoryItemView targetItem)
-        {
-            if (this.combineSourceItem == null) return;
-
-            if (this.inventoryService != null)
-            {
-                int slotA = FindSlotIndex(this.combineSourceItem);
-                int slotB = FindSlotIndex(targetItem);
-
-                if (slotA >= 0 && slotB >= 0 && this.inventoryService.TryCombine(slotA, slotB))
-                {
-                    this.sfx?.PlayItemPlace();
-                    ExitCombineMode();
-                    return;
-                }
-            }
-
-            // Sin servicio o sin receta: feedback de inválido
-            this.sfx?.PlayItemPlaceInvalid();
-            ExitCombineMode();
-        }
-
-        void HandleUse(InventoryItemView item)
-        {
-            if (item.Data.ItemType == ItemType.Weapon)
-            {
-                HandleEquipWeapon(item);
-                return;
-            }
-
-            this.inventoryService?.TryUseKey(item.Data.ItemId);
-        }
-
-        void HandleEquipWeapon(InventoryItemView view)
-        {
-            var weaponItem = view.BoundItem as WeaponItem;
-            if (weaponItem == null || this.partyPanel == null) return;
-
-            if (weaponItem.IsEquipped)
-            {
-                int opSlot  = weaponItem.EquippedBySlot;
-                int wepSlot = weaponItem.EquippedWeaponSlot;
-                weaponItem.ClearEquipped();
-                this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
-                ActiveRoster?[opSlot].SetEquippedWeapon(null, wepSlot);
-            }
-            else
-            {
-                int operatorSlot     = this.currentGridIndex;
-                int targetWeaponSlot = (int)weaponItem.Data.WeaponSlot;
-
-                // Desquipar el arma previa en ese slot específico
-                var widget = this.partyPanel.GetWidget(operatorSlot);
-                IWeaponSlot? prev = targetWeaponSlot == 0
-                    ? ActiveRoster?[operatorSlot].PrimaryWeapon
-                    : ActiveRoster?[operatorSlot].SecondaryWeapon;
-                (prev as InventoryItem)?.ClearEquipped();
-
-                weaponItem.SetEquipped(operatorSlot, targetWeaponSlot);
-                widget?.SetEquippedWeapon(weaponItem, targetWeaponSlot);
-                ActiveRoster?[operatorSlot].SetEquippedWeapon(weaponItem, targetWeaponSlot);
-            }
-        }
-
-        // Busca el índice de slot en IInventoryService que contiene un item con el mismo Data
-        int FindSlotIndex(InventoryItemView view)
-        {
-            if (this.inventoryService == null) return -1;
-            var slots = this.inventoryService.Slots;
-            for (int i = 0; i < slots.Count; i++)
-                if (!slots[i].IsEmpty && slots[i].Item?.Data == view.Data)
-                    return i;
-            return -1;
-        }
-
         // ── Public ───────────────────────────────────────────────────────────
 
         public Vector2Int    CurrentCell        => this.currentCell;
@@ -612,7 +506,7 @@ namespace CrimsonDraft.UI
 
         public void CancelAll()
         {
-            if (this.isCombineMode)                                       ExitCombineMode();
+            if (this.IsCombineMode) { this.IsCombineMode = false; OnCombineCancelled?.Invoke(); }
             if (this.heldItem != null)                                    CancelPickup();
             if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();
