@@ -11,9 +11,10 @@ namespace CrimsonDraft.Operators
         public bool           IsPresent      { get; }
         public int            MaxHp          { get; }
 
-        public int            Hp             { get; private set; }
-        public IWeaponSlot?   EquippedWeapon { get; private set; }
-        public float          HpRatio        => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
+        public int            Hp              { get; private set; }
+        public IWeaponSlot?   PrimaryWeapon   { get; private set; }
+        public IWeaponSlot?   SecondaryWeapon { get; private set; }
+        public float          HpRatio         => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
         public bool           IsAlive        => this.IsPresent && this.Hp > 0;
 
         internal OperatorRuntime(int slotIndex, OperatorData? data, bool isPresent, int maxHp)
@@ -35,6 +36,10 @@ namespace CrimsonDraft.Operators
             return new OperatorDamageResult(this.SlotIndex, applied, this.Hp, this.Hp <= 0);
         }
 
-        public void SetEquippedWeapon(IWeaponSlot? weapon) => this.EquippedWeapon = weapon;
+        public void SetEquippedWeapon(IWeaponSlot? weapon, int slotIndex = 0)
+        {
+            if (slotIndex == 0) this.PrimaryWeapon   = weapon;
+            else                this.SecondaryWeapon = weapon;
+        }
     }
 }

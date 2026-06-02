@@ -63,7 +63,15 @@ namespace CrimsonDraft.UI
 
         void SpawnItem(ItemData itemData, InventoryGrid grid, Vector2Int origin)
         {
-            var domainItem = new Inventory.InventoryItem(itemData);
+            Inventory.InventoryItem domainItem = itemData switch
+            {
+                Inventory.WeaponData     wd => new Inventory.WeaponItem(wd),
+                Inventory.AmmoBoxData    ad => new Inventory.AmmoBoxItem(ad, 0),
+                Inventory.ConsumableData cd => new Inventory.ConsumableItem(cd),
+                Inventory.KeyItemData    kd => new Inventory.KeyItem(kd),
+                Inventory.SocketItemData sd => new Inventory.SocketItem(sd),
+                _                          => new Inventory.InventoryItem(itemData)
+            };
             InventoryItemView view = Instantiate(itemPrefab, grid.transform);
             view.Initialize(domainItem, origin, grid.CellSize);
 

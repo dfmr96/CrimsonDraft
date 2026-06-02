@@ -24,6 +24,11 @@ namespace CrimsonDraft.UI
 
         public OptionType Type => optionType;
 
+        public void SetLabel(string text)
+        {
+            if (this.label != null) this.label.text = text;
+        }
+
         public void SetDisabled(bool value)
         {
             disabled = value;

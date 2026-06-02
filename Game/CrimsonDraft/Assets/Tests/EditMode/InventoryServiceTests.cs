@@ -237,7 +237,7 @@ namespace CrimsonDraft.Tests
             service.EquipWeapon(0, operatorSlot: 0);
 
             Assert.AreEqual(0, service.Slots[0].Item!.EquippedBySlot);
-            Assert.IsNotNull(op.EquippedWeapon);
+            Assert.IsNotNull(op.PrimaryWeapon);
         }
 
         [Test]
@@ -253,7 +253,7 @@ namespace CrimsonDraft.Tests
 
             Assert.AreEqual(-1, service.Slots[0].Item!.EquippedBySlot, "old weapon unequipped");
             Assert.AreEqual( 0, service.Slots[1].Item!.EquippedBySlot, "new weapon equipped");
-            Assert.AreEqual(service.Slots[1].Item as IWeaponSlot, op.EquippedWeapon);
+            Assert.AreEqual(service.Slots[1].Item as IWeaponSlot, op.PrimaryWeapon);
         }
 
         [Test]
@@ -267,7 +267,7 @@ namespace CrimsonDraft.Tests
             service.UnequipWeapon(0);
 
             Assert.AreEqual(-1, service.Slots[0].Item!.EquippedBySlot);
-            Assert.IsNull(op.EquippedWeapon);
+            Assert.IsNull(op.PrimaryWeapon);
         }
 
         [Test]
@@ -279,13 +279,13 @@ namespace CrimsonDraft.Tests
             service.AddItem(MakeWeaponData(magazineCapacity: 30), operatorSlot: 0);
 
             service.EquipWeapon(0, operatorSlot: 0);
-            op0.EquippedWeapon!.SetAmmo(10);
+            op0.PrimaryWeapon!.SetAmmo(10);
 
             service.UnequipWeapon(0);
             service.MoveItem(0, 4); // move to op1's first slot (index 4)
             service.EquipWeapon(4, operatorSlot: 1);
 
-            Assert.AreEqual(10, op1.EquippedWeapon!.CurrentAmmo, "ammo stays on weapon item");
+            Assert.AreEqual(10, op1.PrimaryWeapon!.CurrentAmmo, "ammo stays on weapon item");
         }
 
         // ── CanReload / ReloadOperator ─────────────────────────────────────────
@@ -319,7 +319,7 @@ namespace CrimsonDraft.Tests
             service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
             service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
             service.EquipWeapon(0, operatorSlot: 0);
-            op.EquippedWeapon!.SetAmmo(10);
+            op.PrimaryWeapon!.SetAmmo(10);
 
             Assert.IsTrue(service.CanReload(1, operatorSlot: 0));
         }
@@ -332,11 +332,11 @@ namespace CrimsonDraft.Tests
             service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
             service.AddItem(MakeAmmoBoxData("9mm", defaultQuantity: 99), operatorSlot: 0, quantity: 99);
             service.EquipWeapon(0, operatorSlot: 0);
-            op.EquippedWeapon!.SetAmmo(10);
+            op.PrimaryWeapon!.SetAmmo(10);
 
             service.ReloadOperator(1, operatorSlot: 0);
 
-            Assert.AreEqual(30, op.EquippedWeapon.CurrentAmmo, "weapon is full");
+            Assert.AreEqual(30, op.PrimaryWeapon.CurrentAmmo, "weapon is full");
             Assert.IsFalse(service.Slots[1].IsEmpty, "box slot still occupied");
             var box = service.Slots[1].Item as AmmoBoxItem;
             Assert.AreEqual(79, box!.Quantity, "box deducted 20 rounds");
@@ -350,11 +350,11 @@ namespace CrimsonDraft.Tests
             service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
             service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0, quantity: 5);
             service.EquipWeapon(0, operatorSlot: 0);
-            op.EquippedWeapon!.SetAmmo(0);
+            op.PrimaryWeapon!.SetAmmo(0);
 
             service.ReloadOperator(1, operatorSlot: 0);
 
-            Assert.AreEqual(5, op.EquippedWeapon.CurrentAmmo);
+            Assert.AreEqual(5, op.PrimaryWeapon.CurrentAmmo);
             Assert.IsTrue(service.Slots[1].IsEmpty, "slot cleared after box exhausted");
         }
 

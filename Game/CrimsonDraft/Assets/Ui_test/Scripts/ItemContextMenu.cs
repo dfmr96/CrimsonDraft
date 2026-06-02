@@ -47,6 +47,11 @@ namespace CrimsonDraft.UI
                 : item.Data.Combinable;
             this.options[2].SetDisabled(!canCombine);
 
+            if (item.Data.ItemType == CrimsonDraft.Inventory.ItemType.Weapon)
+                this.options[0].SetLabel(item.BoundItem.IsEquipped ? "Unequip" : "Equip");
+            else
+                this.options[0].SetLabel("Use");
+
             PositionNextToItem(item);
             RefreshVisuals();
             Show();

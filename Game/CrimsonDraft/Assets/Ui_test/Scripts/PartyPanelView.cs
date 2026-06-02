@@ -17,6 +17,8 @@ namespace CrimsonDraft.UI
 
         [Inject] private IOperatorRoster? roster;
 
+        public IOperatorRoster? Roster { get; private set; }
+
         void Start()
         {
             IOperatorRoster? source = this.roster;
@@ -32,6 +34,8 @@ namespace CrimsonDraft.UI
 
             if (source == null || !source.IsInitialized) return;
 
+            this.Roster = source;
+
             for (int i = 0; i < this.widgets.Length; i++)
             {
                 if (i < source.Count)
@@ -40,6 +44,9 @@ namespace CrimsonDraft.UI
                     this.widgets[i].gameObject.SetActive(false);
             }
         }
+
+        public OperatorWidgetView? GetWidget(int index) =>
+            index >= 0 && index < this.widgets.Length ? this.widgets[index] : null;
 
         public void Refresh()
         {

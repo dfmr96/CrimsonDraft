@@ -16,5 +16,12 @@ namespace CrimsonDraft.UI
 
         public bool HasNext(int currentIndex) => currentIndex + 1 < grids.Length;
         public bool HasPrev(int currentIndex) => currentIndex - 1 >= 0;
+
+        public int IndexOf(InventoryGrid grid)
+        {
+            for (int i = 0; i < grids.Length; i++)
+                if (grids[i] == grid) return i;
+            return -1;
+        }
     }
 }

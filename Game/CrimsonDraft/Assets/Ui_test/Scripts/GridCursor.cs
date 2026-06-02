@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
 {
@@ -18,6 +19,9 @@ namespace CrimsonDraft.UI
         [SerializeField] private ItemContextMenu     contextMenu  = null!;
         [SerializeField] private ItemTooltip         tooltip      = null!;
         [SerializeField] private InspectPanel        inspectPanel = null!;
+
+        [Header("Party Panel")]
+        [SerializeField] private PartyPanelView? partyPanel;
 
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
@@ -40,6 +44,7 @@ namespace CrimsonDraft.UI
         [Inject] private IInputService?    inputService;
         [Inject] private IInventoryService? inventoryService;
         [Inject] private ICombineService?   combineService;
+        [Inject] private IOperatorRoster?   roster;
 
         // Combine mode state
         private InventoryItemView? combineSourceItem;
@@ -64,7 +69,8 @@ namespace CrimsonDraft.UI
         private InventoryItemView? heldItem;
         private InventoryGrid?     heldFromGrid;
 
-        private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
+        private InventoryGrid CurrentGrid  => this.gridGroup.GetGrid(this.currentGridIndex);
+        private IOperatorRoster? ActiveRoster => this.roster ?? this.partyPanel?.Roster;
 
         private static readonly Color ColorSelectorNormal = Color.white;
         private static readonly Color ColorSelectorOnItem = Color.yellow;
@@ -332,6 +338,12 @@ namespace CrimsonDraft.UI
             InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item == null) return;
 
+            if (item.BoundItem.IsEquipped)
+            {
+                this.sfx?.PlayItemPlaceInvalid();
+                return;
+            }
+
             this.currentCell = item.GridOrigin;
             PlaceSelectorAt(this.currentCell);
 
@@ -390,6 +402,20 @@ namespace CrimsonDraft.UI
 
         void PlaceHeldItem(InventoryGrid targetGrid, Vector2Int origin)
         {
+            // Si el item equipado se mueve a un grid distinto, desequipar del operador original
+            if (targetGrid != this.heldFromGrid)
+            {
+                var weapon = this.heldItem!.BoundItem as WeaponItem;
+                if (weapon != null && weapon.IsEquipped)
+                {
+                    int opSlot  = weapon.EquippedBySlot;
+                    int wepSlot = weapon.EquippedWeaponSlot;
+                    weapon.ClearEquipped();
+                    this.partyPanel?.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
+                    ActiveRoster?[opSlot].SetEquippedWeapon(null, wepSlot);
+                }
+            }
+
             this.heldItem!.SetGridOrigin(origin);
             this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
@@ -571,11 +597,44 @@ namespace CrimsonDraft.UI
 
         void HandleUse(InventoryItemView item)
         {
-            if (this.inventoryService == null) return;
-            int slot = FindSlotIndex(item);
-            if (slot < 0) return;
-            // Intentar usar como key item primero; en el futuro extender para consumibles
-            this.inventoryService.TryUseKey(item.Data.ItemId);
+            if (item.Data.ItemType == ItemType.Weapon)
+            {
+                HandleEquipWeapon(item);
+                return;
+            }
+
+            this.inventoryService?.TryUseKey(item.Data.ItemId);
+        }
+
+        void HandleEquipWeapon(InventoryItemView view)
+        {
+            var weaponItem = view.BoundItem as WeaponItem;
+            if (weaponItem == null || this.partyPanel == null) return;
+
+            if (weaponItem.IsEquipped)
+            {
+                int opSlot  = weaponItem.EquippedBySlot;
+                int wepSlot = weaponItem.EquippedWeaponSlot;
+                weaponItem.ClearEquipped();
+                this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
+                ActiveRoster?[opSlot].SetEquippedWeapon(null, wepSlot);
+            }
+            else
+            {
+                int operatorSlot     = this.currentGridIndex;
+                int targetWeaponSlot = (int)weaponItem.Data.WeaponSlot;
+
+                // Desquipar el arma previa en ese slot específico
+                var widget = this.partyPanel.GetWidget(operatorSlot);
+                IWeaponSlot? prev = targetWeaponSlot == 0
+                    ? ActiveRoster?[operatorSlot].PrimaryWeapon
+                    : ActiveRoster?[operatorSlot].SecondaryWeapon;
+                (prev as InventoryItem)?.ClearEquipped();
+
+                weaponItem.SetEquipped(operatorSlot, targetWeaponSlot);
+                widget?.SetEquippedWeapon(weaponItem, targetWeaponSlot);
+                ActiveRoster?[operatorSlot].SetEquippedWeapon(weaponItem, targetWeaponSlot);
+            }
         }
 
         // Busca el índice de slot en IInventoryService que contiene un item con el mismo Data

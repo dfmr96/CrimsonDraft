@@ -16,8 +16,9 @@ namespace CrimsonDraft.UI
         private Image                   icon         = null!;
         private RectTransform           rectTransform = null!;
 
-        public ItemData    Data        => this.boundItem.Data;
-        public Vector2Int  GridOrigin  => this.gridOrigin;
+        public InventoryItem BoundItem  => this.boundItem;
+        public ItemData      Data       => this.boundItem.Data;
+        public Vector2Int    GridOrigin => this.gridOrigin;
         public bool        IsInspected => this.inspected;
         public int         Rotation    => this.rotationState;
 
