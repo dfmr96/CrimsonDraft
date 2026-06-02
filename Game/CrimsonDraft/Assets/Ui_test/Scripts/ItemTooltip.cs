@@ -5,11 +5,12 @@ namespace CrimsonDraft.UI
 {
     public class ItemTooltip : MonoBehaviour
     {
-        [SerializeField] private CanvasGroup   canvasGroup;
-        [SerializeField] private TMP_Text      nameLabel;
-        [SerializeField] private float         horizontalPadding = 4f;
+        [SerializeField] private CanvasGroup canvasGroup;
+        [SerializeField] private TMP_Text    nameLabel;
+        [SerializeField] private float       horizontalPadding = 4f;
 
         private RectTransform rectTransform;
+        private Camera        eventCam;
 
         void Awake()
         {
@@ -19,35 +20,43 @@ namespace CrimsonDraft.UI
                 canvasGroup = GetComponent<CanvasGroup>();
 
             canvasGroup.blocksRaycasts = false;
+
+            Canvas root = GetComponentInParent<Canvas>()?.rootCanvas;
+            eventCam = (root != null && root.renderMode == RenderMode.ScreenSpaceCamera)
+                ? root.worldCamera : null;
+
             Hide();
         }
 
-        // Shows tooltip anchored to the top-right of the item, flips left if off-screen.
+        // Shows the name beside the item — flips left/right to avoid screen edges.
+        // Works correctly for rotated items and Screen Space Camera canvas.
         public void ShowAtItem(string itemName, RectTransform itemRect)
         {
             SetText(itemName);
-
-            Vector3[] corners = new Vector3[4];
-            itemRect.GetWorldCorners(corners);
-            // corners[1]=TL  corners[2]=TR
-            PlaceWithClamp(rightAnchor: corners[2], leftAnchor: corners[1]);
-
+            PositionBesideRect(itemRect);
             SetVisible(true);
         }
 
-        // Moves tooltip above the selector center (when context menu is open).
+        // Shows the name above the item's top edge (used while context menu is open).
         public void ShowAboveSelector(RectTransform selectorRect)
         {
-            Vector3[] corners = new Vector3[4];
-            selectorRect.GetWorldCorners(corners);
-            Vector3 topCenter = (corners[1] + corners[2]) * 0.5f;
-            topCenter += Vector3.up * (rectTransform.sizeDelta.y + 4f);
+            Vector3[] wc = new Vector3[4];
+            selectorRect.GetWorldCorners(wc);
 
-            // Center horizontally above selector, then clamp horizontally
+            // Find the two topmost corners (rotation-agnostic)
+            int t0 = 0;
+            for (int i = 1; i < 4; i++)
+                if (RectTransformUtility.WorldToScreenPoint(eventCam, wc[i]).y >
+                    RectTransformUtility.WorldToScreenPoint(eventCam, wc[t0]).y) t0 = i;
+            int t1 = t0 == 0 ? 1 : 0;
+            for (int i = 0; i < 4; i++)
+                if (i != t0 && RectTransformUtility.WorldToScreenPoint(eventCam, wc[i]).y >
+                               RectTransformUtility.WorldToScreenPoint(eventCam, wc[t1]).y) t1 = i;
+
+            // Anchor tooltip bottom-center to top-center of selector
             rectTransform.pivot    = new Vector2(0.5f, 0f);
-            rectTransform.position = topCenter;
+            rectTransform.position = (wc[t0] + wc[t1]) * 0.5f;
 
-            ClampHorizontal();
             SetVisible(true);
         }
 
@@ -64,55 +73,38 @@ namespace CrimsonDraft.UI
             rectTransform.sizeDelta = new Vector2(width, rectTransform.sizeDelta.y);
         }
 
-        // Place to the right of rightAnchor; flip to left of leftAnchor if off-screen. Clamps all edges.
-        void PlaceWithClamp(Vector3 rightAnchor, Vector3 leftAnchor)
+        void PositionBesideRect(RectTransform targetRect)
         {
+            Vector3[] wc = new Vector3[4];
+            targetRect.GetWorldCorners(wc);
+
+            // Convert to screen space to find the visual top edge regardless of item rotation
+            Vector2[] sc = new Vector2[4];
+            for (int i = 0; i < 4; i++)
+                sc[i] = RectTransformUtility.WorldToScreenPoint(eventCam, wc[i]);
+
+            // Two corners with highest screen Y = visual top edge
+            int t0 = 0;
+            for (int i = 1; i < 4; i++)
+                if (sc[i].y > sc[t0].y) t0 = i;
+            int t1 = t0 == 0 ? 1 : 0;
+            for (int i = 0; i < 4; i++)
+                if (i != t0 && sc[i].y > sc[t1].y) t1 = i;
+
+            int idxL = sc[t0].x < sc[t1].x ? t0 : t1;
+            int idxR = sc[t0].x < sc[t1].x ? t1 : t0;
+
+            // Default: right side (pivot TL at visual TR)
             rectTransform.pivot    = new Vector2(0f, 1f);
-            rectTransform.position = rightAnchor;
+            rectTransform.position = wc[idxR];
 
-            Vector3[] tooltipCorners = new Vector3[4];
-            rectTransform.GetWorldCorners(tooltipCorners);
-
-            if (tooltipCorners[2].x > Screen.width)
+            // Flip left if right edge overflows
+            Vector3[] tc = new Vector3[4];
+            rectTransform.GetWorldCorners(tc);
+            if (RectTransformUtility.WorldToScreenPoint(eventCam, tc[2]).x > Screen.width)
             {
                 rectTransform.pivot    = new Vector2(1f, 1f);
-                rectTransform.position = leftAnchor;
-                rectTransform.GetWorldCorners(tooltipCorners);
-            }
-
-            Vector3 pos = rectTransform.position;
-
-            if (tooltipCorners[0].x < 0)
-                pos.x -= tooltipCorners[0].x;
-            else if (tooltipCorners[2].x > Screen.width)
-                pos.x -= tooltipCorners[2].x - Screen.width;
-
-            if (tooltipCorners[0].y < 0)
-                pos.y -= tooltipCorners[0].y;
-            else if (tooltipCorners[1].y > Screen.height)
-                pos.y -= tooltipCorners[1].y - Screen.height;
-
-            rectTransform.position = pos;
-        }
-
-        void ClampHorizontal()
-        {
-            Vector3[] corners = new Vector3[4];
-            rectTransform.GetWorldCorners(corners);
-
-            float overflow = corners[2].x - Screen.width;
-            if (overflow > 0)
-            {
-                Vector3 pos = rectTransform.position;
-                pos.x -= overflow;
-                rectTransform.position = pos;
-            }
-
-            if (corners[0].x < 0)
-            {
-                Vector3 pos = rectTransform.position;
-                pos.x -= corners[0].x;
-                rectTransform.position = pos;
+                rectTransform.position = wc[idxL];
             }
         }
 
