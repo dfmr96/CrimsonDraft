@@ -1,14 +1,19 @@
+#nullable enable
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
 using System.Collections.Generic;
 using UnityEngine;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
 {
     public class InventoryPopulator : MonoBehaviour
     {
-        [SerializeField] private InventoryGridGroup gridGroup;
-        [SerializeField] private InventoryItem itemPrefab;
-        [SerializeField] private List<ItemData> itemsToPlace;
-        [SerializeField] private int maxPlacementAttempts = 50;
+        [SerializeField] private InventoryGridGroup         gridGroup;
+        [SerializeField] private InventoryItemView          itemPrefab    = null!;
+        [SerializeField] private List<ItemData>             itemsToPlace  = new();
+        [SerializeField] private int                        maxPlacementAttempts = 50;
 
         void Start()
         {
@@ -21,15 +26,14 @@ namespace CrimsonDraft.UI
 
         void TryPlaceItem(ItemData itemData)
         {
-            // Collect all grids that could fit this item
             var validGrids = new List<(InventoryGrid grid, Vector2Int origin)>();
 
             for (int g = 0; g < gridGroup.Count; g++)
             {
                 InventoryGrid grid = gridGroup.GetGrid(g);
 
-                int maxCol = grid.Columns - itemData.gridSize.x;
-                int maxRow = grid.Rows    - itemData.gridSize.y;
+                int maxCol = grid.Columns - itemData.GridSize.x;
+                int maxRow = grid.Rows    - itemData.GridSize.y;
 
                 if (maxCol < 0 || maxRow < 0) continue;
 
@@ -39,7 +43,7 @@ namespace CrimsonDraft.UI
                         Random.Range(0, maxCol + 1),
                         Random.Range(0, maxRow + 1));
 
-                    if (grid.CanPlace(origin, itemData.gridSize))
+                    if (grid.CanPlace(origin, itemData.GridSize))
                     {
                         validGrids.Add((grid, origin));
                         break;
@@ -49,24 +53,26 @@ namespace CrimsonDraft.UI
 
             if (validGrids.Count == 0)
             {
-                Debug.LogWarning($"[InventoryPopulator] No space found for item: {itemData.primaryName}");
+                Debug.LogWarning($"[InventoryPopulator] No space found for item: {itemData.DisplayName}");
                 return;
             }
 
-            // Pick a random valid placement
             var (chosenGrid, chosenOrigin) = validGrids[Random.Range(0, validGrids.Count)];
             SpawnItem(itemData, chosenGrid, chosenOrigin);
         }
 
         void SpawnItem(ItemData itemData, InventoryGrid grid, Vector2Int origin)
         {
-            InventoryItem item = Instantiate(itemPrefab, grid.transform);
-            item.Initialize(itemData, origin, grid.CellSize);
+            var domainItem = new Inventory.InventoryItem(itemData);
+            InventoryItemView view = Instantiate(itemPrefab, grid.transform);
+            view.Initialize(domainItem, origin, grid.CellSize);
 
-            var rt = item.GetComponent<RectTransform>();
+            var rt = view.GetComponent<RectTransform>();
             rt.anchoredPosition = grid.CellToLocal(origin);
 
-            grid.PlaceItem(item);
+            grid.PlaceItem(view);
         }
     }
 }
+
+#endif

@@ -1,6 +1,10 @@
+#nullable enable
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using VContainer;
+using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
@@ -8,11 +12,14 @@ namespace CrimsonDraft.UI
     public class GridCursor : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private InventoryGridGroup gridGroup;
-        [SerializeField] private RectTransform      selectorRect;
-        [SerializeField] private ItemContextMenu    contextMenu;
-        [SerializeField] private ItemTooltip        tooltip;
-        [SerializeField] private InspectPanel       inspectPanel;
+        [SerializeField] private InventoryGridGroup  gridGroup    = null!;
+        [SerializeField] private RectTransform       selectorRect = null!;
+        [SerializeField] private ItemContextMenu     contextMenu  = null!;
+        [SerializeField] private ItemTooltip         tooltip      = null!;
+        [SerializeField] private InspectPanel        inspectPanel = null!;
+
+        [Header("Audio")]
+        [SerializeField] private InventorySoundManager sfx = null!;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -26,101 +33,105 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
         [SerializeField] private Color colorNormalItem  = Color.white;
 
-        private InventorySoundManager sfx => InventorySoundManager.Instance;
+        [Header("Standalone (sin VContainer)")]
+        [SerializeField] private InputActionAsset? standaloneInputAsset;
+
+        [Inject] private IInputService? inputService;
+
+        // Fallback actions when running without InputService
+        private InputActionMap? standaloneMap;
+        private InputAction?    confirmFallback;
+        private InputAction?    cancelFallback;
+        private InputAction?    pickupFallback;
+        private InputAction?    navigateFallback;
 
         // Grid state
         private int        currentGridIndex;
         private Vector2Int currentCell;
-        private Image      selectorImage;
+        private Image      selectorImage = null!;
         private Vector2Int lastDir;
         private float      nextMoveTime;
         private bool       holding;
 
         // Held item state
-        private InventoryItem heldItem;
-        private InventoryGrid heldFromGrid;
+        private InventoryItemView? heldItem;
+        private InventoryGrid?     heldFromGrid;
 
-        private InventoryGrid CurrentGrid => gridGroup.GetGrid(currentGridIndex);
+        private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
 
         private static readonly Color ColorSelectorNormal = Color.white;
         private static readonly Color ColorSelectorOnItem = Color.yellow;
-
-        // Input
-        private InputAction confirmAction;
-        private InputAction cancelAction;
-        private InputAction pickupAction;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
         void Awake()
         {
-            if (gridGroup == null)
-                gridGroup = GetComponentInParent<InventoryGridGroup>();
+            if (this.gridGroup == null)
+                this.gridGroup = GetComponentInParent<InventoryGridGroup>();
 
-            // Confirm: C or Gamepad X/Cross (south)
-            confirmAction = new InputAction("Confirm", InputActionType.Button);
-            confirmAction.AddBinding("<Keyboard>/c");
-            confirmAction.AddBinding("<Gamepad>/buttonSouth");
-            confirmAction.performed += OnConfirm;
-
-            // Cancel: V or Circle (east)
-            cancelAction = new InputAction("Cancel", InputActionType.Button);
-            cancelAction.AddBinding("<Keyboard>/v");
-            cancelAction.AddBinding("<Gamepad>/buttonEast");
-            cancelAction.performed += OnCancel;
-
-            // Pickup/Place: X key or Square (west)
-            pickupAction = new InputAction("Pickup", InputActionType.Button);
-            pickupAction.AddBinding("<Keyboard>/x");
-            pickupAction.AddBinding("<Gamepad>/buttonWest");
-            pickupAction.performed += OnPickup;
-        }
-
-        void OnDestroy()
-        {
-            confirmAction.performed -= OnConfirm;
-            cancelAction.performed  -= OnCancel;
-            pickupAction.performed  -= OnPickup;
-            confirmAction.Dispose();
-            cancelAction.Dispose();
-            pickupAction.Dispose();
+            if (this.standaloneInputAsset != null)
+            {
+                this.standaloneMap    = this.standaloneInputAsset.FindActionMap("Inventory");
+                this.confirmFallback  = this.standaloneMap?["Confirm"];
+                this.cancelFallback   = this.standaloneMap?["Cancel"];
+                this.pickupFallback   = this.standaloneMap?["Pickup"];
+                this.navigateFallback = this.standaloneMap?["Navigate"];
+            }
         }
 
         void OnEnable()
         {
-            confirmAction?.Enable();
-            cancelAction?.Enable();
-            pickupAction?.Enable();
+            if (this.inputService != null)
+            {
+                this.inputService.InventoryConfirm.performed += OnConfirm;
+                this.inputService.InventoryCancel.performed  += OnCancel;
+                this.inputService.InventoryPickup.performed  += OnPickup;
+            }
+            else
+            {
+                if (this.confirmFallback != null) this.confirmFallback.performed += OnConfirm;
+                if (this.cancelFallback  != null) this.cancelFallback.performed  += OnCancel;
+                if (this.pickupFallback  != null) this.pickupFallback.performed  += OnPickup;
+            }
         }
 
         void OnDisable()
         {
-            confirmAction?.Disable();
-            cancelAction?.Disable();
-            pickupAction?.Disable();
+            if (this.inputService != null)
+            {
+                this.inputService.InventoryConfirm.performed -= OnConfirm;
+                this.inputService.InventoryCancel.performed  -= OnCancel;
+                this.inputService.InventoryPickup.performed  -= OnPickup;
+            }
+            else
+            {
+                if (this.confirmFallback != null) this.confirmFallback.performed -= OnConfirm;
+                if (this.cancelFallback  != null) this.cancelFallback.performed  -= OnCancel;
+                if (this.pickupFallback  != null) this.pickupFallback.performed  -= OnPickup;
+            }
         }
 
         void Start()
         {
-            selectorImage = selectorRect.GetComponent<Image>();
+            this.selectorImage = this.selectorRect.GetComponent<Image>();
 
-            if (contextMenu  != null) contextMenu.OnClose  += OnMenuClosed;
-            if (inspectPanel != null) inspectPanel.OnClose += OnInspectClosed;
+            if (this.contextMenu  != null) this.contextMenu.OnClose  += OnMenuClosed;
+            if (this.inspectPanel != null) this.inspectPanel.OnClose += OnInspectClosed;
 
             AttachSelectorToGrid(CurrentGrid);
-            PlaceSelectorAt(currentCell);
+            PlaceSelectorAt(this.currentCell);
         }
 
         // ── Update ───────────────────────────────────────────────────────────
 
         void Update()
         {
-            if (inspectPanel != null && inspectPanel.IsOpen)
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
                 return;
 
             Vector2Int dir = ReadDirection();
 
-            if (contextMenu != null && contextMenu.IsOpen)
+            if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 HandleMenuNavigation(dir);
                 return;
@@ -128,7 +139,7 @@ namespace CrimsonDraft.UI
 
             HandleGridNavigation(dir);
 
-            if (heldItem != null)
+            if (this.heldItem != null)
                 UpdateHeldItemVisual();
         }
 
@@ -138,22 +149,22 @@ namespace CrimsonDraft.UI
         {
             if (dir == Vector2Int.zero)
             {
-                holding = false;
-                lastDir = Vector2Int.zero;
+                this.holding = false;
+                this.lastDir = Vector2Int.zero;
                 return;
             }
 
-            if (dir != lastDir)
+            if (dir != this.lastDir)
             {
                 TryMove(dir);
-                lastDir      = dir;
-                holding      = true;
-                nextMoveTime = Time.unscaledTime + initialRepeatDelay;
+                this.lastDir      = dir;
+                this.holding      = true;
+                this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
             }
-            else if (holding && Time.unscaledTime >= nextMoveTime)
+            else if (this.holding && Time.unscaledTime >= this.nextMoveTime)
             {
                 TryMove(dir);
-                nextMoveTime = Time.unscaledTime + repeatInterval;
+                this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
 
@@ -161,116 +172,113 @@ namespace CrimsonDraft.UI
         {
             if (dir == Vector2Int.zero)
             {
-                holding = false;
-                lastDir = Vector2Int.zero;
+                this.holding = false;
+                this.lastDir = Vector2Int.zero;
                 return;
             }
 
-            if (dir.y != 0 && dir != lastDir)
+            if (dir.y != 0 && dir != this.lastDir)
             {
-                contextMenu.NavigateMenu(dir.y);
-                sfx?.PlayMenuNavigate();
-                lastDir      = dir;
-                holding      = true;
-                nextMoveTime = Time.unscaledTime + initialRepeatDelay;
+                this.contextMenu.NavigateMenu(dir.y);
+                this.sfx?.PlayMenuNavigate();
+                this.lastDir      = dir;
+                this.holding      = true;
+                this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
             }
-            else if (dir.y != 0 && holding && Time.unscaledTime >= nextMoveTime)
+            else if (dir.y != 0 && this.holding && Time.unscaledTime >= this.nextMoveTime)
             {
-                contextMenu.NavigateMenu(dir.y);
-                sfx?.PlayMenuNavigate();
-                nextMoveTime = Time.unscaledTime + repeatInterval;
+                this.contextMenu.NavigateMenu(dir.y);
+                this.sfx?.PlayMenuNavigate();
+                this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
 
         void TryMove(Vector2Int dir)
         {
-            Vector2Int next = currentCell + new Vector2Int(dir.x, -dir.y);
+            Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
 
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
 
             if (next.x < 0)
             {
-                currentGridIndex = (currentGridIndex - 1 + gridGroup.Count) % gridGroup.Count;
+                this.currentGridIndex = (this.currentGridIndex - 1 + this.gridGroup.Count) % this.gridGroup.Count;
                 next.x = CurrentGrid.Columns - 1;
                 next.y = Mathf.Clamp(next.y, 0, CurrentGrid.Rows - 1);
                 AttachSelectorToGrid(CurrentGrid);
             }
             else if (next.x >= CurrentGrid.Columns)
             {
-                currentGridIndex = (currentGridIndex + 1) % gridGroup.Count;
+                this.currentGridIndex = (this.currentGridIndex + 1) % this.gridGroup.Count;
                 next.x = 0;
                 next.y = Mathf.Clamp(next.y, 0, CurrentGrid.Rows - 1);
                 AttachSelectorToGrid(CurrentGrid);
             }
 
-            currentCell = next;
-            PlaceSelectorAt(currentCell);
+            this.currentCell = next;
+            PlaceSelectorAt(this.currentCell);
 
-            // Sound: item move if holding, otherwise cursor sound based on what's under
-            if (heldItem != null)
-                sfx?.PlayItemMove();
-            else if (CurrentGrid.GetItemAt(currentCell) != null)
-                sfx?.PlayCursorOnItem();
+            if (this.heldItem != null)
+                this.sfx?.PlayItemMove();
+            else if (CurrentGrid.GetItemAt(this.currentCell) != null)
+                this.sfx?.PlayCursorOnItem();
             else
-                sfx?.PlayCursorMove();
+                this.sfx?.PlayCursorMove();
         }
 
         // ── Input Callbacks ──────────────────────────────────────────────────
 
         void OnConfirm(InputAction.CallbackContext ctx)
         {
-            // While holding: rotate the item instead of opening the menu
-            if (heldItem != null)
+            if (this.heldItem != null)
             {
-                heldItem.Rotate();
-                sfx?.PlayItemRotate();
+                this.heldItem.Rotate();
+                this.sfx?.PlayItemRotate();
                 UpdateHeldItemVisual();
-                PlaceSelectorAt(currentCell);
+                PlaceSelectorAt(this.currentCell);
                 return;
             }
 
-            if (contextMenu == null) return;
+            if (this.contextMenu == null) return;
 
-            if (contextMenu.IsOpen)
+            if (this.contextMenu.IsOpen)
             {
-                sfx?.PlayMenuConfirm();
-                contextMenu.ConfirmSelection();
+                this.sfx?.PlayMenuConfirm();
+                this.contextMenu.ConfirmSelection();
                 return;
             }
 
-            InventoryItem item = CurrentGrid.GetItemAt(currentCell);
+            InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item != null)
             {
-                sfx?.PlayMenuOpen();
-                contextMenu.Open(item);
-                if (tooltip != null)
-                    tooltip.ShowAboveSelector(selectorRect);
+                this.sfx?.PlayMenuOpen();
+                this.contextMenu.Open(item);
+                if (this.tooltip != null)
+                    this.tooltip.ShowAboveSelector(this.selectorRect);
             }
         }
 
         void OnCancel(InputAction.CallbackContext ctx)
         {
-            if (contextMenu != null && contextMenu.IsOpen)
+            if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                sfx?.PlayMenuCancel();
-                contextMenu.Close();
+                this.sfx?.PlayMenuCancel();
+                this.contextMenu.Close();
                 return;
             }
 
-            // Drop held item back to original position (cancel move)
-            if (heldItem != null)
+            if (this.heldItem != null)
             {
-                sfx?.PlayMenuCancel();
+                this.sfx?.PlayMenuCancel();
                 CancelPickup();
             }
         }
 
         void OnPickup(InputAction.CallbackContext ctx)
         {
-            if (contextMenu  != null && contextMenu.IsOpen)  return;
-            if (inspectPanel != null && inspectPanel.IsOpen) return;
+            if (this.contextMenu  != null && this.contextMenu.IsOpen)  return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
-            if (heldItem == null)
+            if (this.heldItem == null)
                 TryPickUp();
             else
                 TryPlace();
@@ -278,37 +286,33 @@ namespace CrimsonDraft.UI
 
         void OnMenuClosed()
         {
-            holding = false;
-            lastDir = Vector2Int.zero;
+            this.holding = false;
+            this.lastDir = Vector2Int.zero;
         }
 
         void OnInspectClosed()
         {
-            holding = false;
-            lastDir = Vector2Int.zero;
-            PlaceSelectorAt(currentCell);
+            this.holding = false;
+            this.lastDir = Vector2Int.zero;
+            PlaceSelectorAt(this.currentCell);
         }
 
         // ── Pick Up / Place ──────────────────────────────────────────────────
 
         void TryPickUp()
         {
-            InventoryItem item = CurrentGrid.GetItemAt(currentCell);
+            InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item == null) return;
 
-            // Snap cursor to item's top-left so visual matches immediately
-            currentCell = item.GridOrigin;
-            PlaceSelectorAt(currentCell);
+            this.currentCell = item.GridOrigin;
+            PlaceSelectorAt(this.currentCell);
 
-            sfx?.PlayItemPickup();
-            heldFromGrid = CurrentGrid;
-            heldItem     = item;
+            this.sfx?.PlayItemPickup();
+            this.heldFromGrid = CurrentGrid;
+            this.heldItem     = item;
 
             CurrentGrid.RemoveItem(item);
-
-            // Bring item on top visually
             item.transform.SetAsLastSibling();
-
             UpdateHeldItemVisual();
         }
 
@@ -316,49 +320,41 @@ namespace CrimsonDraft.UI
         {
             InventoryGrid targetGrid = CurrentGrid;
 
-            // 1. Check bounds
-            if (!targetGrid.IsWithinBounds(currentCell, heldItem.GridSize))
+            if (!targetGrid.IsWithinBounds(this.currentCell, this.heldItem!.GridSize))
             {
-                sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayItemPlaceInvalid();
                 return;
             }
 
-            // 2. Check what's in the area
             bool multipleItems;
-            InventoryItem overlapping = targetGrid.GetOverlappingItem(
-                currentCell, heldItem.GridSize, out multipleItems);
+            InventoryItemView? overlapping = targetGrid.GetOverlappingItem(
+                this.currentCell, this.heldItem.GridSize, out multipleItems);
 
-            // Multiple different items → blocked
             if (multipleItems)
                 return;
 
             if (overlapping == null)
             {
-                // 3a. Empty space → place
-                sfx?.PlayItemPlace();
-                PlaceHeldItem(targetGrid, currentCell);
+                this.sfx?.PlayItemPlace();
+                PlaceHeldItem(targetGrid, this.currentCell);
             }
             else
             {
-                // 3b. One item → try swap
                 targetGrid.RemoveItem(overlapping);
 
-                if (targetGrid.CanPlace(currentCell, heldItem.GridSize))
+                if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
                 {
-                    // Place held item, then pick up the other
-                    sfx?.PlayItemSwap();
-                    PlaceHeldItem(targetGrid, currentCell);
+                    this.sfx?.PlayItemSwap();
+                    PlaceHeldItem(targetGrid, this.currentCell);
 
-                    // Pick up the swapped item from its origin
-                    heldItem     = overlapping;
-                    heldFromGrid = targetGrid;
+                    this.heldItem     = overlapping;
+                    this.heldFromGrid = targetGrid;
                     overlapping.transform.SetAsLastSibling();
                     UpdateHeldItemVisual();
                 }
                 else
                 {
-                    // No room even after removing → restore the overlapping item
-                    sfx?.PlayItemPlaceInvalid();
+                    this.sfx?.PlayItemPlaceInvalid();
                     targetGrid.PlaceItem(overlapping);
                 }
             }
@@ -366,132 +362,121 @@ namespace CrimsonDraft.UI
 
         void PlaceHeldItem(InventoryGrid targetGrid, Vector2Int origin)
         {
-            heldItem.SetGridOrigin(origin);
-            heldItem.GetComponent<Image>().color = colorNormalItem;
+            this.heldItem!.SetGridOrigin(origin);
+            this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
-            var rt = heldItem.GetComponent<RectTransform>();
+            var rt = this.heldItem.GetComponent<RectTransform>();
             rt.SetParent(targetGrid.transform, false);
-            rt.anchoredPosition = GetItemPosition(heldItem, origin, targetGrid);
+            rt.anchoredPosition = GetItemPosition(this.heldItem, origin, targetGrid);
 
-            targetGrid.PlaceItem(heldItem);
+            targetGrid.PlaceItem(this.heldItem);
 
-            heldItem     = null;
-            heldFromGrid = null;
+            this.heldItem     = null;
+            this.heldFromGrid = null;
 
-            PlaceSelectorAt(currentCell);
+            PlaceSelectorAt(this.currentCell);
         }
 
         void CancelPickup()
         {
-            if (heldItem == null) return;
+            if (this.heldItem == null) return;
 
-            // Restore to original grid and position
-            heldItem.GetComponent<Image>().color = colorNormalItem;
+            this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
-            var rt = heldItem.GetComponent<RectTransform>();
-            rt.SetParent(heldFromGrid.transform, false);
-            rt.anchoredPosition = GetItemPosition(heldItem, heldItem.GridOrigin, heldFromGrid);
+            var rt = this.heldItem.GetComponent<RectTransform>();
+            rt.SetParent(this.heldFromGrid!.transform, false);
+            rt.anchoredPosition = GetItemPosition(this.heldItem, this.heldItem.GridOrigin, this.heldFromGrid);
 
-            heldFromGrid.PlaceItem(heldItem);
+            this.heldFromGrid.PlaceItem(this.heldItem);
 
-            heldItem     = null;
-            heldFromGrid = null;
+            this.heldItem     = null;
+            this.heldFromGrid = null;
 
-            PlaceSelectorAt(currentCell);
+            PlaceSelectorAt(this.currentCell);
         }
 
         // ── Held Item Visual ─────────────────────────────────────────────────
 
-        // Returns the corrected anchoredPosition for an item accounting for rotation offset.
-        Vector2 GetItemPosition(InventoryItem item, Vector2Int cell, InventoryGrid grid)
+        Vector2 GetItemPosition(InventoryItemView item, Vector2Int cell, InventoryGrid grid)
         {
             Vector2 pos = grid.CellToLocal(cell);
             if (item.Rotation == 1)
-            {
-                // -90° rotation around top-left pivot shifts visual left by sizeDelta.y
-                // Compensate by shifting right by the same amount
                 pos.x += item.GetComponent<RectTransform>().sizeDelta.y;
-            }
             return pos;
         }
 
         void UpdateHeldItemVisual()
         {
-            if (heldItem == null) return;
+            if (this.heldItem == null) return;
 
-            var rt = heldItem.GetComponent<RectTransform>();
+            var rt = this.heldItem.GetComponent<RectTransform>();
 
-            // Reparent to current grid if needed
             if (rt.parent != CurrentGrid.transform)
                 rt.SetParent(CurrentGrid.transform, false);
 
-            rt.anchoredPosition = GetItemPosition(heldItem, currentCell, CurrentGrid);
+            rt.anchoredPosition = GetItemPosition(this.heldItem, this.currentCell, CurrentGrid);
 
-            // Color feedback
-            bool canPlace = CurrentGrid.IsWithinBounds(currentCell, heldItem.GridSize)
-                         && CurrentGrid.CanPlace(currentCell, heldItem.GridSize);
+            bool canPlace = CurrentGrid.IsWithinBounds(this.currentCell, this.heldItem.GridSize)
+                         && CurrentGrid.CanPlace(this.currentCell, this.heldItem.GridSize);
 
-            // Allow swap with a single item too
-            if (!canPlace && CurrentGrid.IsWithinBounds(currentCell, heldItem.GridSize))
+            if (!canPlace && CurrentGrid.IsWithinBounds(this.currentCell, this.heldItem.GridSize))
             {
                 bool multi;
-                InventoryItem overlap = CurrentGrid.GetOverlappingItem(
-                    currentCell, heldItem.GridSize, out multi);
+                InventoryItemView? overlap = CurrentGrid.GetOverlappingItem(
+                    this.currentCell, this.heldItem.GridSize, out multi);
 
                 if (!multi && overlap != null)
                 {
-                    // Check if held fits after removing the overlap
                     CurrentGrid.RemoveItem(overlap);
-                    canPlace = CurrentGrid.CanPlace(currentCell, heldItem.GridSize);
+                    canPlace = CurrentGrid.CanPlace(this.currentCell, this.heldItem.GridSize);
                     CurrentGrid.PlaceItem(overlap);
                 }
             }
 
-            heldItem.GetComponent<Image>().color = canPlace ? colorCanPlace : colorCannotPlace;
+            this.heldItem.GetComponent<Image>().color = canPlace ? this.colorCanPlace : this.colorCannotPlace;
         }
 
         // ── Visual ───────────────────────────────────────────────────────────
 
         void AttachSelectorToGrid(InventoryGrid grid)
         {
-            selectorRect.SetParent(grid.transform, false);
-            selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
-            selectorRect.anchorMax = new Vector2(0.5f, 0.5f);
-            selectorRect.pivot     = new Vector2(0f, 1f);
+            this.selectorRect.SetParent(grid.transform, false);
+            this.selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
+            this.selectorRect.anchorMax = new Vector2(0.5f, 0.5f);
+            this.selectorRect.pivot     = new Vector2(0f, 1f);
         }
 
         void PlaceSelectorAt(Vector2Int cell)
         {
-            InventoryItem item = CurrentGrid.GetItemAt(cell);
+            InventoryItemView? item = CurrentGrid.GetItemAt(cell);
 
-            if (selectorImage != null)
-                selectorImage.color = item != null ? ColorSelectorOnItem : ColorSelectorNormal;
+            if (this.selectorImage != null)
+                this.selectorImage.color = item != null ? ColorSelectorOnItem : ColorSelectorNormal;
 
             Vector2Int size   = item != null ? item.GridSize   : Vector2Int.one;
             Vector2Int origin = item != null ? item.GridOrigin : cell;
 
-            selectorRect.anchoredPosition = CurrentGrid.CellToLocal(origin)
-                + new Vector2(selectorPadding, -selectorPadding);
+            this.selectorRect.anchoredPosition = CurrentGrid.CellToLocal(origin)
+                + new Vector2(this.selectorPadding, -this.selectorPadding);
 
-            selectorRect.sizeDelta = new Vector2(
-                size.x * CurrentGrid.CellSize - selectorPadding * 2f,
-                size.y * CurrentGrid.CellSize - selectorPadding * 2f);
+            this.selectorRect.sizeDelta = new Vector2(
+                size.x * CurrentGrid.CellSize - this.selectorPadding * 2f,
+                size.y * CurrentGrid.CellSize - this.selectorPadding * 2f);
 
-            // Tooltip
-            if (tooltip != null && (contextMenu == null || !contextMenu.IsOpen))
+            if (this.tooltip != null && (this.contextMenu == null || !this.contextMenu.IsOpen))
             {
                 if (item != null)
                 {
-                    bool hasSecondary  = !string.IsNullOrEmpty(item.Data.secondaryName);
+                    bool hasSecondary  = !string.IsNullOrEmpty(item.Data.SecondaryName);
                     string displayName = (!item.IsInspected && hasSecondary)
-                        ? item.Data.secondaryName
-                        : item.Data.primaryName;
+                        ? item.Data.SecondaryName
+                        : item.Data.DisplayName;
 
-                    tooltip.ShowAtItem(displayName, item.GetComponent<RectTransform>());
+                    this.tooltip.ShowAtItem(displayName, item.GetComponent<RectTransform>());
                 }
                 else
                 {
-                    tooltip.Hide();
+                    this.tooltip.Hide();
                 }
             }
         }
@@ -500,49 +485,36 @@ namespace CrimsonDraft.UI
 
         Vector2Int ReadDirection()
         {
-            int x = 0, y = 0;
+            Vector2 raw;
+            if (this.inputService != null)
+                raw = this.inputService.InventoryNavigate.ReadValue<Vector2>();
+            else if (this.navigateFallback != null)
+                raw = this.navigateFallback.ReadValue<Vector2>();
+            else
+                return Vector2Int.zero;
 
-            var kb = Keyboard.current;
-            if (kb != null)
-            {
-                if (kb.leftArrowKey.isPressed)  x -= 1;
-                if (kb.rightArrowKey.isPressed) x += 1;
-                if (kb.upArrowKey.isPressed)    y += 1;
-                if (kb.downArrowKey.isPressed)  y -= 1;
-            }
+            if (raw.sqrMagnitude < 0.01f) return Vector2Int.zero;
 
-            if (x == 0 && y == 0)
-            {
-                var gp = Gamepad.current;
-                if (gp != null)
-                {
-                    if (gp.dpad.left.isPressed  || gp.leftStick.left.isPressed)  x -= 1;
-                    if (gp.dpad.right.isPressed || gp.leftStick.right.isPressed) x += 1;
-                    if (gp.dpad.up.isPressed    || gp.leftStick.up.isPressed)    y += 1;
-                    if (gp.dpad.down.isPressed  || gp.leftStick.down.isPressed)  y -= 1;
-                }
-            }
-
-            if (x == 0 && y == 0) return Vector2Int.zero;
-            if (Mathf.Abs(x) >= Mathf.Abs(y)) return x > 0 ? Vector2Int.right : Vector2Int.left;
-            return y > 0 ? Vector2Int.up : Vector2Int.down;
+            float absX = Mathf.Abs(raw.x);
+            float absY = Mathf.Abs(raw.y);
+            if (absX >= absY) return raw.x > 0 ? Vector2Int.right : Vector2Int.left;
+            return raw.y > 0 ? Vector2Int.up : Vector2Int.down;
         }
 
         // ── Public ───────────────────────────────────────────────────────────
 
-        public Vector2Int    CurrentCell         => currentCell;
-        public InventoryGrid CurrentGrid_Public  => CurrentGrid;
-        public bool          IsHoldingItem        => heldItem != null;
+        public Vector2Int    CurrentCell        => this.currentCell;
+        public InventoryGrid CurrentGrid_Public => CurrentGrid;
+        public bool          IsHoldingItem      => this.heldItem != null;
 
-        // Called by TabManager before switching away from this tab
         public void CancelAll()
         {
-            if (heldItem != null)                            CancelPickup();
-            if (contextMenu  != null && contextMenu.IsOpen) contextMenu.Close();
-            if (inspectPanel != null && inspectPanel.IsOpen) inspectPanel.Close();
-            tooltip?.Hide();
-            holding = false;
-            lastDir = Vector2Int.zero;
+            if (this.heldItem != null)                                    CancelPickup();
+            if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();
+            this.tooltip?.Hide();
+            this.holding = false;
+            this.lastDir = Vector2Int.zero;
         }
     }
 }

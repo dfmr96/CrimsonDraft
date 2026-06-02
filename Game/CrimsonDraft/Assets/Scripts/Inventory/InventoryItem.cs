@@ -8,6 +8,6 @@ namespace CrimsonDraft.Inventory
         public int      EquippedBySlot { get; internal set; } = -1;
         public bool     IsEquipped     => this.EquippedBySlot >= 0;
 
-        protected internal InventoryItem(ItemData data) => this.Data = data;
+        public InventoryItem(ItemData data) => this.Data = data;
     }
 }

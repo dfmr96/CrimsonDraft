@@ -1,3 +1,5 @@
+#nullable enable
+
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +20,7 @@ namespace CrimsonDraft.UI
 
         // Each cell stores a reference to the item occupying it (null = empty).
         // Multi-cell items fill all their cells with the same reference.
-        private InventoryItem[,] itemGrid;
+        private InventoryItemView[,] itemGrid;
         private RectTransform rectTransform;
 
         public int Columns => columns;
@@ -28,7 +30,7 @@ namespace CrimsonDraft.UI
         void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
-            itemGrid = new InventoryItem[columns, rows];
+            itemGrid = new InventoryItemView[columns, rows];
             // Derive cellSize from the RectTransform size the designer set in editor
             cellSize = rectTransform.rect.width / columns;
 
@@ -77,7 +79,7 @@ namespace CrimsonDraft.UI
             return true;
         }
 
-        public void PlaceItem(InventoryItem item)
+        public void PlaceItem(InventoryItemView item)
         {
             for (int c = item.GridOrigin.x; c < item.GridOrigin.x + item.GridSize.x; c++)
                 for (int r = item.GridOrigin.y; r < item.GridOrigin.y + item.GridSize.y; r++)
@@ -85,7 +87,7 @@ namespace CrimsonDraft.UI
                         itemGrid[c, r] = item;
         }
 
-        public void RemoveItem(InventoryItem item)
+        public void RemoveItem(InventoryItemView item)
         {
             for (int c = item.GridOrigin.x; c < item.GridOrigin.x + item.GridSize.x; c++)
                 for (int r = item.GridOrigin.y; r < item.GridOrigin.y + item.GridSize.y; r++)
@@ -94,7 +96,7 @@ namespace CrimsonDraft.UI
         }
 
         // Returns the item at a cell, or null if empty.
-        public InventoryItem GetItemAt(Vector2Int cell)
+        public InventoryItemView GetItemAt(Vector2Int cell)
         {
             if (cell.x < 0 || cell.x >= columns || cell.y < 0 || cell.y >= rows)
                 return null;
@@ -108,9 +110,9 @@ namespace CrimsonDraft.UI
 
         // Returns the single item overlapping the area, null if empty, or null if multiple items.
         // outMultiple = true means more than one distinct item overlaps — swap not possible.
-        public InventoryItem GetOverlappingItem(Vector2Int origin, Vector2Int size, out bool outMultiple)
+        public InventoryItemView GetOverlappingItem(Vector2Int origin, Vector2Int size, out bool outMultiple)
         {
-            InventoryItem found = null;
+            InventoryItemView found = null;
             outMultiple = false;
 
             for (int c = origin.x; c < origin.x + size.x; c++)

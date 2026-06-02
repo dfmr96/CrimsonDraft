@@ -1,3 +1,5 @@
+#nullable enable
+
 using UnityEngine;
 
 namespace CrimsonDraft.UI
@@ -5,36 +7,36 @@ namespace CrimsonDraft.UI
     public class ItemContextMenu : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private CanvasGroup  canvasGroup;
-        [SerializeField] private MenuOption[] options;   // 0=Use, 1=Inspect, 2=Combine
-        [SerializeField] private InspectPanel inspectPanel;
+        [SerializeField] private CanvasGroup  canvasGroup  = null!;
+        [SerializeField] private MenuOption[] options      = null!; // 0=Use, 1=Inspect, 2=Combine
+        [SerializeField] private InspectPanel inspectPanel = null!;
 
-        private int selectedIndex = 0;
-        private bool isOpen = false;
-        private InventoryItem currentItem;
-        private RectTransform rectTransform;
+        private int              selectedIndex = 0;
+        private bool             isOpen        = false;
+        private InventoryItemView? currentItem;
+        private RectTransform    rectTransform = null!;
 
-        public bool IsOpen => isOpen;
-        public System.Action OnClose;
+        public bool IsOpen => this.isOpen;
+        public System.Action? OnClose;
 
         void Awake()
         {
-            rectTransform = GetComponent<RectTransform>();
+            this.rectTransform = GetComponent<RectTransform>();
 
-            if (canvasGroup == null)
-                canvasGroup = GetComponent<CanvasGroup>();
+            if (this.canvasGroup == null)
+                this.canvasGroup = GetComponent<CanvasGroup>();
 
-            isOpen = false;
+            this.isOpen = false;
             Hide();
         }
 
-        public void Open(InventoryItem item)
+        public void Open(InventoryItemView item)
         {
-            currentItem   = item;
-            selectedIndex = 0;
-            isOpen        = true;
+            this.currentItem   = item;
+            this.selectedIndex = 0;
+            this.isOpen        = true;
 
-            options[2].SetDisabled(!item.Data.combinable);
+            this.options[2].SetDisabled(!item.Data.Combinable);
 
             PositionNextToItem(item);
             RefreshVisuals();
@@ -43,31 +45,30 @@ namespace CrimsonDraft.UI
 
         public void Close()
         {
-            isOpen = false;
+            this.isOpen = false;
             Hide();
             OnClose?.Invoke();
         }
 
-        // Called by GridCursor when menu is open
         public void NavigateMenu(int dir)
         {
-            int count = options.Length;
-            int next  = selectedIndex;
+            int count = this.options.Length;
+            int next  = this.selectedIndex;
 
             for (int i = 1; i <= count; i++)
             {
-                next = (selectedIndex + dir * i + count) % count;
-                if (!options[next].IsDisabled) break;
+                next = (this.selectedIndex + dir * i + count) % count;
+                if (!this.options[next].IsDisabled) break;
             }
 
-            selectedIndex = next;
+            this.selectedIndex = next;
             RefreshVisuals();
         }
 
         public void ConfirmSelection()
         {
-            if (!isOpen) return;
-            ExecuteOption(options[selectedIndex].Type);
+            if (!this.isOpen) return;
+            ExecuteOption(this.options[this.selectedIndex].Type);
         }
 
         void ExecuteOption(MenuOption.OptionType type)
@@ -77,61 +78,58 @@ namespace CrimsonDraft.UI
             switch (type)
             {
                 case MenuOption.OptionType.Use:
-                    Debug.Log($"[Menu] Use: {currentItem.Data.primaryName}");
+                    Debug.Log($"[Menu] Use: {this.currentItem?.Data.DisplayName}");
                     break;
                 case MenuOption.OptionType.Inspect:
-                    if (inspectPanel != null)
-                        inspectPanel.Open(currentItem);
+                    if (this.inspectPanel != null && this.currentItem != null)
+                        this.inspectPanel.Open(this.currentItem);
                     else
                         Debug.LogWarning("[Menu] InspectPanel not assigned.");
                     break;
                 case MenuOption.OptionType.Combine:
-                    Debug.Log($"[Menu] Combine: {currentItem.Data.primaryName}");
+                    Debug.Log($"[Menu] Combine: {this.currentItem?.Data.DisplayName}");
                     break;
             }
         }
 
-        void PositionNextToItem(InventoryItem item)
+        void PositionNextToItem(InventoryItemView item)
         {
             var itemRT = item.GetComponent<RectTransform>();
             Vector3[] corners = new Vector3[4];
             itemRT.GetWorldCorners(corners);
             // corners: 0=BL  1=TL  2=TR  3=BR
 
-            // Try right side: pivot top-left (0,1)
-            rectTransform.pivot    = new Vector2(0f, 1f);
-            rectTransform.position = corners[2];
+            this.rectTransform.pivot    = new Vector2(0f, 1f);
+            this.rectTransform.position = corners[2];
 
-            // Check if right edge goes off screen — flip to left if so
             Vector3[] menuCorners = new Vector3[4];
-            rectTransform.GetWorldCorners(menuCorners);
+            this.rectTransform.GetWorldCorners(menuCorners);
 
             if (menuCorners[2].x > Screen.width)
             {
-                // Flip to left side: pivot top-right (1,1)
-                rectTransform.pivot    = new Vector2(1f, 1f);
-                rectTransform.position = corners[1];
+                this.rectTransform.pivot    = new Vector2(1f, 1f);
+                this.rectTransform.position = corners[1];
             }
         }
 
         void RefreshVisuals()
         {
-            for (int i = 0; i < options.Length; i++)
-                options[i].SetState(i == selectedIndex && !options[i].IsDisabled);
+            for (int i = 0; i < this.options.Length; i++)
+                this.options[i].SetState(i == this.selectedIndex && !this.options[i].IsDisabled);
         }
 
         void Show()
         {
-            canvasGroup.alpha          = 1f;
-            canvasGroup.interactable   = true;
-            canvasGroup.blocksRaycasts = true;
+            this.canvasGroup.alpha          = 1f;
+            this.canvasGroup.interactable   = true;
+            this.canvasGroup.blocksRaycasts = true;
         }
 
         void Hide()
         {
-            canvasGroup.alpha          = 0f;
-            canvasGroup.interactable   = false;
-            canvasGroup.blocksRaycasts = false;
+            this.canvasGroup.alpha          = 0f;
+            this.canvasGroup.interactable   = false;
+            this.canvasGroup.blocksRaycasts = false;
         }
     }
 }

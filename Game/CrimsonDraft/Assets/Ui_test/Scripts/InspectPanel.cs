@@ -1,59 +1,85 @@
+#nullable enable
+
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
+using VContainer;
+using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
     public class InspectPanel : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private CanvasGroup canvasGroup;
-        [SerializeField] private Image       itemIcon;
-        [SerializeField] private TMP_Text    itemName;
-        [SerializeField] private TMP_Text    itemDescription;
+        [SerializeField] private CanvasGroup canvasGroup   = null!;
+        [SerializeField] private Image       itemIcon      = null!;
+        [SerializeField] private TMP_Text    itemName      = null!;
+        [SerializeField] private TMP_Text    itemDescription = null!;
 
-        private InputAction closeAction;
-        private InventoryItem currentItem;
+        [Header("Audio")]
+        [SerializeField] private InventorySoundManager sfx = null!;
+
+        [Header("Standalone (sin VContainer)")]
+        [SerializeField] private InputActionAsset? standaloneInputAsset;
+
+        [Inject] private IInputService? inputService;
+
+        private InputAction?    cancelFallback;
+        private InputActionMap? standaloneMap;
+
+        private InventoryItemView? currentItem;
 
         public bool IsOpen { get; private set; }
-        public System.Action OnClose;
+        public System.Action? OnClose;
 
         void Awake()
         {
-            if (canvasGroup == null)
-                canvasGroup = GetComponent<CanvasGroup>();
+            if (this.canvasGroup == null)
+                this.canvasGroup = GetComponent<CanvasGroup>();
 
-            closeAction = new InputAction("InspectClose", InputActionType.Button);
-            closeAction.AddBinding("<Keyboard>/v");
-            closeAction.AddBinding("<Gamepad>/buttonEast");   // Circle / B
-            closeAction.performed += _ => Close();
+            if (this.standaloneInputAsset != null)
+            {
+                this.standaloneMap   = this.standaloneInputAsset.FindActionMap("Inventory");
+                this.cancelFallback  = this.standaloneMap?["Cancel"];
+            }
 
             IsOpen = false;
             Hide();
         }
 
-        void OnDestroy()
+        void OnEnable()
         {
-            closeAction.Dispose();
+            if (this.inputService != null)
+                this.inputService.InventoryCancel.performed += OnCancelPressed;
+            else if (this.cancelFallback != null)
+                this.cancelFallback.performed += OnCancelPressed;
         }
 
-        public void Open(InventoryItem item)
+        void OnDisable()
         {
-            currentItem = item;
+            if (this.inputService != null)
+                this.inputService.InventoryCancel.performed -= OnCancelPressed;
+            else if (this.cancelFallback != null)
+                this.cancelFallback.performed -= OnCancelPressed;
+        }
 
-            itemIcon.sprite        = item.Data.icon;
-            itemIcon.enabled       = item.Data.icon != null;
-            itemName.text          = item.Data.primaryName;
-            itemDescription.text   = item.Data.description;
+        private void OnCancelPressed(InputAction.CallbackContext ctx) => Close();
 
-            // Mark item as inspected
+        public void Open(InventoryItemView item)
+        {
+            this.currentItem = item;
+
+            this.itemIcon.sprite      = item.Data.Icon;
+            this.itemIcon.enabled     = item.Data.Icon != null;
+            this.itemName.text        = item.Data.DisplayName;
+            this.itemDescription.text = item.Data.ExamineDialogue.nodeName;
+
             item.SetInspected(true);
 
             IsOpen = true;
             Show();
-            closeAction.Enable();
-            InventorySoundManager.Instance?.PlayInspectOpen();
+            this.sfx?.PlayInspectOpen();
         }
 
         public void Close()
@@ -61,24 +87,22 @@ namespace CrimsonDraft.UI
             if (!IsOpen) return;
             IsOpen = false;
             Hide();
-            closeAction.Disable();
-            InventorySoundManager.Instance?.PlayInspectClose();
+            this.sfx?.PlayInspectClose();
             OnClose?.Invoke();
         }
 
         void Show()
         {
-            canvasGroup.alpha          = 1f;
-            canvasGroup.interactable   = true;
-            canvasGroup.blocksRaycasts = true;
+            this.canvasGroup.alpha          = 1f;
+            this.canvasGroup.interactable   = true;
+            this.canvasGroup.blocksRaycasts = true;
         }
 
         void Hide()
         {
-            canvasGroup.alpha          = 0f;
-            canvasGroup.interactable   = false;
-            canvasGroup.blocksRaycasts = false;
-            closeAction.Disable();
+            this.canvasGroup.alpha          = 0f;
+            this.canvasGroup.interactable   = false;
+            this.canvasGroup.blocksRaycasts = false;
         }
     }
 }

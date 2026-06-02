@@ -1,5 +1,9 @@
+#nullable enable
+
 using UnityEngine;
 using UnityEngine.InputSystem;
+using VContainer;
+using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
@@ -12,93 +16,108 @@ namespace CrimsonDraft.UI
             public GameObject root;
         }
 
-        [SerializeField] private Tab[]       tabs;           // 0=Inventory  1=Map  2=Files
-        [SerializeField] private int         startingTab = 0;
-        [SerializeField] private GameObject[] tabIndicators; // one per tab, same order
+        [SerializeField] private Tab[]        tabs           = null!; // 0=Inventory  1=Map  2=Files
+        [SerializeField] private int          startingTab    = 0;
+        [SerializeField] private GameObject[] tabIndicators  = null!;
+        [SerializeField] private GridCursor   gridCursor     = null!;
 
-        // Optional: reference to GridCursor so we can clean up held state on switch
-        [SerializeField] private GridCursor gridCursor;
+        [Header("Audio")]
+        [SerializeField] private InventorySoundManager sfx = null!;
+
+        [Header("Standalone (sin VContainer)")]
+        [SerializeField] private InputActionAsset? standaloneInputAsset;
+
+        [Inject] private IInputService? inputService;
+
+        private InputAction? nextTabFallback;
+        private InputAction? prevTabFallback;
+        private InputActionMap? standaloneMap;
 
         private int currentIndex;
-
-        private InputAction nextTabAction;
-        private InputAction prevTabAction;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
         void Awake()
         {
-            // Next tab: RB / R1 or E key
-            nextTabAction = new InputAction("NextTab", InputActionType.Button);
-            nextTabAction.AddBinding("<Keyboard>/e");
-            nextTabAction.AddBinding("<Gamepad>/rightShoulder");
-            nextTabAction.performed += _ => SwitchTab(1);
-
-            // Prev tab: LB / L1 or Q key
-            prevTabAction = new InputAction("PrevTab", InputActionType.Button);
-            prevTabAction.AddBinding("<Keyboard>/q");
-            prevTabAction.AddBinding("<Gamepad>/leftShoulder");
-            prevTabAction.performed += _ => SwitchTab(-1);
-        }
-
-        void OnDestroy()
-        {
-            nextTabAction.Dispose();
-            prevTabAction.Dispose();
+            if (this.standaloneInputAsset != null)
+            {
+                this.standaloneMap    = this.standaloneInputAsset.FindActionMap("Inventory");
+                this.nextTabFallback  = this.standaloneMap?["NextTab"];
+                this.prevTabFallback  = this.standaloneMap?["PrevTab"];
+            }
         }
 
         void OnEnable()
         {
-            nextTabAction.Enable();
-            prevTabAction.Enable();
+            if (this.inputService != null)
+            {
+                this.inputService.InventoryNextTab.performed += OnNextTab;
+                this.inputService.InventoryPrevTab.performed += OnPrevTab;
+            }
+            else
+            {
+                if (this.nextTabFallback != null) this.nextTabFallback.performed += OnNextTab;
+                if (this.prevTabFallback != null) this.prevTabFallback.performed += OnPrevTab;
+            }
         }
 
         void OnDisable()
         {
-            nextTabAction.Disable();
-            prevTabAction.Disable();
+            if (this.inputService != null)
+            {
+                this.inputService.InventoryNextTab.performed -= OnNextTab;
+                this.inputService.InventoryPrevTab.performed -= OnPrevTab;
+            }
+            else
+            {
+                if (this.nextTabFallback != null) this.nextTabFallback.performed -= OnNextTab;
+                if (this.prevTabFallback != null) this.prevTabFallback.performed -= OnPrevTab;
+            }
         }
 
         void Start()
         {
-            if (gridCursor == null)
-                gridCursor = GetComponentInChildren<GridCursor>(true);
+            if (this.gridCursor == null)
+                this.gridCursor = GetComponentInChildren<GridCursor>(true);
 
-            // Activate only the starting tab
-            currentIndex = startingTab;
-            for (int i = 0; i < tabs.Length; i++)
-                tabs[i].root.SetActive(i == currentIndex);
+            this.currentIndex = this.startingTab;
+            for (int i = 0; i < this.tabs.Length; i++)
+                this.tabs[i].root.SetActive(i == this.currentIndex);
 
             RefreshIndicators();
         }
+
+        // ── Input Callbacks ──────────────────────────────────────────────────
+
+        private void OnNextTab(InputAction.CallbackContext ctx) => SwitchTab(1);
+        private void OnPrevTab(InputAction.CallbackContext ctx) => SwitchTab(-1);
 
         // ── Switching ────────────────────────────────────────────────────────
 
         void SwitchTab(int dir)
         {
-            int next = (currentIndex + dir + tabs.Length) % tabs.Length;
-            if (next == currentIndex) return;
+            int next = (this.currentIndex + dir + this.tabs.Length) % this.tabs.Length;
+            if (next == this.currentIndex) return;
 
-            // Clean up inventory state before leaving
-            if (tabs[currentIndex].name == "Inventory" || currentIndex == 0)
-                gridCursor?.CancelAll();
+            if (this.tabs[this.currentIndex].name == "Inventory" || this.currentIndex == 0)
+                this.gridCursor?.CancelAll();
 
-            tabs[currentIndex].root.SetActive(false);
-            currentIndex = next;
-            tabs[currentIndex].root.SetActive(true);
+            this.tabs[this.currentIndex].root.SetActive(false);
+            this.currentIndex = next;
+            this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
-            InventorySoundManager.Instance?.PlayTabSwitch();
+            this.sfx?.PlayTabSwitch();
         }
 
         void RefreshIndicators()
         {
-            if (tabIndicators == null) return;
-            for (int i = 0; i < tabIndicators.Length; i++)
-                if (tabIndicators[i] != null)
-                    tabIndicators[i].SetActive(i == currentIndex);
+            if (this.tabIndicators == null) return;
+            for (int i = 0; i < this.tabIndicators.Length; i++)
+                if (this.tabIndicators[i] != null)
+                    this.tabIndicators[i].SetActive(i == this.currentIndex);
         }
 
-        public int   CurrentIndex => currentIndex;
-        public string CurrentName => tabs[currentIndex].name;
+        public int    CurrentIndex => this.currentIndex;
+        public string CurrentName  => this.tabs[this.currentIndex].name;
     }
 }
