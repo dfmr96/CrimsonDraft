@@ -228,6 +228,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2063082328}
     - target: {fileID: 6528777329974513735, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
+      propertyPath: partyPanel
+      value: 
+      objectReference: {fileID: 1041716480}
+    - target: {fileID: 6528777329974513735, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
       propertyPath: contextMenu
       value: 
       objectReference: {fileID: 659906430}
@@ -576,7 +580,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d22a8144f694fd1458a98df0d81d677a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.InventorySceneInit
-  inputActions: {fileID: -944628639613478452, guid: 4a85ddb076b12364988f28a092aaad6d, type: 3}
 --- !u!4 &244978622
 Transform:
   m_ObjectHideFlags: 0
@@ -929,6 +932,55 @@ MonoBehaviour:
     positionOffset: {x: 0, y: 0, z: 0}
   m_posOffsetData: {fileID: 0}
   listenerMask: 1
+--- !u!1 &378855286
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 378855288}
+  - component: {fileID: 378855287}
+  m_Layer: 0
+  m_Name: UiCRTScope
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &378855287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 378855286}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f262f874cb038674eac6d1b3e307a886, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.UiCRTScope
+  parentReference:
+    TypeName: CrimsonDraft.Infrastructure.GameLifetimeScope
+  autoRun: 1
+  autoInjectGameObjects: []
+  combineRecipeLibrary: {fileID: 11400000, guid: 9ecd441926829fc4fb1828296dcefdae, type: 2}
+--- !u!4 &378855288
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 378855286}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.52202, y: -1.08792, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &398950603 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8960927930643645010, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
@@ -2471,6 +2523,8 @@ MonoBehaviour:
   itemsToPlace:
   - {fileID: 11400000, guid: 5b4b8a97556a78a45b6e6af4bd83da47, type: 2}
   - {fileID: 11400000, guid: 1628990b63293c645ad9aa3f4ed22e52, type: 2}
+  - {fileID: 11400000, guid: 6eab05b6aa60b234395ae9f980ca9c1e, type: 2}
+  - {fileID: 11400000, guid: 985b7164f5d413d418d72ec031a742e8, type: 2}
   maxPlacementAttempts: 50
 --- !u!1 &975740543
 GameObject:
@@ -2529,7 +2583,6 @@ MonoBehaviour:
   itemName: {fileID: 2121290480}
   itemDescription: {fileID: 933467337}
   sfx: {fileID: 934997034}
-  standaloneInputAsset: {fileID: -944628639613478452, guid: 4a85ddb076b12364988f28a092aaad6d, type: 3}
 --- !u!225 &975740546
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -2585,7 +2638,7 @@ MonoBehaviour:
   - data: {fileID: 11400000, guid: 445765c3c0de66c4ba79eb558c7618a7, type: 2}
     startingHp: 25
   - data: {fileID: 11400000, guid: 5e0a82405f1ffae4086872e5b81604c2, type: 2}
-    startingHp: 10
+    startingHp: 25
   defaultMaxHp: 100
 --- !u!4 &1041716479
 Transform:
@@ -2894,6 +2947,10 @@ MonoBehaviour:
   nameLabel: {fileID: 0}
   hpLabel: {fileID: 0}
   deadOverlay: {fileID: 0}
+  weaponSlot0Root: {fileID: 0}
+  weaponSlot0Icon: {fileID: 0}
+  weaponSlot1Root: {fileID: 0}
+  weaponSlot1Icon: {fileID: 0}
 --- !u!114 &1220218565 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8482284525959506988, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
@@ -4005,6 +4062,10 @@ MonoBehaviour:
   nameLabel: {fileID: 0}
   hpLabel: {fileID: 0}
   deadOverlay: {fileID: 0}
+  weaponSlot0Root: {fileID: 0}
+  weaponSlot0Icon: {fileID: 0}
+  weaponSlot1Root: {fileID: 0}
+  weaponSlot1Icon: {fileID: 0}
 --- !u!1 &1766303096
 GameObject:
   m_ObjectHideFlags: 0
@@ -4321,7 +4382,6 @@ MonoBehaviour:
   - {fileID: 225453830}
   gridCursor: {fileID: 629179254}
   sfx: {fileID: 934997034}
-  standaloneInputAsset: {fileID: -944628639613478452, guid: 4a85ddb076b12364988f28a092aaad6d, type: 3}
 --- !u!1 &1817788284
 GameObject:
   m_ObjectHideFlags: 0
@@ -4576,6 +4636,10 @@ MonoBehaviour:
   nameLabel: {fileID: 0}
   hpLabel: {fileID: 0}
   deadOverlay: {fileID: 0}
+  weaponSlot0Root: {fileID: 0}
+  weaponSlot0Icon: {fileID: 0}
+  weaponSlot1Root: {fileID: 0}
+  weaponSlot1Icon: {fileID: 0}
 --- !u!1 &2005363787
 GameObject:
   m_ObjectHideFlags: 0
@@ -5035,7 +5099,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8944275036863845970, guid: 5802a24eab29f73498f210a7c0c1d762, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -14.370015
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8944275036863845970, guid: 5802a24eab29f73498f210a7c0c1d762, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5563,3 +5627,4 @@ SceneRoots:
   - {fileID: 2080701183}
   - {fileID: 244978622}
   - {fileID: 1041716479}
+  - {fileID: 378855288}

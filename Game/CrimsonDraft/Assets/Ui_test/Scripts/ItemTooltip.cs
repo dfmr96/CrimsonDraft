@@ -64,23 +64,35 @@ namespace CrimsonDraft.UI
             rectTransform.sizeDelta = new Vector2(width, rectTransform.sizeDelta.y);
         }
 
-        // Place to the right of rightAnchor; flip to left of leftAnchor if off-screen.
+        // Place to the right of rightAnchor; flip to left of leftAnchor if off-screen. Clamps all edges.
         void PlaceWithClamp(Vector3 rightAnchor, Vector3 leftAnchor)
         {
-            // Try right side: pivot top-left (0,1)
             rectTransform.pivot    = new Vector2(0f, 1f);
             rectTransform.position = rightAnchor;
 
-            // Check if right edge exceeds screen
             Vector3[] tooltipCorners = new Vector3[4];
             rectTransform.GetWorldCorners(tooltipCorners);
 
             if (tooltipCorners[2].x > Screen.width)
             {
-                // Flip to left side: pivot top-right (1,1)
                 rectTransform.pivot    = new Vector2(1f, 1f);
                 rectTransform.position = leftAnchor;
+                rectTransform.GetWorldCorners(tooltipCorners);
             }
+
+            Vector3 pos = rectTransform.position;
+
+            if (tooltipCorners[0].x < 0)
+                pos.x -= tooltipCorners[0].x;
+            else if (tooltipCorners[2].x > Screen.width)
+                pos.x -= tooltipCorners[2].x - Screen.width;
+
+            if (tooltipCorners[0].y < 0)
+                pos.y -= tooltipCorners[0].y;
+            else if (tooltipCorners[1].y > Screen.height)
+                pos.y -= tooltipCorners[1].y - Screen.height;
+
+            rectTransform.position = pos;
         }
 
         void ClampHorizontal()

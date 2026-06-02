@@ -179,6 +179,23 @@ namespace CrimsonDraft.UI
         {
             Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
 
+            // When not holding an item, skip to the far edge of the current item
+            // so multi-cell items don't require multiple presses to navigate past them.
+            if (this.heldItem == null)
+            {
+                InventoryItemView? underCursor = CurrentGrid.GetItemAt(this.currentCell);
+                if (underCursor != null)
+                {
+                    Vector2Int o = underCursor.GridOrigin;
+                    Vector2Int s = underCursor.GridSize;
+
+                    if      (dir.x > 0) next.x = o.x + s.x;      // skip past right edge
+                    else if (dir.x < 0) next.x = o.x - 1;         // skip past left edge
+                    else if (dir.y < 0) next.y = o.y + s.y;       // skip past bottom edge (screen down = grid +y)
+                    else if (dir.y > 0) next.y = o.y - 1;         // skip past top edge
+                }
+            }
+
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
 
             if (next.x < 0)
@@ -337,6 +354,12 @@ namespace CrimsonDraft.UI
             if (multipleItems)
                 return;
 
+            if (overlapping != null && overlapping.BoundItem.IsEquipped)
+            {
+                this.sfx?.PlayItemPlaceInvalid();
+                return;
+            }
+
             if (overlapping == null)
             {
                 this.sfx?.PlayItemPlace();
@@ -464,8 +487,12 @@ namespace CrimsonDraft.UI
             if (this.selectorImage != null)
                 this.selectorImage.color = item != null ? ColorSelectorOnItem : ColorSelectorNormal;
 
-            Vector2Int size   = item != null ? item.GridSize   : Vector2Int.one;
-            Vector2Int origin = item != null ? item.GridOrigin : cell;
+            Vector2Int size   = this.heldItem != null ? this.heldItem.GridSize
+                              : item          != null ? item.GridSize
+                              : Vector2Int.one;
+            Vector2Int origin = this.heldItem != null ? cell
+                              : item          != null ? item.GridOrigin
+                              : cell;
 
             this.selectorRect.anchoredPosition = CurrentGrid.CellToLocal(origin)
                 + new Vector2(this.selectorPadding, -this.selectorPadding);
@@ -521,6 +548,22 @@ namespace CrimsonDraft.UI
             this.tooltip?.Hide();
             this.holding = false;
             this.lastDir = Vector2Int.zero;
+        }
+
+        public InventoryItemView? FindView(InventoryItem item)
+        {
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                var grid = this.gridGroup.GetGrid(g);
+                if (grid == null) continue;
+                for (int c = 0; c < grid.Columns; c++)
+                    for (int r = 0; r < grid.Rows; r++)
+                    {
+                        var view = grid.GetItemAt(new Vector2Int(c, r));
+                        if (view != null && view.BoundItem == item) return view;
+                    }
+            }
+            return null;
         }
     }
 }

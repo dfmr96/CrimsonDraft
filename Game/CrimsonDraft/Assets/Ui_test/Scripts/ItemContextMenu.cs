@@ -104,21 +104,44 @@ namespace CrimsonDraft.UI
 
         void PositionNextToItem(InventoryItemView item)
         {
-            var itemRT = item.GetComponent<RectTransform>();
-            Vector3[] corners = new Vector3[4];
-            itemRT.GetWorldCorners(corners);
-            // corners: 0=BL  1=TL  2=TR  3=BR
+            Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
+            Camera cam = (rootCanvas != null && rootCanvas.renderMode == RenderMode.ScreenSpaceCamera)
+                ? rootCanvas.worldCamera : null;
 
+            var itemRT = item.GetComponent<RectTransform>();
+            Vector3[] wc = new Vector3[4];
+            itemRT.GetWorldCorners(wc);
+
+            // GetWorldCorners orders corners by local orientation (BL/TL/TR/BR).
+            // When the item is rotated the local TL/TR are no longer the visual top edge.
+            // Convert to screen space and pick the two corners with the highest Y —
+            // those are always the visual top edge regardless of rotation.
+            Vector2[] sc = new Vector2[4];
+            for (int i = 0; i < 4; i++)
+                sc[i] = RectTransformUtility.WorldToScreenPoint(cam, wc[i]);
+
+            int t0 = 0;
+            for (int i = 1; i < 4; i++)
+                if (sc[i].y > sc[t0].y) t0 = i;
+
+            int t1 = t0 == 0 ? 1 : 0;
+            for (int i = 0; i < 4; i++)
+                if (i != t0 && sc[i].y > sc[t1].y) t1 = i;
+
+            int idxL = sc[t0].x < sc[t1].x ? t0 : t1;
+            int idxR = sc[t0].x < sc[t1].x ? t1 : t0;
+
+            // Default: menu to the right (pivot TL anchored to visual top-right)
             this.rectTransform.pivot    = new Vector2(0f, 1f);
-            this.rectTransform.position = corners[2];
+            this.rectTransform.position = wc[idxR];
 
             Vector3[] menuCorners = new Vector3[4];
             this.rectTransform.GetWorldCorners(menuCorners);
 
-            if (menuCorners[2].x > Screen.width)
+            if (RectTransformUtility.WorldToScreenPoint(cam, menuCorners[2]).x > Screen.width)
             {
                 this.rectTransform.pivot    = new Vector2(1f, 1f);
-                this.rectTransform.position = corners[1];
+                this.rectTransform.position = wc[idxL];
             }
         }
 

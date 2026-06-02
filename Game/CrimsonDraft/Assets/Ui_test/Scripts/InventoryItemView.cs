@@ -39,6 +39,12 @@ namespace CrimsonDraft.UI
         public void SetGridOrigin(Vector2Int o) => this.gridOrigin = o;
         public void SetSlotIndex(int index)     => this.SlotIndex  = index;
 
+        public void SetEquippedTint(bool equipped)
+        {
+            if (this.icon == null) this.icon = GetComponent<Image>();
+            this.icon.color = equipped ? new Color(0.85f, 0.65f, 0f, 1f) : Color.white;
+        }
+
         public void Bind(Inventory.InventoryItem item)
         {
             this.boundItem = item;

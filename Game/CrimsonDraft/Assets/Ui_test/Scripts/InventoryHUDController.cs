@@ -94,6 +94,7 @@ namespace CrimsonDraft.UI
                 weaponItem.ClearEquipped();
                 this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
                 this.roster[opSlot].SetEquippedWeapon(null, wepSlot);
+                view.SetEquippedTint(false);
             }
             else
             {
@@ -103,11 +104,16 @@ namespace CrimsonDraft.UI
                 IWeaponSlot? prev = targetWeaponSlot == 0
                     ? this.roster[operatorSlot].PrimaryWeapon
                     : this.roster[operatorSlot].SecondaryWeapon;
-                (prev as InventoryItem)?.ClearEquipped();
+                if (prev is InventoryItem prevItem)
+                {
+                    prevItem.ClearEquipped();
+                    this.cursor.FindView(prevItem)?.SetEquippedTint(false);
+                }
 
                 weaponItem.SetEquipped(operatorSlot, targetWeaponSlot);
                 this.partyPanel.GetWidget(operatorSlot)?.SetEquippedWeapon(weaponItem, targetWeaponSlot);
                 this.roster[operatorSlot].SetEquippedWeapon(weaponItem, targetWeaponSlot);
+                view.SetEquippedTint(true);
             }
         }
 
@@ -151,6 +157,7 @@ namespace CrimsonDraft.UI
             weapon.ClearEquipped();
             this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
             this.roster[opSlot].SetEquippedWeapon(null, wepSlot);
+            item.SetEquippedTint(false);
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────
