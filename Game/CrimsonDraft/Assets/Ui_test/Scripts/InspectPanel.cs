@@ -1,8 +1,8 @@
 #nullable enable
 
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using TMPro;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
@@ -20,13 +20,7 @@ namespace CrimsonDraft.UI
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
 
-        [Header("Standalone (sin VContainer)")]
-        [SerializeField] private InputActionAsset? standaloneInputAsset;
-
-        [Inject] private IInputService? inputService;
-
-        private InputAction?    cancelFallback;
-        private InputActionMap? standaloneMap;
+        [Inject] private IInputService inputService = null!;
 
         private InventoryItemView? currentItem;
 
@@ -38,31 +32,12 @@ namespace CrimsonDraft.UI
             if (this.canvasGroup == null)
                 this.canvasGroup = GetComponent<CanvasGroup>();
 
-            if (this.standaloneInputAsset != null)
-            {
-                this.standaloneMap   = this.standaloneInputAsset.FindActionMap("Inventory");
-                this.cancelFallback  = this.standaloneMap?["Cancel"];
-            }
-
             IsOpen = false;
             Hide();
         }
 
-        void OnEnable()
-        {
-            if (this.inputService != null)
-                this.inputService.InventoryCancel.performed += OnCancelPressed;
-            else if (this.cancelFallback != null)
-                this.cancelFallback.performed += OnCancelPressed;
-        }
-
-        void OnDisable()
-        {
-            if (this.inputService != null)
-                this.inputService.InventoryCancel.performed -= OnCancelPressed;
-            else if (this.cancelFallback != null)
-                this.cancelFallback.performed -= OnCancelPressed;
-        }
+        void OnEnable()  => this.inputService.InventoryCancel.performed += OnCancelPressed;
+        void OnDisable() => this.inputService.InventoryCancel.performed -= OnCancelPressed;
 
         private void OnCancelPressed(InputAction.CallbackContext ctx) => Close();
 

@@ -38,24 +38,13 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
         [SerializeField] private Color colorNormalItem  = Color.white;
 
-        [Header("Standalone (sin VContainer)")]
-        [SerializeField] private InputActionAsset? standaloneInputAsset;
-
-        [Inject] private IInputService?    inputService;
+        [Inject] private IInputService     inputService    = null!;
         [Inject] private IInventoryService? inventoryService;
-        [Inject] private ICombineService?   combineService;
         [Inject] private IOperatorRoster?   roster;
 
         // Combine mode state
         private InventoryItemView? combineSourceItem;
         private bool               isCombineMode;
-
-        // Fallback actions when running without InputService
-        private InputActionMap? standaloneMap;
-        private InputAction?    confirmFallback;
-        private InputAction?    cancelFallback;
-        private InputAction?    pickupFallback;
-        private InputAction?    navigateFallback;
 
         // Grid state
         private int        currentGridIndex;
@@ -81,47 +70,20 @@ namespace CrimsonDraft.UI
         {
             if (this.gridGroup == null)
                 this.gridGroup = GetComponentInParent<InventoryGridGroup>();
-
-            if (this.standaloneInputAsset != null)
-            {
-                this.standaloneMap    = this.standaloneInputAsset.FindActionMap("Inventory");
-                this.confirmFallback  = this.standaloneMap?["Confirm"];
-                this.cancelFallback   = this.standaloneMap?["Cancel"];
-                this.pickupFallback   = this.standaloneMap?["Pickup"];
-                this.navigateFallback = this.standaloneMap?["Navigate"];
-            }
         }
 
         void OnEnable()
         {
-            if (this.inputService != null)
-            {
-                this.inputService.InventoryConfirm.performed += OnConfirm;
-                this.inputService.InventoryCancel.performed  += OnCancel;
-                this.inputService.InventoryPickup.performed  += OnPickup;
-            }
-            else
-            {
-                if (this.confirmFallback != null) this.confirmFallback.performed += OnConfirm;
-                if (this.cancelFallback  != null) this.cancelFallback.performed  += OnCancel;
-                if (this.pickupFallback  != null) this.pickupFallback.performed  += OnPickup;
-            }
+            this.inputService.InventoryConfirm.performed += OnConfirm;
+            this.inputService.InventoryCancel.performed  += OnCancel;
+            this.inputService.InventoryPickup.performed  += OnPickup;
         }
 
         void OnDisable()
         {
-            if (this.inputService != null)
-            {
-                this.inputService.InventoryConfirm.performed -= OnConfirm;
-                this.inputService.InventoryCancel.performed  -= OnCancel;
-                this.inputService.InventoryPickup.performed  -= OnPickup;
-            }
-            else
-            {
-                if (this.confirmFallback != null) this.confirmFallback.performed -= OnConfirm;
-                if (this.cancelFallback  != null) this.cancelFallback.performed  -= OnCancel;
-                if (this.pickupFallback  != null) this.pickupFallback.performed  -= OnPickup;
-            }
+            this.inputService.InventoryConfirm.performed -= OnConfirm;
+            this.inputService.InventoryCancel.performed  -= OnCancel;
+            this.inputService.InventoryPickup.performed  -= OnPickup;
         }
 
         void Start()
@@ -539,13 +501,7 @@ namespace CrimsonDraft.UI
 
         Vector2Int ReadDirection()
         {
-            Vector2 raw;
-            if (this.inputService != null)
-                raw = this.inputService.InventoryNavigate.ReadValue<Vector2>();
-            else if (this.navigateFallback != null)
-                raw = this.navigateFallback.ReadValue<Vector2>();
-            else
-                return Vector2Int.zero;
+            Vector2 raw = this.inputService.InventoryNavigate.ReadValue<Vector2>();
 
             if (raw.sqrMagnitude < 0.01f) return Vector2Int.zero;
 

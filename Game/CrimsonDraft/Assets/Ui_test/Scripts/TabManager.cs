@@ -24,55 +24,22 @@ namespace CrimsonDraft.UI
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
 
-        [Header("Standalone (sin VContainer)")]
-        [SerializeField] private InputActionAsset? standaloneInputAsset;
-
-        [Inject] private IInputService? inputService;
-
-        private InputAction? nextTabFallback;
-        private InputAction? prevTabFallback;
-        private InputActionMap? standaloneMap;
+        [Inject] private IInputService inputService = null!;
 
         private int currentIndex;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
-        void Awake()
-        {
-            if (this.standaloneInputAsset != null)
-            {
-                this.standaloneMap    = this.standaloneInputAsset.FindActionMap("Inventory");
-                this.nextTabFallback  = this.standaloneMap?["NextTab"];
-                this.prevTabFallback  = this.standaloneMap?["PrevTab"];
-            }
-        }
-
         void OnEnable()
         {
-            if (this.inputService != null)
-            {
-                this.inputService.InventoryNextTab.performed += OnNextTab;
-                this.inputService.InventoryPrevTab.performed += OnPrevTab;
-            }
-            else
-            {
-                if (this.nextTabFallback != null) this.nextTabFallback.performed += OnNextTab;
-                if (this.prevTabFallback != null) this.prevTabFallback.performed += OnPrevTab;
-            }
+            this.inputService.InventoryNextTab.performed += OnNextTab;
+            this.inputService.InventoryPrevTab.performed += OnPrevTab;
         }
 
         void OnDisable()
         {
-            if (this.inputService != null)
-            {
-                this.inputService.InventoryNextTab.performed -= OnNextTab;
-                this.inputService.InventoryPrevTab.performed -= OnPrevTab;
-            }
-            else
-            {
-                if (this.nextTabFallback != null) this.nextTabFallback.performed -= OnNextTab;
-                if (this.prevTabFallback != null) this.prevTabFallback.performed -= OnPrevTab;
-            }
+            this.inputService.InventoryNextTab.performed -= OnNextTab;
+            this.inputService.InventoryPrevTab.performed -= OnPrevTab;
         }
 
         void Start()

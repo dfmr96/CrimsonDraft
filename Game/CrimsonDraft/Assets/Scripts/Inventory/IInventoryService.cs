@@ -29,7 +29,7 @@ namespace CrimsonDraft.Inventory
         void MoveItem(int fromSlot, int toSlot);
 
         /// <summary>Equips the weapon at slotIndex to operatorSlot.
-        /// The target weapon slot (0=small 2×1, 1=large 4×1) is derived from WeaponData.GridSize.x.
+        /// The target weapon slot (Primary/Secondary) is derived from WeaponData.WeaponSlot.
         /// Only the weapon already occupying that specific slot is replaced; the other slot is untouched.</summary>
         void EquipWeapon(int slotIndex, int operatorSlot);
 

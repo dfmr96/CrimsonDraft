@@ -1,7 +1,6 @@
 #nullable enable
 
 using UnityEngine;
-using VContainer;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
@@ -12,8 +11,6 @@ namespace CrimsonDraft.UI
         [SerializeField] private CanvasGroup  canvasGroup  = null!;
         [SerializeField] private MenuOption[] options      = null!; // 0=Use, 1=Inspect, 2=Combine
         [SerializeField] private InspectPanel inspectPanel = null!;
-
-        [Inject] private ICombineService? combineService;
 
         private int               selectedIndex = 0;
         private bool              isOpen        = false;
@@ -42,10 +39,7 @@ namespace CrimsonDraft.UI
             this.selectedIndex = 0;
             this.isOpen        = true;
 
-            bool canCombine = this.combineService != null
-                ? this.combineService.HasAnyRecipe(item.Data)
-                : item.Data.Combinable;
-            this.options[2].SetDisabled(!canCombine);
+            this.options[2].SetDisabled(!item.Data.Combinable);
 
             if (item.Data.ItemType == CrimsonDraft.Inventory.ItemType.Weapon)
                 this.options[0].SetLabel(item.BoundItem.IsEquipped ? "Unequip" : "Equip");
