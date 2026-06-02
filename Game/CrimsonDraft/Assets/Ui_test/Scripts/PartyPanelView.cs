@@ -28,6 +28,7 @@ namespace CrimsonDraft.UI
             {
                 var standaloneRoster = new OperatorRoster(this.testHarness);
                 standaloneRoster.EnsureInitialized();
+                this.testHarness.RegisterRoster(standaloneRoster);
                 source = standaloneRoster;
             }
 #endif

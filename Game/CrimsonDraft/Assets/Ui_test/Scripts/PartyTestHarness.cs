@@ -2,6 +2,7 @@
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
+using NaughtyAttributes;
 using UnityEngine;
 using CrimsonDraft.Operators;
 
@@ -23,6 +24,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private FakeOperator[] operators = System.Array.Empty<FakeOperator>();
         [SerializeField] private int defaultMaxHp = 100;
 
+        private OperatorRoster? liveRoster;
+
         public OperatorRosterSeed GetSeed()
         {
             var datas = new OperatorData?[this.operators.Length];
@@ -30,6 +33,20 @@ namespace CrimsonDraft.UI
                 datas[i] = this.operators[i].data;
             return new OperatorRosterSeed(datas, this.defaultMaxHp);
         }
+
+        public void RegisterRoster(OperatorRoster roster) => this.liveRoster = roster;
+
+        [Button] public void DamageOperator(int index, int amount)
+            => this.liveRoster?[index].ApplyDamage(amount);
+
+        [Button] public void KillOperator(int index)
+        {
+            var op = this.liveRoster?[index];
+            if (op != null) op.ApplyDamage(op.Hp);
+        }
+
+        [Button] public void HealOperator(int index, int amount)
+            => this.liveRoster?[index].Heal(amount);
     }
 }
 
