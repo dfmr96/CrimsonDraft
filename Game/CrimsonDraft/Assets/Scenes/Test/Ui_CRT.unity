@@ -224,6 +224,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1236077856}
     - target: {fileID: 6528777329974513735, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
+      propertyPath: gridGroup
+      value: 
+      objectReference: {fileID: 2063082328}
+    - target: {fileID: 6528777329974513735, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
       propertyPath: contextMenu
       value: 
       objectReference: {fileID: 659906430}
@@ -678,6 +682,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e10ab84b72035e4da05fa6e3bea5cbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.InventoryGrid
+--- !u!1 &349012246 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1211463537}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &355217048
 GameObject:
   m_ObjectHideFlags: 0
@@ -920,11 +929,33 @@ MonoBehaviour:
     positionOffset: {x: 0, y: 0, z: 0}
   m_posOffsetData: {fileID: 0}
   listenerMask: 1
+--- !u!114 &398950603 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8960927930643645010, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 485603352}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!224 &465998858 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4840015138468757188, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
   m_PrefabInstance: {fileID: 44714106}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &480001427 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8482284525959506988, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1562914904}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
 --- !u!1001 &485603352
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1020,7 +1051,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2004224470}
   m_SourcePrefab: {fileID: 100100000, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
 --- !u!114 &485603353 stripped
 MonoBehaviour:
@@ -2193,9 +2227,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 934997036}
-  - component: {fileID: 934997035}
   - component: {fileID: 934997034}
-  - component: {fileID: 934997037}
   m_Layer: 0
   m_Name: Auido_Manager
   m_TagString: Untagged
@@ -2275,103 +2307,6 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 2c3771517e3698f4581db95ca4dfa584, type: 2}
---- !u!82 &934997035
-AudioSource:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 934997033}
-  m_Enabled: 1
-  serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
-  m_Volume: 1
-  m_Pitch: 1
-  Loop: 0
-  Mute: 0
-  Spatialize: 0
-  SpatializePostEffects: 0
-  Priority: 128
-  DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
-  Pan2D: 0
-  rolloffMode: 0
-  BypassEffects: 0
-  BypassListenerEffects: 0
-  BypassReverbZones: 0
-  rolloffCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  panLevelCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  spreadCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  reverbZoneMixCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!4 &934997036
 Transform:
   m_ObjectHideFlags: 0
@@ -2387,14 +2322,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!81 &934997037
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 934997033}
-  m_Enabled: 1
 --- !u!1 &937900584
 GameObject:
   m_ObjectHideFlags: 0
@@ -2470,6 +2397,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 937900584}
   m_CullTransparentMesh: 1
+--- !u!114 &941078202 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8960927930643645010, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1211463537}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!1 &973081221
 GameObject:
   m_ObjectHideFlags: 0
@@ -2604,6 +2542,84 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!1 &1015866219 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1562914904}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1041716477
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1041716479}
+  - component: {fileID: 1041716478}
+  - component: {fileID: 1041716480}
+  m_Layer: 0
+  m_Name: Party
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1041716478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1041716477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3909b563cdaba44c90da26fc98e863d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.PartyTestHarness
+  operators:
+  - data: {fileID: 11400000, guid: 26b7ed723bc41e94986fdd99a4c0a45e, type: 2}
+    startingHp: 50
+  - data: {fileID: 11400000, guid: 30b0bbfc8d0dde44ba2cabedad645845, type: 2}
+    startingHp: 100
+  - data: {fileID: 11400000, guid: 445765c3c0de66c4ba79eb558c7618a7, type: 2}
+    startingHp: 25
+  - data: {fileID: 11400000, guid: 5e0a82405f1ffae4086872e5b81604c2, type: 2}
+    startingHp: 10
+  defaultMaxHp: 100
+--- !u!4 &1041716479
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1041716477}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.29882, y: -1.79078, z: -10.25834}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1041716480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1041716477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2de33431e61510d4598b422dcd7cd922, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.PartyPanelView
+  widgets:
+  - {fileID: 1220218565}
+  - {fileID: 1362123444}
+  - {fileID: 480001427}
+  - {fileID: 2055732279}
+  testHarness: {fileID: 1041716478}
 --- !u!1 &1091733716
 GameObject:
   m_ObjectHideFlags: 0
@@ -2841,7 +2857,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1211463542}
   m_SourcePrefab: {fileID: 100100000, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
 --- !u!224 &1211463538 stripped
 RectTransform:
@@ -2859,6 +2878,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e10ab84b72035e4da05fa6e3bea5cbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.InventoryGrid
+--- !u!114 &1211463542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 349012246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
+  portrait: {fileID: 941078202}
+  nameLabel: {fileID: 0}
+  hpLabel: {fileID: 0}
+  deadOverlay: {fileID: 0}
+--- !u!114 &1220218565 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8482284525959506988, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 3059351398169072917}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
 --- !u!1 &1236077853
 GameObject:
   m_ObjectHideFlags: 0
@@ -3123,6 +3169,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1308474556}
   m_CullTransparentMesh: 1
+--- !u!114 &1362123444 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8482284525959506988, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1211463537}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
 --- !u!1 &1364080334
 GameObject:
   m_ObjectHideFlags: 0
@@ -3911,7 +3968,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1562914910}
   m_SourcePrefab: {fileID: 100100000, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
 --- !u!224 &1562914905 stripped
 RectTransform:
@@ -3929,6 +3989,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e10ab84b72035e4da05fa6e3bea5cbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.InventoryGrid
+--- !u!114 &1562914910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1015866219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
+  portrait: {fileID: 1836577934}
+  nameLabel: {fileID: 0}
+  hpLabel: {fileID: 0}
+  deadOverlay: {fileID: 0}
 --- !u!1 &1766303096
 GameObject:
   m_ObjectHideFlags: 0
@@ -4321,6 +4397,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1817788284}
   m_CullTransparentMesh: 1
+--- !u!114 &1836577934 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8960927930643645010, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 1562914904}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!1 &1846614674
 GameObject:
   m_ObjectHideFlags: 0
@@ -4468,6 +4555,27 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &2004224467 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7193495057903093967, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 485603352}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2004224470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2004224467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
+  portrait: {fileID: 398950603}
+  nameLabel: {fileID: 0}
+  hpLabel: {fileID: 0}
+  deadOverlay: {fileID: 0}
 --- !u!1 &2005363787
 GameObject:
   m_ObjectHideFlags: 0
@@ -5081,6 +5189,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2049802180}
   m_CullTransparentMesh: 1
+--- !u!114 &2055732279 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8482284525959506988, guid: 71a7a3849f3ad0447a94c71ef1bf0ed4, type: 3}
+  m_PrefabInstance: {fileID: 485603352}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300b285747252914580fc5170427c81b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.OperatorWidgetView
 --- !u!1 &2063082326
 GameObject:
   m_ObjectHideFlags: 0
@@ -5139,6 +5258,62 @@ MonoBehaviour:
   - {fileID: 1211463539}
   - {fileID: 1562914906}
   - {fileID: 485603353}
+--- !u!1 &2080701181
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2080701183}
+  - component: {fileID: 2080701182}
+  m_Layer: 0
+  m_Name: AkBank
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2080701182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2080701181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0879ccdd90fba144ea073fcff140430c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkBank
+  triggerList: ae8d9d44
+  useOtherObject: 0
+  data:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: f9dfebf4f5f93be43875a424ad05f602, type: 2}
+  decodeBank: 0
+  loadAsynchronous: 0
+  saveDecodedBank: 0
+  unloadTriggerList: 958ca0ea
+  bankNameInternal: 
+  valueGuidInternal: 
+--- !u!4 &2080701183
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2080701181}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.48, y: 0, z: 1.04}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2121290478
 GameObject:
   m_ObjectHideFlags: 0
@@ -5385,4 +5560,6 @@ SceneRoots:
   - {fileID: 973081223}
   - {fileID: 934997036}
   - {fileID: 694706135}
+  - {fileID: 2080701183}
   - {fileID: 244978622}
+  - {fileID: 1041716479}

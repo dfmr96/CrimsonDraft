@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
 {
@@ -36,7 +37,13 @@ namespace CrimsonDraft.UI
         [Header("Standalone (sin VContainer)")]
         [SerializeField] private InputActionAsset? standaloneInputAsset;
 
-        [Inject] private IInputService? inputService;
+        [Inject] private IInputService?    inputService;
+        [Inject] private IInventoryService? inventoryService;
+        [Inject] private ICombineService?   combineService;
+
+        // Combine mode state
+        private InventoryItemView? combineSourceItem;
+        private bool               isCombineMode;
 
         // Fallback actions when running without InputService
         private InputActionMap? standaloneMap;
@@ -115,7 +122,12 @@ namespace CrimsonDraft.UI
         {
             this.selectorImage = this.selectorRect.GetComponent<Image>();
 
-            if (this.contextMenu  != null) this.contextMenu.OnClose  += OnMenuClosed;
+            if (this.contextMenu  != null)
+            {
+                this.contextMenu.OnClose           += OnMenuClosed;
+                this.contextMenu.OnCombineRequested += EnterCombineMode;
+                this.contextMenu.OnUseRequested     += HandleUse;
+            }
             if (this.inspectPanel != null) this.inspectPanel.OnClose += OnInspectClosed;
 
             AttachSelectorToGrid(CurrentGrid);
@@ -229,6 +241,15 @@ namespace CrimsonDraft.UI
 
         void OnConfirm(InputAction.CallbackContext ctx)
         {
+            // Combine mode: segundo ítem seleccionado
+            if (this.isCombineMode)
+            {
+                InventoryItemView? target = CurrentGrid.GetItemAt(this.currentCell);
+                if (target != null && target != this.combineSourceItem)
+                    HandleCombineConfirm(target);
+                return;
+            }
+
             if (this.heldItem != null)
             {
                 this.heldItem.Rotate();
@@ -259,6 +280,13 @@ namespace CrimsonDraft.UI
 
         void OnCancel(InputAction.CallbackContext ctx)
         {
+            if (this.isCombineMode)
+            {
+                ExitCombineMode();
+                this.sfx?.PlayMenuCancel();
+                return;
+            }
+
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx?.PlayMenuCancel();
@@ -501,6 +529,66 @@ namespace CrimsonDraft.UI
             return raw.y > 0 ? Vector2Int.up : Vector2Int.down;
         }
 
+        // ── Combine Mode ─────────────────────────────────────────────────────
+
+        void EnterCombineMode(InventoryItemView source)
+        {
+            this.combineSourceItem = source;
+            this.isCombineMode     = true;
+            // Tint source para indicar que está seleccionado para combinar
+            source.GetComponent<UnityEngine.UI.Image>().color = new Color(1f, 0.8f, 0f, 0.9f);
+        }
+
+        void ExitCombineMode()
+        {
+            if (this.combineSourceItem != null)
+                this.combineSourceItem.GetComponent<UnityEngine.UI.Image>().color = this.colorNormalItem;
+            this.combineSourceItem = null;
+            this.isCombineMode     = false;
+        }
+
+        void HandleCombineConfirm(InventoryItemView targetItem)
+        {
+            if (this.combineSourceItem == null) return;
+
+            if (this.inventoryService != null)
+            {
+                int slotA = FindSlotIndex(this.combineSourceItem);
+                int slotB = FindSlotIndex(targetItem);
+
+                if (slotA >= 0 && slotB >= 0 && this.inventoryService.TryCombine(slotA, slotB))
+                {
+                    this.sfx?.PlayItemPlace();
+                    ExitCombineMode();
+                    return;
+                }
+            }
+
+            // Sin servicio o sin receta: feedback de inválido
+            this.sfx?.PlayItemPlaceInvalid();
+            ExitCombineMode();
+        }
+
+        void HandleUse(InventoryItemView item)
+        {
+            if (this.inventoryService == null) return;
+            int slot = FindSlotIndex(item);
+            if (slot < 0) return;
+            // Intentar usar como key item primero; en el futuro extender para consumibles
+            this.inventoryService.TryUseKey(item.Data.ItemId);
+        }
+
+        // Busca el índice de slot en IInventoryService que contiene un item con el mismo Data
+        int FindSlotIndex(InventoryItemView view)
+        {
+            if (this.inventoryService == null) return -1;
+            var slots = this.inventoryService.Slots;
+            for (int i = 0; i < slots.Count; i++)
+                if (!slots[i].IsEmpty && slots[i].Item?.Data == view.Data)
+                    return i;
+            return -1;
+        }
+
         // ── Public ───────────────────────────────────────────────────────────
 
         public Vector2Int    CurrentCell        => this.currentCell;
@@ -509,6 +597,7 @@ namespace CrimsonDraft.UI
 
         public void CancelAll()
         {
+            if (this.isCombineMode)                                       ExitCombineMode();
             if (this.heldItem != null)                                    CancelPickup();
             if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();

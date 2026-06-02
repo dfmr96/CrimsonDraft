@@ -1,6 +1,8 @@
 #nullable enable
 
 using UnityEngine;
+using VContainer;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
 {
@@ -11,13 +13,17 @@ namespace CrimsonDraft.UI
         [SerializeField] private MenuOption[] options      = null!; // 0=Use, 1=Inspect, 2=Combine
         [SerializeField] private InspectPanel inspectPanel = null!;
 
-        private int              selectedIndex = 0;
-        private bool             isOpen        = false;
+        [Inject] private ICombineService? combineService;
+
+        private int               selectedIndex = 0;
+        private bool              isOpen        = false;
         private InventoryItemView? currentItem;
-        private RectTransform    rectTransform = null!;
+        private RectTransform     rectTransform = null!;
 
         public bool IsOpen => this.isOpen;
         public System.Action? OnClose;
+        public System.Action<InventoryItemView>? OnUseRequested;
+        public System.Action<InventoryItemView>? OnCombineRequested;
 
         void Awake()
         {
@@ -36,7 +42,10 @@ namespace CrimsonDraft.UI
             this.selectedIndex = 0;
             this.isOpen        = true;
 
-            this.options[2].SetDisabled(!item.Data.Combinable);
+            bool canCombine = this.combineService != null
+                ? this.combineService.HasAnyRecipe(item.Data)
+                : item.Data.Combinable;
+            this.options[2].SetDisabled(!canCombine);
 
             PositionNextToItem(item);
             RefreshVisuals();
@@ -73,21 +82,22 @@ namespace CrimsonDraft.UI
 
         void ExecuteOption(MenuOption.OptionType type)
         {
+            var item = this.currentItem;
             Close();
 
             switch (type)
             {
                 case MenuOption.OptionType.Use:
-                    Debug.Log($"[Menu] Use: {this.currentItem?.Data.DisplayName}");
+                    if (item != null) OnUseRequested?.Invoke(item);
                     break;
                 case MenuOption.OptionType.Inspect:
-                    if (this.inspectPanel != null && this.currentItem != null)
-                        this.inspectPanel.Open(this.currentItem);
+                    if (this.inspectPanel != null && item != null)
+                        this.inspectPanel.Open(item);
                     else
                         Debug.LogWarning("[Menu] InspectPanel not assigned.");
                     break;
                 case MenuOption.OptionType.Combine:
-                    Debug.Log($"[Menu] Combine: {this.currentItem?.Data.DisplayName}");
+                    if (item != null) OnCombineRequested?.Invoke(item);
                     break;
             }
         }

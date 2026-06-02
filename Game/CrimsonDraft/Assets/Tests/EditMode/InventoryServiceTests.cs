@@ -15,6 +15,7 @@ namespace CrimsonDraft.Tests
         private sealed class NullCombineService : ICombineService
         {
             public ItemData? TryGetResult(ItemData a, ItemData b) => null;
+            public bool HasAnyRecipe(ItemData item) => false;
         }
 
         private sealed class FakeCombineService : ICombineService
@@ -36,6 +37,9 @@ namespace CrimsonDraft.Tests
                           || (a == this.inputB && b == this.inputA);
                 return match ? this.output : null;
             }
+
+            public bool HasAnyRecipe(ItemData item) =>
+                item == this.inputA || item == this.inputB;
         }
 
         private static InventoryService MakeService(IOperatorRoster roster, ICombineService? combine = null) =>
