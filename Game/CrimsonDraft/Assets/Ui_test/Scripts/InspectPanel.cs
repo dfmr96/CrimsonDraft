@@ -21,6 +21,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private InventorySoundManager sfx = null!;
 
         [Inject] private IInputService inputService = null!;
+        private bool inputBound;
 
         private InventoryItemView? currentItem;
 
@@ -36,8 +37,21 @@ namespace CrimsonDraft.UI
             Hide();
         }
 
-        void OnEnable()  => this.inputService.InventoryCancel.performed += OnCancelPressed;
-        void OnDisable() => this.inputService.InventoryCancel.performed -= OnCancelPressed;
+        void Start() => OnEnable();
+
+        void OnEnable()
+        {
+            if (this.inputService == null || this.inputBound) return;
+            this.inputService.InventoryCancel.performed += OnCancelPressed;
+            this.inputBound = true;
+        }
+
+        void OnDisable()
+        {
+            if (!this.inputBound || this.inputService == null) return;
+            this.inputService.InventoryCancel.performed -= OnCancelPressed;
+            this.inputBound = false;
+        }
 
         private void OnCancelPressed(InputAction.CallbackContext ctx) => Close();
 

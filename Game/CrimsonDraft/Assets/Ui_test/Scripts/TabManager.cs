@@ -25,6 +25,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private InventorySoundManager sfx = null!;
 
         [Inject] private IInputService inputService = null!;
+        private bool inputBound;
 
         private int currentIndex;
 
@@ -32,14 +33,18 @@ namespace CrimsonDraft.UI
 
         void OnEnable()
         {
+            if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryNextTab.performed += OnNextTab;
             this.inputService.InventoryPrevTab.performed += OnPrevTab;
+            this.inputBound = true;
         }
 
         void OnDisable()
         {
+            if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryNextTab.performed -= OnNextTab;
             this.inputService.InventoryPrevTab.performed -= OnPrevTab;
+            this.inputBound = false;
         }
 
         void Start()
@@ -52,6 +57,7 @@ namespace CrimsonDraft.UI
                 this.tabs[i].root.SetActive(i == this.currentIndex);
 
             RefreshIndicators();
+            OnEnable();
         }
 
         // ── Input Callbacks ──────────────────────────────────────────────────

@@ -26,8 +26,11 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<GridCursor>();
             builder.RegisterComponentInHierarchy<ItemContextMenu>();
             builder.RegisterComponentInHierarchy<PartyPanelView>();
+            builder.RegisterComponentInHierarchy<TabManager>();
+            builder.RegisterComponentInHierarchy<InspectPanel>();
+            builder.RegisterComponentInHierarchy<InventorySceneInit>();
 
-            builder.Register<InventoryHUDController>(Lifetime.Scoped);
+            builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
         }
     }
 }

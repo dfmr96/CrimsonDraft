@@ -64,7 +64,8 @@ namespace CrimsonDraft.UI
             {
                 CanCombine = view.Data.Combinable,
                 CanEquip   = view.Data.ItemType == ItemType.Weapon,
-                CanUse     = view.Data.ItemType == ItemType.Consumable,
+                CanUse     = view.Data.ItemType == ItemType.Consumable
+                          || view.Data.ItemType == ItemType.KeyItem,
             };
             this.contextMenu.Open(view, options);
         }

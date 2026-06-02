@@ -31,7 +31,13 @@ namespace CrimsonDraft.UI
                 this.testHarness.RegisterRoster(standaloneRoster);
                 source = standaloneRoster;
             }
+            else if (source is OperatorRoster injectedRoster && this.testHarness != null)
+            {
+                this.testHarness.RegisterRoster(injectedRoster);
+            }
 #endif
+
+            source?.EnsureInitialized();
 
             if (source == null || !source.IsInitialized) return;
 

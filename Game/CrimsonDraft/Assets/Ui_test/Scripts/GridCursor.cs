@@ -35,6 +35,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorNormalItem  = Color.white;
 
         [Inject] private IInputService inputService = null!;
+        private bool inputBound;
 
         // Combine mode — set by InventoryHUDController
         public bool IsCombineMode { get; set; }
@@ -72,16 +73,20 @@ namespace CrimsonDraft.UI
 
         void OnEnable()
         {
+            if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
             this.inputService.InventoryCancel.performed  += OnCancel;
             this.inputService.InventoryPickup.performed  += OnPickup;
+            this.inputBound = true;
         }
 
         void OnDisable()
         {
+            if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
             this.inputService.InventoryCancel.performed  -= OnCancel;
             this.inputService.InventoryPickup.performed  -= OnPickup;
+            this.inputBound = false;
         }
 
         void Start()
@@ -94,6 +99,9 @@ namespace CrimsonDraft.UI
 
             AttachSelectorToGrid(CurrentGrid);
             PlaceSelectorAt(this.currentCell);
+
+            // OnEnable runs before VContainer injection at scene start — subscribe here if missed
+            OnEnable();
         }
 
         // ── Update ───────────────────────────────────────────────────────────
