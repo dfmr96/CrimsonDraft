@@ -16,11 +16,12 @@ namespace CrimsonDraft.UI
             public GameObject root;
         }
 
-        [SerializeField] private Tab[]        tabs               = null!; // 0=Inventory  1=Map  2=Files
-        [SerializeField] private int          startingTab        = 0;
-        [SerializeField] private GameObject[] tabIndicators      = null!;
-        [SerializeField] private GameObject[] tabFocusHighlights = System.Array.Empty<GameObject>();
-        [SerializeField] private GridCursor   gridCursor         = null!;
+        [SerializeField] private Tab[]               tabs               = null!; // 0=Inventory  1=Map  2=Files
+        [SerializeField] private int                 startingTab        = 0;
+        [SerializeField] private GameObject[]        tabIndicators      = null!;
+        [SerializeField] private GameObject[]        tabFocusHighlights = System.Array.Empty<GameObject>();
+        [SerializeField] private GridCursor          gridCursor         = null!;
+        [SerializeField] private FilesTabController? filesTab;
 
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
@@ -75,12 +76,14 @@ namespace CrimsonDraft.UI
 
             if (!this.tabBarActive)
             {
-                // On a non-inventory tab: UP enters the tab bar
-                if (this.currentIndex != 0 && dir.y > 0 && dir != this.lastDir)
+                // Files tab handles its own UP (calls EnterTabBar itself)
+                bool contentHandlesInput = this.filesTab != null && this.filesTab.isActiveAndEnabled;
+
+                if (!contentHandlesInput && this.currentIndex != 0 && dir.y > 0 && dir != this.lastDir)
                 {
                     EnterTabBar();
-                    this.lastDir    = dir;
-                    this.holding    = true;
+                    this.lastDir      = dir;
+                    this.holding      = true;
                     this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
                 }
                 else if (dir == Vector2Int.zero)
@@ -144,7 +147,12 @@ namespace CrimsonDraft.UI
             this.tabBarActive    = true;
             this.focusedTabIndex = this.currentIndex;
             SetTabBarFocus(this.focusedTabIndex);
-            this.gridCursor?.HideSelectorForTabBar();
+
+            if (this.filesTab != null && this.filesTab.isActiveAndEnabled)
+                this.filesTab.HideSelectorForTabBar();
+            else
+                this.gridCursor?.HideSelectorForTabBar();
+
             this.sfx?.PlayCursorOnItem();
         }
 
@@ -152,8 +160,11 @@ namespace CrimsonDraft.UI
         {
             this.tabBarActive = false;
             ClearTabBarFocus();
+
             if (this.currentIndex == 0)
                 this.gridCursor?.ShowSelectorAfterTabBar();
+            else if (this.filesTab != null && this.filesTab.isActiveAndEnabled)
+                this.filesTab.ShowSelectorAfterTabBar();
         }
 
         // ── Switching ────────────────────────────────────────────────────────
@@ -170,6 +181,9 @@ namespace CrimsonDraft.UI
             this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
             this.sfx?.PlayTabSwitch();
+
+            if (this.currentIndex == 0)
+                this.gridCursor?.ShowSelectorAfterTabBar();
         }
 
         void RefreshIndicators()

@@ -31,6 +31,9 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<InspectPanel>();
             builder.RegisterComponentInHierarchy<InventorySceneInit>();
 
+            if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<FilesTabController>();
+
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
         }
     }
