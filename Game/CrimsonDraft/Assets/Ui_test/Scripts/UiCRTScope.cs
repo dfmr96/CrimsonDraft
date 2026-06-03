@@ -21,6 +21,7 @@ namespace CrimsonDraft.UI
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.RegisterComponentInHierarchy<PartyTestHarness>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<InventoryPopulator>().AsImplementedInterfaces().AsSelf();
 #endif
 
             builder.RegisterComponentInHierarchy<GridCursor>();

@@ -35,9 +35,8 @@ namespace CrimsonDraft.UI
 
         public void Open(InventoryItemView item, ContextMenuOptions options)
         {
-            this.currentItem   = item;
-            this.selectedIndex = 0;
-            this.isOpen        = true;
+            this.currentItem = item;
+            this.isOpen      = true;
 
             this.options[0].SetDisabled(!options.CanEquip && !options.CanUse);
             this.options[2].SetDisabled(!options.CanCombine);
@@ -46,6 +45,13 @@ namespace CrimsonDraft.UI
                 this.options[0].SetLabel(item.BoundItem.IsEquipped ? "Unequip" : "Equip");
             else
                 this.options[0].SetLabel("Use");
+
+            // Start on first selectable option
+            this.selectedIndex = 0;
+            for (int i = 0; i < this.options.Length; i++)
+            {
+                if (!this.options[i].IsDisabled) { this.selectedIndex = i; break; }
+            }
 
             PositionNextToItem(item);
             RefreshVisuals();

@@ -3,6 +3,7 @@
 using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Editor
 {
@@ -18,13 +19,13 @@ namespace CrimsonDraft.Editor
             if (!AssetDatabase.IsValidFolder(OutputPath))
                 AssetDatabase.CreateFolder("Assets/ScriptableObjects", "Inventory");
 
-            CreateWeapon("Mk18",       "mk18",       "Mk18 (5.56)",       "5.56", 30);
-            CreateWeapon("Benelli_M4", "benelli_m4", "Benelli M4 (12ga)", "12ga", 8);
-            CreateWeapon("P229",       "p229",       "P229 (9mm)",        "9mm",  15);
-            CreateWeapon("MP5",        "mp5",        "MP5 (9mm)",         "9mm",  30);
-            CreateAmmoBox("9mm_Box",   "9mm_box",    "9mm Box",           "9mm",  30);
-            CreateAmmoBox("556_Box",   "556_box",    "5.56 Box",          "5.56", 30);
-            CreateAmmoBox("12ga_Box",  "12ga_box",   "12ga Box",          "12ga", 30);
+            CreateWeapon("Mk18",       "mk18",       "Mk18 (5.56x45)",    Caliber._556x45, 30);
+            CreateWeapon("Benelli_M4", "benelli_m4", "Benelli M4 (12ga)", Caliber._12ga,   8);
+            CreateWeapon("P229",       "p229",       "P229 (9mm)",        Caliber._9mm,    15);
+            CreateWeapon("MP5",        "mp5",        "MP5 (9mm)",         Caliber._9mm,    30);
+            CreateAmmoBox("9mm_Box",   "9mm_box",    "9mm Box",           Caliber._9mm,    30);
+            CreateAmmoBox("556_Box",   "556_box",    "5.56x45 Box",       Caliber._556x45, 30);
+            CreateAmmoBox("12ga_Box",  "12ga_box",   "12ga Box",          Caliber._12ga,   30);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -35,7 +36,7 @@ namespace CrimsonDraft.Editor
             string fileName,
             string itemId,
             string displayName,
-            string caliber,
+            Caliber caliber,
             int magazineCapacity)
         {
             string path = $"{OutputPath}/{fileName}.asset";
@@ -52,7 +53,7 @@ namespace CrimsonDraft.Editor
             so.FindProperty("itemId").stringValue        = itemId;
             so.FindProperty("itemType").enumValueIndex   = (int)ItemType.Weapon;
             so.FindProperty("displayName").stringValue   = displayName;
-            so.FindProperty("caliber").stringValue       = caliber;
+            so.FindProperty("caliber").enumValueIndex    = (int)caliber;
             so.FindProperty("magazineCapacity").intValue = magazineCapacity;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -64,7 +65,7 @@ namespace CrimsonDraft.Editor
             string fileName,
             string itemId,
             string displayName,
-            string caliber,
+            Caliber caliber,
             int defaultQuantity)
         {
             string path = $"{OutputPath}/{fileName}.asset";
@@ -81,7 +82,7 @@ namespace CrimsonDraft.Editor
             so.FindProperty("itemId").stringValue        = itemId;
             so.FindProperty("itemType").enumValueIndex   = (int)ItemType.AmmoBox;
             so.FindProperty("displayName").stringValue   = displayName;
-            so.FindProperty("caliber").stringValue       = caliber;
+            so.FindProperty("caliber").enumValueIndex    = (int)caliber;
             so.FindProperty("defaultQuantity").intValue  = defaultQuantity;
             so.ApplyModifiedPropertiesWithoutUndo();
 

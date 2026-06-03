@@ -22,5 +22,8 @@ namespace CrimsonDraft.Inventory
             this.EquippedBySlot     = -1;
             this.EquippedWeaponSlot = -1;
         }
+
+        public virtual int  Quantity    => 1;
+        public virtual void AddQuantity(int amount) { }
     }
 }

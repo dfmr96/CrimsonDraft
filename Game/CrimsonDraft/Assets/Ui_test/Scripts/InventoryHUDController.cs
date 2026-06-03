@@ -12,6 +12,7 @@ namespace CrimsonDraft.UI
     {
         private readonly IInventoryService inventoryService;
         private readonly ICombineService   combineService;
+        private readonly IItemSpawner      itemSpawner;
         private readonly IOperatorRoster   roster;
         private readonly GridCursor        cursor;
         private readonly ItemContextMenu   contextMenu;
@@ -23,6 +24,7 @@ namespace CrimsonDraft.UI
         public InventoryHUDController(
             IInventoryService inventoryService,
             ICombineService   combineService,
+            IItemSpawner      itemSpawner,
             IOperatorRoster   roster,
             GridCursor        cursor,
             ItemContextMenu   contextMenu,
@@ -30,6 +32,7 @@ namespace CrimsonDraft.UI
         {
             this.inventoryService = inventoryService;
             this.combineService   = combineService;
+            this.itemSpawner      = itemSpawner;
             this.roster           = roster;
             this.cursor           = cursor;
             this.contextMenu      = contextMenu;
@@ -139,10 +142,98 @@ namespace CrimsonDraft.UI
         {
             if (this.combineSourceItem == null || target == this.combineSourceItem) return;
 
-            int slotA = FindSlotIndex(this.combineSourceItem);
-            int slotB = FindSlotIndex(target);
+            InventoryItemView source = this.combineSourceItem;
 
-            this.inventoryService.TryCombine(slotA, slotB);
+            // Same stackable type — merge quantities (respect MaxStack)
+            if (source.Data == target.Data && source.Data.Stackable)
+            {
+                int srcQty    = source.BoundItem is IHasDisplayCount ds ? ds.DisplayCount : 1;
+                int tgtQty    = target.BoundItem is IHasDisplayCount dt ? dt.DisplayCount : 0;
+                int canAbsorb = target.Data.MaxStack - tgtQty;
+                int transfer  = Mathf.Min(srcQty, canAbsorb);
+
+                if (transfer <= 0) { ExitCombineMode(); return; }
+
+                target.BoundItem.AddQuantity(transfer);
+                target.RefreshQuantity();
+
+                int remaining = srcQty - transfer;
+                if (remaining > 0)
+                {
+                    // Partial transfer — reduce source and keep it alive
+                    source.BoundItem.AddQuantity(-transfer);
+                    source.RefreshQuantity();
+                }
+                else
+                {
+                    source.OwnerGrid?.RemoveItem(source);
+                    Object.Destroy(source.gameObject);
+                }
+
+                ExitCombineMode();
+                return;
+            }
+
+            // AmmoBox + Weapon: reload
+            var ammoItem   = (source.BoundItem as AmmoBoxItem) ?? (target.BoundItem as AmmoBoxItem);
+            var weaponItem = (source.BoundItem as WeaponItem)  ?? (target.BoundItem as WeaponItem);
+
+            if (ammoItem != null && weaponItem != null)
+            {
+                if (ammoItem.Data.Caliber != weaponItem.Data.Caliber ||
+                    weaponItem.CurrentAmmo >= weaponItem.MaxAmmo)
+                {
+                    ExitCombineMode();
+                    return;
+                }
+
+                var ammoView   = source.BoundItem is AmmoBoxItem ? source : target;
+                var weaponView = source.BoundItem is WeaponItem  ? source : target;
+
+                int needed = weaponItem.MaxAmmo - weaponItem.CurrentAmmo;
+                int taken  = Mathf.Min(needed, ammoItem.Quantity);
+                weaponItem.SetAmmo(weaponItem.CurrentAmmo + taken);
+                ammoItem.AddQuantity(-taken);
+
+                if (ammoItem.Quantity <= 0)
+                {
+                    ammoView.OwnerGrid?.RemoveItem(ammoView);
+                    Object.Destroy(ammoView.gameObject);
+                }
+                else
+                {
+                    ammoView.RefreshQuantity();
+                }
+
+                weaponView.RefreshQuantity();
+                ExitCombineMode();
+                return;
+            }
+
+            // Recipe combine — visual layer only
+            var resultData = this.combineService.TryGetResult(source.Data, target.Data);
+            if (resultData == null) { ExitCombineMode(); return; }
+
+            // Free cells first so HasSpace sees the space A and B would release
+            InventoryGrid? preferredGrid = source.OwnerGrid;
+            InventoryGrid? sourceGrid    = source.OwnerGrid;
+            InventoryGrid? targetGrid    = target.OwnerGrid;
+
+            sourceGrid?.RemoveItem(source);
+            targetGrid?.RemoveItem(target);
+
+            if (!this.itemSpawner.HasSpace(resultData))
+            {
+                // No space even after freeing — restore both items and cancel
+                sourceGrid?.PlaceItem(source);
+                targetGrid?.PlaceItem(target);
+                ExitCombineMode();
+                return;
+            }
+
+            Object.Destroy(source.gameObject);
+            Object.Destroy(target.gameObject);
+            this.itemSpawner.Spawn(resultData, preferredGrid);
             ExitCombineMode();
         }
 
@@ -161,15 +252,5 @@ namespace CrimsonDraft.UI
             item.SetEquippedTint(false);
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────
-
-        private int FindSlotIndex(InventoryItemView view)
-        {
-            var slots = this.inventoryService.Slots;
-            for (int i = 0; i < slots.Count; i++)
-                if (!slots[i].IsEmpty && slots[i].Item == view.BoundItem)
-                    return i;
-            return -1;
-        }
     }
 }

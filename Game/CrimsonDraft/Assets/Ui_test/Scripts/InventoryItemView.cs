@@ -2,6 +2,7 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
@@ -13,8 +14,10 @@ namespace CrimsonDraft.UI
         private Vector2Int              gridOrigin;
         private int                     rotationState; // 0=0°  1=90°CW
         private bool                    inspected;
-        private Image                   icon         = null!;
+        private Image                   icon          = null!;
         private RectTransform           rectTransform = null!;
+
+        [SerializeField] private TMP_Text? quantityLabel;
 
         public InventoryItem BoundItem  => this.boundItem;
         public ItemData      Data       => this.boundItem.Data;
@@ -77,6 +80,7 @@ namespace CrimsonDraft.UI
                 item.Data.GridSize.y * cellSize);
 
             Bind(item);
+            RefreshQuantity();
         }
 
         // Toggle between horizontal (0°) and vertical (90°).
@@ -90,6 +94,20 @@ namespace CrimsonDraft.UI
         {
             // 0 = horizontal (0°), 1 = vertical (-90° so item extends right+down from pivot)
             this.rectTransform.localEulerAngles = new Vector3(0f, 0f, -this.rotationState * 90f);
+        }
+
+        public void RefreshQuantity()
+        {
+            if (this.quantityLabel == null) return;
+            if (this.boundItem is IHasDisplayCount d)
+            {
+                this.quantityLabel.gameObject.SetActive(true);
+                this.quantityLabel.text = d.DisplayCount.ToString();
+            }
+            else
+            {
+                this.quantityLabel.gameObject.SetActive(false);
+            }
         }
     }
 }
