@@ -18,6 +18,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private ItemContextMenu     contextMenu  = null!;
         [SerializeField] private ItemTooltip         tooltip      = null!;
         [SerializeField] private InspectPanel        inspectPanel = null!;
+        [SerializeField] private TabManager?         tabManager;
 
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
@@ -111,6 +112,10 @@ namespace CrimsonDraft.UI
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
                 return;
 
+            // Tab bar has focus — grid cursor yields
+            if (this.tabManager != null && this.tabManager.IsTabBarActive)
+                return;
+
             Vector2Int dir = ReadDirection();
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
@@ -196,6 +201,13 @@ namespace CrimsonDraft.UI
                 }
             }
 
+            // Upward boundary — hand off to tab bar (only when not holding an item)
+            if (next.y < 0 && this.heldItem == null && this.tabManager != null)
+            {
+                this.tabManager.EnterTabBar();
+                return;
+            }
+
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
 
             if (next.x < 0)
@@ -228,6 +240,8 @@ namespace CrimsonDraft.UI
 
         void OnConfirm(InputAction.CallbackContext ctx)
         {
+            if (this.tabManager != null && this.tabManager.IsTabBarActive) return;
+
             if (this.IsCombineMode)
             {
                 InventoryItemView? target = CurrentGrid.GetItemAt(this.currentCell);
@@ -541,6 +555,21 @@ namespace CrimsonDraft.UI
         public Vector2Int    CurrentCell        => this.currentCell;
         public InventoryGrid CurrentGrid_Public => CurrentGrid;
         public bool          IsHoldingItem      => this.heldItem != null;
+
+        public void HideSelectorForTabBar()
+        {
+            this.selectorRect.gameObject.SetActive(false);
+            this.tooltip?.Hide();
+            this.holding = false;
+            this.lastDir = Vector2Int.zero;
+        }
+
+        public void ShowSelectorAfterTabBar()
+        {
+            this.currentCell = new Vector2Int(this.currentCell.x, 0);
+            this.selectorRect.gameObject.SetActive(true);
+            PlaceSelectorAt(this.currentCell);
+        }
 
         public void CancelAll()
         {

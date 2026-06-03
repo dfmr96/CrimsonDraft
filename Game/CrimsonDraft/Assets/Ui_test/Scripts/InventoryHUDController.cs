@@ -206,6 +206,8 @@ namespace CrimsonDraft.UI
                 }
 
                 weaponView.RefreshQuantity();
+                if (weaponItem.IsEquipped)
+                    this.partyPanel.GetWidget(weaponItem.EquippedBySlot)?.SetEquippedWeapon(weaponItem, weaponItem.EquippedWeaponSlot);
                 ExitCombineMode();
                 return;
             }
