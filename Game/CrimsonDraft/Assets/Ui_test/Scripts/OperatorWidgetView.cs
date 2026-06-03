@@ -15,11 +15,11 @@ namespace CrimsonDraft.UI
         [SerializeField] private TMP_Text    hpLabel     = null!;
         [SerializeField] private GameObject  deadOverlay = null!;
 
-        [Header("Weapon Slot 0 (2×1)")]
+        [Header("Weapon Slot 0 — Primary (4×1)")]
         [SerializeField] private GameObject weaponSlot0Root = null!;
         [SerializeField] private Image       weaponSlot0Icon = null!;
 
-        [Header("Weapon Slot 1 (4×1)")]
+        [Header("Weapon Slot 1 — Secondary (2×1)")]
         [SerializeField] private GameObject weaponSlot1Root = null!;
         [SerializeField] private Image       weaponSlot1Icon = null!;
 
