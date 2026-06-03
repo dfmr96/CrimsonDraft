@@ -283,8 +283,7 @@ namespace CrimsonDraft.UI
 
             if (this.heldItem != null)
             {
-                this.sfx?.PlayMenuCancel();
-                CancelPickup();
+                TryPlace();
             }
         }
 
@@ -372,10 +371,13 @@ namespace CrimsonDraft.UI
                 if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
                 {
                     this.sfx?.PlayItemSwap();
+                    Vector2Int    originBeforeSwap   = this.heldItem!.GridOrigin;
+                    InventoryGrid fromGridBeforeSwap = this.heldFromGrid!;
                     PlaceHeldItem(targetGrid, this.currentCell);
 
                     this.heldItem     = overlapping;
-                    this.heldFromGrid = targetGrid;
+                    this.heldFromGrid = fromGridBeforeSwap;
+                    overlapping.SetGridOrigin(originBeforeSwap);
                     overlapping.transform.SetAsLastSibling();
                     UpdateHeldItemVisual();
                 }
