@@ -397,6 +397,7 @@ namespace CrimsonDraft.UI
             }
 
             this.heldItem!.SetGridOrigin(origin);
+            this.heldItem.SetOwnerGrid(targetGrid);
             this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
             var rt = this.heldItem.GetComponent<RectTransform>();
@@ -549,6 +550,9 @@ namespace CrimsonDraft.UI
             this.holding = false;
             this.lastDir = Vector2Int.zero;
         }
+
+        public int GetOperatorOf(InventoryItemView view)
+            => view.OwnerGrid != null ? this.gridGroup.IndexOf(view.OwnerGrid) : -1;
 
         public InventoryItemView? FindView(InventoryItem item)
         {

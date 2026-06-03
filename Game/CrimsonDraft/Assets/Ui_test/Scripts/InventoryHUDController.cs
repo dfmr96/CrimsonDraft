@@ -98,7 +98,8 @@ namespace CrimsonDraft.UI
             }
             else
             {
-                int operatorSlot     = view.SlotIndex / 4;
+                int operatorSlot = this.cursor.GetOperatorOf(view);
+                if (operatorSlot < 0) return;
                 int targetWeaponSlot = (int)weaponItem.Data.WeaponSlot;
 
                 IWeaponSlot? prev = targetWeaponSlot == 0
@@ -166,7 +167,7 @@ namespace CrimsonDraft.UI
         {
             var slots = this.inventoryService.Slots;
             for (int i = 0; i < slots.Count; i++)
-                if (!slots[i].IsEmpty && slots[i].Item?.Data == view.Data)
+                if (!slots[i].IsEmpty && slots[i].Item == view.BoundItem)
                     return i;
             return -1;
         }

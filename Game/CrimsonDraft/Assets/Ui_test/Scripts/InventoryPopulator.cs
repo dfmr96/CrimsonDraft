@@ -58,11 +58,10 @@ namespace CrimsonDraft.UI
             }
 
             var (chosenGrid, chosenOrigin) = validGrids[Random.Range(0, validGrids.Count)];
-            int gridIndex = gridGroup.IndexOf(chosenGrid);
-            SpawnItem(itemData, chosenGrid, chosenOrigin, gridIndex);
+            SpawnItem(itemData, chosenGrid, chosenOrigin);
         }
 
-        void SpawnItem(ItemData itemData, InventoryGrid grid, Vector2Int origin, int gridIndex)
+        void SpawnItem(ItemData itemData, InventoryGrid grid, Vector2Int origin)
         {
             Inventory.InventoryItem domainItem = itemData switch
             {
@@ -75,7 +74,7 @@ namespace CrimsonDraft.UI
             };
             InventoryItemView view = Instantiate(itemPrefab, grid.transform);
             view.Initialize(domainItem, origin, grid.CellSize);
-            view.SetSlotIndex(gridIndex * 4);
+            view.SetOwnerGrid(grid);
 
             var rt = view.GetComponent<RectTransform>();
             rt.anchoredPosition = grid.CellToLocal(origin);

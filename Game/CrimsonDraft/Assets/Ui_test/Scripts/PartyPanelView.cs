@@ -12,7 +12,8 @@ namespace CrimsonDraft.UI
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("Standalone (sin VContainer)")]
-        [SerializeField] private PartyTestHarness? testHarness;
+        [SerializeField] private PartyTestHarness?    testHarness;
+        [SerializeField] private OperatorTestWidget[] testWidgets = System.Array.Empty<OperatorTestWidget>();
 #endif
 
         [Inject] private IOperatorRoster? roster;
@@ -29,11 +30,13 @@ namespace CrimsonDraft.UI
                 var standaloneRoster = new OperatorRoster(this.testHarness);
                 standaloneRoster.EnsureInitialized();
                 this.testHarness.RegisterRoster(standaloneRoster);
+                foreach (var w in this.testWidgets) w.RegisterRoster(standaloneRoster);
                 source = standaloneRoster;
             }
-            else if (source is OperatorRoster injectedRoster && this.testHarness != null)
+            else if (source is OperatorRoster injectedRoster)
             {
-                this.testHarness.RegisterRoster(injectedRoster);
+                if (this.testHarness != null) this.testHarness.RegisterRoster(injectedRoster);
+                foreach (var w in this.testWidgets) w.RegisterRoster(injectedRoster);
             }
 #endif
 

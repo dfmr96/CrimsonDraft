@@ -35,18 +35,6 @@ namespace CrimsonDraft.UI
         }
 
         public void RegisterRoster(OperatorRoster roster) => this.liveRoster = roster;
-
-        [Button] public void DamageOperator(int index, int amount)
-            => this.liveRoster?[index].ApplyDamage(amount);
-
-        [Button] public void KillOperator(int index)
-        {
-            var op = this.liveRoster?[index];
-            if (op != null) op.ApplyDamage(op.Hp);
-        }
-
-        [Button] public void HealOperator(int index, int amount)
-            => this.liveRoster?[index].Heal(amount);
     }
 }
 

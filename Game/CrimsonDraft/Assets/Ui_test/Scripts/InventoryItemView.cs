@@ -21,7 +21,7 @@ namespace CrimsonDraft.UI
         public Vector2Int    GridOrigin => this.gridOrigin;
         public bool        IsInspected => this.inspected;
         public int         Rotation    => this.rotationState;
-        public int         SlotIndex   { get; private set; } = -1;
+        public InventoryGrid? OwnerGrid { get; private set; }
 
         // GridSize swaps X/Y when vertical (rotationState == 1)
         public Vector2Int GridSize
@@ -37,7 +37,7 @@ namespace CrimsonDraft.UI
 
         public void SetInspected(bool value)    => this.inspected  = value;
         public void SetGridOrigin(Vector2Int o) => this.gridOrigin = o;
-        public void SetSlotIndex(int index)     => this.SlotIndex  = index;
+        public void SetOwnerGrid(InventoryGrid grid) => this.OwnerGrid = grid;
 
         public void SetEquippedTint(bool equipped)
         {
