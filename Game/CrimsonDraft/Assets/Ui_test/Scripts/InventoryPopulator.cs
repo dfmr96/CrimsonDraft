@@ -1,55 +1,59 @@
 #nullable enable
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-
 using System.Collections.Generic;
-using NaughtyAttributes;
 using UnityEngine;
 using CrimsonDraft.Inventory;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using NaughtyAttributes;
+#endif
 
 namespace CrimsonDraft.UI
 {
     public class InventoryPopulator : MonoBehaviour, IItemSpawner
     {
-        [SerializeField] private InventoryGridGroup gridGroup;
-        [SerializeField] private InventoryItemView  itemPrefab           = null!;
-        [SerializeField] private List<ItemData>     itemsToPlace         = new();
-        [SerializeField] private int                maxPlacementAttempts = 50;
+        [SerializeField] private InventoryGridGroup gridGroup   = null!;
+        [SerializeField] private InventoryItemView  itemPrefab  = null!;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [SerializeField] private List<ItemData> itemsToPlace         = new();
+        [SerializeField] private int            maxPlacementAttempts = 50;
 
         [Header("Testing")]
         [SerializeField] private ItemData? itemToAdd;
+#endif
 
         void Start()
         {
-            if (gridGroup == null)
-                gridGroup = GetComponentInParent<InventoryGridGroup>();
+            if (this.gridGroup == null)
+                this.gridGroup = GetComponentInParent<InventoryGridGroup>();
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             foreach (var itemData in itemsToPlace)
                 TryPlaceItem(itemData);
+#endif
         }
 
         // ── IItemSpawner ─────────────────────────────────────────────────────
 
         public bool HasSpace(ItemData data)
         {
-            for (int g = 0; g < gridGroup.Count; g++)
-                if (TryFindSlot(gridGroup.GetGrid(g), data, out _)) return true;
+            for (int g = 0; g < this.gridGroup.Count; g++)
+                if (TryFindSlot(this.gridGroup.GetGrid(g), data, out _)) return true;
             return false;
         }
 
         public void Spawn(ItemData data, InventoryGrid? preferredGrid = null)
         {
-            // Try preferred grid first (operator's own grid)
             if (preferredGrid != null && TryFindSlot(preferredGrid, data, out var preferred))
             {
                 SpawnItemView(data, preferredGrid, preferred);
                 return;
             }
 
-            // Fall back: first available slot across all grids in order
-            for (int g = 0; g < gridGroup.Count; g++)
+            for (int g = 0; g < this.gridGroup.Count; g++)
             {
-                InventoryGrid grid = gridGroup.GetGrid(g);
+                InventoryGrid grid = this.gridGroup.GetGrid(g);
                 if (grid == preferredGrid) continue;
                 if (TryFindSlot(grid, data, out var origin))
                 {
@@ -61,7 +65,43 @@ namespace CrimsonDraft.UI
             Debug.LogWarning($"[InventoryPopulator] No space for: {data.DisplayName}");
         }
 
-        // Systematic top-left scan — returns first fitting origin, no randomness.
+        public void SpawnExisting(InventoryItem item, InventoryGrid? preferredGrid = null)
+        {
+            if (preferredGrid != null && TryFindSlot(preferredGrid, item.Data, out var preferred))
+            {
+                SpawnItemViewFromItem(item, preferredGrid, preferred);
+                return;
+            }
+
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                InventoryGrid grid = this.gridGroup.GetGrid(g);
+                if (grid == preferredGrid) continue;
+                if (TryFindSlot(grid, item.Data, out var origin))
+                {
+                    SpawnItemViewFromItem(item, grid, origin);
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"[InventoryPopulator] No space for existing item: {item.Data.DisplayName}");
+        }
+
+        private void SpawnItemViewFromItem(InventoryItem item, InventoryGrid grid, Vector2Int origin)
+        {
+            InventoryItemView view = Instantiate(this.itemPrefab, grid.transform);
+            view.Initialize(item, origin, grid.CellSize);
+            view.SetOwnerGrid(grid);
+
+            var rt = view.GetComponent<RectTransform>();
+            rt.anchoredPosition = grid.CellToLocal(origin);
+
+            grid.PlaceItem(view);
+            view.RefreshQuantity();
+        }
+
+        // ── Internal ─────────────────────────────────────────────────────────
+
         private bool TryFindSlot(InventoryGrid grid, ItemData data, out Vector2Int origin)
         {
             int maxCol = grid.Columns - data.GridSize.x;
@@ -69,38 +109,49 @@ namespace CrimsonDraft.UI
             if (maxCol < 0 || maxRow < 0) { origin = default; return false; }
 
             for (int row = 0; row <= maxRow; row++)
-            {
                 for (int col = 0; col <= maxCol; col++)
                 {
                     var o = new Vector2Int(col, row);
                     if (grid.CanPlace(o, data.GridSize)) { origin = o; return true; }
                 }
-            }
+
             origin = default;
             return false;
         }
 
-        // ── Testing button ───────────────────────────────────────────────────
-
-        [Button]
-        public void SpawnItem()
+        private void SpawnItemView(ItemData itemData, InventoryGrid grid, Vector2Int origin)
         {
-            if (this.itemToAdd != null) TryPlaceItem(this.itemToAdd);
+            InventoryItem domainItem = itemData switch
+            {
+                WeaponData     wd => new WeaponItem(wd),
+                AmmoBoxData    ad => new AmmoBoxItem(ad, 0),
+                ConsumableData cd => new ConsumableItem(cd),
+                KeyItemData    kd => new KeyItem(kd),
+                SocketItemData sd => new SocketItem(sd),
+                _                => new InventoryItem(itemData)
+            };
+
+            InventoryItemView view = Instantiate(this.itemPrefab, grid.transform);
+            view.Initialize(domainItem, origin, grid.CellSize);
+            view.SetOwnerGrid(grid);
+
+            var rt = view.GetComponent<RectTransform>();
+            rt.anchoredPosition = grid.CellToLocal(origin);
+
+            grid.PlaceItem(view);
+            view.RefreshQuantity();
         }
 
-        // ── Internal ─────────────────────────────────────────────────────────
-
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         void TryPlaceItem(ItemData itemData)
         {
             var validGrids = new List<(InventoryGrid grid, Vector2Int origin)>();
 
-            for (int g = 0; g < gridGroup.Count; g++)
+            for (int g = 0; g < this.gridGroup.Count; g++)
             {
-                InventoryGrid grid = gridGroup.GetGrid(g);
-
+                InventoryGrid grid = this.gridGroup.GetGrid(g);
                 int maxCol = grid.Columns - itemData.GridSize.x;
                 int maxRow = grid.Rows    - itemData.GridSize.y;
-
                 if (maxCol < 0 || maxRow < 0) continue;
 
                 for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
@@ -127,29 +178,11 @@ namespace CrimsonDraft.UI
             SpawnItemView(itemData, chosenGrid, chosenOrigin);
         }
 
-        void SpawnItemView(ItemData itemData, InventoryGrid grid, Vector2Int origin)
+        [Button]
+        public void SpawnItem()
         {
-            Inventory.InventoryItem domainItem = itemData switch
-            {
-                Inventory.WeaponData     wd => new Inventory.WeaponItem(wd),
-                Inventory.AmmoBoxData    ad => new Inventory.AmmoBoxItem(ad, 0),
-                Inventory.ConsumableData cd => new Inventory.ConsumableItem(cd),
-                Inventory.KeyItemData    kd => new Inventory.KeyItem(kd),
-                Inventory.SocketItemData sd => new Inventory.SocketItem(sd),
-                _                          => new Inventory.InventoryItem(itemData)
-            };
-
-            InventoryItemView view = Instantiate(itemPrefab, grid.transform);
-            view.Initialize(domainItem, origin, grid.CellSize);
-            view.SetOwnerGrid(grid);
-
-            var rt = view.GetComponent<RectTransform>();
-            rt.anchoredPosition = grid.CellToLocal(origin);
-
-            grid.PlaceItem(view);
-            view.RefreshQuantity();
+            if (this.itemToAdd != null) TryPlaceItem(this.itemToAdd);
         }
+#endif
     }
 }
-
-#endif

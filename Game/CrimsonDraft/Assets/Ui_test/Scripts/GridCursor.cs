@@ -46,6 +46,7 @@ namespace CrimsonDraft.UI
         public event System.Action<InventoryItemView>?               OnCombineTargetConfirmed;
         public event System.Action<InventoryItemView, InventoryGrid>? OnItemMovedToNewGrid;
         public event System.Action?                                   OnCombineCancelled;
+        public event System.Action?                                   OnCloseRequested;
 
         // Grid state
         private int        currentGridIndex;
@@ -280,6 +281,8 @@ namespace CrimsonDraft.UI
 
         void OnCancel(InputAction.CallbackContext ctx)
         {
+            if (this.tabManager != null && this.tabManager.IsTabBarActive) return;
+
             if (this.IsCombineMode)
             {
                 this.IsCombineMode = false;
@@ -295,10 +298,19 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
+            {
+                this.inspectPanel.Close();
+                return;
+            }
+
             if (this.heldItem != null)
             {
                 TryPlace();
+                return;
             }
+
+            OnCloseRequested?.Invoke();
         }
 
         void OnPickup(InputAction.CallbackContext ctx)

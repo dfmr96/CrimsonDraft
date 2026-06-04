@@ -3,38 +3,31 @@
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
-using CrimsonDraft.Inventory;
-using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
 {
     public sealed class UiCRTScope : LifetimeScope
     {
-        [SerializeField] private CombineRecipeLibrary combineRecipeLibrary = null!;
-
         protected override void Configure(IContainerBuilder builder)
         {
-            builder.RegisterInstance(this.combineRecipeLibrary);
-            builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
-            builder.Register<InventoryService>(Lifetime.Singleton).As<IInventoryService>();
-            builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
+            // IInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
+            // are resolved from the parent NavigationScope — do NOT register them here.
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            builder.RegisterComponentInHierarchy<PartyTestHarness>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<InventoryPopulator>().AsImplementedInterfaces().AsSelf();
-#endif
 
             builder.RegisterComponentInHierarchy<GridCursor>();
             builder.RegisterComponentInHierarchy<ItemContextMenu>();
             builder.RegisterComponentInHierarchy<PartyPanelView>();
             builder.RegisterComponentInHierarchy<TabManager>();
             builder.RegisterComponentInHierarchy<InspectPanel>();
-            builder.RegisterComponentInHierarchy<InventorySceneInit>();
+            builder.RegisterComponentInHierarchy<InventoryGridGroup>();
+            builder.RegisterComponentInHierarchy<InventoryOpenCloseController>().AsImplementedInterfaces();
 
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<FilesTabController>();
 
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
+            builder.Register<InventorySceneInit>(Lifetime.Singleton);
         }
     }
 }

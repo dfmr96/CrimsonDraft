@@ -1,11 +1,8 @@
 #nullable enable
 
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
-using VContainer;
-using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
@@ -19,9 +16,6 @@ namespace CrimsonDraft.UI
 
         [Header("Audio")]
         [SerializeField] private InventorySoundManager sfx = null!;
-
-        [Inject] private IInputService inputService = null!;
-        private bool inputBound;
 
         private InventoryItemView? currentItem;
 
@@ -37,23 +31,6 @@ namespace CrimsonDraft.UI
             Hide();
         }
 
-        void Start() => OnEnable();
-
-        void OnEnable()
-        {
-            if (this.inputService == null || this.inputBound) return;
-            this.inputService.InventoryCancel.performed += OnCancelPressed;
-            this.inputBound = true;
-        }
-
-        void OnDisable()
-        {
-            if (!this.inputBound || this.inputService == null) return;
-            this.inputService.InventoryCancel.performed -= OnCancelPressed;
-            this.inputBound = false;
-        }
-
-        private void OnCancelPressed(InputAction.CallbackContext ctx) => Close();
 
         public void Open(InventoryItemView item)
         {
