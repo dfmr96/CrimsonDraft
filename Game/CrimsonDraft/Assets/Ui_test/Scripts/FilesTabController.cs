@@ -142,11 +142,6 @@ namespace CrimsonDraft.UI
 
         void MoveCarousel(Vector2Int dir)
         {
-            if (dir.y > 0)
-            {
-                this.tabManager.EnterTabBar();
-                return;
-            }
             if (dir.y < 0)
             {
                 if (this.filteredNotes.Length > 0)
@@ -230,7 +225,12 @@ namespace CrimsonDraft.UI
         void OnCancel(InputAction.CallbackContext _)
         {
             if (this.detailView.IsOpen)
+            {
                 this.detailView.Hide();
+                return;
+            }
+            if (!this.tabManager.IsTabBarActive)
+                this.tabManager.EnterTabBar();
         }
 
         // ── Focus / Highlights ────────────────────────────────────────────────

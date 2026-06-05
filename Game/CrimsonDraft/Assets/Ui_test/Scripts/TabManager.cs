@@ -35,6 +35,8 @@ namespace CrimsonDraft.UI
 
         private int  currentIndex;
         private bool tabBarActive;
+        private bool consumingTabInput;
+        private bool started;
         private int  focusedTabIndex;
         private bool holding;
         private Vector2Int lastDir;
@@ -44,8 +46,12 @@ namespace CrimsonDraft.UI
 
         void OnEnable()
         {
+            if (this.started)
+                ResetForOpen();
+
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirmTab;
+            this.inputService.InventoryCancel.performed  += OnCancelTab;
             this.inputBound = true;
         }
 
@@ -53,6 +59,7 @@ namespace CrimsonDraft.UI
         {
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirmTab;
+            this.inputService.InventoryCancel.performed  -= OnCancelTab;
             this.inputBound = false;
         }
 
@@ -67,26 +74,18 @@ namespace CrimsonDraft.UI
 
             RefreshIndicators();
             ClearTabBarFocus();
+            this.started = true;
             OnEnable();
         }
 
         void Update()
         {
+            this.consumingTabInput = false;
             Vector2Int dir = ReadDirection();
 
             if (!this.tabBarActive)
             {
-                // Files tab handles its own UP (calls EnterTabBar itself)
-                bool contentHandlesInput = this.filesTab != null && this.filesTab.isActiveAndEnabled;
-
-                if (!contentHandlesInput && this.currentIndex != 0 && dir.y > 0 && dir != this.lastDir)
-                {
-                    EnterTabBar();
-                    this.lastDir      = dir;
-                    this.holding      = true;
-                    this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
-                }
-                else if (dir == Vector2Int.zero)
+                if (dir == Vector2Int.zero)
                 {
                     this.holding = false;
                     this.lastDir = Vector2Int.zero;
@@ -135,9 +134,25 @@ namespace CrimsonDraft.UI
         void OnConfirmTab(InputAction.CallbackContext ctx)
         {
             if (!this.tabBarActive) return;
+            this.consumingTabInput = true;
             int idx = this.focusedTabIndex;
             ExitTabBar();
             ActivateTab(idx);
+        }
+
+        void OnCancelTab(InputAction.CallbackContext ctx)
+        {
+            if (this.tabBarActive)
+            {
+                this.gridCursor?.RequestClose();
+                return;
+            }
+
+            // Inventory and Files tabs handle B themselves; Map tab doesn't — enter tab bar for it
+            bool contentHandlesCancel = this.currentIndex == 0
+                                        || (this.filesTab != null && this.filesTab.isActiveAndEnabled);
+            if (!contentHandlesCancel)
+                EnterTabBar();
         }
 
         // ── Tab Bar ──────────────────────────────────────────────────────────
@@ -222,9 +237,37 @@ namespace CrimsonDraft.UI
 
         // ── Public ───────────────────────────────────────────────────────────
 
-        public bool   IsTabBarActive => this.tabBarActive;
-        public int    TabCount       => this.tabs.Length;
-        public int    CurrentIndex   => this.currentIndex;
-        public string CurrentName    => this.tabs[this.currentIndex].name;
+        public bool   IsTabBarActive      => this.tabBarActive;
+        public bool   IsConsumingTabInput => this.consumingTabInput;
+        public int    TabCount            => this.tabs.Length;
+        public int    CurrentIndex        => this.currentIndex;
+        public string CurrentName         => this.tabs[this.currentIndex].name;
+
+        public void ResetTabBar()
+        {
+            if (!this.tabBarActive) return;
+            this.tabBarActive = false;
+            ClearTabBarFocus();
+            if (this.currentIndex == 0)
+                this.gridCursor?.ShowSelectorAfterTabBar();
+            else if (this.filesTab != null && this.filesTab.isActiveAndEnabled)
+                this.filesTab.ShowSelectorAfterTabBar();
+        }
+
+        void ResetForOpen()
+        {
+            this.tabBarActive = false;
+            ClearTabBarFocus();
+
+            if (this.currentIndex != this.startingTab)
+            {
+                this.tabs[this.currentIndex].root.SetActive(false);
+                this.currentIndex = this.startingTab;
+                this.tabs[this.currentIndex].root.SetActive(true);
+                RefreshIndicators();
+            }
+
+            this.gridCursor?.ResetCursorToOrigin();
+        }
     }
 }
