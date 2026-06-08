@@ -213,6 +213,8 @@
         </div>
         <div class="opt-row"><span class="opt-label">Color</span></div>
         <div class="swatch-row" id="door-swatches"></div>
+        <div class="opt-row" id="ddoor-color-row" style="display:none"><span class="opt-label">Locked color</span></div>
+        <div class="swatch-row" id="ddoor-swatches" style="display:none"></div>
       </div>
 
       <!-- Opciones: Escalera -->
@@ -289,6 +291,31 @@
       </div>
 
     </div><!-- /tool-opts -->
+
+    <!-- Views panel -->
+    <div id="views-panel">
+      <div class="vp-header">
+        <span class="vp-title">Views</span>
+        <button id="btn-new-view" class="vp-add-btn" title="Save current state as new view">↓ New View</button>
+      </div>
+      <div id="views-list"></div>
+    </div>
+
+    <!-- Modes -->
+    <div id="view-mode-bar">
+      <div class="view-mode-label">Modes</div>
+      <div class="view-mode-btns">
+        <button class="view-mode-btn active" id="view-mode-normal" data-mode="normal" title="Normal">N</button>
+        <button class="view-mode-btn" id="view-mode-blueprint" data-mode="blueprint" title="Blueprint (grid on top)">B</button>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div id="action-bar">
+      <button class="act-btn" id="btn-rotate-90" title="Rotate everything 90°">↻90°</button>
+      <button class="act-btn" id="btn-snap-grid" title="Snap all objects to grid">Snap</button>
+      <button class="act-btn" id="exp-quick" title="Export PNG exactly as shown">Export</button>
+    </div>
   </div><!-- /editor-toolbar -->
 
     <!-- CANVAS AREA -->

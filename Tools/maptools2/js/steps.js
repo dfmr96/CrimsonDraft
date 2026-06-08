@@ -2,6 +2,7 @@ const Steps = (() => {
 
   let steps = [];
   let activeStepId = null;
+  let expandedSteps = new Set();
   let isActive = false;
   let mapContainer = null;
   let cwrap = null;
@@ -322,15 +323,18 @@ const Steps = (() => {
   }
 
   // ── Arrow Create Modal ──
+  let pendingChecks = [];
+
   function openArrowCreateModal(points) {
     closeArrowReadModal();
+    pendingChecks = [];
     let modal = document.getElementById('arrow-create-modal');
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'arrow-create-modal';
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:300';
       modal.innerHTML = `
-        <div class="pin-create-box">
+        <div class="pin-create-box" style="width:420px">
           <div class="pin-create-header">
             <span class="pin-create-title">New Arrow</span>
             <button class="pin-create-close" id="btn-arrow-create-close">&times;</button>
@@ -341,8 +345,16 @@ const Steps = (() => {
               <input type="text" id="arrow-number-input" placeholder="e.g. 1, 2, 3..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 11px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:var(--text);outline:none;transition:border-color .15s">
             </div>
             <div class="pin-field">
-              <label>Text</label>
-              <textarea id="arrow-text-input" placeholder="Description..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 11px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:var(--text);outline:none;resize:vertical;min-height:72px;transition:border-color .15s"></textarea>
+              <label>Checklist</label>
+              <div style="display:flex;gap:4px;margin-bottom:6px">
+                <input type="text" id="arrow-check-input" placeholder="Add item..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:var(--text);outline:none">
+                <button class="tbtn" id="btn-arrow-check-add" style="font-size:10px;padding:4px 8px">Add</button>
+              </div>
+              <div id="arrow-check-list" style="display:flex;flex-direction:column;gap:2px;max-height:140px;overflow-y:auto;margin-bottom:4px"></div>
+            </div>
+            <div class="pin-field">
+              <label>Description</label>
+              <textarea id="arrow-text-input" placeholder="Description..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 11px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:var(--text);outline:none;resize:vertical;min-height:60px;transition:border-color .15s"></textarea>
             </div>
           </div>
           <div class="pin-create-footer">
@@ -362,15 +374,54 @@ const Steps = (() => {
         if (e.key === 'Enter') { e.preventDefault(); confirmArrow(); }
         if (e.key === 'Escape') closeArrowCreateModal();
       });
+      document.getElementById('btn-arrow-check-add').addEventListener('click', addCheckItem);
+      document.getElementById('arrow-check-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addCheckItem(); }
+      });
     }
 
     editingArrowId = null;
     document.getElementById('arrow-number-input').value = '';
     document.getElementById('arrow-text-input').value = '';
     document.getElementById('arrow-number-input').focus();
+    renderCheckList();
     modal._pendingPoints = points;
     modal.classList.add('visible');
     modal.style.display = 'flex';
+  }
+
+  function addCheckItem() {
+    const input = document.getElementById('arrow-check-input');
+    const text = input.value.trim();
+    if (!text) return;
+    pendingChecks.push({ text, done: false });
+    input.value = '';
+    renderCheckList();
+    input.focus();
+  }
+
+  function renderCheckList() {
+    const container = document.getElementById('arrow-check-list');
+    if (!container) return;
+    container.innerHTML = '';
+    pendingChecks.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:3px;font-size:11px;font-family:\'IBM Plex Mono\',\'Courier New\',monospace;color:var(--text);background:rgba(255,255,255,.03)';
+      const icon = document.createElement('span');
+      icon.textContent = '○';
+      icon.style.cssText = 'font-size:12px;flex-shrink:0;opacity:.6';
+      const label = document.createElement('span');
+      label.textContent = item.text;
+      label.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const rm = document.createElement('button');
+      rm.textContent = '✕';
+      rm.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 2px';
+      rm.addEventListener('click', () => { pendingChecks.splice(i, 1); renderCheckList(); });
+      row.appendChild(icon);
+      row.appendChild(label);
+      row.appendChild(rm);
+      container.appendChild(row);
+    });
   }
 
   function closeArrowCreateModal() {
@@ -388,6 +439,7 @@ const Steps = (() => {
     const points = modal._pendingPoints;
     const number = document.getElementById('arrow-number-input').value.trim() || (steps.reduce((max, s) => Math.max(max, (s.arrows || []).reduce((m, a) => Math.max(m, parseInt(a.number) || 0), 0)), 0) + 1).toString();
     const text = document.getElementById('arrow-text-input').value.trim();
+    const checks = pendingChecks.filter(c => c.text.trim());
 
     const step = steps.find(s => s.id === activeStepId);
     if (!step) { closeArrowCreateModal(); return; }
@@ -397,6 +449,7 @@ const Steps = (() => {
       if (idx >= 0) {
         step.arrows[idx].number = number;
         step.arrows[idx].text = text;
+        step.arrows[idx].checks = checks;
       }
     } else {
       if (!step.arrows) step.arrows = [];
@@ -407,6 +460,7 @@ const Steps = (() => {
         number: number,
         text: text,
         color: RAINBOW[colorIdx],
+        checks: checks,
       });
     }
 
@@ -456,8 +510,52 @@ const Steps = (() => {
 
     panel._currentArrowId = id;
     document.getElementById('arrow-panel-title').textContent = 'Arrow #' + arrow.number;
-    document.getElementById('arrow-panel-text').textContent = arrow.text || '(no text)';
-    document.getElementById('arrow-panel-text').style.display = arrow.text ? '' : 'none';
+
+    const body = panel.querySelector('.arrow-panel-body');
+    body.innerHTML = '';
+
+    if (arrow.checks && arrow.checks.length) {
+      const checkSection = document.createElement('div');
+      checkSection.style.cssText = 'margin-bottom:12px;display:flex;flex-direction:column;gap:2px';
+      arrow.checks.forEach((c, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;cursor:pointer;font-size:11px;font-family:\'IBM Plex Mono\',\'Courier New\',monospace;color:var(--text);transition:background .1s';
+        row.addEventListener('mouseenter', () => row.style.background = 'rgba(255,255,255,.04)');
+        row.addEventListener('mouseleave', () => row.style.background = '');
+        const cb = document.createElement('span');
+        cb.textContent = c.done ? '☑' : '○';
+        cb.style.cssText = 'font-size:13px;flex-shrink:0;opacity:' + (c.done ? '1' : '.5');
+        const label = document.createElement('span');
+        label.textContent = c.text;
+        label.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:' + (c.done ? 'line-through' : 'none') + ';opacity:' + (c.done ? '.5' : '1');
+        row.appendChild(cb);
+        row.appendChild(label);
+        row.addEventListener('click', () => {
+          arrow.checks[i].done = !arrow.checks[i].done;
+          cb.textContent = arrow.checks[i].done ? '☑' : '○';
+          cb.style.opacity = arrow.checks[i].done ? '1' : '.5';
+          label.style.textDecoration = arrow.checks[i].done ? 'line-through' : 'none';
+          label.style.opacity = arrow.checks[i].done ? '.5' : '1';
+          App.markDirty();
+        });
+        checkSection.appendChild(row);
+      });
+      body.appendChild(checkSection);
+    }
+
+    if (arrow.checks && arrow.checks.length && arrow.text) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'height:1px;background:var(--sep);margin:8px 0';
+      body.appendChild(sep);
+    }
+
+    if (arrow.text) {
+      const textEl = document.createElement('p');
+      textEl.className = 'arrow-panel-text';
+      textEl.textContent = arrow.text;
+      body.appendChild(textEl);
+    }
+
     panel.style.display = 'flex';
   }
 
@@ -477,6 +575,8 @@ const Steps = (() => {
     if (!modal) return;
     document.getElementById('arrow-number-input').value = arrow.number;
     document.getElementById('arrow-text-input').value = arrow.text || '';
+    pendingChecks = (arrow.checks || []).map(c => ({ text: c.text, done: c.done }));
+    renderCheckList();
     modal._pendingPoints = arrow.points;
     modal.classList.add('visible');
     modal.style.display = 'flex';
@@ -511,19 +611,176 @@ const Steps = (() => {
 
     const list = document.getElementById('steps-list');
     if (list) {
+      let dragId = null;
       steps.forEach(step => {
-        const item = document.createElement('div');
-        item.className = 'step-item' + (step.id === activeStepId ? ' active' : '');
-        item.textContent = step.name;
-        item.dataset.id = step.id;
-        item.addEventListener('click', () => selectStep(step.id));
-        list.appendChild(item);
+        const wrap = document.createElement('div');
+        wrap.className = 'step-item-wrap' + (step.id === activeStepId ? ' active' : '');
+        wrap.dataset.id = step.id;
+        wrap.draggable = true;
+
+        const header = document.createElement('div');
+        header.className = 'step-item-header';
+
+        const toggle = document.createElement('span');
+        toggle.className = 'step-toggle';
+        toggle.textContent = '▸';
+
+        const titleInput = document.createElement('input');
+        titleInput.className = 'step-title-input';
+        titleInput.value = step.name;
+        titleInput.addEventListener('input', () => {
+          step.name = titleInput.value;
+          App.markDirty();
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'step-del-btn';
+        delBtn.textContent = '✕';
+        delBtn.title = 'Delete step';
+        delBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteStep(step.id);
+        });
+
+        header.appendChild(toggle);
+        header.appendChild(titleInput);
+        header.appendChild(delBtn);
+
+        toggle.addEventListener('click', e => {
+          e.stopPropagation();
+          const expanded = wrap.classList.toggle('expanded');
+          toggle.textContent = expanded ? '▾' : '▸';
+          if (expanded) expandedSteps.add(step.id); else expandedSteps.delete(step.id);
+        });
+
+        titleInput.addEventListener('click', e => {
+          e.stopPropagation();
+          selectStep(step.id, true);
+        });
+
+        // Drag and drop
+        wrap.addEventListener('dragstart', e => {
+          e.stopPropagation();
+          dragId = step.id;
+          wrap.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        wrap.addEventListener('dragend', e => {
+          e.stopPropagation();
+          wrap.classList.remove('dragging');
+          list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+          dragId = null;
+        });
+        wrap.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (step.id !== dragId) {
+            list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+            wrap.classList.add('drag-over');
+          }
+        });
+        wrap.addEventListener('dragleave', e => {
+          e.stopPropagation();
+          wrap.classList.remove('drag-over');
+        });
+        wrap.addEventListener('drop', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          list.querySelectorAll('.step-item-wrap').forEach(el => el.classList.remove('drag-over'));
+          if (!dragId || dragId === step.id) return;
+          const fromIdx = steps.findIndex(s => s.id === dragId);
+          const toIdx = steps.findIndex(s => s.id === step.id);
+          if (fromIdx < 0 || toIdx < 0) return;
+          const [moved] = steps.splice(fromIdx, 1);
+          const insertAt = fromIdx < toIdx ? toIdx : toIdx;
+          steps.splice(insertAt, 0, moved);
+          buildPanel();
+          App.markDirty();
+        });
+
+        const body = document.createElement('div');
+        body.className = 'step-dropdown';
+
+        const itemsList = document.createElement('div');
+        itemsList.className = 'step-items-list';
+        (step.items || []).forEach((itemData, i) => {
+          const row = document.createElement('div');
+          row.className = 'step-item-row';
+          const label = document.createElement('span');
+          label.textContent = itemData.text;
+          const rm = document.createElement('button');
+          rm.textContent = '✕';
+          rm.className = 'step-item-rm';
+          rm.addEventListener('click', e => {
+            e.stopPropagation();
+            step.items.splice(i, 1);
+            buildPanel();
+            App.markDirty();
+          });
+          row.appendChild(label);
+          row.appendChild(rm);
+          itemsList.appendChild(row);
+        });
+
+        const addRow = document.createElement('div');
+        addRow.className = 'step-item-add';
+        const addInput = document.createElement('input');
+        addInput.type = 'text';
+        addInput.placeholder = 'Add item...';
+        addInput.className = 'step-item-add-input';
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.className = 'step-item-add-btn';
+        addBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const text = addInput.value.trim();
+          if (!text) return;
+          if (!step.items) step.items = [];
+          step.items.push({ text });
+          buildPanel();
+          App.markDirty();
+        });
+        addInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+        });
+        addRow.appendChild(addInput);
+        addRow.appendChild(addBtn);
+
+        body.appendChild(itemsList);
+        body.appendChild(addRow);
+        wrap.appendChild(header);
+        wrap.appendChild(body);
+        list.appendChild(wrap);
       });
     }
+
+    document.querySelectorAll('.step-item-wrap').forEach(el => {
+      if (expandedSteps.has(el.dataset.id)) {
+        el.classList.add('expanded');
+        el.querySelector('.step-toggle').textContent = '▾';
+      }
+    });
 
     document.getElementById('btn-add-step')?.addEventListener('click', addStep);
     document.getElementById('btn-steps-select')?.addEventListener('click', () => setArrowTool(false));
     document.getElementById('btn-steps-arrow')?.addEventListener('click', () => setArrowTool(true));
+  }
+
+  function deleteStep(id) {
+    const step = steps.find(s => s.id === id);
+    if (!step) return;
+    if (!confirm('Delete "' + step.name + '" and all its arrows?')) return;
+    const idx = steps.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    if (steps[idx].id === activeStepId) {
+      activeStepId = null;
+    }
+    steps.splice(idx, 1);
+    if (!activeStepId && steps.length) activeStepId = steps[0].id;
+    buildPanel();
+    applyStepVisibility();
+    renderAllArrows();
+    App.markDirty();
   }
 
   function setArrowTool(active) {
@@ -543,6 +800,7 @@ const Steps = (() => {
       name: 'Step ' + (steps.length + 1),
       shownPinIds: [],
       arrows: [],
+      items: [],
     };
     steps.push(step);
     selectStep(step.id);
@@ -550,11 +808,17 @@ const Steps = (() => {
     App.markDirty();
   }
 
-  function selectStep(id) {
+  function selectStep(id, skipPanel) {
     activeStepId = id;
     applyStepVisibility();
     renderAllArrows();
-    buildPanel();
+    if (skipPanel) {
+      document.querySelectorAll('.step-item-wrap').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+      });
+    } else {
+      buildPanel();
+    }
   }
 
   function applyStepVisibility() {
@@ -643,14 +907,17 @@ const Steps = (() => {
     if (!data) { steps = []; activeStepId = null; return; }
     steps = data.steps || [];
     // Ensure each step has arrows array
-    steps.forEach(s => { if (!s.arrows) s.arrows = []; });
+    steps.forEach(s => {
+      if (!s.arrows) s.arrows = [];
+      if (!s.items) s.items = [];
+    });
     activeStepId = data.activeStepId || null;
   }
 
   return {
     init, activate, deactivate,
     addStep, selectStep, togglePinInStep, applyStepVisibility,
-    getData, loadData
+    getData, loadData, renderAllArrows
   };
 
 })();

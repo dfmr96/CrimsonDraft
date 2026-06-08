@@ -394,6 +394,7 @@ const MapRender = (() => {
   // opts.selectedId / opts.movingId: para highlight interactivo (editor)
   // opts.noShadow: true para render estático limpio (pinner, bundle)
   // opts.showGrid: boolean
+  // opts.viewMode: 'normal' | 'satellite' | 'blueprint'
   // Los parámetros sc/ox/oy son los del viewport actual del canvas.
   function renderToCanvas(canvas, editorData, opts) {
     const { objects=[], bgColor='#1e1e1e', gridColor='#2e2e2e' } = editorData;
@@ -402,7 +403,8 @@ const MapRender = (() => {
       showGrid=false,
       noShadow=false,
       selectedId=null,
-      movingId=null
+      movingId=null,
+      viewMode='normal'
     } = opts || {};
 
     const c   = canvas.getContext('2d');
@@ -414,7 +416,8 @@ const MapRender = (() => {
     c.fillStyle = bgColor;
     c.fillRect(0,0,w,h);
 
-    if (showGrid) drawGrid(c,w,h,sc,ox,oy,gridColor);
+    const gridBefore = viewMode !== 'blueprint';
+    if (showGrid && gridBefore) drawGrid(c,w,h,sc,ox,oy,gridColor);
 
     const sorted = [...objects].sort((a,b) => {
       const order = { floor:0, object:1, stair:2, line:3, door:4, ddoor:4, label:5 };
@@ -437,6 +440,10 @@ const MapRender = (() => {
     for (const obj of sorted) {
       if (obj.type === 'line' && (obj.id===selectedId || obj.id===movingId))
         drawObj(c, obj, sc, ox, oy, selectedId, movingId);
+    }
+
+    if (viewMode === 'blueprint' && showGrid) {
+      drawGrid(c,w,h,sc,ox,oy,'#6a8aff');
     }
   }
 

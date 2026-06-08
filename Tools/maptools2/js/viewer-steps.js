@@ -207,7 +207,24 @@ const ViewerSteps = (() => {
     panel.id = 'vstep-arrow-read';
     panel.style.cssText = 'position:fixed;top:48px;left:0;bottom:0;width:280px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200;box-shadow:4px 0 16px rgba(0,0,0,.5)';
 
-    const color = arrow.color || '#ff6b35';
+    let bodyHtml = '';
+    if (arrow.checks && arrow.checks.length) {
+      bodyHtml += '<div style="margin-bottom:12px;display:flex;flex-direction:column;gap:2px">';
+      arrow.checks.forEach(c => {
+        bodyHtml += '<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;font-size:11px;font-family:\'IBM Plex Mono\',\'Courier New\',monospace;color:var(--text)">'
+          + '<span style="font-size:13px;flex-shrink:0;opacity:' + (c.done ? '1' : '.5') + '">' + (c.done ? '☑' : '○') + '</span>'
+          + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:' + (c.done ? 'line-through' : 'none') + ';opacity:' + (c.done ? '.5' : '1') + '">' + c.text.replace(/</g,'&lt;') + '</span>'
+          + '</div>';
+      });
+      bodyHtml += '</div>';
+    }
+    if (arrow.checks && arrow.checks.length && arrow.text) {
+      bodyHtml += '<div style="height:1px;background:var(--sep);margin:8px 0"></div>';
+    }
+    if (arrow.text) {
+      bodyHtml += '<div style="font-family:\'IBM Plex Mono\',\'Courier New\',monospace;font-size:12px;color:var(--text-dim);line-height:1.75;white-space:pre-wrap">' + arrow.text.replace(/</g,'&lt;') + '</div>';
+    }
+
     panel.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--sep);flex-shrink:0">
         <span style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:13px;font-weight:700;color:var(--text)">
@@ -215,9 +232,7 @@ const ViewerSteps = (() => {
         </span>
         <button id="vstep-arrow-close" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:2px 4px">&times;</button>
       </div>
-      <div style="flex:1;overflow-y:auto;padding:16px">
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:var(--text-dim);line-height:1.75;white-space:pre-wrap">${arrow.text || ''}</div>
-      </div>`;
+      <div style="flex:1;overflow-y:auto;padding:16px">${bodyHtml}</div>`;
 
     document.body.appendChild(panel);
     arrowReadPanel = panel;
@@ -250,12 +265,50 @@ const ViewerSteps = (() => {
     const list = document.getElementById('vsteps-list');
     if (list) {
       steps.forEach(step => {
-        const item = document.createElement('div');
-        item.className = 'step-item' + (step.id === activeStepId ? ' active' : '');
-        item.textContent = step.name;
-        item.dataset.id = step.id;
-        item.addEventListener('click', () => selectStep(step.id));
-        list.appendChild(item);
+        const wrap = document.createElement('div');
+        wrap.className = 'step-item-wrap' + (step.id === activeStepId ? ' active' : '');
+        wrap.dataset.id = step.id;
+
+        const header = document.createElement('div');
+        header.className = 'step-item-header';
+
+        const toggle = document.createElement('span');
+        toggle.className = 'step-toggle';
+        toggle.textContent = '▸';
+
+        const title = document.createElement('span');
+        title.className = 'step-title-text';
+        title.textContent = step.name;
+
+        header.appendChild(toggle);
+        header.appendChild(title);
+
+        toggle.addEventListener('click', e => {
+          e.stopPropagation();
+          wrap.classList.toggle('expanded');
+          toggle.textContent = wrap.classList.contains('expanded') ? '▾' : '▸';
+        });
+
+        title.addEventListener('click', () => selectStep(step.id));
+
+        const body = document.createElement('div');
+        body.className = 'step-dropdown';
+
+        const itemsList = document.createElement('div');
+        itemsList.className = 'step-items-list';
+        (step.items || []).forEach(itemData => {
+          const row = document.createElement('div');
+          row.className = 'step-item-row';
+          const label = document.createElement('span');
+          label.textContent = itemData.text;
+          row.appendChild(label);
+          itemsList.appendChild(row);
+        });
+
+        body.appendChild(itemsList);
+        wrap.appendChild(header);
+        wrap.appendChild(body);
+        list.appendChild(wrap);
       });
     }
 
@@ -327,7 +380,10 @@ const ViewerSteps = (() => {
   function loadData(data) {
     if (!data) { steps = []; activeStepId = null; return; }
     steps = data.steps || [];
-    steps.forEach(s => { if (!s.arrows) s.arrows = []; });
+    steps.forEach(s => {
+      if (!s.arrows) s.arrows = [];
+      if (!s.items) s.items = [];
+    });
     activeStepId = data.activeStepId || null;
   }
 
