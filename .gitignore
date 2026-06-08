@@ -30,6 +30,9 @@ venv/
 .obsidian/workspace-mobile.json
 .obsidian/cache
 
+# ─── JetBrains (Rider) ────────────────────────────────────────────────────────
+.idea/
+
 # ─── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
@@ -57,11 +60,17 @@ WwiseUnityIntegration_*.zip
 # ─── Claude Code (local/machine-specific config) ──────────────────────────────
 # .mcp.json tiene paths de uvx específicos por máquina — cada dev genera el suyo
 # con Window → MCP for Unity → Configure All Detected Clients
-.claude/.mcp.json
-.claude/settings.local.json
+.mcp.json
+# Toda la carpeta .claude es local — commands, skills, settings son por dev
+.claude/
+# Agentes locales de Claude (configuración por máquina)
+.agents/
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 *.tmp
 *.log
 logRunSetup.txt
 .vscode/
+CLAUDE.md
+podrias-crearme-un-plan-velvet-creek.md
+skills-lock.json
