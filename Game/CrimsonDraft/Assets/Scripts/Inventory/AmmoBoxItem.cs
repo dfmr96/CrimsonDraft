@@ -1,5 +1,7 @@
 #nullable enable
 
+using UnityEngine;
+
 namespace CrimsonDraft.Inventory
 {
     public sealed class AmmoBoxItem : InventoryItem, IHasDisplayCount
@@ -9,7 +11,7 @@ namespace CrimsonDraft.Inventory
         public int DisplayCount => this.Quantity;
 
         public override void AddQuantity(int amount) =>
-            this.Quantity = System.Math.Clamp(this.Quantity + amount, 0, this.Data.MaxStack);
+            this.Quantity = Mathf.Clamp(this.Quantity + amount, 0, this.Data.MaxStack);
 
         public AmmoBoxItem(AmmoBoxData data, int quantity) : base(data)
         {

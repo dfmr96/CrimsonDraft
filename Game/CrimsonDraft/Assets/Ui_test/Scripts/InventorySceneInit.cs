@@ -40,12 +40,16 @@ namespace CrimsonDraft.UI
             this.synced = true;
 
             // Spawn a view for every item already in the service (loaded by InventoryBootstrap)
+            int slotsPerOperator = this.roster.Count > 0
+                ? this.inventoryService.SlotCount / this.roster.Count
+                : 4;
+
             for (int i = 0; i < this.inventoryService.SlotCount; i++)
             {
                 var slot = this.inventoryService.Slots[i];
                 if (slot.IsEmpty) continue;
 
-                int opIndex        = i / 4;
+                int opIndex        = i / slotsPerOperator;
                 InventoryGrid grid = this.gridGroup.GetGrid(opIndex);
                 this.itemSpawner.SpawnExisting(slot.Item!, grid);
             }

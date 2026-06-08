@@ -8,7 +8,7 @@ using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
-    public class InventoryOpenCloseController : MonoBehaviour, IInitializable, System.IDisposable
+    public sealed class InventoryOpenCloseController : MonoBehaviour, IInitializable, System.IDisposable
     {
         [SerializeField] private GameObject canvasRoot = null!;
 

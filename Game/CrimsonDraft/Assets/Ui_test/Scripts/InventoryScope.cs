@@ -6,7 +6,7 @@ using VContainer.Unity;
 
 namespace CrimsonDraft.UI
 {
-    public sealed class UiCRTScope : LifetimeScope
+    public sealed class InventoryScope : LifetimeScope
     {
         protected override void Configure(IContainerBuilder builder)
         {
