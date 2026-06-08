@@ -112,28 +112,42 @@ namespace CrimsonDraft.Inventory
 
         public void EquipWeapon(int slotIndex, int operatorSlot)
         {
-            var s = EnsureSlots();
-            // Unequip any weapon already on this operator
+            var s      = EnsureSlots();
+            var weapon = s[slotIndex].Item as WeaponItem;
+            if (weapon == null) return;
+
+            int targetWeaponSlot = (int)weapon.Data.WeaponSlot;
+
+            // Unequip only the weapon currently occupying that specific weapon slot
             for (int i = 0; i < s.Length; i++)
             {
-                if (s[i].Item?.EquippedBySlot == operatorSlot)
+                var item = s[i].Item;
+                if (item == null) continue;
+                if (item.EquippedBySlot == operatorSlot && item.EquippedWeaponSlot == targetWeaponSlot)
                 {
-                    s[i].Item!.EquippedBySlot = -1;
-                    this.roster[operatorSlot].SetEquippedWeapon(null);
+                    item.EquippedBySlot     = -1;
+                    item.EquippedWeaponSlot = -1;
+                    this.roster[operatorSlot].SetEquippedWeapon(null, targetWeaponSlot);
                     break;
                 }
             }
-            s[slotIndex].Item!.EquippedBySlot = operatorSlot;
-            this.roster[operatorSlot].SetEquippedWeapon(s[slotIndex].Item as IWeaponSlot);
+
+            weapon.EquippedBySlot     = operatorSlot;
+            weapon.EquippedWeaponSlot = targetWeaponSlot;
+            this.roster[operatorSlot].SetEquippedWeapon(weapon, targetWeaponSlot);
         }
 
         public void UnequipWeapon(int slotIndex)
         {
             var s    = EnsureSlots();
-            int slot = s[slotIndex].Item!.EquippedBySlot;
-            s[slotIndex].Item!.EquippedBySlot = -1;
-            if (slot >= 0)
-                this.roster[slot].SetEquippedWeapon(null);
+            var item = s[slotIndex].Item;
+            if (item == null) return;
+            int opSlot     = item.EquippedBySlot;
+            int weaponSlot = item.EquippedWeaponSlot;
+            item.EquippedBySlot     = -1;
+            item.EquippedWeaponSlot = -1;
+            if (opSlot >= 0)
+                this.roster[opSlot].SetEquippedWeapon(null, weaponSlot);
         }
 
         public int GetEquippedWeaponIndex(int operatorSlot)
@@ -149,7 +163,7 @@ namespace CrimsonDraft.Inventory
         {
             var s = EnsureSlots();
             if (s[slotIndex].Item is not AmmoBoxItem box) return false;
-            var weapon = this.roster[operatorSlot].EquippedWeapon;
+            var weapon = this.roster[operatorSlot].PrimaryWeapon;
             if (weapon == null) return false;
             if (weapon.Caliber != box.Data.Caliber) return false;
             return this.roster[operatorSlot].IsAlive && weapon.CurrentAmmo < weapon.MaxAmmo;
@@ -160,7 +174,7 @@ namespace CrimsonDraft.Inventory
             if (!CanReload(slotIndex, operatorSlot)) return;
             var s      = EnsureSlots();
             var box    = (AmmoBoxItem)s[slotIndex].Item!;
-            var weapon = this.roster[operatorSlot].EquippedWeapon!;
+            var weapon = this.roster[operatorSlot].PrimaryWeapon!;
             int needed = weapon.MaxAmmo - weapon.CurrentAmmo;
             int rounds = needed < box.Quantity ? needed : box.Quantity;
             weapon.SetAmmo(weapon.CurrentAmmo + rounds);

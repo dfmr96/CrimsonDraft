@@ -30,10 +30,18 @@ namespace CrimsonDraft.Infrastructure.Input
 
         InputAction DoorTransitionSkip { get; }
 
+        InputAction InventoryNavigate { get; }
+        InputAction InventoryConfirm  { get; }
+        InputAction InventoryPickup   { get; }
+        InputAction InventoryCancel   { get; }
+        InputAction InventoryNextTab  { get; }
+        InputAction InventoryPrevTab  { get; }
+
         void SwitchToGameplay();
         void SwitchToCombat();
         void SwitchToUI();
         void SwitchToDialogue();
         void SwitchToDoorTransition();
+        void SwitchToInventory();
     }
 }

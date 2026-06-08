@@ -34,12 +34,8 @@ namespace CrimsonDraft.Navigation
             builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
-            builder.RegisterComponentInHierarchy<InventoryView>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
-            builder.Register<InventoryController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
-            builder.RegisterComponentInHierarchy<PlaceholderOverlayView>();
-            builder.Register<PlaceholderOverlayController>(Lifetime.Scoped).AsImplementedInterfaces();
 
             foreach (var trigger in FindObjectsByType<CombatTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(trigger);

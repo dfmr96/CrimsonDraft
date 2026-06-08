@@ -66,7 +66,7 @@ MonoBehaviour:
     ParentPath: SoundBanks\Default Work Unit
     guid: 6a85ab7beff5964eac5d623dbe04c55d
     GuidInternal: 
-    m_lastTime: -8584241921078804741
+    m_lastTime: -8584212300867604153
     List:
     - name: SB_Player
       guid: 79c6b5623f4db843b824ad086dfc7ffe
@@ -82,6 +82,20 @@ MonoBehaviour:
         ObjectType: 7
         guid: 79c6b5623f4db843b824ad086dfc7ffe
       Path: SoundBanks\Default Work Unit\SB_Player
+    - name: SB_Ui
+      guid: 68c5d5206b6a6045a9398e6917a81eeb
+      id: 289583631
+      PathAndIcons:
+      - ElementName: SoundBanks
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 6a85ab7beff5964eac5d623dbe04c55d
+      - ElementName: SB_Ui
+        ObjectType: 7
+        guid: 68c5d5206b6a6045a9398e6917a81eeb
+      Path: SoundBanks\Default Work Unit\SB_Ui
   EventWwu:
   - PhysicalPath: Events\Default Work Unit.wwu
     PathAndIcons:
@@ -94,8 +108,25 @@ MonoBehaviour:
     ParentPath: Events\Default Work Unit
     guid: 7a75bc28b39148448c6b53fec396eab2
     GuidInternal: 
-    m_lastTime: -8584241921111162113
+    m_lastTime: -8584212310089398812
     List:
+    - name: Inventory
+      guid: c960038a0f26c4499223264f0f4a4a5d
+      id: 203281819
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      Path: Events\Default Work Unit\Inventory
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
     - name: Play_Footstep_Run
       guid: dc15652ab471734796556de5236812e8
       id: 1276431738
@@ -130,6 +161,306 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0.826708
       minDuration: 0
+    - name: Play_Inventory_CursorMove
+      guid: e73f4ed87c126a4c8da285131d1d87af
+      id: 3728743532
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_CursorMove
+        ObjectType: 3
+        guid: e73f4ed87c126a4c8da285131d1d87af
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_CursorMove
+      maxAttenuation: 0
+      maxDuration: 0.072917
+      minDuration: 0.072917
+    - name: Play_Inventory_CursorOnItem
+      guid: 8ac115d5e4272f448f434d6e51f7ef3d
+      id: 2114817301
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_CursorOnItem
+        ObjectType: 3
+        guid: 8ac115d5e4272f448f434d6e51f7ef3d
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_CursorOnItem
+      maxAttenuation: 0
+      maxDuration: 0.098958
+      minDuration: 0.098958
+    - name: Play_Inventory_InspectClose
+      guid: 5d0ba23eabb3fa43abe5ef4c7c3e5fc3
+      id: 2834100837
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_InspectClose
+        ObjectType: 3
+        guid: 5d0ba23eabb3fa43abe5ef4c7c3e5fc3
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_InspectClose
+      maxAttenuation: 0
+      maxDuration: 0.171875
+      minDuration: 0.171875
+    - name: Play_Inventory_InspectOpen
+      guid: bca7e968b3c3fe42bfc22ab1d15b275f
+      id: 4110132079
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_InspectOpen
+        ObjectType: 3
+        guid: bca7e968b3c3fe42bfc22ab1d15b275f
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_InspectOpen
+      maxAttenuation: 0
+      maxDuration: 0.171875
+      minDuration: 0.171875
+    - name: Play_Inventory_ItemMove
+      guid: b8944bfff93b6a4da9af37a09c2c3003
+      id: 1950030655
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemMove
+        ObjectType: 3
+        guid: b8944bfff93b6a4da9af37a09c2c3003
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemMove
+      maxAttenuation: 0
+      maxDuration: 0.098958
+      minDuration: 0.098958
+    - name: Play_Inventory_ItemPickup
+      guid: baf497f8820b704b8b9cab6d791e49c7
+      id: 2794748052
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemPickup
+        ObjectType: 3
+        guid: baf497f8820b704b8b9cab6d791e49c7
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemPickup
+      maxAttenuation: 0
+      maxDuration: 0.177083
+      minDuration: 0.177083
+    - name: Play_Inventory_ItemPlace
+      guid: 6bec598ba9cb0840a11f3048cb77fc4f
+      id: 2196569537
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemPlace
+        ObjectType: 3
+        guid: 6bec598ba9cb0840a11f3048cb77fc4f
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemPlace
+      maxAttenuation: 0
+      maxDuration: 0.145833
+      minDuration: 0.145833
+    - name: Play_Inventory_ItemPlaceInvalid
+      guid: b6dee8aa200ee447bd82635229beab16
+      id: 355116534
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemPlaceInvalid
+        ObjectType: 3
+        guid: b6dee8aa200ee447bd82635229beab16
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemPlaceInvalid
+      maxAttenuation: 0
+      maxDuration: 0.098958
+      minDuration: 0.098958
+    - name: Play_Inventory_ItemRotate
+      guid: e12ac19a963d2c4cbcbec43a5770670d
+      id: 367590565
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemRotate
+        ObjectType: 3
+        guid: e12ac19a963d2c4cbcbec43a5770670d
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemRotate
+      maxAttenuation: 0
+      maxDuration: 0.046875
+      minDuration: 0.046875
+    - name: Play_Inventory_ItemSwap
+      guid: 758cb0342e362744b5860cb0c52dce96
+      id: 282300529
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_ItemSwap
+        ObjectType: 3
+        guid: 758cb0342e362744b5860cb0c52dce96
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_ItemSwap
+      maxAttenuation: 0
+      maxDuration: 0.115011
+      minDuration: 0.115011
+    - name: Play_Inventory_MenuCancel
+      guid: c0a3fddfc6c569458a7f4e7c2bf1d997
+      id: 1942711238
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_MenuCancel
+        ObjectType: 3
+        guid: c0a3fddfc6c569458a7f4e7c2bf1d997
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_MenuCancel
+      maxAttenuation: 0
+      maxDuration: 0.171875
+      minDuration: 0.171875
+    - name: Play_Inventory_MenuConfirm
+      guid: 897377982c28ca4ba37203b5c8885941
+      id: 2517168840
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_MenuConfirm
+        ObjectType: 3
+        guid: 897377982c28ca4ba37203b5c8885941
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_MenuConfirm
+      maxAttenuation: 0
+      maxDuration: 0.296875
+      minDuration: 0.296875
+    - name: Play_Inventory_MenuNavigate
+      guid: 1a6f27bd85fcce478eb94c9377fb0c8c
+      id: 2494706745
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_MenuNavigate
+        ObjectType: 3
+        guid: 1a6f27bd85fcce478eb94c9377fb0c8c
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_MenuNavigate
+      maxAttenuation: 0
+      maxDuration: 0.067708
+      minDuration: 0.067708
+    - name: Play_Inventory_MenuOpen
+      guid: 5e86e7e94f99fe4195ed6eb1d66783da
+      id: 2531565792
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_MenuOpen
+        ObjectType: 3
+        guid: 5e86e7e94f99fe4195ed6eb1d66783da
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_MenuOpen
+      maxAttenuation: 0
+      maxDuration: 0.171875
+      minDuration: 0.171875
+    - name: Play_Inventory_TabSwitch
+      guid: 3a99d999348ac5498f4de5df4fb8d0c0
+      id: 1673172946
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 7a75bc28b39148448c6b53fec396eab2
+      - ElementName: Inventory
+        ObjectType: 4
+        guid: c960038a0f26c4499223264f0f4a4a5d
+      - ElementName: Play_Inventory_TabSwitch
+        ObjectType: 3
+        guid: 3a99d999348ac5498f4de5df4fb8d0c0
+      Path: Events\Default Work Unit\Inventory\Play_Inventory_TabSwitch
+      maxAttenuation: 0
+      maxDuration: 0.229167
+      minDuration: 0.229167
   RtpcWwu:
   - PhysicalPath: Game Parameters\Default Work Unit.wwu
     PathAndIcons:
@@ -269,7 +600,7 @@ MonoBehaviour:
     m_lastTime: -8584241921078249982
     List: []
   ExpandedFileSystemItemIds: 
-  ExpandedWaapiItemIds: 010000000300000004000000050000000600000007000000090000000a0000000c0000000d0000000e0000000f000000100000001100000015000000
+  ExpandedWaapiItemIds: 01000000030000000400000005000000060000000700000008000000090000000a0000000c0000000d0000000e0000000f000000100000001100000015000000
   AutoSyncSelection: 1
   autoPopulateEnabled: 1
   currentDataSource: 0
