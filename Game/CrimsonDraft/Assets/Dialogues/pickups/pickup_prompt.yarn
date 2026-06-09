@@ -1,0 +1,17 @@
+title: pickup_prompt
+---
+<<declare $pickup_success = true as bool>>
+Pick up [item]{$item_name}[/item]?
+-> Yes
+    <<try_pickup>>
+    <<jump pickup_result>>
+-> No
+===
+
+title: pickup_result
+---
+<<if !$pickup_success>>
+No hay espacio para [item]{$item_name}[/item].
+-> Ok
+<<endif>>
+===
