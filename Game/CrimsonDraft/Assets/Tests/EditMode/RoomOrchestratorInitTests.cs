@@ -104,6 +104,8 @@ namespace CrimsonDraft.Tests
             public InputAction DialogueAdvanceLine    => null!;
             public InputAction DialogueCancelDialogue => null!;
             public InputAction DoorTransitionSkip     => null!;
+            public InputAction PickupNavigate         => null!;
+            public InputAction PickupConfirm          => null!;
             public InputAction InventoryNavigate      => null!;
             public InputAction InventoryConfirm       => null!;
             public InputAction InventoryPickup        => null!;
@@ -114,7 +116,8 @@ namespace CrimsonDraft.Tests
             public void SwitchToCombat()         { }
             public void SwitchToUI()             { }
             public void SwitchToDialogue()       { }
-            public void SwitchToDoorTransition() { }
+            public void SwitchToDoorTransition()  { }
+            public void SwitchToPickupPrompt()   { }
             public void SwitchToInventory()      { }
             public void Dispose()                { }
         }

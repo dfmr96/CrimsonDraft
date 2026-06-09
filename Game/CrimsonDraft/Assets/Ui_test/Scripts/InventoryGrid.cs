@@ -70,6 +70,8 @@ namespace CrimsonDraft.UI
         // Check if a rect of itemSize starting at origin fits and is unoccupied.
         public bool CanPlace(Vector2Int origin, Vector2Int itemSize)
         {
+            // itemGrid may be null if Awake hasn't run yet (inactive GameObject)
+            itemGrid ??= new InventoryItemView[columns, rows];
             for (int c = origin.x; c < origin.x + itemSize.x; c++)
                 for (int r = origin.y; r < origin.y + itemSize.y; r++)
                 {

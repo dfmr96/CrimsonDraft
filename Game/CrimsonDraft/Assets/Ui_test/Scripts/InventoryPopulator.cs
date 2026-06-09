@@ -38,6 +38,9 @@ namespace CrimsonDraft.UI
 
         public bool HasSpace(ItemData data)
         {
+            if (data.Stackable && HasPartialStack(data))
+                return true;
+
             for (int g = 0; g < this.gridGroup.Count; g++)
                 if (TryFindSlot(this.gridGroup.GetGrid(g), data, out _)) return true;
             return false;
@@ -45,6 +48,17 @@ namespace CrimsonDraft.UI
 
         public void Spawn(ItemData data, InventoryGrid? preferredGrid = null)
         {
+            if (data is AmmoBoxData ammoData)
+            {
+                int remaining = ammoData.DefaultQuantity;
+                StackOntoExisting(ammoData, ref remaining);
+
+                if (remaining <= 0) return;
+
+                SpawnAmmoView(ammoData, remaining, preferredGrid);
+                return;
+            }
+
             if (preferredGrid != null && TryFindSlot(preferredGrid, data, out var preferred))
             {
                 SpawnItemView(data, preferredGrid, preferred);
@@ -101,6 +115,68 @@ namespace CrimsonDraft.UI
         }
 
         // ── Internal ─────────────────────────────────────────────────────────
+
+        private bool HasPartialStack(ItemData data)
+        {
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                var views = this.gridGroup.GetGrid(g).GetComponentsInChildren<InventoryItemView>();
+                foreach (var view in views)
+                {
+                    if (view.BoundItem is AmmoBoxItem box
+                        && box.Data.ItemId == data.ItemId
+                        && box.Quantity < data.MaxStack)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private void StackOntoExisting(AmmoBoxData data, ref int remaining)
+        {
+            for (int g = 0; g < this.gridGroup.Count && remaining > 0; g++)
+            {
+                var views = this.gridGroup.GetGrid(g).GetComponentsInChildren<InventoryItemView>();
+                foreach (var view in views)
+                {
+                    if (remaining <= 0) break;
+                    if (view.BoundItem is not AmmoBoxItem box) continue;
+                    if (box.Data.ItemId != data.ItemId) continue;
+
+                    int space = data.MaxStack - box.Quantity;
+                    if (space <= 0) continue;
+
+                    int toAdd = Mathf.Min(remaining, space);
+                    box.AddQuantity(toAdd);
+                    view.RefreshQuantity();
+                    remaining -= toAdd;
+                }
+            }
+        }
+
+        private void SpawnAmmoView(AmmoBoxData data, int quantity, InventoryGrid? preferredGrid)
+        {
+            var item = new AmmoBoxItem(data, quantity);
+
+            if (preferredGrid != null && TryFindSlot(preferredGrid, data, out var preferred))
+            {
+                SpawnItemViewFromItem(item, preferredGrid, preferred);
+                return;
+            }
+
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                InventoryGrid grid = this.gridGroup.GetGrid(g);
+                if (grid == preferredGrid) continue;
+                if (TryFindSlot(grid, data, out var origin))
+                {
+                    SpawnItemViewFromItem(item, grid, origin);
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"[InventoryPopulator] No space for overflow: {data.DisplayName} x{quantity}");
+        }
 
         private bool TryFindSlot(InventoryGrid grid, ItemData data, out Vector2Int origin)
         {

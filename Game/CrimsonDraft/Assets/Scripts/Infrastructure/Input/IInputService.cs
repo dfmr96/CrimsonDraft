@@ -30,6 +30,9 @@ namespace CrimsonDraft.Infrastructure.Input
 
         InputAction DoorTransitionSkip { get; }
 
+        InputAction PickupNavigate { get; }
+        InputAction PickupConfirm  { get; }
+
         InputAction InventoryNavigate { get; }
         InputAction InventoryConfirm  { get; }
         InputAction InventoryPickup   { get; }
@@ -42,6 +45,7 @@ namespace CrimsonDraft.Infrastructure.Input
         void SwitchToUI();
         void SwitchToDialogue();
         void SwitchToDoorTransition();
+        void SwitchToPickupPrompt();
         void SwitchToInventory();
     }
 }
