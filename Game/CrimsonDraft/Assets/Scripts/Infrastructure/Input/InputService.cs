@@ -14,6 +14,7 @@ namespace CrimsonDraft.Infrastructure.Input
         private const string UIMapName             = "UI";
         private const string DialogueMapName       = "Dialogue";
         private const string DoorTransitionMapName = "DoorTransition";
+        private const string PickupPromptMapName   = "PickupPrompt";
         private const string InventoryMapName      = "Inventory";
 
         private const string NavigateAction = "Navigate";
@@ -27,6 +28,7 @@ namespace CrimsonDraft.Infrastructure.Input
         private readonly InputActionMap uiMap;
         private readonly InputActionMap dialogueMap;
         private readonly InputActionMap doorTransitionMap;
+        private readonly InputActionMap pickupPromptMap;
         private readonly InputActionMap inventoryMap;
 
         public InputAction Move { get; }
@@ -51,6 +53,9 @@ namespace CrimsonDraft.Infrastructure.Input
 
         public InputAction DoorTransitionSkip { get; }
 
+        public InputAction PickupNavigate { get; }
+        public InputAction PickupConfirm  { get; }
+
         public InputAction InventoryNavigate { get; }
         public InputAction InventoryConfirm  { get; }
         public InputAction InventoryPickup   { get; }
@@ -67,6 +72,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap              = asset.FindActionMap(UIMapName,             throwIfNotFound: true);
             this.dialogueMap        = asset.FindActionMap(DialogueMapName,       throwIfNotFound: true);
             this.doorTransitionMap  = asset.FindActionMap(DoorTransitionMapName, throwIfNotFound: true);
+            this.pickupPromptMap    = asset.FindActionMap(PickupPromptMapName,   throwIfNotFound: true);
             this.inventoryMap       = asset.FindActionMap(InventoryMapName,      throwIfNotFound: true);
 
             Move          = this.gameplayMap[nameof(Move)];
@@ -91,6 +97,9 @@ namespace CrimsonDraft.Infrastructure.Input
             DialogueCancelDialogue = this.dialogueMap["CancelDialogue"];
 
             DoorTransitionSkip = this.doorTransitionMap["Skip"];
+
+            PickupNavigate = this.pickupPromptMap["Navigate"];
+            PickupConfirm  = this.pickupPromptMap["Confirm"];
 
             InventoryNavigate = this.inventoryMap["Navigate"];
             InventoryConfirm  = this.inventoryMap["Confirm"];
@@ -132,6 +141,12 @@ namespace CrimsonDraft.Infrastructure.Input
             this.doorTransitionMap.Enable();
         }
 
+        public void SwitchToPickupPrompt()
+        {
+            DisableAll();
+            this.pickupPromptMap.Enable();
+        }
+
         public void SwitchToInventory()
         {
             DisableAll();
@@ -151,6 +166,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap.Disable();
             this.dialogueMap.Disable();
             this.doorTransitionMap.Disable();
+            this.pickupPromptMap.Disable();
             this.inventoryMap.Disable();
         }
     }
