@@ -14,6 +14,7 @@ namespace CrimsonDraft.Operators
         public int            Hp              { get; private set; }
         public IWeaponSlot?   PrimaryWeapon   { get; private set; }
         public IWeaponSlot?   SecondaryWeapon { get; private set; }
+        public IWeaponSlot?   ActiveWeapon    => this.PrimaryWeapon ?? this.SecondaryWeapon;
         public float          HpRatio         => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
         public bool           IsAlive        => this.IsPresent && this.Hp > 0;
 

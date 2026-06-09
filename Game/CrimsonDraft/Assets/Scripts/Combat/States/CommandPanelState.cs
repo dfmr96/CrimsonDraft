@@ -97,7 +97,7 @@ namespace CrimsonDraft.Combat
         {
             int op = this.context.SelectedOperator;
             if (this.roster.Count <= op) return CombatMenuController.MaxShotCount;
-            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].PrimaryWeapon?.CurrentAmmo ?? 0);
+            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].ActiveWeapon?.CurrentAmmo ?? 0);
         }
 
         private static SubPanelItem[] GetItemsFor(CombatCommand command) => command switch

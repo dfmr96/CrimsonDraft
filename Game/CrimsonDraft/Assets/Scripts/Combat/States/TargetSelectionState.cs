@@ -57,7 +57,7 @@ namespace CrimsonDraft.Combat
             this.context.CurrentTargetSlot = this.occupiedSlots.Length > 0
                 ? this.occupiedSlots[this.cursor] : -1;
             int op = this.context.SelectedOperator;
-            WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].PrimaryWeapon as WeaponItem)?.Data : null;
+            WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
             this.aimView.ConfigureWeapon(weaponData);
             this.aimView.ConfigureHitMask(
                 this.context.CurrentTargetSlot >= 0

@@ -239,7 +239,7 @@ namespace CrimsonDraft.Combat
             {
                 case PendingActionType.Reload:
                     this.inventory.ReloadOperator(head.AmmoBoxIndex, head.SlotIndex);
-                    var weapon = this.roster.Count > head.SlotIndex ? this.roster[head.SlotIndex].PrimaryWeapon : null;
+                    var weapon = this.roster.Count > head.SlotIndex ? this.roster[head.SlotIndex].ActiveWeapon : null;
                     this.menuView.SetOperatorAmmo(head.SlotIndex, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
                     SetAnimationLock(this.operatorActionDurationSec);
                     break;

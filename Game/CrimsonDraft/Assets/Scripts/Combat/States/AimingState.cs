@@ -77,7 +77,7 @@ namespace CrimsonDraft.Combat
             int op = this.context.SelectedOperator;
             if (this.roster.Count > op)
             {
-                var weapon = this.roster[op].PrimaryWeapon;
+                var weapon = this.roster[op].ActiveWeapon;
                 if (weapon != null)
                     weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
             }

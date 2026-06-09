@@ -43,6 +43,8 @@ namespace CrimsonDraft.Navigation
                         && this.inventory.Slots[i].Item!.EquippedBySlot < 0)
                     {
                         this.inventory.EquipWeapon(i, slot);
+                        if (this.inventory.Slots[i].Item is WeaponItem w)
+                            w.SetAmmo(w.MaxAmmo);
                         break;
                     }
                 }

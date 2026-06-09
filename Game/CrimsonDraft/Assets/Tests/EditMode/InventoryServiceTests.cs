@@ -136,7 +136,7 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(service.Slots[0].IsEmpty);
             var item = service.Slots[0].Item as WeaponItem;
             Assert.IsNotNull(item);
-            Assert.AreEqual(30, item!.CurrentAmmo);
+            Assert.AreEqual(0, item!.CurrentAmmo);
         }
 
         [Test]

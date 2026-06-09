@@ -163,7 +163,7 @@ namespace CrimsonDraft.Inventory
         {
             var s = EnsureSlots();
             if (s[slotIndex].Item is not AmmoBoxItem box) return false;
-            var weapon = this.roster[operatorSlot].PrimaryWeapon;
+            var weapon = this.roster[operatorSlot].ActiveWeapon;
             if (weapon == null) return false;
             if (weapon.Caliber != box.Data.Caliber) return false;
             return this.roster[operatorSlot].IsAlive && weapon.CurrentAmmo < weapon.MaxAmmo;
