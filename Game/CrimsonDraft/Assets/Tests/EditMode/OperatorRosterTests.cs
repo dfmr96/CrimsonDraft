@@ -99,32 +99,32 @@ namespace CrimsonDraft.Tests
         public void SetEquippedWeapon_updatesEquippedWeapon()
         {
             var op = MakePresent(0);
-            Assert.IsNull(op.EquippedWeapon);
+            Assert.IsNull(op.PrimaryWeapon);
 
-            var fakeWeapon = new FakeWeaponSlot("9mm", 15, 15);
+            var fakeWeapon = new FakeWeaponSlot(Caliber._9mm, 15, 15);
             op.SetEquippedWeapon(fakeWeapon);
 
-            Assert.AreEqual(fakeWeapon, op.EquippedWeapon);
-            Assert.AreEqual(15, op.EquippedWeapon!.CurrentAmmo);
+            Assert.AreEqual(fakeWeapon, op.PrimaryWeapon);
+            Assert.AreEqual(15, op.PrimaryWeapon!.CurrentAmmo);
         }
 
         [Test]
         public void SetEquippedWeapon_null_clearsWeapon()
         {
             var op = MakePresent(0);
-            op.SetEquippedWeapon(new FakeWeaponSlot("9mm", 15, 15));
+            op.SetEquippedWeapon(new FakeWeaponSlot(Caliber._9mm, 15, 15));
             op.SetEquippedWeapon(null);
 
-            Assert.IsNull(op.EquippedWeapon);
+            Assert.IsNull(op.PrimaryWeapon);
         }
 
         private sealed class FakeWeaponSlot : IWeaponSlot
         {
-            public string Caliber     { get; }
-            public int    CurrentAmmo { get; private set; }
-            public int    MaxAmmo     { get; }
+            public Caliber Caliber    { get; }
+            public int     CurrentAmmo { get; private set; }
+            public int     MaxAmmo     { get; }
 
-            internal FakeWeaponSlot(string caliber, int currentAmmo, int maxAmmo)
+            internal FakeWeaponSlot(Caliber caliber, int currentAmmo, int maxAmmo)
             {
                 this.Caliber     = caliber;
                 this.CurrentAmmo = currentAmmo;

@@ -58,7 +58,7 @@ namespace CrimsonDraft.Combat
             if (enemies.Length == 0)
             {
                 int op = this.context.SelectedOperator;
-                WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].EquippedWeapon as WeaponItem)?.Data : null;
+                WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
                 this.aimView.ConfigureWeapon(weaponData);
                 this.aimView.ConfigureHitMask(null);
                 this.aimView.SetShotCount(this.context.SelectedShotCount);
@@ -79,7 +79,7 @@ namespace CrimsonDraft.Combat
         {
             int op = this.context.SelectedOperator;
             if (this.roster.Count <= op) return CombatMenuController.MaxShotCount;
-            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].EquippedWeapon?.CurrentAmmo ?? 0);
+            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].ActiveWeapon?.CurrentAmmo ?? 0);
         }
     }
 }

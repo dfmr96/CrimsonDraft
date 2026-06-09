@@ -67,7 +67,7 @@ namespace CrimsonDraft.Navigation.UI
 
         private void RefreshEquippedWeapon()
         {
-            var weapon = this.cachedOp?.EquippedWeapon as WeaponItem;
+            var weapon = this.cachedOp?.ActiveWeapon as WeaponItem;
             this.equippedWeaponRoot.SetActive(weapon != null);
             if (weapon == null) return;
 

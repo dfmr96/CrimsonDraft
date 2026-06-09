@@ -28,7 +28,9 @@ namespace CrimsonDraft.Inventory
         /// <summary>Swaps the full contents of fromSlot and toSlot.</summary>
         void MoveItem(int fromSlot, int toSlot);
 
-        /// <summary>Equips the weapon at slotIndex to operatorSlot. Unequips any previous weapon on that operator.</summary>
+        /// <summary>Equips the weapon at slotIndex to operatorSlot.
+        /// The target weapon slot (Primary/Secondary) is derived from WeaponData.WeaponSlot.
+        /// Only the weapon already occupying that specific slot is replaced; the other slot is untouched.</summary>
         void EquipWeapon(int slotIndex, int operatorSlot);
 
         /// <summary>Unequips the weapon at slotIndex. No-op if not equipped.</summary>

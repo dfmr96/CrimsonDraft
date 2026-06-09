@@ -14,6 +14,7 @@ namespace CrimsonDraft.Infrastructure.Input
         private const string UIMapName             = "UI";
         private const string DialogueMapName       = "Dialogue";
         private const string DoorTransitionMapName = "DoorTransition";
+        private const string InventoryMapName      = "Inventory";
 
         private const string NavigateAction = "Navigate";
         private const string ConfirmAction  = "Confirm";
@@ -26,6 +27,7 @@ namespace CrimsonDraft.Infrastructure.Input
         private readonly InputActionMap uiMap;
         private readonly InputActionMap dialogueMap;
         private readonly InputActionMap doorTransitionMap;
+        private readonly InputActionMap inventoryMap;
 
         public InputAction Move { get; }
         public InputAction Interact { get; }
@@ -49,6 +51,13 @@ namespace CrimsonDraft.Infrastructure.Input
 
         public InputAction DoorTransitionSkip { get; }
 
+        public InputAction InventoryNavigate { get; }
+        public InputAction InventoryConfirm  { get; }
+        public InputAction InventoryPickup   { get; }
+        public InputAction InventoryCancel   { get; }
+        public InputAction InventoryNextTab  { get; }
+        public InputAction InventoryPrevTab  { get; }
+
         [Preserve]
         public InputService(InputActionAsset asset)
         {
@@ -58,6 +67,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap              = asset.FindActionMap(UIMapName,             throwIfNotFound: true);
             this.dialogueMap        = asset.FindActionMap(DialogueMapName,       throwIfNotFound: true);
             this.doorTransitionMap  = asset.FindActionMap(DoorTransitionMapName, throwIfNotFound: true);
+            this.inventoryMap       = asset.FindActionMap(InventoryMapName,      throwIfNotFound: true);
 
             Move          = this.gameplayMap[nameof(Move)];
             Interact      = this.gameplayMap[nameof(Interact)];
@@ -81,6 +91,13 @@ namespace CrimsonDraft.Infrastructure.Input
             DialogueCancelDialogue = this.dialogueMap["CancelDialogue"];
 
             DoorTransitionSkip = this.doorTransitionMap["Skip"];
+
+            InventoryNavigate = this.inventoryMap["Navigate"];
+            InventoryConfirm  = this.inventoryMap["Confirm"];
+            InventoryPickup   = this.inventoryMap["Pickup"];
+            InventoryCancel   = this.inventoryMap["Cancel"];
+            InventoryNextTab  = this.inventoryMap["NextTab"];
+            InventoryPrevTab  = this.inventoryMap["PrevTab"];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();
@@ -115,6 +132,12 @@ namespace CrimsonDraft.Infrastructure.Input
             this.doorTransitionMap.Enable();
         }
 
+        public void SwitchToInventory()
+        {
+            DisableAll();
+            this.inventoryMap.Enable();
+        }
+
         void IDisposable.Dispose()
         {
             DisableAll();
@@ -128,6 +151,7 @@ namespace CrimsonDraft.Infrastructure.Input
             this.uiMap.Disable();
             this.dialogueMap.Disable();
             this.doorTransitionMap.Disable();
+            this.inventoryMap.Disable();
         }
     }
 }
