@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
+using Yarn.Unity;
 using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.UI
@@ -35,6 +36,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.12f;
 
+        [SerializeField] private YarnProject yarnProject = null!;
+
         [Inject] private IInputService inputService = null!;
         [Inject] private TabManager    tabManager   = null!;
 
@@ -51,6 +54,10 @@ namespace CrimsonDraft.UI
         private Vector2Int lastDir;
         private float      nextMoveTime;
         private bool       wasTabBarActive;
+
+        private string[] currentPages = Array.Empty<string>();
+        private int      pageIndex;
+        private string   currentTitle = string.Empty;
 
         private enum Focus { Carousel, Grid }
         private Focus focus;
@@ -213,13 +220,19 @@ namespace CrimsonDraft.UI
         void OnConfirm(InputAction.CallbackContext _)
         {
             if (this.tabManager.IsTabBarActive) return;
-            if (this.detailView.IsOpen)         return;
+
+            if (this.detailView.IsOpen)
+            {
+                AdvancePage();
+                return;
+            }
+
             if (this.focus != Focus.Grid)       return;
             if (this.filteredNotes.Length == 0) return;
 
-            var doc  = this.filteredNotes[this.selectedIndex];
-            var body = doc.Pages.Length > 0 ? string.Join("\n\n", doc.Pages) : string.Empty;
-            this.detailView.Show(doc.Title, body);
+            var doc = this.filteredNotes[this.selectedIndex];
+            if (!string.IsNullOrEmpty(doc.NoteId))
+                OpenNote(doc);
         }
 
         void OnCancel(InputAction.CallbackContext _)
@@ -231,6 +244,39 @@ namespace CrimsonDraft.UI
             }
             if (!this.tabManager.IsTabBarActive)
                 this.tabManager.EnterTabBar();
+        }
+
+        void OpenNote(DocumentData doc)
+        {
+            if (this.yarnProject == null) return;
+
+            var lineIds      = this.yarnProject.GetLineIDsForNodes(new[] { doc.NoteId });
+            var localization = this.yarnProject.baseLocalization;
+            var pages        = new List<string>();
+
+            foreach (var id in lineIds)
+            {
+                var text = localization.GetLocalizedString(id);
+                if (text != null) pages.Add(text);
+            }
+
+            if (pages.Count == 0) return;
+
+            this.currentPages = pages.ToArray();
+            this.pageIndex    = 0;
+            this.currentTitle = doc.Title;
+            this.detailView.Show(this.currentTitle, this.currentPages[0], 1, this.currentPages.Length);
+        }
+
+        void AdvancePage()
+        {
+            this.pageIndex++;
+            if (this.pageIndex >= this.currentPages.Length)
+            {
+                this.detailView.Hide();
+                return;
+            }
+            this.detailView.Show(this.currentTitle, this.currentPages[this.pageIndex], this.pageIndex + 1, this.currentPages.Length);
         }
 
         // ── Focus / Highlights ────────────────────────────────────────────────
@@ -281,11 +327,9 @@ namespace CrimsonDraft.UI
 
         static string DisplayName(DocumentCategory cat) => cat switch
         {
-            DocumentCategory.DeckB     => "Deck B",
-            DocumentCategory.DeckC     => "Deck C",
-            DocumentCategory.ElChef    => "El Chef",
-            DocumentCategory.Ingeniero => "Ingeniero",
-            _                          => cat.ToString()
+            DocumentCategory.Notes      => "Notas",
+            DocumentCategory.VoiceNotes => "Notas de Voz",
+            _                           => cat.ToString()
         };
 
         // ── Grid ─────────────────────────────────────────────────────────────

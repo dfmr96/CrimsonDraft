@@ -10,7 +10,8 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
-            context.DocumentController.Open(this.data.Title, this.data.Pages);
+            if (string.IsNullOrEmpty(this.data.NoteId)) return;
+            context.DialogueService.StartDialogue(this.data.NoteId);
         }
     }
 }
