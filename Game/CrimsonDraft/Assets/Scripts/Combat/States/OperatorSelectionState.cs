@@ -74,7 +74,7 @@ namespace CrimsonDraft.Combat
             this.context.SelectedOperator = index;
             bool hasAmmo = this.roster.Count > index && (this.roster[index].ActiveWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);
-            this.commandPanel.Show(this.menuView.GetOperatorRect(index));
+            this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(index));
             this.menuView.SetDimmed(true);
             this.battlefieldView.DimOperatorIndicator();
             this.context.TransitionTo(this.context.CommandPanelState);

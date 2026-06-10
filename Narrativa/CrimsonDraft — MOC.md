@@ -35,7 +35,7 @@ tags: [moc, crimson-draft]
 - [[El Marinera — Carteles]] — 6 carteles de propaganda institucional. Plan de emergencias, mapa, rangos, normas, silencio.
 - [[Observaciones de Laboratorio — Sujeto KRK-01]] — Dossier clínico de un experimento con KRK-NL. Perspectiva Cerdo: la caída vista como dato. El investigador muere antes de completar el registro.
 - [[Notas de la Tripulación — La Escasez]] — 8 fragmentos de marineros desde el día 4 de diciembre. Perspectiva Oveja/Caballo: la misma caída vivida desde adentro, sin vocabulario para nombrarla.
-
+[[Notas del Juego — Placeholders]]
 ## Sistemas
 - [[KRK-NL — Krokonil]] — La sustancia, origen CIA, efectos, colapso fuera de parámetros
 - [[M.E.R.I]] — El programa de distribución encubierta. El acuerdo USA-Rusia. Las dos fases.
