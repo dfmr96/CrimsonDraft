@@ -4408,7 +4408,7 @@ Transform:
   m_GameObject: {fileID: 894335097}
   serializedVersion: 2
   m_LocalRotation: {x: 0.64278764, y: 0, z: 0, w: 0.7660445}
-  m_LocalPosition: {x: -27.14, y: 3.94, z: 19.75}
+  m_LocalPosition: {x: -50.36, y: 3.94, z: 9.969996}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5246,6 +5246,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1157516968}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1168129423 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6519698867418507967, guid: 9c500b651cf096c4395c19cf0ec4e66d, type: 3}
+  m_PrefabInstance: {fileID: 47090915}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78083f88052d4de4eadfabecbd9ebc46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
 --- !u!1 &1177657893
 GameObject:
   m_ObjectHideFlags: 0
@@ -10235,6 +10246,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1940657591}
   - component: {fileID: 1940657590}
+  - component: {fileID: 1940657592}
   m_Layer: 0
   m_Name: NavigationScope
   m_TagString: Untagged
@@ -10268,17 +10280,19 @@ MonoBehaviour:
   pickupRunner: {fileID: 305403567}
   pickupStorage: {fileID: 305403569}
   cachedRoomDoors:
-  - {fileID: 1090505212}
-  - {fileID: 207868428}
-  - {fileID: 1348242603}
-  - {fileID: 1535909721}
-  - {fileID: 1202151052}
-  - {fileID: 849349132}
   - {fileID: 1957103777}
-  - {fileID: 522113468}
+  - {fileID: 849349132}
   - {fileID: 116585380}
+  - {fileID: 1535909721}
+  - {fileID: 207868428}
+  - {fileID: 522113468}
+  - {fileID: 1348242603}
   - {fileID: 1399460841}
+  - {fileID: 1202151052}
+  - {fileID: 1090505212}
   cachedSceneDoors: []
+  cachedPickups:
+  - {fileID: 1168129423}
 --- !u!4 &1940657591
 Transform:
   m_ObjectHideFlags: 0
@@ -10294,6 +10308,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1940657592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1940657589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 462217e767a70c147a630cb813b00543, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.PickupRegistryDebugView
+  collectedCount: 0
+  collectedIds: []
 --- !u!1 &1947599768
 GameObject:
   m_ObjectHideFlags: 0

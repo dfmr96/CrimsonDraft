@@ -4,6 +4,7 @@ using MessagePipe;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
+using NaughtyAttributes;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Scenes;
@@ -37,6 +38,7 @@ namespace CrimsonDraft.Navigation
 
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors  = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors = System.Array.Empty<SceneDoorInteractable>();
+        [SerializeField] private PickupInteractable[]    cachedPickups    = System.Array.Empty<PickupInteractable>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -59,6 +61,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
+            builder.RegisterComponentInHierarchy<PickupRegistryDebugView>();
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
@@ -89,15 +92,25 @@ namespace CrimsonDraft.Navigation
                    .AsImplementedInterfaces();
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterInstance(this.cachedPickups);
+            builder.Register<PickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
-        [ContextMenu("Cache Scene Doors")]
+        [Button("Cache Scene Doors")]
         private void CacheSceneDoors()
         {
             this.cachedRoomDoors  = FindObjectsByType<RoomDoorInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             this.cachedSceneDoors = FindObjectsByType<SceneDoorInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Pickups")]
+        private void CacheScenePickups()
+        {
+            this.cachedPickups = FindObjectsByType<PickupInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

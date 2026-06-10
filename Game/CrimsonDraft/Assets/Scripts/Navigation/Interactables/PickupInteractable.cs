@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using VContainer;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -11,7 +13,18 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         private const string PromptNode = "pickup_prompt";
 
-        [SerializeField] private ItemData item = null!;
+        [SerializeField] private string   pickupId = null!;
+        [SerializeField] private ItemData item     = null!;
+
+        private PickupRegistry pickupRegistry = null!;
+
+        [Inject]
+        public void Construct(PickupRegistry registry)
+        {
+            this.pickupRegistry = registry;
+            if (registry.IsCollected(this.pickupId))
+                gameObject.SetActive(false);
+        }
 
         public void Interact(InteractionContext context)
         {
@@ -27,7 +40,12 @@ namespace CrimsonDraft.Navigation.Interactables
                     ["$item_name"]      = itemName,
                     ["$pickup_success"] = true,
                 },
-                onComplete: () => { if (pickupSucceeded) gameObject.SetActive(false); },
+                onComplete: () =>
+                {
+                    if (!pickupSucceeded) return;
+                    this.pickupRegistry.SetCollected(this.pickupId);
+                    gameObject.SetActive(false);
+                },
                 commands: new Dictionary<string, Action>
                 {
                     ["try_pickup"] = () =>
