@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using CrimsonDraft.Inventory;
@@ -8,32 +9,33 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PickupInteractable : MonoBehaviour, IInteractable
     {
-        private const string NodeName = "pickup_feedback";
+        private const string PromptNode = "pickup_prompt";
 
         [SerializeField] private ItemData item = null!;
 
         public void Interact(InteractionContext context)
         {
-            if (!context.InventoryService.AddItemAuto(this.item))
-            {
-                context.DialogueService.StartDialogue(
-                    NodeName,
-                    new Dictionary<string, object>
-                    {
-                        ["$pickup_result"] = "no_space",
-                        ["$item_name"]     = this.item.DisplayName
-                    });
-                return;
-            }
+            bool pickupSucceeded = false;
+            string itemName = !string.IsNullOrEmpty(this.item.SecondaryName)
+                ? this.item.SecondaryName
+                : this.item.DisplayName;
 
-            context.DialogueService.StartDialogue(
-                NodeName,
-                new Dictionary<string, object>
+            context.PickupDialogueService.StartDialogue(
+                PromptNode,
+                variables: new Dictionary<string, object>
                 {
-                    ["$pickup_result"] = "success",
-                    ["$item_name"]     = this.item.DisplayName
+                    ["$item_name"]      = itemName,
+                    ["$pickup_success"] = true,
                 },
-                onComplete: () => gameObject.SetActive(false));
+                onComplete: () => { if (pickupSucceeded) gameObject.SetActive(false); },
+                commands: new Dictionary<string, Action>
+                {
+                    ["try_pickup"] = () =>
+                    {
+                        pickupSucceeded = context.InventoryService.AddItemAuto(this.item);
+                        context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
+                    }
+                });
         }
     }
 }

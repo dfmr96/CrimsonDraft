@@ -52,7 +52,7 @@ namespace CrimsonDraft.Tests
             FakeDoorDialogueService  dialogue,
             FakeDoorInventoryService inventory)
         {
-            return new InteractionContext(inventory, null!, dialogue, null!, null!);
+            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!);
         }
 
         // ── Tests ─────────────────────────────────────────────────────────────
@@ -163,6 +163,8 @@ namespace CrimsonDraft.Tests
                 LastVariables  = variables;
                 LastOnComplete = onComplete;
             }
+
+            public void SetVariable(string name, object value) { }
         }
 
         private sealed class FakeDoorInventoryService : IInventoryService

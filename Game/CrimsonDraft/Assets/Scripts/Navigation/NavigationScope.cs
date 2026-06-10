@@ -4,6 +4,7 @@ using MessagePipe;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
+using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.Combat;
@@ -29,6 +30,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private SceneEntryContext     sceneEntryContext     = null!;
         [SerializeField] private RoomController        startingRoom         = null!;
 
+        [SerializeField] private DialogueRunner          generalRunner    = null!;
+        [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
+        [SerializeField] private DialogueRunner          pickupRunner     = null!;
+        [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
+
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors  = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors = System.Array.Empty<SceneDoorInteractable>();
 
@@ -53,7 +59,10 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
-            builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
+            builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
+            builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
+            builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
+            builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
 
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();

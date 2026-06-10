@@ -2,14 +2,13 @@
 
 using System;
 using System.Collections.Generic;
-using UnityEngine.Scripting;
-using VContainer.Unity;
+using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.Navigation.Dialogue
 {
-    public sealed class DialogueService : IDialogueService, IInitializable
+    public class DialogueService : IDialogueService
     {
         private readonly DialogueRunner          runner;
         private readonly InMemoryVariableStorage variableStorage;
@@ -18,8 +17,12 @@ namespace CrimsonDraft.Navigation.Dialogue
         private Action?      pendingOnComplete;
         private List<string> sessionCommandNames = new();
 
+        [Inject]
         [Preserve]
-        public DialogueService(
+        public DialogueService(GeneralDialogueRunnerRef runnerRef, IInputService inputService)
+            : this(runnerRef.Runner, runnerRef.Storage, inputService) { }
+
+        protected DialogueService(
             DialogueRunner          runner,
             InMemoryVariableStorage variableStorage,
             IInputService           inputService)
@@ -27,14 +30,10 @@ namespace CrimsonDraft.Navigation.Dialogue
             this.runner          = runner;
             this.variableStorage = variableStorage;
             this.inputService    = inputService;
+            this.runner.onDialogueComplete?.AddListener(OnDialogueComplete);
         }
 
         public bool IsRunning => this.runner.IsDialogueRunning;
-
-        void IInitializable.Initialize()
-        {
-            this.runner.onDialogueComplete?.AddListener(OnDialogueComplete);
-        }
 
         public void StartDialogue(
             string                                  nodeName,
@@ -71,6 +70,17 @@ namespace CrimsonDraft.Navigation.Dialogue
 
             this.inputService.SwitchToDialogue();
             _ = this.runner.StartDialogue(nodeName);
+        }
+
+        public void SetVariable(string name, object value)
+        {
+            switch (value)
+            {
+                case bool b:   this.variableStorage.SetValue(name, b); break;
+                case string s: this.variableStorage.SetValue(name, s); break;
+                case float f:  this.variableStorage.SetValue(name, f); break;
+                case int i:    this.variableStorage.SetValue(name, (float)i); break;
+            }
         }
 
         private void OnDialogueComplete()

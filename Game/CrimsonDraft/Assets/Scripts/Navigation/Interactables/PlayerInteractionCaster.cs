@@ -15,25 +15,28 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
 
-        private IInputService       inputService        = null!;
-        private IInventoryService   inventoryService    = null!;
-        private IDialogueService    dialogueService     = null!;
-        private DocumentController  documentController  = null!;
-        private ContainerController containerController = null!;
+        private IInputService          inputService          = null!;
+        private IInventoryService      inventoryService      = null!;
+        private IDialogueService       dialogueService       = null!;
+        private IPickupDialogueService pickupDialogueService = null!;
+        private DocumentController     documentController    = null!;
+        private ContainerController    containerController   = null!;
 
         [Inject]
         public void Construct(
-            IInputService       inputService,
-            IInventoryService   inventoryService,
-            IDialogueService    dialogueService,
-            DocumentController  documentController,
-            ContainerController containerController)
+            IInputService          inputService,
+            IInventoryService      inventoryService,
+            IDialogueService       dialogueService,
+            IPickupDialogueService pickupDialogueService,
+            DocumentController     documentController,
+            ContainerController    containerController)
         {
-            this.inputService        = inputService;
-            this.inventoryService    = inventoryService;
-            this.dialogueService     = dialogueService;
-            this.documentController  = documentController;
-            this.containerController = containerController;
+            this.inputService          = inputService;
+            this.inventoryService      = inventoryService;
+            this.dialogueService       = dialogueService;
+            this.pickupDialogueService = pickupDialogueService;
+            this.documentController    = documentController;
+            this.containerController   = containerController;
             this.inputService.Interact.performed += OnInteract;
         }
 
@@ -56,7 +59,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.inputService,
                 this.dialogueService,
                 this.documentController,
-                this.containerController);
+                this.containerController,
+                this.pickupDialogueService);
             interactable.Interact(context);
         }
 

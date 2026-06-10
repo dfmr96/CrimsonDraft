@@ -69,7 +69,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, dialogue, null!, null!);
+            => new(inventory, null!, dialogue, null!, null!, null!);
 
         // ── tests ─────────────────────────────────────────────────────────────
 
@@ -200,6 +200,8 @@ namespace CrimsonDraft.Tests
                 this.LastNodeName   = nodeName;
                 this.LastOnComplete = onComplete;
             }
+
+            public void SetVariable(string name, object value) { }
         }
 
         private sealed class FakeInventory : IInventoryService

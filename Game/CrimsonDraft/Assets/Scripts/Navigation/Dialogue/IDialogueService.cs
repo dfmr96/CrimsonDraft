@@ -14,5 +14,7 @@ namespace CrimsonDraft.Navigation.Dialogue
             IReadOnlyDictionary<string, object>?   variables  = null,
             Action?                                 onComplete = null,
             IReadOnlyDictionary<string, Action>?   commands   = null);
+
+        void SetVariable(string name, object value);
     }
 }

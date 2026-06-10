@@ -10,7 +10,10 @@ Pick up [item]{$item_name}[/item]?
 
 title: pickup_result
 ---
-<<if !$pickup_success>>
+<<if $pickup_success>>
+[item]{$item_name}[/item] recogido.
+-> Ok
+<<else>>
 No hay espacio para [item]{$item_name}[/item].
 -> Ok
 <<endif>>
