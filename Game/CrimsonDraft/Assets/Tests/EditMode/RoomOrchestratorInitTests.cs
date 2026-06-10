@@ -3,6 +3,7 @@
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer.Unity;
@@ -74,13 +75,88 @@ namespace CrimsonDraft.Tests
             }
         }
 
+        [Test]
+        public void Initialize_whenSceneEntryContextHasPendingEntry_activatesSpawnPointStartingRoom()
+        {
+            var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
+            entryContext.SetPendingEntry("entry-1");
+
+            var roomA   = new GameObject("RoomA").AddComponent<RoomController>();
+            var roomB   = new GameObject("RoomB").AddComponent<RoomController>();
+            var spawnGo = new GameObject("Spawn");
+            var spawn   = spawnGo.AddComponent<SceneSpawnPoint>();
+            var spawnSo = new SerializedObject(spawn);
+            spawnSo.FindProperty("entryPointId").stringValue          = "entry-1";
+            spawnSo.FindProperty("startingRoom").objectReferenceValue = roomB;
+            spawnSo.ApplyModifiedPropertiesWithoutUndo();
+
+            context.SetStartingRoom(roomA);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(roomB.gameObject.activeSelf,  "spawn point starting room must be active");
+                Assert.IsFalse(roomA.gameObject.activeSelf, "fallback starting room must not be active");
+            }
+            finally
+            {
+                Object.DestroyImmediate(roomA.gameObject);
+                Object.DestroyImmediate(roomB.gameObject);
+                Object.DestroyImmediate(spawnGo);
+                Object.DestroyImmediate(playerGo.gameObject);
+                Object.DestroyImmediate(context);
+                Object.DestroyImmediate(entryContext);
+            }
+        }
+
+        [Test]
+        public void Initialize_whenSceneEntryContextIsEmpty_usesRoomTransitionContextStartingRoom()
+        {
+            var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
+
+            var roomA = new GameObject("RoomA").AddComponent<RoomController>();
+            var roomB = new GameObject("RoomB").AddComponent<RoomController>();
+            context.SetStartingRoom(roomA);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(roomA.gameObject.activeSelf,  "RoomTransitionContext starting room must be used");
+                Assert.IsFalse(roomB.gameObject.activeSelf, "other room must not be active");
+            }
+            finally
+            {
+                Object.DestroyImmediate(roomA.gameObject);
+                Object.DestroyImmediate(roomB.gameObject);
+                Object.DestroyImmediate(playerGo.gameObject);
+                Object.DestroyImmediate(context);
+                Object.DestroyImmediate(entryContext);
+            }
+        }
+
         // ── helpers ──────────────────────────────────────────────────────────
 
-        private static RoomOrchestrator MakeOrchestrator(PlayerController player, RoomTransitionContext context)
+        private static RoomOrchestrator MakeOrchestrator(
+            PlayerController     player,
+            RoomTransitionContext context,
+            SceneEntryContext?   entry = null)
             => new RoomOrchestrator(
                 new FakeInputService(),
                 player,
                 context,
+                entry ?? ScriptableObject.CreateInstance<SceneEntryContext>(),
                 new FakePublisher<RoomTransitionStartedEvent>(),
                 new FakePublisher<RoomTransitionedEvent>());
 

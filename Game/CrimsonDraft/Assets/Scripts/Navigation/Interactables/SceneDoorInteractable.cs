@@ -4,34 +4,33 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using VContainer;
 using UnityEngine;
-using Yarn.Unity;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Inventory;
-using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class RoomDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable
+    public sealed class SceneDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable
     {
         private const string OpenedNodeName = "door_opened_feedback";
 
-        [SerializeField] private string        doorId               = null!;
-        [SerializeField] private DoorData       data                = null!;
-        [SerializeField] private RoomController destination          = null!;
-        [SerializeField] private GameObject     doorTransitionPrefab = null!;
+        [SerializeField] private string     doorId               = null!;
+        [SerializeField] private DoorData   data                 = null!;
+        [SerializeField] private string     targetSceneName      = null!;
+        [SerializeField] private string     targetEntryPointId   = null!;
+        [SerializeField] private GameObject doorTransitionPrefab = null!;
 
-        public string         DoorId      => this.doorId;
-        public RoomController? Destination => this.destination;
+        public string DoorId => this.doorId;
 
-        private IRoomOrchestrator roomOrchestrator = null!;
-        private DoorStateRegistry registry         = null!;
-        private bool              unlocked;
+        private IFloorTransitionService floorService = null!;
+        private DoorStateRegistry       registry     = null!;
+        private bool                    unlocked;
 
         [Inject]
-        public void Construct(IRoomOrchestrator roomOrchestrator, DoorStateRegistry registry)
+        public void Construct(IFloorTransitionService floorService, DoorStateRegistry registry)
         {
-            this.roomOrchestrator = roomOrchestrator;
-            this.registry         = registry;
+            this.floorService = floorService;
+            this.registry     = registry;
             RestoreFromRegistry();
         }
 
@@ -44,9 +43,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             if (!this.data.Locked || this.unlocked)
             {
-                this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                    .Forget();
+                Transition();
                 return;
             }
 
@@ -79,9 +76,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.SetUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            Transition();
                         });
                     break;
 
@@ -98,12 +93,21 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.SetUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            Transition();
                         });
                     break;
             }
+        }
+
+        private void Transition()
+        {
+            this.floorService
+                .TransitionToFloorAsync(
+                    gameObject.scene.name,
+                    this.targetSceneName,
+                    this.targetEntryPointId,
+                    this.doorTransitionPrefab)
+                .Forget();
         }
     }
 }

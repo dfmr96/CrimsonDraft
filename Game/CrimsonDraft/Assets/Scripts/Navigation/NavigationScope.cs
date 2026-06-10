@@ -5,6 +5,7 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using CrimsonDraft.Infrastructure.Cameras;
+using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
@@ -25,7 +26,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private StartingLoadout       startingLoadout      = null!;
         [SerializeField] private CombineRecipeLibrary  combineRecipeLibrary = null!;
         [SerializeField] private RoomTransitionContext roomTransitionContext = null!;
+        [SerializeField] private SceneEntryContext     sceneEntryContext     = null!;
         [SerializeField] private RoomController        startingRoom         = null!;
+
+        [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors  = System.Array.Empty<RoomDoorInteractable>();
+        [SerializeField] private SceneDoorInteractable[] cachedSceneDoors = System.Array.Empty<SceneDoorInteractable>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -41,6 +46,7 @@ namespace CrimsonDraft.Navigation
                 builder.RegisterComponent(trigger);
             foreach (var agent in FindObjectsByType<EnemyNavAgent>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(agent);
+
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
@@ -57,6 +63,8 @@ namespace CrimsonDraft.Navigation
             // ── Room transition ──────────────────────────────────────────────
             this.roomTransitionContext.SetStartingRoom(this.startingRoom);
             builder.RegisterInstance(this.roomTransitionContext);
+            builder.RegisterInstance(this.sceneEntryContext);
+            builder.Register<FloorTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
 
             // Reuse parent's MessagePipeOptions so room events share the same
             // pub/sub bus as global events (CombatEndedEvent, etc.).
@@ -70,6 +78,20 @@ namespace CrimsonDraft.Navigation
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
                    .AsImplementedInterfaces();
+            builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
+            builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
+
+#if UNITY_EDITOR
+        [ContextMenu("Cache Scene Doors")]
+        private void CacheSceneDoors()
+        {
+            this.cachedRoomDoors  = FindObjectsByType<RoomDoorInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            this.cachedSceneDoors = FindObjectsByType<SceneDoorInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
     }
 }

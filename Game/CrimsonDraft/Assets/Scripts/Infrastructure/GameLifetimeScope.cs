@@ -43,6 +43,7 @@ namespace CrimsonDraft.Infrastructure
 
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
+            builder.Register<DoorStateRegistry>(Lifetime.Singleton);
 
             builder.RegisterComponentInHierarchy<DialogueRunner>();
             builder.RegisterComponentInHierarchy<InMemoryVariableStorage>();

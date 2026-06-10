@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
@@ -18,10 +19,12 @@ namespace CrimsonDraft.Tests
         // ── helpers ──────────────────────────────────────────────────────────
 
         private static RoomDoorInteractable MakeDoor(
-            DoorData data,
-            RoomController destination,
-            GameObject doorPrefab,
-            IRoomOrchestrator orchestrator)
+            DoorData          data,
+            RoomController    destination,
+            GameObject        doorPrefab,
+            IRoomOrchestrator orchestrator,
+            DoorStateRegistry? registry = null,
+            string            doorId   = "test-door")
         {
             var go   = new GameObject();
             var door = go.AddComponent<RoomDoorInteractable>();
@@ -29,8 +32,9 @@ namespace CrimsonDraft.Tests
             so.FindProperty("data").objectReferenceValue                 = data;
             so.FindProperty("destination").objectReferenceValue          = destination;
             so.FindProperty("doorTransitionPrefab").objectReferenceValue = doorPrefab;
+            so.FindProperty("doorId").stringValue                        = doorId;
             so.ApplyModifiedPropertiesWithoutUndo();
-            door.Construct(orchestrator);
+            door.Construct(orchestrator, registry ?? new DoorStateRegistry());
             return door;
         }
 
@@ -179,6 +183,50 @@ namespace CrimsonDraft.Tests
 
             Assert.IsTrue(inventory.RemoveItemCalled, "must remove item from inventory when key is depleted");
             Assert.AreEqual(3, inventory.RemovedSlotIndex);
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void RestoreFromRegistry_whenRegistryHasDoorUnlocked_transitionsImmediatelyDespiteLockedData()
+        {
+            var registry     = new DoorStateRegistry();
+            registry.SetUnlocked("door-1");
+            var data         = MakeLockedDoor("door_locked");
+            var destination  = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var door         = MakeDoor(data, destination, prefab, orchestrator, registry, "door-1");
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.AreEqual(destination, orchestrator.LastDestination,
+                "registry unlock must override locked data flag");
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void Interact_whenKeySuccess_updatesRegistry()
+        {
+            var registry     = new DoorStateRegistry();
+            var keyData      = MakeKeyItem("key-1", "Key 1");
+            var data         = MakeLockedDoor("door_test", keyData);
+            var destination  = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var dialogue     = new FakeDialogue();
+            var inventory    = new FakeInventory { UseKeyResult = new KeyUseOutcome(KeyUseResult.Success, 0) };
+            var door         = MakeDoor(data, destination, prefab, orchestrator, registry, "door-1");
+
+            door.Interact(MakeContext(dialogue, inventory));
+            dialogue.LastOnComplete!.Invoke();
+
+            Assert.IsTrue(registry.IsUnlocked("door-1"), "registry must be updated when door is unlocked");
 
             UnityEngine.Object.DestroyImmediate(door.gameObject);
             UnityEngine.Object.DestroyImmediate(destination.gameObject);

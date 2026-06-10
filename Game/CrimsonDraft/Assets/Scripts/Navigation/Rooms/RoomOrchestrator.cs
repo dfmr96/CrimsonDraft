@@ -19,6 +19,7 @@ namespace CrimsonDraft.Navigation.Rooms
         private readonly IInputService                          inputService;
         private readonly PlayerController                       player;
         private readonly RoomTransitionContext                  context;
+        private readonly SceneEntryContext                      sceneEntryContext;
         private readonly IPublisher<RoomTransitionStartedEvent> startedPublisher;
         private readonly IPublisher<RoomTransitionedEvent>      endedPublisher;
 
@@ -30,14 +31,16 @@ namespace CrimsonDraft.Navigation.Rooms
             IInputService                          inputService,
             PlayerController                       player,
             RoomTransitionContext                  context,
+            SceneEntryContext                      sceneEntryContext,
             IPublisher<RoomTransitionStartedEvent> startedPublisher,
             IPublisher<RoomTransitionedEvent>      endedPublisher)
         {
-            this.inputService     = inputService;
-            this.player           = player;
-            this.context          = context;
-            this.startedPublisher = startedPublisher;
-            this.endedPublisher   = endedPublisher;
+            this.inputService      = inputService;
+            this.player            = player;
+            this.context           = context;
+            this.sceneEntryContext  = sceneEntryContext;
+            this.startedPublisher  = startedPublisher;
+            this.endedPublisher    = endedPublisher;
         }
 
         void IInitializable.Initialize()
@@ -50,22 +53,41 @@ namespace CrimsonDraft.Navigation.Rooms
                 return;
             }
 
-            var starting = this.context.StartingRoom;
-
             foreach (var room in rooms)
                 room.Deactivate();
 
+            var starting = ResolveStartingRoom();
+
             if (starting == null)
             {
-                Debug.LogWarning("[RoomOrchestrator] No starting room set in RoomTransitionContext — using first found.");
+                Debug.LogWarning("[RoomOrchestrator] No starting room resolved — using first found.");
                 starting = rooms[0];
             }
 
             starting.Activate();
             this.currentRoom = starting;
+        }
 
-            foreach (var door in Object.FindObjectsOfType<RoomDoorInteractable>(true))
-                door.Construct(this);
+        private RoomController? ResolveStartingRoom()
+        {
+            var entryId = this.sceneEntryContext.Consume();
+
+            if (entryId != null)
+            {
+                foreach (var sp in Object.FindObjectsOfType<SceneSpawnPoint>(true))
+                {
+                    if (sp.EntryPointId != entryId) continue;
+
+                    this.player.transform.SetPositionAndRotation(
+                        sp.transform.position, sp.transform.rotation);
+                    sp.ActivateCamera();
+                    return sp.StartingRoom;
+                }
+
+                Debug.LogWarning($"[RoomOrchestrator] No SceneSpawnPoint with entry '{entryId}' — falling back.");
+            }
+
+            return this.context.StartingRoom;
         }
 
         public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
@@ -85,8 +107,8 @@ namespace CrimsonDraft.Navigation.Rooms
             this.currentRoom!.Deactivate();
             destination.Activate();
 
-            var spawnPoint      = FindSpawnPoint(destination, this.currentRoom);
-            var spawnTransform  = spawnPoint != null ? spawnPoint.transform : destination.transform;
+            var spawnPoint     = FindSpawnPoint(destination, this.currentRoom);
+            var spawnTransform = spawnPoint != null ? spawnPoint.transform : destination.transform;
             this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
             spawnPoint?.ActivateCamera();
 
