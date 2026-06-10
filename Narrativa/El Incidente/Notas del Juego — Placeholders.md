@@ -12,14 +12,14 @@ aliases: [Placeholders, Notas del Juego]
 ## Carteles del Marinera
 *Fijos en paredes. No se recogen — se leen en el lugar.*
 
-| # | Título | Ubicación | Contenido |
-|---|--------|-----------|-----------|
-| C-01 | **Plan de Emergencias** | Exterior HallWay (B), Hallway A (C), puertas de balcón | Protocolo de evacuación por rangos. Establece que cada rango tiene un punto de reunión distinto y que las rutas restringidas permanecen cerradas incluso en emergencias. |
-| C-02 | **Mapa de Navegación** | Entrada Exterior HallWay, Port Stairs, Hallway B (C) | Mapa del barco con sistema de acceso por niveles. Muestra qué zonas existen sin nombrarlas todas — las del laboratorio aparecen como "zona restringida". |
-| C-03 | **Conoce Tu Rol** | DinnerRoom, Hallway B2 (B), Hallway B (C) | Descripción de los cuatro rangos del Marinera (Oveja, Caballo, Perro, Cerdo) con sus accesos y funciones. El cartel más grande del barco. |
-| C-04 | **El Poder de la Máquina** | Energy Room, Water Room, corredor técnico (C) | Dirigido a los Caballos. Establece las obligaciones del personal de mantenimiento y los límites de su acceso. "Tu llave abre lo que necesitas. No lo que quieres." |
-| C-05 | **Normas de Convivencia** | DinnerRoom, Seaman Room 1, Seaman Room 2 | Reglas de convivencia a bordo. Incluye instrucciones sobre qué hacer si se escucha algo que no debería escucharse: reportarlo, no guardarlo. |
-| C-06 | **Silencio es Seguridad** | Radio (B), Lab HallWay (C), Port Stairs | El cartel más corto. Tres reglas: no preguntes lo que no necesitas saber, no repitas lo que veas, lleva tus dudas al superior. Ubicado en el acceso al Lab HallWay. |
+| #    | Título                     | Ubicación                                              | Contenido                                                                                                                                                                |
+| ---- | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| C-01 | **Plan de Emergencias**    | Exterior HallWay (B), Hallway A (C), puertas de balcón | Protocolo de evacuación por rangos. Establece que cada rango tiene un punto de reunión distinto y que las rutas restringidas permanecen cerradas incluso en emergencias. |
+| C-02 | **Mapa de Navegación**     | Entrada Exterior HallWay, Port Stairs, Hallway B (C)   | Mapa del barco con sistema de acceso por niveles. Muestra qué zonas existen sin nombrarlas todas — las del laboratorio aparecen como "zona restringida".                 |
+| C-03 | **Conoce Tu Rol**          | DinnerRoom, Hallway B2 (B), Hallway B (C)              | Descripción de los cuatro rangos del Marinera (Oveja, Caballo, Perro, Cerdo) con sus accesos y funciones. El cartel más grande del barco.                                |
+| C-04 | **El Poder de la Máquina** | Energy Room, Water Room, corredor técnico (C)          | Dirigido a los Caballos. Establece las obligaciones del personal de mantenimiento y los límites de su acceso. "Tu llave abre lo que necesitas. No lo que quieres."       |
+| C-05 | **Normas de Convivencia**  | DinnerRoom, Seaman Room 1, Seaman Room 2               | Reglas de convivencia a bordo. Incluye instrucciones sobre qué hacer si se escucha algo que no debería escucharse: reportarlo, no guardarlo.                             |
+| C-06 | **Silencio es Seguridad**  | Radio (B), Lab HallWay (C), Port Stairs                | El cartel más corto. Tres reglas: no preguntes lo que no necesitas saber, no repitas lo que veas, lleva tus dudas al superior. Ubicado en el acceso al Lab HallWay.      |
 
 ---
 
