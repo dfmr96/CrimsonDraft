@@ -24,18 +24,20 @@ Stop here.
 Run in Bash (replace variables with their actual env var values):
 ```bash
 curl -s -H "Authorization: ApiKey $HNP_API_KEY" \
-  "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/milestones"
+  "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/boards"
 ```
 
-Find the milestone where `isActive` is true. Save its `id` as MILESTONE_ID.
+The response is `{"totalCount":N,"items":[...]}`. Find the board where `isDefault` is true, or the one with the most recent `dueDate` that hasn't passed. Save its `boardId` as BOARD_ID.
 
-If no active milestone is found, fetch all tasks without a milestone filter.
+If multiple boards exist and none is obvious, show the list to the user and ask them to pick one.
 
-Then fetch tasks:
+Then fetch tasks filtered by that board:
 ```bash
 curl -s -H "Authorization: ApiKey $HNP_API_KEY" \
-  "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems?milestoneId=MILESTONE_ID"
+  "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems?boardId=BOARD_ID"
 ```
+
+The response is `{"totalCount":N,"items":[...]}`. Extract the `items` array.
 
 **Step 3 — Present task list and get user selection**
 

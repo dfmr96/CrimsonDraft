@@ -57,11 +57,11 @@ Post it via Bash:
 curl -s -X POST \
   -H "Authorization: ApiKey $HNP_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"text": "COMMENT_TEXT_JSON_ESCAPED"}' \
+  -d '"COMMENT_TEXT_JSON_ESCAPED"' \
   "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems/TASK_ID/comments"
 ```
 
-Replace `COMMENT_TEXT_JSON_ESCAPED` with the comment text you built above, properly JSON-escaped (newlines as `\n`, quotes as `\"`).
+Note: the body is a plain JSON string literal (outer single quotes wrap inner double quotes). Replace `COMMENT_TEXT_JSON_ESCAPED` with the comment text, properly JSON-escaped (newlines as `\n`, quotes as `\"`).
 
 If this fails, tell the user: "No se pudo registrar el comentario en HNP: [error]. El estado de sesión se conserva — podés reintentar con /hnp-stop."
 Stop here WITHOUT deleting the state file.
@@ -79,16 +79,16 @@ curl -s -H "Authorization: ApiKey $HNP_API_KEY" \
 
 Show the stage names and ask the user to pick one by 1-based index or name.
 
-Once selected, update the task:
+Once selected, update the task via PATCH:
 ```bash
-curl -s -X PUT \
+curl -s -X PATCH \
   -H "Authorization: ApiKey $HNP_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"stageId": "SELECTED_STAGE_ID"}' \
+  -d '{"stageId": SELECTED_STAGE_ID}' \
   "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems/TASK_ID"
 ```
 
-Replace `SELECTED_STAGE_ID` with the `id` of the stage the user selected from the list above.
+Replace `SELECTED_STAGE_ID` with the integer `stageId` of the stage the user selected (not quoted — it's a number). Replace `TASK_ID` with the `taskId` from the state file.
 
 If this fails, warn the user but continue to Step 7.
 
