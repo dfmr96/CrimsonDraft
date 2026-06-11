@@ -2,8 +2,8 @@ title: door_opened_feedback
 ---
 <<declare $outcome = "" as string>>
 <<declare $key_name = "" as string>>
-You used {$key_name}.
+You used [item]{$key_name}[/item].
 <<if $outcome == "opened_depleted">>
-You no longer need {$key_name}. It has been discarded.
+You no longer need [item]{$key_name}[/item]. It has been discarded.
 <<endif>>
 ===
