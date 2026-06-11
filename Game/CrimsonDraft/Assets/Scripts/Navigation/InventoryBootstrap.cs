@@ -1,29 +1,42 @@
 #nullable enable
 
+using System;
 using UnityEngine.Scripting;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation
 {
-    public sealed class InventoryBootstrap : IInitializable
+    public sealed class InventoryBootstrap : IInitializable, IDisposable
     {
-        private readonly StartingLoadout   loadout;
-        private readonly IInventoryService inventory;
+        private readonly StartingLoadout        loadout;
+        private readonly IInventoryService      inventory;
+        private readonly InventoryStateRegistry registry;
+        private bool initialized;
 
         [Preserve]
-        public InventoryBootstrap(StartingLoadout loadout, IInventoryService inventory)
+        public InventoryBootstrap(
+            StartingLoadout        loadout,
+            IInventoryService      inventory,
+            InventoryStateRegistry registry)
         {
             this.loadout   = loadout;
             this.inventory = inventory;
+            this.registry  = registry;
         }
-
-        private bool initialized;
 
         public void Initialize()
         {
             if (this.initialized) return;
             this.initialized = true;
+
+            var saved = this.registry.Load<InventorySlot[]>();
+            if (saved != null)
+            {
+                this.inventory.LoadState(saved);
+                return;
+            }
 
             foreach (var entry in this.loadout.Items)
                 this.inventory.AddItem(entry.item, entry.operatorSlot, entry.quantity);
@@ -35,7 +48,6 @@ namespace CrimsonDraft.Navigation
 
                 this.inventory.AddItem(weaponData, operatorSlot: slot);
 
-                // Find the slot index we just added and equip it
                 int start = slot * 4;
                 for (int i = start; i < start + 4; i++)
                 {
@@ -49,6 +61,11 @@ namespace CrimsonDraft.Navigation
                     }
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            this.registry.Save(this.inventory.GetRawSlots());
         }
     }
 }

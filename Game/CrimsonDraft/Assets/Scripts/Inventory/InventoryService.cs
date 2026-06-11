@@ -213,5 +213,17 @@ namespace CrimsonDraft.Inventory
             AddItemAuto(result);
             return true;
         }
+
+        public void LoadState(InventorySlot[] slots)
+        {
+            this.slots = slots;
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i].Item is WeaponItem weapon && weapon.IsEquipped)
+                    this.roster[weapon.EquippedBySlot].SetEquippedWeapon(weapon, weapon.EquippedWeaponSlot);
+            }
+        }
+
+        public InventorySlot[] GetRawSlots() => EnsureSlots();
     }
 }

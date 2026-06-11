@@ -55,5 +55,14 @@ namespace CrimsonDraft.Inventory
         /// The key is never auto-removed — caller must call RemoveItem(outcome.SlotIndex) to discard it.
         /// </summary>
         KeyUseOutcome TryUseKey(string keyItemId);
+
+        /// <summary>
+        /// Replaces the internal slot array and re-wires equipped weapons to the roster.
+        /// Used by InventoryBootstrap to restore saved state across scene transitions.
+        /// </summary>
+        void LoadState(InventorySlot[] slots);
+
+        /// <summary>Returns the raw slot array for persistence by InventoryBootstrap.</summary>
+        InventorySlot[] GetRawSlots();
     }
 }

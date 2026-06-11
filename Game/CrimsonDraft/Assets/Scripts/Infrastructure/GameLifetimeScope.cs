@@ -44,6 +44,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<DoorStateRegistry>(Lifetime.Singleton);
             builder.Register<PickupRegistry>(Lifetime.Singleton);
+            builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
         }
     }
 }
