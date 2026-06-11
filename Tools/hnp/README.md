@@ -29,7 +29,15 @@ Find your **workspace ID**: ask Claude `use toggl_list_workspaces`.
 
 ### 2. Set HNP environment variables
 
-Add to your system environment variables and restart Claude Code:
+**Windows (PowerShell, run once):**
+```powershell
+[System.Environment]::SetEnvironmentVariable("HNP_API_KEY", "your_hnp_api_key", "User")
+[System.Environment]::SetEnvironmentVariable("HNP_PROJECT_ID", "the_shared_project_id", "User")
+```
+
+Or via GUI: System Properties → Advanced → Environment Variables → User variables → New.
+
+Restart Claude Code after setting them so they are picked up.
 
 ```
 HNP_API_KEY=your_hnp_api_key
