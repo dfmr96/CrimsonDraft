@@ -50,6 +50,8 @@ Commits:
 - commit two
 ```
 
+Replace `TASK_ID` with the `taskId` parsed from the state file in Step 1.
+
 Post it via Bash:
 ```bash
 curl -s -X POST \
@@ -58,6 +60,8 @@ curl -s -X POST \
   -d '{"text": "COMMENT_TEXT_JSON_ESCAPED"}' \
   "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems/TASK_ID/comments"
 ```
+
+Replace `COMMENT_TEXT_JSON_ESCAPED` with the comment text you built above, properly JSON-escaped (newlines as `\n`, quotes as `\"`).
 
 If this fails, tell the user: "No se pudo registrar el comentario en HNP: [error]. El estado de sesión se conserva — podés reintentar con /hnp-stop."
 Stop here WITHOUT deleting the state file.
@@ -83,6 +87,8 @@ curl -s -X PUT \
   -d '{"stageId": "SELECTED_STAGE_ID"}' \
   "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems/TASK_ID"
 ```
+
+Replace `SELECTED_STAGE_ID` with the `id` of the stage the user selected from the list above.
 
 If this fails, warn the user but continue to Step 7.
 
