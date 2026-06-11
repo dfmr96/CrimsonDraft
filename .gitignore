@@ -61,8 +61,9 @@ WwiseUnityIntegration_*.zip
 # .mcp.json tiene paths de uvx específicos por máquina — cada dev genera el suyo
 # con Window → MCP for Unity → Configure All Detected Clients
 .mcp.json
-# Toda la carpeta .claude es local — commands, skills, settings son por dev
-.claude/
+# .claude es local excepto commands/ — los slash commands se comparten vía git
+.claude/*
+!.claude/commands/
 # Agentes locales de Claude (configuración por máquina)
 .agents/
 
