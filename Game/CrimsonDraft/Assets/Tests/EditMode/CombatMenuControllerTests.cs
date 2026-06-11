@@ -614,8 +614,10 @@ namespace CrimsonDraft.Tests
                 this.LastOperatorSlot = operatorSlot;
             }
 
-            public bool          TryCombine(int slotA, int slotB)  => false;
-            public KeyUseOutcome TryUseKey(string keyItemId)        => new KeyUseOutcome(KeyUseResult.NotFound, -1);
+            public bool            TryCombine(int slotA, int slotB)  => false;
+            public KeyUseOutcome   TryUseKey(string keyItemId)        => new KeyUseOutcome(KeyUseResult.NotFound, -1);
+            public void            LoadState(InventorySlot[] slots)   { }
+            public InventorySlot[] GetRawSlots()                      => this.slots;
 
             /// <summary>Places an ammo box in the next empty slot. canReload controls CanReload result.</summary>
             public void RegisterBox(AmmoBoxItem box, bool canReload)

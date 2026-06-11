@@ -222,7 +222,9 @@ namespace CrimsonDraft.Tests
             public bool CanReload(int slotIndex, int operatorSlot)                     => false;
             public void ReloadOperator(int slotIndex, int operatorSlot)                { }
             public bool TryCombine(int slotA, int slotB)                               => false;
-            public KeyUseOutcome TryUseKey(string keyItemId)                           => UseKeyResult;
+            public KeyUseOutcome   TryUseKey(string keyItemId)     => UseKeyResult;
+            public void            LoadState(InventorySlot[] slots) { }
+            public InventorySlot[] GetRawSlots()                    => Array.Empty<InventorySlot>();
         }
     }
 }
