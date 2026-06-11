@@ -36,25 +36,27 @@ namespace CrimsonDraft.UI
 
         public void EnsureSynced()
         {
-            if (this.synced) return;
-            this.synced = true;
-
-            // Spawn a view for every item already in the service (loaded by InventoryBootstrap)
             int slotsPerOperator = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
                 : 4;
 
+            // Spawn a view for every item that doesn't have one yet.
+            // Runs on every open so items picked up after the first open are included.
             for (int i = 0; i < this.inventoryService.SlotCount; i++)
             {
                 var slot = this.inventoryService.Slots[i];
                 if (slot.IsEmpty) continue;
+                if (this.cursor.FindView(slot.Item!) != null) continue;
 
                 int opIndex        = i / slotsPerOperator;
                 InventoryGrid grid = this.gridGroup.GetGrid(opIndex);
                 this.itemSpawner.SpawnExisting(slot.Item!, grid);
             }
 
-            // Apply equipped-weapon visuals
+            if (this.synced) return;
+            this.synced = true;
+
+            // Apply equipped-weapon visuals once on first open
             for (int opIndex = 0; opIndex < this.roster.Count; opIndex++)
             {
                 var op = this.roster[opIndex];
