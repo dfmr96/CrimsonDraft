@@ -13,7 +13,6 @@ namespace CrimsonDraft.UI
         private Inventory.InventoryItem boundItem  = null!;
         private Vector2Int              gridOrigin;
         private int                     rotationState; // 0=0°  1=90°CW
-        private bool                    inspected;
         private Image                   icon          = null!;
         private RectTransform           rectTransform = null!;
 
@@ -22,7 +21,7 @@ namespace CrimsonDraft.UI
         public InventoryItem BoundItem  => this.boundItem;
         public ItemData      Data       => this.boundItem.Data;
         public Vector2Int    GridOrigin => this.gridOrigin;
-        public bool        IsInspected => this.inspected;
+        public bool        IsInspected => this.boundItem.IsExamined;
         public int         Rotation    => this.rotationState;
         public InventoryGrid? OwnerGrid { get; private set; }
 
@@ -38,7 +37,7 @@ namespace CrimsonDraft.UI
             }
         }
 
-        public void SetInspected(bool value)    => this.inspected  = value;
+        public void SetInspected(bool value)    => this.boundItem.IsExamined = value;
         public void SetGridOrigin(Vector2Int o) => this.gridOrigin = o;
         public void SetOwnerGrid(InventoryGrid grid) => this.OwnerGrid = grid;
 

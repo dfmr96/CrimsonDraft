@@ -9,6 +9,8 @@ namespace CrimsonDraft.Inventory
         public int      EquippedWeaponSlot { get; internal set; } = -1;
         public bool     IsEquipped         => this.EquippedBySlot >= 0;
 
+        public bool IsExamined { get; set; }
+
         public InventoryItem(ItemData data) => this.Data = data;
 
         public void SetEquipped(int operatorSlot, int weaponSlot)
