@@ -36,9 +36,10 @@ Otherwise, format each line as "- commit message".
 
 Calculate the elapsed time between `startedAt` and now. Format as "Xh Ym" (e.g. "1h 23m" or "45m").
 
-**Step 5 — Post comment to HNP**
+**Step 5 — Show comment for copy-paste**
 
-Build the comment text:
+Build the comment text and display it to the user inside a markdown code block so they can copy and paste it into HNP:
+
 ```
 Sesión registrada desde Claude Code
 
@@ -49,22 +50,6 @@ Commits:
 - commit one
 - commit two
 ```
-
-Replace `TASK_ID` with the `taskId` parsed from the state file in Step 1.
-
-Post it via Bash:
-```bash
-curl -s -X POST \
-  -H "Authorization: ApiKey $HNP_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '"COMMENT_TEXT_JSON_ESCAPED"' \
-  "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems/TASK_ID/comments"
-```
-
-Note: the body is a plain JSON string literal (outer single quotes wrap inner double quotes). Replace `COMMENT_TEXT_JSON_ESCAPED` with the comment text, properly JSON-escaped (newlines as `\n`, quotes as `\"`).
-
-If this fails, tell the user: "No se pudo registrar el comentario en HNP: [error]. El estado de sesión se conserva — podés reintentar con /hnp-stop."
-Stop here WITHOUT deleting the state file.
 
 **Step 6 — Prompt for status update**
 
@@ -101,4 +86,4 @@ rm "$USERPROFILE/.hnp/state.json" 2>/dev/null || rm "$HOME/.hnp/state.json" 2>/d
 
 **Step 8 — Confirm to the user**
 
-"Sesión cerrada: [taskName] — [duration]. Tiempo registrado en Toggl y comentario agregado en HNP."
+"Sesión cerrada: [taskName] — [duration]. Tiempo registrado en Toggl."
