@@ -1,7 +1,8 @@
 #nullable enable
 
 using NUnit.Framework;
-using CrimsonDraft.Inventory;
+using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Inventory; // InventorySlot
 
 namespace CrimsonDraft.Tests
 {
@@ -18,7 +19,7 @@ namespace CrimsonDraft.Tests
         public void Load_initially_returnsNull()
         {
             var registry = new InventoryStateRegistry();
-            Assert.IsNull(registry.Load());
+            Assert.IsNull(registry.Load<InventorySlot[]>());
         }
 
         [Test]
@@ -35,7 +36,7 @@ namespace CrimsonDraft.Tests
             var registry = new InventoryStateRegistry();
             var slots = new InventorySlot[4];
             registry.Save(slots);
-            Assert.AreSame(slots, registry.Load());
+            Assert.AreSame(slots, registry.Load<InventorySlot[]>());
         }
     }
 }
