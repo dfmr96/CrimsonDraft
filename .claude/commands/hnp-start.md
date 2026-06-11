@@ -7,6 +7,8 @@ Run in Bash:
 cat "$USERPROFILE/.hnp/state.json" 2>/dev/null || cat "$HOME/.hnp/state.json" 2>/dev/null
 ```
 
+Parse the JSON output and extract the `taskName` field. Use the actual value in the Spanish message below (do not print `[taskName]` literally).
+
 If a session exists, ask the user:
 "Ya hay una sesión activa: '[taskName]'. ¿La cerramos antes de empezar? (s/n)"
 
@@ -14,6 +16,10 @@ If a session exists, ask the user:
 - If no: stop here.
 
 **Step 2 — Fetch sprint tasks from HNP**
+
+First, check that `$HNP_API_KEY` and `$HNP_PROJECT_ID` are set. If either is empty, tell the user:
+"Faltan variables de entorno. Seguí las instrucciones en tools/hnp/README.md."
+Stop here.
 
 Run in Bash (replace variables with their actual env var values):
 ```bash
@@ -31,14 +37,10 @@ curl -s -H "Authorization: ApiKey $HNP_API_KEY" \
   "https://api.hacknplan.com/v0/projects/$HNP_PROJECT_ID/workitems?milestoneId=MILESTONE_ID"
 ```
 
-If the env vars are empty, tell the user:
-"Faltan variables de entorno. Seguí las instrucciones en tools/hnp/README.md."
-Stop here.
-
 **Step 3 — Present task list and get user selection**
 
 Show the list of tasks with their names and IDs. Ask the user to select one.
-Wait for the user to respond with a task name or number.
+Wait for the user to respond with a task name or a 1-based index from the displayed list.
 
 **Step 4 — Start Toggl timer**
 
@@ -62,6 +64,7 @@ cat > "$USERPROFILE/.hnp/state.json" << 'EOF'
   "taskId": "ACTUAL_TASK_ID",
   "taskName": "ACTUAL_TASK_NAME",
   "startedAt": "CURRENT_ISO_TIMESTAMP",
+(Use ISO 8601 UTC format, e.g. `2026-06-11T14:00:00.000Z` — equivalent to JavaScript's `new Date().toISOString()`)
   "togglEntryId": "ACTUAL_TOGGL_ENTRY_ID"
 }
 EOF
