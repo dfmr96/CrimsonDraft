@@ -3,6 +3,12 @@
 **Date:** 2026-06-11
 **Status:** Approved
 
+## Revision (2026-06-11)
+
+**Architecture changed from Node.js CLI to Claude Code slash commands.** The Toggl MCP (`@verygoodplugins/mcp-toggl`) replaces the custom `toggl-client.js`. HNP API calls are made via `curl` in the Bash tool. The CLI plan (`2026-06-11-hnp-cli-pipeline.md`) is superseded by `2026-06-11-hnp-mcp-pipeline.md`.
+
+---
+
 ## Overview
 
 A Node.js CLI tool (`hnp`) that connects Hack N Plan (task management), Toggl Track (time tracking), and Git (commit log) into a single workflow. The tool is installed from the repo by each team member, with machine-specific credentials stored outside the repo.
