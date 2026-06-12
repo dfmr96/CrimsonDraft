@@ -21,6 +21,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private IPickupDialogueService pickupDialogueService = null!;
         private DocumentController     documentController    = null!;
         private ContainerController    containerController   = null!;
+        private ImageViewController    imageViewController   = null!;
 
         [Inject]
         public void Construct(
@@ -29,7 +30,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IDialogueService       dialogueService,
             IPickupDialogueService pickupDialogueService,
             DocumentController     documentController,
-            ContainerController    containerController)
+            ContainerController    containerController,
+            ImageViewController    imageViewController)
         {
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
@@ -37,6 +39,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.pickupDialogueService = pickupDialogueService;
             this.documentController    = documentController;
             this.containerController   = containerController;
+            this.imageViewController   = imageViewController;
             this.inputService.Interact.performed += OnInteract;
         }
 
@@ -60,7 +63,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.dialogueService,
                 this.documentController,
                 this.containerController,
-                this.pickupDialogueService);
+                this.pickupDialogueService,
+                this.imageViewController);
             interactable.Interact(context);
         }
 
