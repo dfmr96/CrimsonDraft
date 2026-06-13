@@ -3475,7 +3475,7 @@ PrefabInstance:
       objectReference: {fileID: 120892076}
     - target: {fileID: 4533287905235796245, guid: 9daa2b5e65cda774a8f40d78d8482a28, type: 3}
       propertyPath: m_VersionIndex
-      value: 3860
+      value: 3863
       objectReference: {fileID: 0}
     - target: {fileID: 6827160487635077713, guid: 9daa2b5e65cda774a8f40d78d8482a28, type: 3}
       propertyPath: Target.LookAtTarget
@@ -3549,6 +3549,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 373e142344c00434999858f48f55f661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.RoomDoorInteractable
+--- !u!114 &2559182153517349390 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 332485762560883828, guid: 9daa2b5e65cda774a8f40d78d8482a28, type: 3}
+  m_PrefabInstance: {fileID: 2559182153517349388}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a07ea12a94655c468f97fda5a82b02a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.SceneDoorInteractable
 --- !u!1001 &4098241687164196132
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4343,49 +4354,69 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1648240372}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: cachedSceneDoors.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: 'cachedRoomDoors.Array.data[0]'
-      value: 
-      objectReference: {fileID: 6295086599991072827}
-    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[1]'
-      value: 
-      objectReference: {fileID: 5973809923735770582}
-    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[2]'
       value: 
       objectReference: {fileID: 2559182153517349389}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[3]'
-      value: 
-      objectReference: {fileID: 4098241687164196133}
-    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[4]'
-      value: 
-      objectReference: {fileID: 6238009094601612333}
-    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[5]'
+      propertyPath: 'cachedRoomDoors.Array.data[1]'
       value: 
       objectReference: {fileID: 1851925762627737202}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[6]'
-      value: 
-      objectReference: {fileID: 6295086599991072828}
-    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[7]'
+      propertyPath: 'cachedRoomDoors.Array.data[2]'
       value: 
       objectReference: {fileID: 1851925762627737201}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[8]'
+      propertyPath: 'cachedRoomDoors.Array.data[3]'
       value: 
       objectReference: {fileID: 6238009094601612332}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-      propertyPath: 'cachedRoomDoors.Array.data[9]'
+      propertyPath: 'cachedRoomDoors.Array.data[4]'
+      value: 
+      objectReference: {fileID: 6295086599991072827}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedRoomDoors.Array.data[5]'
       value: 
       objectReference: {fileID: 1851925762627737203}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedRoomDoors.Array.data[6]'
+      value: 
+      objectReference: {fileID: 4098241687164196133}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedRoomDoors.Array.data[7]'
+      value: 
+      objectReference: {fileID: 6238009094601612333}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedRoomDoors.Array.data[8]'
+      value: 
+      objectReference: {fileID: 5973809923735770582}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedRoomDoors.Array.data[9]'
+      value: 
+      objectReference: {fileID: 6295086599991072828}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: 'cachedSceneDoors.Array.data[0]'
       value: 
       objectReference: {fileID: 5973809923735770581}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedSceneDoors.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2559182153517349390}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.49314404
+      objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3.65
+      objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -6.70006
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
