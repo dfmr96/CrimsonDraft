@@ -163,6 +163,9 @@ namespace CrimsonDraft.Combat
         public RectTransform GetOperatorRect(int index) =>
             (RectTransform)this.operators[index].transform;
 
+        public RectTransform GetOperatorOverviewRect(int index) =>
+            (RectTransform)this.operators[index].transform.parent;
+
         public void SetDimmed(bool dimmed)
         {
             this.isMasterDimmed = dimmed;

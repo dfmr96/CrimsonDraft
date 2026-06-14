@@ -651,6 +651,8 @@ namespace CrimsonDraft.Tests
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
                 new GameObject().AddComponent<RectTransform>();
+            public RectTransform GetOperatorOverviewRect(int index) =>
+                new GameObject().AddComponent<RectTransform>();
         }
 
         private sealed class FakeCommandPanelView : ICommandPanelView

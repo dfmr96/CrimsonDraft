@@ -55,10 +55,15 @@ namespace CrimsonDraft.Combat
 
             var corners = new Vector3[4];
             operatorRect.GetWorldCorners(corners);
-            var topCenter = (corners[1] + corners[2]) * 0.5f;
-            var localPos  = hudRoot.InverseTransformPoint(topCenter);
+            var center   = (corners[0] + corners[2]) * 0.5f;
+            var localPos = hudRoot.InverseTransformPoint(center);
 
-            panel.localPosition = new Vector3(localPos.x + this.offset.x, localPos.y + this.offset.y, 0f);
+            float pivotCorrX = (panel.pivot.x - 0.5f) * panel.rect.width;
+            float pivotCorrY = (panel.pivot.y - 0.5f) * panel.rect.height;
+            panel.localPosition = new Vector3(
+                localPos.x + this.offset.x + pivotCorrX,
+                localPos.y + this.offset.y + pivotCorrY,
+                0f);
         }
 
         public void Show(RectTransform operatorRect)
