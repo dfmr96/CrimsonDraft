@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
@@ -17,26 +18,29 @@ namespace CrimsonDraft.UI
         private readonly GridCursor        cursor;
         private readonly ItemContextMenu   contextMenu;
         private readonly PartyPanelView    partyPanel;
+        private readonly IInteractionCaster interactionCaster;
 
         private InventoryItemView? combineSourceItem;
 
         [Preserve]
         public InventoryHUDController(
-            IInventoryService inventoryService,
-            ICombineService   combineService,
-            IItemSpawner      itemSpawner,
-            IOperatorRoster   roster,
-            GridCursor        cursor,
-            ItemContextMenu   contextMenu,
-            PartyPanelView    partyPanel)
+            IInventoryService  inventoryService,
+            ICombineService    combineService,
+            IItemSpawner       itemSpawner,
+            IOperatorRoster    roster,
+            GridCursor         cursor,
+            ItemContextMenu    contextMenu,
+            PartyPanelView     partyPanel,
+            IInteractionCaster interactionCaster)
         {
-            this.inventoryService = inventoryService;
-            this.combineService   = combineService;
-            this.itemSpawner      = itemSpawner;
-            this.roster           = roster;
-            this.cursor           = cursor;
-            this.contextMenu      = contextMenu;
-            this.partyPanel       = partyPanel;
+            this.inventoryService  = inventoryService;
+            this.combineService    = combineService;
+            this.itemSpawner       = itemSpawner;
+            this.roster            = roster;
+            this.cursor            = cursor;
+            this.contextMenu       = contextMenu;
+            this.partyPanel        = partyPanel;
+            this.interactionCaster = interactionCaster;
         }
 
         public void Initialize()
@@ -68,7 +72,8 @@ namespace CrimsonDraft.UI
                 CanCombine = view.Data.Combinable,
                 CanEquip   = view.Data.ItemType == ItemType.Weapon,
                 CanUse     = view.Data.ItemType == ItemType.Consumable
-                          || view.Data.ItemType == ItemType.KeyItem,
+                          || view.Data.ItemType == ItemType.KeyItem
+                          || view.Data.ItemType == ItemType.SocketItem,
             };
             this.contextMenu.Open(view, options);
         }
@@ -82,6 +87,17 @@ namespace CrimsonDraft.UI
                 HandleEquipWeapon(view);
                 return;
             }
+
+            if (view.Data.ItemType == ItemType.SocketItem)
+            {
+                if (!this.interactionCaster.CanUseItem(view.Data)) return;
+                view.OwnerGrid?.RemoveItem(view);
+                Object.Destroy(view.gameObject);
+                this.cursor.RequestClose();
+                this.interactionCaster.TryUseItem(view.Data);
+                return;
+            }
+
             this.inventoryService.TryUseKey(view.Data.ItemId);
         }
 

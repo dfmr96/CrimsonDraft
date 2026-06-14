@@ -71,7 +71,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-            builder.Register<ImageViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+            builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
             // ── Room transition ──────────────────────────────────────────────
             this.roomTransitionContext.SetStartingRoom(this.startingRoom);

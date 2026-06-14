@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -7,7 +8,7 @@ using UnityEngine.UI;
 
 namespace CrimsonDraft.Navigation.Interactables.UI
 {
-    public sealed class PuzzleView : MonoBehaviour
+    public sealed class PuzzleView : MonoBehaviour, INavigablePuzzle
     {
         [SerializeField] private Image[]    buttonImages    = null!;
         [SerializeField] private Image      leverImage      = null!;
@@ -23,7 +24,10 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private Sprite     resultCorrectSprite = null!;
         [Range(0, 31)]
         [SerializeField] private int        expectedValue;
-        [SerializeField] private float      leverResetDelay = 1f;
+        [SerializeField] private float      leverResetDelay  = 1f;
+        [SerializeField] private float      solvedCloseDelay = 1.5f;
+
+        public Action? OnSolved { get; set; }
 
         private RectTransform[] navigables = null!;
         private readonly bool[] states = new bool[5];
@@ -57,6 +61,9 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             Refresh();
         }
 
+        public void MoveUp()   { }
+        public void MoveDown() { }
+
         public void Toggle()
         {
             if (this.currentIndex < this.buttonImages.Length)
@@ -83,6 +90,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             if (ComputeDecimal() == this.expectedValue)
             {
                 this.resultImage.sprite = this.resultCorrectSprite;
+                StartCoroutine(CloseAfterDelay());
             }
             else
             {
@@ -97,6 +105,12 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             SetLever(false);
             this.resultImage.sprite = this.resultOffSprite;
             this.resetCoroutine = null;
+        }
+
+        private IEnumerator CloseAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(this.solvedCloseDelay);
+            OnSolved?.Invoke();
         }
 
         private void SetLever(bool active)
