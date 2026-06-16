@@ -190,7 +190,7 @@ namespace CrimsonDraft.Combat
             this.TransitionTo(this.ShotCountState);
         }
 
-        internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier)
+        internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier, int baseDamage = BaseDamage)
         {
             float zoneMult = zone switch
             {
@@ -201,7 +201,7 @@ namespace CrimsonDraft.Combat
                 ShotZone.Hit   => 1.0f,
                 _              => 0.0f,
             };
-            return Mathf.RoundToInt(BaseDamage * zoneMult * precisionMultiplier);
+            return Mathf.RoundToInt(baseDamage * zoneMult * precisionMultiplier);
         }
 
         #endregion
