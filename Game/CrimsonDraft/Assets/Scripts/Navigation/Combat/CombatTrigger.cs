@@ -4,7 +4,6 @@ using System;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using UnityEngine;
-using VContainer;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 
@@ -19,11 +18,10 @@ namespace CrimsonDraft.Navigation.Combat
         private IEncounterContext?                     encounterContext;
         private IDisposable?                           combatEndedSubscription;
 
-        [Inject]
         public void Construct(
-            ISceneTransitionService      sceneTransitionService,
+            ISceneTransitionService       sceneTransitionService,
             ISubscriber<CombatEndedEvent> combatEndedSubscriber,
-            IEncounterContext            encounterContext)
+            IEncounterContext             encounterContext)
         {
             this.sceneTransitionService = sceneTransitionService;
             this.combatEndedSubscriber  = combatEndedSubscriber;
