@@ -79,6 +79,32 @@ namespace CrimsonDraft.UI
             Debug.LogWarning($"[InventoryPopulator] No space for: {data.DisplayName}");
         }
 
+        public bool SpawnAt(InventoryItem item, InventoryGrid grid, int col, int row, int rotation = 0)
+        {
+            var origin = new Vector2Int(col, row);
+            var size   = rotation == 0
+                ? item.Data.GridSize
+                : new Vector2Int(item.Data.GridSize.y, item.Data.GridSize.x);
+            if (!grid.CanPlace(origin, size)) return false;
+
+            SpawnItemViewFromItem(item, grid, origin);
+
+            if (rotation == 1)
+            {
+                var view = grid.GetItemAt(origin);
+                if (view != null)
+                {
+                    view.Rotate();
+                    var rt  = view.GetComponent<RectTransform>();
+                    var pos = grid.CellToLocal(origin);
+                    pos.x  += rt.sizeDelta.y;
+                    rt.anchoredPosition = pos;
+                }
+            }
+
+            return true;
+        }
+
         public void SpawnExisting(InventoryItem item, InventoryGrid? preferredGrid = null)
         {
             if (preferredGrid != null && TryFindSlot(preferredGrid, item.Data, out var preferred))

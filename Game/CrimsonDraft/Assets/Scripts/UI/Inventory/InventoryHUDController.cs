@@ -45,7 +45,7 @@ namespace CrimsonDraft.UI
             this.contextMenu.OnCombineRequested  += EnterCombineMode;
             this.cursor.OnCellConfirmed          += OnCellConfirmed;
             this.cursor.OnCombineTargetConfirmed += HandleCombineConfirm;
-            this.cursor.OnItemMovedToNewGrid     += HandleItemMovedToNewGrid;
+            this.cursor.OnItemPlaced             += HandleItemPlaced;
             this.cursor.OnCombineCancelled       += ExitCombineMode;
         }
 
@@ -55,7 +55,7 @@ namespace CrimsonDraft.UI
             this.contextMenu.OnCombineRequested  -= EnterCombineMode;
             this.cursor.OnCellConfirmed          -= OnCellConfirmed;
             this.cursor.OnCombineTargetConfirmed -= HandleCombineConfirm;
-            this.cursor.OnItemMovedToNewGrid     -= HandleItemMovedToNewGrid;
+            this.cursor.OnItemPlaced             -= HandleItemPlaced;
             this.cursor.OnCombineCancelled       -= ExitCombineMode;
         }
 
@@ -241,17 +241,79 @@ namespace CrimsonDraft.UI
 
         // ── Grid movement ───────────────────────────────────────────────────
 
-        private void HandleItemMovedToNewGrid(InventoryItemView item, InventoryGrid fromGrid)
+        private void HandleItemPlaced(InventoryItemView item)
         {
-            var weapon = item.BoundItem as WeaponItem;
-            if (weapon == null || !weapon.IsEquipped) return;
+            // Unequip if equipped weapon moved to a different operator's grid
+            if (item.BoundItem is WeaponItem weapon && weapon.IsEquipped)
+            {
+                int newOpIndex = this.cursor.GetOperatorOf(item);
+                if (newOpIndex >= 0 && newOpIndex != weapon.EquippedBySlot)
+                {
+                    int opSlot  = weapon.EquippedBySlot;
+                    int wepSlot = weapon.EquippedWeaponSlot;
+                    weapon.ClearEquipped();
+                    this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
+                    this.roster[opSlot].SetEquippedWeapon(null, wepSlot);
+                    item.SetEquippedTint(false);
+                }
+            }
 
-            int opSlot  = weapon.EquippedBySlot;
-            int wepSlot = weapon.EquippedWeaponSlot;
-            weapon.ClearEquipped();
-            this.partyPanel.GetWidget(opSlot)?.SetEquippedWeapon(null, wepSlot);
-            this.roster[opSlot].SetEquippedWeapon(null, wepSlot);
-            item.SetEquippedTint(false);
+            // Sync item to correct operator block, then record 2D position
+            SyncItemToOperatorSlot(item);
+
+            var origin = item.GridOrigin;
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                if (this.inventoryService.Slots[i].Item == item.BoundItem)
+                {
+                    this.inventoryService.SetSlotPosition(i, origin.x, origin.y, item.Rotation);
+                    break;
+                }
+            }
+        }
+
+        private void SyncItemToOperatorSlot(InventoryItemView item)
+        {
+            int toOpIndex = this.cursor.GetOperatorOf(item);
+            if (toOpIndex < 0) return;
+
+            int slotsPerOp = this.roster.Count > 0
+                ? this.inventoryService.SlotCount / this.roster.Count
+                : 4;
+
+            int fromSlot = -1;
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                if (this.inventoryService.Slots[i].Item == item.BoundItem)
+                {
+                    fromSlot = i;
+                    break;
+                }
+            }
+            if (fromSlot < 0) return;
+
+            int blockStart = toOpIndex * slotsPerOp;
+            if (fromSlot >= blockStart && fromSlot < blockStart + slotsPerOp) return;
+
+            InventoryGrid toGrid = item.OwnerGrid!;
+
+            for (int i = blockStart; i < blockStart + slotsPerOp; i++)
+            {
+                if (this.inventoryService.Slots[i].IsEmpty)
+                {
+                    this.inventoryService.MoveItem(fromSlot, i);
+                    return;
+                }
+
+                var occupantItem = this.inventoryService.Slots[i].Item!;
+                var occupantView = this.cursor.FindView(occupantItem);
+                if (occupantView == null || occupantView.OwnerGrid != toGrid)
+                {
+                    // Occupant displaced (held or moved elsewhere) — swap slots
+                    this.inventoryService.MoveItem(fromSlot, i);
+                    return;
+                }
+            }
         }
 
     }

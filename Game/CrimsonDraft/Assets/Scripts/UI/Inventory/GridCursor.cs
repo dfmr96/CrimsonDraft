@@ -45,6 +45,7 @@ namespace CrimsonDraft.UI
         public event System.Action<InventoryItemView>?               OnCellConfirmed;
         public event System.Action<InventoryItemView>?               OnCombineTargetConfirmed;
         public event System.Action<InventoryItemView, InventoryGrid>? OnItemMovedToNewGrid;
+        public event System.Action<InventoryItemView>?               OnItemPlaced;
         public event System.Action?                                   OnCombineCancelled;
         public event System.Action?                                   OnCloseRequested;
 
@@ -416,11 +417,7 @@ namespace CrimsonDraft.UI
         void PlaceHeldItem(InventoryGrid targetGrid, Vector2Int origin)
         {
             if (targetGrid != this.heldFromGrid)
-            {
-                var weapon = this.heldItem!.BoundItem as WeaponItem;
-                if (weapon != null && weapon.IsEquipped)
-                    OnItemMovedToNewGrid?.Invoke(this.heldItem, this.heldFromGrid!);
-            }
+                OnItemMovedToNewGrid?.Invoke(this.heldItem!, this.heldFromGrid!);
 
             this.heldItem!.SetGridOrigin(origin);
             this.heldItem.SetOwnerGrid(targetGrid);
@@ -431,6 +428,8 @@ namespace CrimsonDraft.UI
             rt.anchoredPosition = GetItemPosition(this.heldItem, origin, targetGrid);
 
             targetGrid.PlaceItem(this.heldItem);
+
+            OnItemPlaced?.Invoke(this.heldItem);
 
             this.heldItem     = null;
             this.heldFromGrid = null;

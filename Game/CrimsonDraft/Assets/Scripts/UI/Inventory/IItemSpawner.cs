@@ -9,5 +9,6 @@ namespace CrimsonDraft.UI
         bool HasSpace(ItemData data);
         void Spawn(ItemData data, InventoryGrid? preferredGrid = null);
         void SpawnExisting(InventoryItem item, InventoryGrid? preferredGrid = null);
+        bool SpawnAt(InventoryItem item, InventoryGrid grid, int col, int row, int rotation = 0);
     }
 }

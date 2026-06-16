@@ -40,8 +40,30 @@ namespace CrimsonDraft.UI
                 ? this.inventoryService.SlotCount / this.roster.Count
                 : 4;
 
-            // Spawn a view for every item that doesn't have one yet.
-            // Runs on every open so items picked up after the first open are included.
+            // Refresh displayed quantities on views that survived from a previous open
+            // (e.g. ammo consumed in combat while the UI was already in memory).
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                var slot = this.inventoryService.Slots[i];
+                if (slot.IsEmpty) continue;
+                this.cursor.FindView(slot.Item!)?.RefreshQuantity();
+            }
+
+            // Pass 1: Restore items that have a saved 2D position to their exact cell.
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                var slot = this.inventoryService.Slots[i];
+                if (slot.IsEmpty) continue;
+                if (this.cursor.FindView(slot.Item!) != null) continue;
+                if (slot.GridCol < 0 || slot.GridRow < 0) continue;
+
+                int opIndex        = i / slotsPerOperator;
+                InventoryGrid grid = this.gridGroup.GetGrid(opIndex);
+                if (!this.itemSpawner.SpawnAt(slot.Item!, grid, slot.GridCol, slot.GridRow, slot.GridRotation))
+                    this.inventoryService.SetSlotPosition(i, -1, -1, 0); // cell blocked — handle in pass 2
+            }
+
+            // Pass 2: Spawn remaining items (new or position-blocked) using first-available slot.
             for (int i = 0; i < this.inventoryService.SlotCount; i++)
             {
                 var slot = this.inventoryService.Slots[i];
@@ -51,6 +73,10 @@ namespace CrimsonDraft.UI
                 int opIndex        = i / slotsPerOperator;
                 InventoryGrid grid = this.gridGroup.GetGrid(opIndex);
                 this.itemSpawner.SpawnExisting(slot.Item!, grid);
+
+                var view = this.cursor.FindView(slot.Item!);
+                if (view != null)
+                    this.inventoryService.SetSlotPosition(i, view.GridOrigin.x, view.GridOrigin.y, view.Rotation);
             }
 
             if (this.synced) return;
