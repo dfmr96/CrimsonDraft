@@ -48,6 +48,7 @@ namespace CrimsonDraft.Combat
         private Vector2  confirmedLocalPos;
         private int               shotCount              = 1;
         private int               activeDispersionRadius = 10;
+        private int               activeBaseDamage       = CombatMenuController.BaseDamage;
         private Sprite?           activeDispersionSprite;
         private BurstPatternData? activeBurstPattern;
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
@@ -90,6 +91,7 @@ namespace CrimsonDraft.Combat
         public void ConfigureWeapon(WeaponData? weaponData)
         {
             this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
+            this.activeBaseDamage       = weaponData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
             this.activeBurstPattern     = weaponData?.BurstPattern;
         }
@@ -228,7 +230,7 @@ namespace CrimsonDraft.Combat
                 ShotZone            zone       = def?.zone ?? ShotZone.Miss;
                 ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
                 float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
-                int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult);
+                int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
                 resolved[i] = new ResolvedShot(i, normalized, zone, precision, damage);
             }
             return resolved;

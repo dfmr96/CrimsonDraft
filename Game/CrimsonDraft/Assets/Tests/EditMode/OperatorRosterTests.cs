@@ -120,7 +120,8 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeWeaponSlot : IWeaponSlot
         {
-            public Caliber Caliber    { get; }
+            public Caliber Caliber     { get; }
+            public int     BaseDamage  => 20;
             public int     CurrentAmmo { get; private set; }
             public int     MaxAmmo     { get; }
 

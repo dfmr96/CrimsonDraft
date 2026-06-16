@@ -14,6 +14,7 @@ namespace CrimsonDraft.Inventory
         [SerializeField] private Sprite?           dispersionCircleSprite;
         [SerializeField] private BurstPatternData? burstPattern;
         [SerializeField] private WeaponSlot        weaponSlot             = WeaponSlot.Primary;
+        [SerializeField, Min(1)] private int       damage                 = 20;
 
         public Caliber           Caliber                => this.caliber;
         public int               MagazineCapacity       => this.magazineCapacity;
@@ -21,5 +22,6 @@ namespace CrimsonDraft.Inventory
         public Sprite?           DispersionCircleSprite => this.dispersionCircleSprite;
         public BurstPatternData? BurstPattern           => this.burstPattern;
         public WeaponSlot        WeaponSlot             => this.weaponSlot;
+        public int               Damage                 => this.damage;
     }
 }
