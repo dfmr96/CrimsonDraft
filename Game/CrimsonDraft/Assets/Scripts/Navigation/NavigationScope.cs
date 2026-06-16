@@ -90,6 +90,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterMessageBroker<RoomTransitionedEvent>(msgOptions);
             builder.RegisterMessageBroker<GuardAlertChangedEvent>(msgOptions);
             builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
+            builder.RegisterMessageBroker<DialogueActiveChangedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()

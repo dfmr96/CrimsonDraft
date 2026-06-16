@@ -31,6 +31,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
+        private ISubscriber<DialogueActiveChangedEvent>? dialogueSubscriber;
         private IEncounterContext?                     encounterContext;
         private IPublisher<GuardAlertChangedEvent>?    guardAlertPublisher;
         private PlayerController?                      playerController;
@@ -42,20 +43,24 @@ namespace CrimsonDraft.Navigation.Enemy
         private GuardAlertState  state           = GuardAlertState.Patrol;
         private float            suspiciousTimer;
         private IDisposable?     combatEndedSub;
+        private IDisposable?     dialogueSub;
         private bool             combatTriggered;
+        private bool             dialoguePaused;
         private NavMeshPath navPathCache = null!;
 
         public void Construct(
-            ISceneTransitionService            sceneTransitionService,
-            ISubscriber<CombatEndedEvent>      combatEndedSubscriber,
-            IEncounterContext                  encounterContext,
-            IPublisher<GuardAlertChangedEvent> guardAlertPublisher,
-            PlayerController                   playerController,
-            EnemyStateRegistry                 enemyStateRegistry,
-            string                             enemyKey)
+            ISceneTransitionService                 sceneTransitionService,
+            ISubscriber<CombatEndedEvent>           combatEndedSubscriber,
+            ISubscriber<DialogueActiveChangedEvent> dialogueSubscriber,
+            IEncounterContext                       encounterContext,
+            IPublisher<GuardAlertChangedEvent>      guardAlertPublisher,
+            PlayerController                        playerController,
+            EnemyStateRegistry                      enemyStateRegistry,
+            string                                  enemyKey)
         {
             this.sceneTransitionService = sceneTransitionService;
             this.combatEndedSubscriber  = combatEndedSubscriber;
+            this.dialogueSubscriber     = dialogueSubscriber;
             this.encounterContext       = encounterContext;
             this.guardAlertPublisher    = guardAlertPublisher;
             this.playerController       = playerController;
@@ -80,16 +85,19 @@ namespace CrimsonDraft.Navigation.Enemy
                 navAgent.SetDestination(path.Current.position);
 
             combatEndedSub = combatEndedSubscriber?.Subscribe(OnCombatEnded);
+            dialogueSub    = dialogueSubscriber?.Subscribe(OnDialogueActiveChanged);
         }
 
         private void OnDestroy()
         {
             combatEndedSub?.Dispose();
+            dialogueSub?.Dispose();
         }
 
         private void Update()
         {
             if (playerController == null) return;
+            if (dialoguePaused) return;
 
             switch (state)
             {
@@ -209,6 +217,12 @@ namespace CrimsonDraft.Navigation.Enemy
             combatTriggered = true;
             sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
             gameObject.SetActive(false);
+        }
+
+        private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
+        {
+            dialoguePaused = ev.IsActive;
+            navAgent.isStopped = ev.IsActive || state is GuardAlertState.Suspicious;
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)

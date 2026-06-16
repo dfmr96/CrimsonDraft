@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using MessagePipe;
 using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
@@ -10,26 +11,32 @@ namespace CrimsonDraft.Navigation.Dialogue
 {
     public class DialogueService : IDialogueService
     {
-        private readonly DialogueRunner          runner;
-        private readonly InMemoryVariableStorage variableStorage;
-        private readonly IInputService           inputService;
+        private readonly DialogueRunner                          runner;
+        private readonly InMemoryVariableStorage                 variableStorage;
+        private readonly IInputService                           inputService;
+        private readonly IPublisher<DialogueActiveChangedEvent>  dialoguePublisher;
 
         private Action?      pendingOnComplete;
         private List<string> sessionCommandNames = new();
 
         [Inject]
         [Preserve]
-        public DialogueService(GeneralDialogueRunnerRef runnerRef, IInputService inputService)
-            : this(runnerRef.Runner, runnerRef.Storage, inputService) { }
+        public DialogueService(
+            GeneralDialogueRunnerRef                        runnerRef,
+            IInputService                                   inputService,
+            IPublisher<DialogueActiveChangedEvent>          dialoguePublisher)
+            : this(runnerRef.Runner, runnerRef.Storage, inputService, dialoguePublisher) { }
 
         protected DialogueService(
-            DialogueRunner          runner,
-            InMemoryVariableStorage variableStorage,
-            IInputService           inputService)
+            DialogueRunner                                  runner,
+            InMemoryVariableStorage                         variableStorage,
+            IInputService                                   inputService,
+            IPublisher<DialogueActiveChangedEvent>          dialoguePublisher)
         {
-            this.runner          = runner;
-            this.variableStorage = variableStorage;
-            this.inputService    = inputService;
+            this.runner            = runner;
+            this.variableStorage   = variableStorage;
+            this.inputService      = inputService;
+            this.dialoguePublisher = dialoguePublisher;
             this.runner.onDialogueComplete?.AddListener(OnDialogueComplete);
         }
 
@@ -69,6 +76,7 @@ namespace CrimsonDraft.Navigation.Dialogue
             }
 
             this.inputService.SwitchToDialogue();
+            this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(true));
             _ = this.runner.StartDialogue(nodeName);
         }
 
@@ -86,6 +94,7 @@ namespace CrimsonDraft.Navigation.Dialogue
         private void OnDialogueComplete()
         {
             this.inputService.SwitchToGameplay();
+            this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(false));
 
             foreach (var name in this.sessionCommandNames)
                 this.runner.RemoveCommandHandler(name);

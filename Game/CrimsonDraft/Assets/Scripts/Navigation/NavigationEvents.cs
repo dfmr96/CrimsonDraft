@@ -25,4 +25,14 @@ namespace CrimsonDraft.Navigation
             ActiveRoom = activeRoom;
         }
     }
+
+    public readonly struct DialogueActiveChangedEvent
+    {
+        public readonly bool IsActive;
+
+        public DialogueActiveChangedEvent(bool isActive)
+        {
+            IsActive = isActive;
+        }
+    }
 }
