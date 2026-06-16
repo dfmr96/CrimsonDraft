@@ -21,7 +21,6 @@ namespace CrimsonDraft.Combat
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
         private IEncounterContext                            encounterContext    = null!;
-        private EncounterDatabase                            encounterDatabase   = null!;
         private IInventoryService                            inventory          = null!;
         private ICombatActionMenuView                        menuView           = null!;
 
@@ -55,7 +54,6 @@ namespace CrimsonDraft.Combat
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
             IEncounterContext                            encounterContext,
-            EncounterDatabase                            encounterDatabase,
             IInventoryService                            inventory,
             ICombatActionMenuView                        menuView)
         {
@@ -66,17 +64,13 @@ namespace CrimsonDraft.Combat
             this.battlefieldView    = battlefieldView;
             this.roster             = roster;
             this.encounterContext   = encounterContext;
-            this.encounterDatabase  = encounterDatabase;
             this.inventory          = inventory;
             this.menuView           = menuView;
         }
 
         void IInitializable.Initialize()
         {
-            string? encounterId = this.encounterContext.CurrentEncounterId;
-            if (encounterId == null) return;
-
-            this.encounter = this.encounterDatabase.GetById(encounterId);
+            this.encounter = this.encounterContext.EncounterAsset as EncounterData;
             if (this.encounter == null) return;
 
             var configs = BuildATBConfigs(this.encounter, this.roster, this.atbGaugeDivisor);

@@ -7,27 +7,21 @@ namespace CrimsonDraft.Combat
 {
     public sealed class BattlefieldPresenter : IInitializable
     {
-        private readonly IEncounterContext  encounterContext;
-        private readonly EncounterDatabase  encounterDatabase;
-        private readonly IBattlefieldView   battlefieldView;
+        private readonly IEncounterContext encounterContext;
+        private readonly IBattlefieldView  battlefieldView;
 
         [UnityEngine.Scripting.Preserve]
         public BattlefieldPresenter(
             IEncounterContext encounterContext,
-            EncounterDatabase encounterDatabase,
             IBattlefieldView  battlefieldView)
         {
-            this.encounterContext  = encounterContext;
-            this.encounterDatabase = encounterDatabase;
-            this.battlefieldView   = battlefieldView;
+            this.encounterContext = encounterContext;
+            this.battlefieldView  = battlefieldView;
         }
 
         void IInitializable.Initialize()
         {
-            var encounterId = this.encounterContext.CurrentEncounterId;
-            if (encounterId == null) return;
-
-            var encounter = this.encounterDatabase.GetById(encounterId);
+            var encounter = this.encounterContext.EncounterAsset as EncounterData;
             if (encounter == null) return;
 
             this.battlefieldView.Populate(encounter);

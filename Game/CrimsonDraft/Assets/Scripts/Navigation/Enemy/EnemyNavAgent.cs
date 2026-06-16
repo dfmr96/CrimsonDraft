@@ -18,6 +18,9 @@ namespace CrimsonDraft.Navigation.Enemy
     {
         [SerializeField] private NavigationEnemyData  data          = null!;
         [SerializeField] private EncounterData        encounterData = null!;
+        [SerializeField] private string               encounterId   = string.Empty;
+
+        public string EncounterId => this.encounterId;
         [SerializeField] private EnemyPatrolPath      path          = null!;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
@@ -204,7 +207,7 @@ namespace CrimsonDraft.Navigation.Enemy
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
             combatTriggered = true;
-            sceneTransitionService.StartCombatAsync(encounterData.EncounterId).Forget();
+            sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
             gameObject.SetActive(false);
         }
 

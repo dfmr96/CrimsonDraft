@@ -1,8 +1,6 @@
 #nullable enable
 
 using MessagePipe;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
@@ -47,11 +45,9 @@ namespace CrimsonDraft.Navigation.Enemy
 
         void IInitializable.Initialize()
         {
-            var sceneName = SceneManager.GetActiveScene().name;
-
             foreach (var agent in this.enemies)
             {
-                var key = $"{sceneName}/{agent.gameObject.name}";
+                var key = agent.EncounterId;
                 agent.Construct(
                     this.sceneTransitionService,
                     this.combatEndedSubscriber,
