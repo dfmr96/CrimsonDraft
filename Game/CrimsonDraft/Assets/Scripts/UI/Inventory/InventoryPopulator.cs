@@ -94,7 +94,11 @@ namespace CrimsonDraft.UI
                 var view = grid.GetItemAt(origin);
                 if (view != null)
                 {
+                    // PlaceItem was called inside SpawnItemViewFromItem with unrotated GridSize.
+                    // Remove, rotate, then re-register so itemGrid reflects the rotated footprint.
+                    grid.RemoveItem(view);
                     view.Rotate();
+                    grid.PlaceItem(view);
                     var rt  = view.GetComponent<RectTransform>();
                     var pos = grid.CellToLocal(origin);
                     pos.x  += rt.sizeDelta.y;
