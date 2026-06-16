@@ -4,17 +4,20 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MessagePipe;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
+using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using Yarn.Unity;
 using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.UI
 {
-    public sealed class FilesTabController : MonoBehaviour
+    public sealed class FilesTabController : MonoBehaviour, IInitializable, IDisposable
     {
         [SerializeField] private NoteDatabase      database      = null!;
         [SerializeField] private NoteDetailView    detailView    = null!;
@@ -38,8 +41,12 @@ namespace CrimsonDraft.UI
 
         [SerializeField] private YarnProject yarnProject = null!;
 
-        [Inject] private IInputService inputService = null!;
-        [Inject] private TabManager    tabManager   = null!;
+        [Inject] private IInputService                    inputService         = null!;
+        [Inject] private TabManager                       tabManager           = null!;
+        [Inject] private InventoryOpenCloseController     openCloseController  = null!;
+        [Inject] private ISubscriber<NoteCollectedEvent>   noteCollectedSub     = null!;
+
+        private IDisposable? noteSubscription;
 
         private static readonly DocumentCategory[] Categories =
             (DocumentCategory[])Enum.GetValues(typeof(DocumentCategory));
@@ -62,10 +69,67 @@ namespace CrimsonDraft.UI
         private enum Focus { Carousel, Grid }
         private Focus focus;
 
+        // ── DI lifecycle ─────────────────────────────────────────────────────
+
+        void IInitializable.Initialize()
+        {
+            this.noteSubscription = this.noteCollectedSub.Subscribe(OnNoteCollected);
+        }
+
+        void IDisposable.Dispose()
+        {
+            this.noteSubscription?.Dispose();
+        }
+
+        void OnNoteCollected(NoteCollectedEvent e)
+        {
+            var doc = this.database.Notes.FirstOrDefault(n => n != null && n.NoteId == e.NoteId);
+            if (doc == null) return;
+
+            // Open the canvas first so the whole hierarchy (GridCursor, etc.) gets its Awake()
+            // call — TabManager.EnsureInitialized() below ends up calling ResetForOpen(), which
+            // touches GridCursor.CurrentGrid and NREs if GridCursor hasn't awoken yet.
+            this.openCloseController.Open();
+
+            // Then force TabManager's first-time setup synchronously, in case Unity hasn't
+            // gotten around to calling its Start() yet — otherwise the deferred Start() would
+            // reset the active tab back to "Inventory" right after we switch to "Files".
+            this.tabManager.EnsureInitialized();
+            this.tabManager.ActivateTabByName("Files");
+            OpenCollected(doc);
+        }
+
+        /// <summary>Opens a note exactly as if the player had navigated to it by hand.</summary>
+        public void OpenCollected(DocumentData doc)
+        {
+            EnsureSelectorParented();
+
+            int catIndex = Array.IndexOf(Categories, doc.Category);
+            this.categoryIndex = catIndex >= 0 ? catIndex : 0;
+            RefreshCategory();
+
+            int idx = Array.IndexOf(this.filteredNotes, doc);
+            if (idx >= 0)
+            {
+                this.selectedIndex = idx;
+                SetFocus(Focus.Grid);
+                PlaceSelectorAt(this.selectedIndex);
+            }
+
+            OpenNote(doc);
+        }
+
         // ── Lifecycle ────────────────────────────────────────────────────────
 
-        void Start()
+        void Start() => EnsureSelectorParented();
+
+        private bool selectorParented;
+
+        void EnsureSelectorParented()
         {
+            if (this.selectorParented) return;
+            this.selectorParented = true;
+
             if (this.selectorRect == null || this.noteGrid == null) return;
             this.selectorRect.SetParent(this.noteGrid.transform, false);
             this.selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -250,15 +314,35 @@ namespace CrimsonDraft.UI
         {
             if (this.yarnProject == null) return;
 
+            const string PageBreak = "<page>";
+
             var lineIds      = this.yarnProject.GetLineIDsForNodes(new[] { doc.NoteId });
             var localization = this.yarnProject.baseLocalization;
             var pages        = new List<string>();
+            var current      = new System.Text.StringBuilder();
 
             foreach (var id in lineIds)
             {
                 var text = localization.GetLocalizedString(id);
-                if (text != null) pages.Add(text);
+                if (text == null) continue;
+
+                if (text == PageBreak)
+                {
+                    if (current.Length > 0)
+                    {
+                        pages.Add(current.ToString());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    if (current.Length > 0) current.Append('\n');
+                    current.Append(text);
+                }
             }
+
+            if (current.Length > 0)
+                pages.Add(current.ToString());
 
             if (pages.Count == 0) return;
 

@@ -39,6 +39,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
         [SerializeField] private PickupInteractable[]    cachedPickups        = System.Array.Empty<PickupInteractable>();
+        [SerializeField] private DocumentInteractable[]  cachedDocumentPickups = System.Array.Empty<DocumentInteractable>();
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
 
@@ -88,6 +89,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterMessageBroker<RoomTransitionStartedEvent>(msgOptions);
             builder.RegisterMessageBroker<RoomTransitionedEvent>(msgOptions);
             builder.RegisterMessageBroker<GuardAlertChangedEvent>(msgOptions);
+            builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
@@ -96,6 +98,8 @@ namespace CrimsonDraft.Navigation
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
             builder.Register<PickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterInstance(this.cachedDocumentPickups);
+            builder.Register<DocumentPickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
@@ -113,6 +117,14 @@ namespace CrimsonDraft.Navigation
         private void CacheScenePickups()
         {
             this.cachedPickups = FindObjectsByType<PickupInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Document Pickups")]
+        private void CacheSceneDocumentPickups()
+        {
+            this.cachedDocumentPickups = FindObjectsByType<DocumentInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

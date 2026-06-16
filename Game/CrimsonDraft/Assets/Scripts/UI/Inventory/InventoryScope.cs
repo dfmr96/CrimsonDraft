@@ -21,10 +21,10 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<TabManager>();
             builder.RegisterComponentInHierarchy<InspectPanel>();
             builder.RegisterComponentInHierarchy<InventoryGridGroup>();
-            builder.RegisterComponentInHierarchy<InventoryOpenCloseController>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<InventoryOpenCloseController>().AsSelf().AsImplementedInterfaces();
 
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
-                builder.RegisterComponentInHierarchy<FilesTabController>();
+                builder.RegisterComponentInHierarchy<FilesTabController>().AsSelf().AsImplementedInterfaces();
 
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.Register<InventorySceneInit>(Lifetime.Singleton);

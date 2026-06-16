@@ -79,4 +79,9 @@ namespace CrimsonDraft.Infrastructure.Events
         public GuardAlertState PreviousState { get; init; }
         public GuardAlertState NewState { get; init; }
     }
+
+    public readonly struct NoteCollectedEvent
+    {
+        public string NoteId { get; init; }
+    }
 }
