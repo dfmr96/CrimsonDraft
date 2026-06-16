@@ -2923,6 +2923,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2556815873891224630}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: cachedEnemies.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: cachedPickups.Array.size
       value: 4
       objectReference: {fileID: 0}
@@ -2930,6 +2934,10 @@ PrefabInstance:
       propertyPath: cachedRoomDoors.Array.size
       value: 41
       objectReference: {fileID: 0}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: 'cachedEnemies.Array.data[0]'
+      value: 
+      objectReference: {fileID: 318903009}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: 'cachedPickups.Array.data[0]'
       value: 
@@ -3932,6 +3940,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &318903009 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1649186034266911707, guid: 9fee3209fc686c646b8e833b93efcebc, type: 3}
+  m_PrefabInstance: {fileID: 1825074321}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c994b2a8fb008fe4ba350d0219e39f2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyNavAgent
 --- !u!114 &365549530 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7976073856649238505, guid: 4665a4be7864c254a85b92b1f8f03b42, type: 3}
@@ -9313,6 +9332,10 @@ PrefabInstance:
       propertyPath: m_VersionIndex
       value: 4848
       objectReference: {fileID: 0}
+    - target: {fileID: 1649186034266911707, guid: 9fee3209fc686c646b8e833b93efcebc, type: 3}
+      propertyPath: encounterData
+      value: 
+      objectReference: {fileID: 11400000, guid: 7e1b7f7c47ca08b48903dddaf3b12b22, type: 2}
     - target: {fileID: 1739538649694759793, guid: 9fee3209fc686c646b8e833b93efcebc, type: 3}
       propertyPath: fromRoom
       value: 
