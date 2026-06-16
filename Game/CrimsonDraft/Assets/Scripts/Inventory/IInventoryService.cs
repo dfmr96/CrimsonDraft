@@ -62,6 +62,9 @@ namespace CrimsonDraft.Inventory
         /// </summary>
         void LoadState(InventorySlot[] slots);
 
+        /// <summary>Records the 2D visual grid position and rotation of the item at slotIndex for persistence across scenes.</summary>
+        void SetSlotPosition(int slotIndex, int col, int row, int rotation);
+
         /// <summary>Returns the raw slot array for persistence by InventoryBootstrap.</summary>
         InventorySlot[] GetRawSlots();
     }
