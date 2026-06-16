@@ -6,6 +6,7 @@ using MessagePipe;
 using UnityEngine;
 using UnityEngine.AI;
 using VContainer;
+using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
@@ -16,6 +17,7 @@ namespace CrimsonDraft.Navigation.Enemy
     public sealed class EnemyNavAgent : MonoBehaviour
     {
         [SerializeField] private NavigationEnemyData  data          = null!;
+        [SerializeField] private EncounterData        encounterData = null!;
         [SerializeField] private EnemyPatrolPath      path          = null!;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
@@ -202,7 +204,7 @@ namespace CrimsonDraft.Navigation.Enemy
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
             combatTriggered = true;
-            sceneTransitionService.StartCombatAsync(data.encounterId).Forget();
+            sceneTransitionService.StartCombatAsync(encounterData.EncounterId).Forget();
             gameObject.SetActive(false);
         }
 
