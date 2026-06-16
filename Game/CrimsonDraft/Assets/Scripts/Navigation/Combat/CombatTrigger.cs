@@ -4,6 +4,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using UnityEngine;
+using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 
@@ -11,7 +12,8 @@ namespace CrimsonDraft.Navigation.Combat
 {
     public sealed class CombatTrigger : MonoBehaviour
     {
-        [SerializeField] private string encounterId = string.Empty;
+        [SerializeField] private string        encounterId   = string.Empty;
+        [SerializeField] private EncounterData encounterData = null!;
 
         private ISceneTransitionService?              sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -44,7 +46,7 @@ namespace CrimsonDraft.Navigation.Combat
             if (this.sceneTransitionService == null) return;
             if (this.sceneTransitionService.IsInCombat) return;
 
-            this.sceneTransitionService.StartCombatAsync(this.encounterId).Forget();
+            this.sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)

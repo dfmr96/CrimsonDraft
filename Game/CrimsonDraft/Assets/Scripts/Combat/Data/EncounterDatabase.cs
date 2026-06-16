@@ -12,6 +12,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private EncounterData[] encounters = Array.Empty<EncounterData>();
 
         public EncounterData? GetById(string encounterId) =>
-            this.encounters.FirstOrDefault(e => e.EncounterId == encounterId);
+            this.encounters.FirstOrDefault(e => e.name == encounterId);
     }
 }

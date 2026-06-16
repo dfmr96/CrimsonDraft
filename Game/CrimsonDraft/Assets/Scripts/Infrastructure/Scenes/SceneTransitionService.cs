@@ -48,13 +48,13 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.combatEndedSubscription = this.combatEndedSubscriber.Subscribe(OnCombatEnded);
         }
 
-        public async UniTask StartCombatAsync(string encounterId)
+        public async UniTask StartCombatAsync(string encounterId, UnityEngine.ScriptableObject? encounterAsset = null)
         {
             if (this.isInCombat)
                 return;
 
             this.isInCombat = true;
-            this.encounterContext.Set(encounterId);
+            this.encounterContext.Set(encounterId, encounterAsset);
             this.inputService.SwitchToCombat();
 
             await this.screenFader.FadeOutAsync();

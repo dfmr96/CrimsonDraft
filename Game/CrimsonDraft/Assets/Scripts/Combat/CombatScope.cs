@@ -16,8 +16,6 @@ namespace CrimsonDraft.Combat
     /// </summary>
     public sealed class CombatScope : LifetimeScope
     {
-        [SerializeField] private EncounterDatabase encounterDatabase = null!;
-
         protected override void Configure(IContainerBuilder builder)
         {
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
@@ -28,8 +26,6 @@ namespace CrimsonDraft.Combat
             builder.RegisterComponentInHierarchy<ShotCountView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();
-
-            builder.RegisterInstance(this.encounterDatabase);
 
             builder.Register<ATBSystem>(Lifetime.Scoped).AsSelf();
             builder.Register<CombatActionQueue>(Lifetime.Scoped).AsSelf();
