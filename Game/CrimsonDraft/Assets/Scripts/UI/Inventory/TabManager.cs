@@ -63,8 +63,19 @@ namespace CrimsonDraft.UI
             this.inputBound = false;
         }
 
-        void Start()
+        void Start() => EnsureInitialized();
+
+        private bool initialized;
+
+        // Idempotent — safe to call eagerly from outside code (e.g. opening straight to a
+        // specific tab right after spawning the canvas) before Unity gets around to calling
+        // Start() on its own. Unity will still call Start() later; by then this is a no-op,
+        // so it can no longer clobber a tab switch that already happened.
+        public void EnsureInitialized()
         {
+            if (this.initialized) return;
+            this.initialized = true;
+
             if (this.gridCursor == null)
                 this.gridCursor = GetComponentInChildren<GridCursor>(true);
 
@@ -199,6 +210,17 @@ namespace CrimsonDraft.UI
 
             if (this.currentIndex == 0)
                 this.gridCursor?.ShowSelectorAfterTabBar();
+        }
+
+        public bool ActivateTabByName(string name)
+        {
+            for (int i = 0; i < this.tabs.Length; i++)
+            {
+                if (this.tabs[i].name != name) continue;
+                ActivateTab(i);
+                return true;
+            }
+            return false;
         }
 
         void RefreshIndicators()

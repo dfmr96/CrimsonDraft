@@ -27,7 +27,9 @@ namespace CrimsonDraft.UI
             this.cursor.OnCloseRequested              += Close;
         }
 
-        private void Open(InputAction.CallbackContext _)
+        private void Open(InputAction.CallbackContext _) => Open();
+
+        public void Open()
         {
             Time.timeScale = 0f;
             this.inputService.SwitchToInventory();

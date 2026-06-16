@@ -1,0 +1,12 @@
+title: socket_electric_box
+---
+<<if $insert_result == "success">>
+You inserted {$item_name}.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does not fit here.
+<<elseif $activated>>
+The electric box is fully wired and humming.
+<<else>>
+The electric box looks like it's missing a component.
+<<endif>>
+===
