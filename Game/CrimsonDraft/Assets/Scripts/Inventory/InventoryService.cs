@@ -174,7 +174,7 @@ namespace CrimsonDraft.Inventory
             if (!CanReload(slotIndex, operatorSlot)) return;
             var s      = EnsureSlots();
             var box    = (AmmoBoxItem)s[slotIndex].Item!;
-            var weapon = this.roster[operatorSlot].PrimaryWeapon!;
+            var weapon = this.roster[operatorSlot].ActiveWeapon!;
             int needed = weapon.MaxAmmo - weapon.CurrentAmmo;
             int rounds = needed < box.Quantity ? needed : box.Quantity;
             weapon.SetAmmo(weapon.CurrentAmmo + rounds);
@@ -212,6 +212,14 @@ namespace CrimsonDraft.Inventory
             RemoveItem(slotB);
             AddItemAuto(result);
             return true;
+        }
+
+        public void SetSlotPosition(int slotIndex, int col, int row, int rotation)
+        {
+            var s = EnsureSlots();
+            s[slotIndex].GridCol      = col;
+            s[slotIndex].GridRow      = row;
+            s[slotIndex].GridRotation = rotation;
         }
 
         public void LoadState(InventorySlot[] slots)

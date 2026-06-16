@@ -36,9 +36,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private DialogueRunner          pickupRunner     = null!;
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
 
-        [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors  = System.Array.Empty<RoomDoorInteractable>();
-        [SerializeField] private SceneDoorInteractable[] cachedSceneDoors = System.Array.Empty<SceneDoorInteractable>();
-        [SerializeField] private PickupInteractable[]    cachedPickups    = System.Array.Empty<PickupInteractable>();
+        [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
+        [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
+        [SerializeField] private PickupInteractable[]    cachedPickups        = System.Array.Empty<PickupInteractable>();
+        [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
+        [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -50,10 +52,9 @@ namespace CrimsonDraft.Navigation
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
-            foreach (var trigger in FindObjectsByType<CombatTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(trigger);
-            foreach (var agent in FindObjectsByType<EnemyNavAgent>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(agent);
+            builder.RegisterInstance(this.cachedEnemies);
+            builder.RegisterInstance(this.cachedCombatTriggers);
+            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
@@ -112,6 +113,16 @@ namespace CrimsonDraft.Navigation
         private void CacheScenePickups()
         {
             this.cachedPickups = FindObjectsByType<PickupInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Enemies")]
+        private void CacheSceneEnemies()
+        {
+            this.cachedEnemies = FindObjectsByType<EnemyNavAgent>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            this.cachedCombatTriggers = FindObjectsByType<CombatTrigger>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

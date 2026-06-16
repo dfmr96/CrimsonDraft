@@ -221,10 +221,11 @@ namespace CrimsonDraft.Tests
             public int  GetEquippedWeaponIndex(int operatorSlot)                       => -1;
             public bool CanReload(int slotIndex, int operatorSlot)                     => false;
             public void ReloadOperator(int slotIndex, int operatorSlot)                { }
-            public bool TryCombine(int slotA, int slotB)                               => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)     => UseKeyResult;
-            public void            LoadState(InventorySlot[] slots) { }
-            public InventorySlot[] GetRawSlots()                    => Array.Empty<InventorySlot>();
+            public bool TryCombine(int slotA, int slotB)                                   => false;
+            public KeyUseOutcome   TryUseKey(string keyItemId)                             => UseKeyResult;
+            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
+            public void            LoadState(InventorySlot[] slots)                        { }
+            public InventorySlot[] GetRawSlots()                                           => Array.Empty<InventorySlot>();
         }
     }
 }

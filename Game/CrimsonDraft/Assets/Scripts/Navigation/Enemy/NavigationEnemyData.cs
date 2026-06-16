@@ -7,10 +7,6 @@ namespace CrimsonDraft.Navigation.Enemy
     [CreateAssetMenu(fileName = "NavigationEnemyData", menuName = "CrimsonDraft/Navigation Enemy Data")]
     public sealed class NavigationEnemyData : ScriptableObject
     {
-        [Header("Combat")]
-        [Tooltip("ID del encuentro que se inicia cuando el enemigo atrapa al jugador. Debe coincidir con una entrada en EncounterDatabase.")]
-        public string encounterId = string.Empty;
-
         [Header("Movement")]
         [Tooltip("Velocidad del NavMeshAgent durante el estado Patrol.")]
         public float patrolSpeed          = 2.0f;

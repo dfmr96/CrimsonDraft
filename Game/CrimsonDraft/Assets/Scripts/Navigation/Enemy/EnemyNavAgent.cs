@@ -6,6 +6,8 @@ using MessagePipe;
 using UnityEngine;
 using UnityEngine.AI;
 using VContainer;
+using CrimsonDraft.Combat;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.Player;
@@ -15,6 +17,7 @@ namespace CrimsonDraft.Navigation.Enemy
     public sealed class EnemyNavAgent : MonoBehaviour
     {
         [SerializeField] private NavigationEnemyData  data          = null!;
+        [SerializeField] private EncounterData        encounterData = null!;
         [SerializeField] private EnemyPatrolPath      path          = null!;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
@@ -28,6 +31,8 @@ namespace CrimsonDraft.Navigation.Enemy
         private IEncounterContext?                     encounterContext;
         private IPublisher<GuardAlertChangedEvent>?    guardAlertPublisher;
         private PlayerController?                      playerController;
+        private EnemyStateRegistry?                    enemyStateRegistry;
+        private string                                 enemyKey = string.Empty;
 
         private NavMeshAgent     navAgent        = null!;
         private Rigidbody        playerRb        = null!;
@@ -37,19 +42,22 @@ namespace CrimsonDraft.Navigation.Enemy
         private bool             combatTriggered;
         private NavMeshPath navPathCache = null!;
 
-        [Inject]
         public void Construct(
             ISceneTransitionService            sceneTransitionService,
             ISubscriber<CombatEndedEvent>      combatEndedSubscriber,
             IEncounterContext                  encounterContext,
             IPublisher<GuardAlertChangedEvent> guardAlertPublisher,
-            PlayerController                  playerController)
+            PlayerController                   playerController,
+            EnemyStateRegistry                 enemyStateRegistry,
+            string                             enemyKey)
         {
             this.sceneTransitionService = sceneTransitionService;
             this.combatEndedSubscriber  = combatEndedSubscriber;
             this.encounterContext       = encounterContext;
             this.guardAlertPublisher    = guardAlertPublisher;
             this.playerController       = playerController;
+            this.enemyStateRegistry     = enemyStateRegistry;
+            this.enemyKey               = enemyKey;
         }
 
         private void Start()
@@ -196,7 +204,7 @@ namespace CrimsonDraft.Navigation.Enemy
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
             combatTriggered = true;
-            sceneTransitionService.StartCombatAsync(data.encounterId).Forget();
+            sceneTransitionService.StartCombatAsync(encounterData.EncounterId).Forget();
             gameObject.SetActive(false);
         }
 
@@ -205,6 +213,7 @@ namespace CrimsonDraft.Navigation.Enemy
             if (!combatTriggered) return;
             if (!ev.Victory) return;
             gameObject.SetActive(false);
+            this.enemyStateRegistry?.SetDefeated(this.enemyKey);
         }
 
 #if UNITY_EDITOR
