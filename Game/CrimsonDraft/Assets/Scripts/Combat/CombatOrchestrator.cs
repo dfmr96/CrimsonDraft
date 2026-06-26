@@ -24,10 +24,11 @@ namespace CrimsonDraft.Combat
         private IInventoryService                            inventory          = null!;
         private ICombatActionMenuView                        menuView           = null!;
 
-        [SerializeField] private float operatorActionDurationSec = 0.5f;
-        [SerializeField] private float defendDurationSec         = 0.3f;
-        [SerializeField] private float defaultEnemyAttackDurSec  = 1.2f;
-        [SerializeField] private float atbGaugeDivisor           = 100f;
+        [SerializeField] private float operatorActionDurationSec      = 0.5f;
+        [SerializeField] private float defendDurationSec              = 0.3f;
+        [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
+        [SerializeField] private float atbGaugeDivisor                = 100f;
+        [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
 
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
@@ -111,6 +112,8 @@ namespace CrimsonDraft.Combat
         {
             this.actionQueue.Enqueue(action);
             this.atbSystem.ResetActor(action.SlotIndex, ATBActorKind.Operator);
+            if (this.freezeOperatorWhenActionQueued)
+                this.atbSystem.FreezeActor(action.SlotIndex, ATBActorKind.Operator);
             this.menuView.SetOperatorDimmed(action.SlotIndex, true);
         }
 
@@ -126,7 +129,10 @@ namespace CrimsonDraft.Combat
         {
             if (!this.actionQueue.HasPending) return;
             if (this.actionQueue.Peek().Type != PendingActionType.Shoot) return;
+            int slotIndex = this.actionQueue.Peek().SlotIndex;
             this.actionQueue.Dequeue();
+            if (this.freezeOperatorWhenActionQueued)
+                this.atbSystem.UnfreezeActor(slotIndex, ATBActorKind.Operator);
             this.shootConfigurationInProgress = false;
             SetAnimationLock(this.operatorActionDurationSec);
         }
@@ -225,9 +231,17 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
-            if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+            if (IsActorDead(head))
+            {
+                this.actionQueue.Dequeue();
+                if (this.freezeOperatorWhenActionQueued)
+                    this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
+                return;
+            }
             if (Time.time < this.animationLockUntil) return;
             this.actionQueue.Dequeue();
+            if (this.freezeOperatorWhenActionQueued)
+                this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
 
             switch (head.Type)
             {
