@@ -106,5 +106,49 @@ namespace CrimsonDraft.Tests
             sys.ResetActor(0, ATBActorKind.Operator);
             Assert.IsFalse(actor.IsAwaitingCommand);
         }
+
+        [Test]
+        public void FillGauge_setsGaugeToOne()
+        {
+            var state = new ATBActorState(new ATBActorConfig(0, ATBActorKind.Operator, 0.1f));
+            state.FillGauge();
+            Assert.AreEqual(1f, state.Gauge, 0.0001f);
+        }
+
+        [Test]
+        public void FillGauge_makesActorReady()
+        {
+            var state = new ATBActorState(new ATBActorConfig(0, ATBActorKind.Operator, 0.1f));
+            state.FillGauge();
+            Assert.IsTrue(state.IsReady);
+        }
+
+        [Test]
+        public void FillOperatorGauges_setsAllOperatorsToReady()
+        {
+            var sys = new ATBSystem();
+            sys.Initialize(new[]
+            {
+                new ATBActorConfig(0, ATBActorKind.Operator, 0.1f),
+                new ATBActorConfig(1, ATBActorKind.Operator, 0.2f),
+            });
+            sys.FillOperatorGauges();
+            Assert.AreEqual(1f, sys.GetActor(0, ATBActorKind.Operator)!.Gauge, 0.0001f);
+            Assert.AreEqual(1f, sys.GetActor(1, ATBActorKind.Operator)!.Gauge, 0.0001f);
+        }
+
+        [Test]
+        public void FillOperatorGauges_doesNotAffectEnemies()
+        {
+            var sys = new ATBSystem();
+            sys.Initialize(new[]
+            {
+                new ATBActorConfig(0, ATBActorKind.Operator, 0.1f),
+                new ATBActorConfig(0, ATBActorKind.Enemy,    0.1f),
+            });
+            sys.FillOperatorGauges();
+            Assert.AreEqual(1f, sys.GetActor(0, ATBActorKind.Operator)!.Gauge, 0.0001f);
+            Assert.AreEqual(0f, sys.GetActor(0, ATBActorKind.Enemy)!.Gauge,    0.0001f);
+        }
     }
 }
