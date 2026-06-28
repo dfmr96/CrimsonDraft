@@ -159,6 +159,12 @@ namespace CrimsonDraft.Navigation.Enemy
                 TriggerCombat();
         }
 
+        public void NotifyShot()
+        {
+            if (combatTriggered) return;
+            TriggerCombat();
+        }
+
         private bool Detect()
             => sensor.Evaluate(data, playerController!.transform, playerRb, eyePoint);
 
