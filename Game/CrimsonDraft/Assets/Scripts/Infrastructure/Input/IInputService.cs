@@ -12,6 +12,7 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction OpenInventory { get; }
         InputAction OpenMap { get; }
         InputAction Aim { get; }
+        InputAction Shoot { get; }
         InputAction Pause { get; }
         InputAction Sprint { get; }
 
