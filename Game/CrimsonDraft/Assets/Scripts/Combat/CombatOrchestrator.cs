@@ -76,6 +76,10 @@ namespace CrimsonDraft.Combat
 
             var configs = BuildATBConfigs(this.encounter, this.roster, this.atbGaugeDivisor);
             this.atbSystem.Initialize(configs);
+
+            if (this.encounterContext.OperatorsStartFull)
+                this.atbSystem.FillOperatorGauges();
+
             for (int i = 0; i < this.roster.Count; i++)
                 this.menuView.SetOperatorDimmed(i, true);
 
