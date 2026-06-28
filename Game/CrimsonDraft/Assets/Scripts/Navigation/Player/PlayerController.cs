@@ -10,15 +10,18 @@ namespace CrimsonDraft.Navigation.Player
 {
     public sealed class PlayerController : MonoBehaviour
     {
-        [SerializeField] private Rigidbody rb = null!;
-        [SerializeField] private Animator animator = null!;
+        [SerializeField] private Rigidbody rb       = null!;
+        [SerializeField] private Animator  animator = null!;
         [SerializeField] private float walkSpeed = 4f;
-        [SerializeField] private float runSpeed = 7f;
+        [SerializeField] private float runSpeed  = 7f;
 
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int SpeedHash    = Animator.StringToHash("Speed");
+        private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
 
         private IInputService inputService = null!;
-        private InputDevice? lastDevice;
+        private InputDevice?  lastDevice;
+
+        public bool IsAiming { get; private set; }
 
         [Inject]
         public void Construct(IInputService inputService)
@@ -33,6 +36,12 @@ namespace CrimsonDraft.Navigation.Player
                 this.inputService.Move.performed -= OnMovePerformed;
         }
 
+        internal void SetAiming(bool value)
+        {
+            this.IsAiming = value;
+            this.animator.SetBool(IsAimingHash, value);
+        }
+
         private void OnMovePerformed(InputAction.CallbackContext ctx)
         {
             this.lastDevice = ctx.control.device;
@@ -40,6 +49,13 @@ namespace CrimsonDraft.Navigation.Player
 
         private void FixedUpdate()
         {
+            if (this.IsAiming)
+            {
+                this.rb.linearVelocity = Vector3.zero;
+                this.animator.SetFloat(SpeedHash, 0f);
+                return;
+            }
+
             var raw = this.inputService.Move.ReadValue<Vector2>();
 
             if (raw.sqrMagnitude < 0.01f)
