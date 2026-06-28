@@ -82,7 +82,7 @@ namespace CrimsonDraft.Navigation.Player
             foreach (var enemy in this.cachedEnemies)
             {
                 if (enemy == null) continue;
-                if (!enemy.gameObject.activeSelf) continue;
+                if (!enemy.gameObject.activeInHierarchy) continue;
                 var nav = enemy.GetComponent<NavMeshAgent>();
                 if (nav == null || !nav.enabled) continue;
                 this.targets.Add(enemy);
@@ -99,7 +99,7 @@ namespace CrimsonDraft.Navigation.Player
             if (this.targets.Count == 0) return;
 
             var target = this.targets[this.currentTargetIndex];
-            if (target == null || !target.gameObject.activeSelf)
+            if (target == null || !target.gameObject.activeInHierarchy)
             {
                 BuildTargetList();
                 this.currentTargetIndex = 0;
@@ -144,7 +144,7 @@ namespace CrimsonDraft.Navigation.Player
             if (this.sceneTransitionService.IsInCombat) return;
 
             var target = this.targets[this.currentTargetIndex];
-            if (target == null || !target.gameObject.activeSelf) return;
+            if (target == null || !target.gameObject.activeInHierarchy) return;
 
             var encounterData = target.EncounterData;
             if (encounterData == null) return;
@@ -162,6 +162,7 @@ namespace CrimsonDraft.Navigation.Player
                 return;
             }
 
+            target.NotifyCombatTriggered();
             ExitAim();
             this.sceneTransitionService.StartCombatAsync(
                 target.EncounterId,

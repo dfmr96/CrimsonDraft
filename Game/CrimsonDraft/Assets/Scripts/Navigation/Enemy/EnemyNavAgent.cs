@@ -211,11 +211,16 @@ namespace CrimsonDraft.Navigation.Enemy
             }
         }
 
+        public void NotifyCombatTriggered()
+        {
+            this.combatTriggered = true;
+        }
+
         private void TriggerCombat()
         {
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
-            combatTriggered = true;
+            this.combatTriggered = true;
             sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
             gameObject.SetActive(false);
         }
