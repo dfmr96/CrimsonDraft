@@ -20,7 +20,8 @@ namespace CrimsonDraft.Navigation.Enemy
         [SerializeField] private EncounterData        encounterData = null!;
         [SerializeField] private string               encounterId   = string.Empty;
 
-        public string EncounterId => this.encounterId;
+        public string        EncounterId  => this.encounterId;
+        public EncounterData? EncounterData => this.encounterData;
         [SerializeField] private EnemyPatrolPath      path          = null!;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
