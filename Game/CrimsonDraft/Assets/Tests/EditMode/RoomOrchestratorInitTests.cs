@@ -167,6 +167,7 @@ namespace CrimsonDraft.Tests
             public InputAction OpenInventory          => null!;
             public InputAction OpenMap                => null!;
             public InputAction Aim                    => null!;
+            public InputAction Shoot                  => null!;
             public InputAction Pause                  => null!;
             public InputAction Sprint                 => null!;
             public InputAction CombatNavigate         => null!;
