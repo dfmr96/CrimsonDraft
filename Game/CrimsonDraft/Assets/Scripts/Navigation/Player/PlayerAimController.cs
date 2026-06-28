@@ -53,6 +53,8 @@ namespace CrimsonDraft.Navigation.Player
                 EnterAim();
             else if (this.inputService.Aim.WasReleasedThisFrame())
                 ExitAim();
+            else if (this.playerController.IsAiming && !this.inputService.Aim.IsPressed())
+                ExitAim();
 
             if (!this.playerController.IsAiming) return;
 
@@ -153,8 +155,14 @@ namespace CrimsonDraft.Navigation.Player
             if (!Physics.Raycast(origin, forward, out var hit, this.aimRange, this.obstaclesMask | this.enemyMask))
                 return;
 
-            if (hit.collider.GetComponentInParent<EnemyNavAgent>() != target) return;
+            var hitEnemy = hit.collider.GetComponentInParent<EnemyNavAgent>();
+            if (hitEnemy != target)
+            {
+                UnityEngine.Debug.LogWarning($"[PlayerAimController] Raycast hit '{hit.collider.name}' (layer {hit.collider.gameObject.layer}) instead of target '{target.name}'. Check obstaclesMask/enemyMask layer configuration.");
+                return;
+            }
 
+            ExitAim();
             this.sceneTransitionService.StartCombatAsync(
                 target.EncounterId,
                 encounterData,
