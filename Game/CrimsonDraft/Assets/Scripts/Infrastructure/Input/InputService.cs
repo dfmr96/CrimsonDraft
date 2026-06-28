@@ -36,6 +36,7 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction OpenInventory { get; }
         public InputAction OpenMap { get; }
         public InputAction Aim { get; }
+        public InputAction AimFire { get; }
         public InputAction Pause { get; }
         public InputAction Sprint { get; }
         public InputAction CombatNavigate { get; }
@@ -80,6 +81,7 @@ namespace CrimsonDraft.Infrastructure.Input
             OpenInventory = this.gameplayMap[nameof(OpenInventory)];
             OpenMap       = this.gameplayMap[nameof(OpenMap)];
             Aim           = this.gameplayMap[nameof(Aim)];
+            AimFire       = this.gameplayMap[nameof(AimFire)];
             Pause         = this.gameplayMap[nameof(Pause)];
             Sprint        = this.gameplayMap[nameof(Sprint)];
 
