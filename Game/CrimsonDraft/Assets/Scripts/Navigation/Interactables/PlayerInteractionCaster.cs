@@ -12,9 +12,6 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PlayerInteractionCaster : MonoBehaviour, IInteractionCaster
     {
-        private const int StandInteractType  = 0;
-        private const int CrouchInteractType = 2;
-
         private static readonly int IntTypeHash     = Animator.StringToHash("IntType");
         private static readonly int InteractingHash = Animator.StringToHash("Interacting");
 
@@ -67,9 +64,10 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
 
-            var requiresCrouch = hit.collider.TryGetComponent<InteractCrouchFlag>(out var crouchFlag)
-                && crouchFlag.RequiresCrouch;
-            this.animator.SetInteger(IntTypeHash, requiresCrouch ? CrouchInteractType : StandInteractType);
+            var animType = hit.collider.TryGetComponent<IAnimatedInteractable>(out var animated)
+                ? animated.AnimType
+                : InteractionAnimType.Stand;
+            this.animator.SetFloat(IntTypeHash, animType.ToBlendThreshold());
 
             if (this.interactingRoutine != null)
                 StopCoroutine(this.interactingRoutine);

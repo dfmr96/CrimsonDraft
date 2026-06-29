@@ -4,10 +4,13 @@ using UnityEngine;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class InteractCrouchFlag : MonoBehaviour
+    /// <summary>
+    /// Attach alongside an IInteractable to override the Interact animation it plays.
+    /// </summary>
+    public sealed class InteractCrouchFlag : MonoBehaviour, IAnimatedInteractable
     {
-        [SerializeField] private bool requiresCrouch = true;
+        [SerializeField] private InteractionAnimType animType = InteractionAnimType.Crouch;
 
-        public bool RequiresCrouch => this.requiresCrouch;
+        public InteractionAnimType AnimType => this.animType;
     }
 }
