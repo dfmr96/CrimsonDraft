@@ -50,6 +50,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
+            builder.RegisterComponentInHierarchy<PlayerAimController>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 

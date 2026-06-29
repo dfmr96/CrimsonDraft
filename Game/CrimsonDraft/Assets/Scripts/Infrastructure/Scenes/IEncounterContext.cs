@@ -8,5 +8,6 @@ namespace CrimsonDraft.Infrastructure.Scenes
     {
         string?          CurrentEncounterId { get; }
         ScriptableObject? EncounterAsset    { get; }
+        bool             OperatorsStartFull { get; }
     }
 }

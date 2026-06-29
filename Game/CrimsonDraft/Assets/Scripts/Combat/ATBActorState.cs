@@ -51,6 +51,7 @@ namespace CrimsonDraft.Combat
         public void Freeze()   => this.IsFrozen = true;
         public void Unfreeze() => this.IsFrozen = false;
         public void MarkDead() => this.IsDead = true;
+        public void FillGauge() { this.Gauge = 1f; }
 
         public void UpdateGaugePerSecond(float newRate)
         {

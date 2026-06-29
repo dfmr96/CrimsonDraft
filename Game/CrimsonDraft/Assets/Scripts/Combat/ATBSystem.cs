@@ -39,6 +39,15 @@ namespace CrimsonDraft.Combat
         public void UpdateActorGaugeRate(int slotIndex, ATBActorKind kind, float newGaugePerSecond)
             => GetActor(slotIndex, kind)?.UpdateGaugePerSecond(newGaugePerSecond);
 
+        public void FillOperatorGauges()
+        {
+            for (int i = 0; i < this.actors.Count; i++)
+            {
+                if (this.actors[i].Config.Kind == ATBActorKind.Operator)
+                    this.actors[i].FillGauge();
+            }
+        }
+
         public ATBActorState? GetActor(int slotIndex, ATBActorKind kind)
         {
             for (int i = 0; i < this.actors.Count; i++)

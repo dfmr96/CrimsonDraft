@@ -8,6 +8,6 @@ namespace CrimsonDraft.Infrastructure.Scenes
     public interface ISceneTransitionService
     {
         bool IsInCombat { get; }
-        UniTask StartCombatAsync(string encounterId, ScriptableObject? encounterAsset = null);
+        UniTask StartCombatAsync(string encounterId, ScriptableObject? encounterAsset = null, bool operatorsStartFull = false);
     }
 }
