@@ -12,8 +12,14 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PlayerInteractionCaster : MonoBehaviour, IInteractionCaster
     {
+        private const int StandInteractType  = 0;
+        private const int CrouchInteractType = 2;
+
+        private static readonly int InteractTypeHash = Animator.StringToHash("InteractType");
+
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
+        [SerializeField] private Animator  animator = null!;
 
         private IInputService          inputService          = null!;
         private IInventoryService      inventoryService      = null!;
@@ -56,6 +62,10 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
+
+            var requiresCrouch = hit.collider.TryGetComponent<InteractCrouchFlag>(out var crouchFlag)
+                && crouchFlag.RequiresCrouch;
+            this.animator.SetInteger(InteractTypeHash, requiresCrouch ? CrouchInteractType : StandInteractType);
 
             var context = new InteractionContext(
                 this.inventoryService,

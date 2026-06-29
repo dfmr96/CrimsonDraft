@@ -182,26 +182,7 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 256
---- !u!114 &3571346723278353624
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1352273028549918950}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08249178232f68046b7b16643fca8184, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerAimController
-  aimTurnSpeed: 180
-  aimRange: 20
-  obstaclesMask:
-    serializedVersion: 2
-    m_Bits: 65
-  enemyMask:
-    serializedVersion: 2
-    m_Bits: 1
+  animator: {fileID: 1453901650854825600}
 --- !u!1 &1424532983796303590
 GameObject:
   m_ObjectHideFlags: 0
@@ -1929,6 +1910,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
       propertyPath: m_Name
       value: HumanoidBase_Overlapping_TPose
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1082271958561512970, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
       propertyPath: m_IsActive
