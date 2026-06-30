@@ -9,12 +9,14 @@ namespace CrimsonDraft.Combat
         public int          SlotIndex      { get; }
         public ATBActorKind Kind           { get; }
         public float        GaugePerSecond { get; }
+        public float        InitialGauge   { get; }
 
-        public ATBActorConfig(int slotIndex, ATBActorKind kind, float gaugePerSecond)
+        public ATBActorConfig(int slotIndex, ATBActorKind kind, float gaugePerSecond, float initialGauge = 0f)
         {
             this.SlotIndex      = slotIndex;
             this.Kind           = kind;
             this.GaugePerSecond = gaugePerSecond > 0f ? gaugePerSecond : 0f;
+            this.InitialGauge   = UnityEngine.Mathf.Clamp01(initialGauge);
         }
     }
 
@@ -34,6 +36,7 @@ namespace CrimsonDraft.Combat
         {
             this.Config         = config;
             this.gaugePerSecond = config.GaugePerSecond;
+            this.Gauge          = config.InitialGauge;
         }
 
         public void Tick(float deltaTime)

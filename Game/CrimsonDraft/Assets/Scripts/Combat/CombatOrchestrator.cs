@@ -340,8 +340,9 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = encounter.EnemySlots[i];
                 if (data == null) continue;
-                float gps = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
-                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps));
+                float gps          = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
+                float initialGauge = data.InitialGaugePct / 100f;
+                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps, initialGauge));
             }
 
             return configs;
