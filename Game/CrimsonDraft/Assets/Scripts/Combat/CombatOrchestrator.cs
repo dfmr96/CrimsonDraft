@@ -257,6 +257,7 @@ namespace CrimsonDraft.Combat
                     break;
 
                 case PendingActionType.UseItem:
+                    ApplyUseItem(head);
                     SetAnimationLock(this.operatorActionDurationSec);
                     break;
 
@@ -264,6 +265,21 @@ namespace CrimsonDraft.Combat
                     SetAnimationLock(this.defendDurationSec);
                     break;
             }
+        }
+
+        private void ApplyUseItem(PendingAction action)
+        {
+            if (action.ItemIndex < 0 || action.ItemIndex >= this.inventory.Slots.Count) return;
+            InventorySlot slot = this.inventory.Slots[action.ItemIndex];
+            if (slot.IsEmpty || slot.Item?.Data is not ConsumableData consumable) return;
+
+            int targetSlot = action.TargetOperatorSlot >= 0 ? action.TargetOperatorSlot : action.SlotIndex;
+            if (targetSlot < this.roster.Count && this.roster[targetSlot].IsAlive)
+                this.roster[targetSlot].Heal(consumable.HealAmount);
+
+            slot.Quantity--;
+            if (slot.Quantity <= 0)
+                this.inventory.RemoveItem(action.ItemIndex);
         }
 
         private void ApplyEnemyAttack(PendingAction action)
