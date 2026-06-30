@@ -1,5 +1,8 @@
 # Enemy Health MVP — Implementation Plan
 
+> [!WARNING]
+> **DEPRECADO** — Este plan pertenece al sistema de salud anterior. No usar como referencia de implementación.
+
 **Goal:** Implementar salud de enemigos en combate para que cada disparo resuelto por `ShotZone` aplique daño al objetivo, pueda matarlo (ocultando sprite) y dispare victoria cuando no queden enemigos vivos.
 
 **Architecture:**  
