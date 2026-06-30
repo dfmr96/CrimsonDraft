@@ -148,6 +148,15 @@ namespace CrimsonDraft.Combat
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
+#if UNITY_EDITOR || DEBUG_COMBAT
+        public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+        {
+            if (this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
+                return (state.CurrentHp, state.MaxHp, state.IsDead);
+            return (0, 0, true);
+        }
+#endif
+
         private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo)
         {
             if (enemyGo == null)
