@@ -22,7 +22,11 @@ namespace CrimsonDraft.Combat
 
             builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<CommandPanelView>().AsImplementedInterfaces();
-            builder.RegisterComponentInHierarchy<SubPanelView>().AsImplementedInterfaces();
+            // CombatInventoryPanelController lives in CrimsonDraft.UI.Prototype (it reuses the
+            // shared InventoryGrid/ItemContextMenu components). Combat can't reference that
+            // assembly without a cycle (UI.Prototype -> Navigation -> Combat), so it's resolved
+            // here purely by interface, the same way CombatOrchestrator finds IOperatorEcgFeedback.
+            builder.RegisterComponentInHierarchy<ICombatInventoryView>();
             builder.RegisterComponentInHierarchy<ShotCountView>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<AimViewController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<BattlefieldView>().AsImplementedInterfaces();

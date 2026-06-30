@@ -74,6 +74,7 @@ namespace CrimsonDraft.UI
                 CanUse     = view.Data.ItemType == ItemType.Consumable
                           || view.Data.ItemType == ItemType.KeyItem
                           || view.Data.ItemType == ItemType.SocketItem,
+                CanInspect = true,
             };
             this.contextMenu.Open(view, options);
         }

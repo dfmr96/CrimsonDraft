@@ -19,7 +19,6 @@ namespace CrimsonDraft.Combat
         internal int   SelectedOperator      { get; set; } = 0;
         internal int   SelectedShotCount     { get; set; } = 1;
         internal int   CurrentTargetSlot     { get; set; } = -1;
-        internal int[] ReloadAmmoBoxIndices  { get; set; } = System.Array.Empty<int>();
         internal ICombatOrchestrator Orchestrator { get; private set; } = null!;
 
         internal const int BaseDamage   = 20;
@@ -32,12 +31,12 @@ namespace CrimsonDraft.Combat
 
         private ICombatMenuState currentState = null!;
 
-        internal OperatorSelectionState  OperatorSelState  { get; private set; } = null!;
-        internal CommandPanelState       CommandPanelState { get; private set; } = null!;
-        internal SubPanelState           SubPanelState     { get; private set; } = null!;
-        internal ShotCountSelectionState ShotCountState    { get; private set; } = null!;
-        internal TargetSelectionState    TargetSelState    { get; private set; } = null!;
-        internal AimingState             AimingState       { get; private set; } = null!;
+        internal OperatorSelectionState  OperatorSelState      { get; private set; } = null!;
+        internal CommandPanelState       CommandPanelState     { get; private set; } = null!;
+        internal CombatInventoryState    CombatInventoryState  { get; private set; } = null!;
+        internal ShotCountSelectionState ShotCountState        { get; private set; } = null!;
+        internal TargetSelectionState    TargetSelState        { get; private set; } = null!;
+        internal AimingState             AimingState           { get; private set; } = null!;
 
         public void TransitionTo(ICombatMenuState next)
         {
@@ -52,7 +51,7 @@ namespace CrimsonDraft.Combat
 
         private readonly ICombatActionMenuView         menuView;
         private readonly ICommandPanelView             commandPanel;
-        private readonly ISubPanelView                 subPanel;
+        private readonly ICombatInventoryView          combatInventoryView;
         private readonly IShotCountView                shotCountView;
         private readonly IPublisher<CombatEndedEvent>  combatEndedPublisher;
         private readonly IInputService?                inputService;
@@ -68,7 +67,7 @@ namespace CrimsonDraft.Combat
         public CombatMenuController(
             ICombatActionMenuView                          menuView,
             ICommandPanelView                              commandPanel,
-            ISubPanelView                                  subPanel,
+            ICombatInventoryView                           combatInventoryView,
             IShotCountView                                 shotCountView,
             IPublisher<CombatEndedEvent>                   combatEndedPublisher,
             IAimView                                       aimView,
@@ -81,7 +80,7 @@ namespace CrimsonDraft.Combat
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
-            this.subPanel             = subPanel;
+            this.combatInventoryView  = combatInventoryView;
             this.shotCountView        = shotCountView;
             this.combatEndedPublisher = combatEndedPublisher;
             this.aimView              = aimView;
@@ -97,7 +96,7 @@ namespace CrimsonDraft.Combat
         internal CombatMenuController(
             ICombatActionMenuView        menuView,
             ICommandPanelView            commandPanel,
-            ISubPanelView                subPanel,
+            ICombatInventoryView         combatInventoryView,
             IShotCountView               shotCountView,
             IPublisher<CombatEndedEvent> combatEndedPublisher,
             IAimView                     aimView,
@@ -109,7 +108,7 @@ namespace CrimsonDraft.Combat
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
-            this.subPanel             = subPanel;
+            this.combatInventoryView  = combatInventoryView;
             this.shotCountView        = shotCountView;
             this.combatEndedPublisher = combatEndedPublisher;
             this.aimView              = aimView;
@@ -126,19 +125,17 @@ namespace CrimsonDraft.Combat
 
         void IInitializable.Initialize()
         {
-            this.OperatorSelState  = new OperatorSelectionState(this, this.menuView, this.commandPanel, this.battlefieldView, this.combatEndedPublisher, this.roster);
-            this.CommandPanelState = new CommandPanelState(this, this.menuView, this.commandPanel, this.subPanel, this.battlefieldView, this.roster, this.inventory);
-            this.SubPanelState     = new SubPanelState(this, this.subPanel);
-            this.ShotCountState    = new ShotCountSelectionState(this, this.commandPanel, this.shotCountView, this.battlefieldView, this.aimView, this.roster);
-            this.TargetSelState    = new TargetSelectionState(this, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
-            this.AimingState       = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
+            this.OperatorSelState     = new OperatorSelectionState(this, this.menuView, this.commandPanel, this.battlefieldView, this.combatEndedPublisher, this.roster);
+            this.CommandPanelState    = new CommandPanelState(this, this.menuView, this.commandPanel, this.battlefieldView, this.roster);
+            this.CombatInventoryState = new CombatInventoryState(this, this.combatInventoryView);
+            this.ShotCountState       = new ShotCountSelectionState(this, this.commandPanel, this.shotCountView, this.battlefieldView, this.aimView, this.roster);
+            this.TargetSelState       = new TargetSelectionState(this, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
+            this.AimingState          = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.roster);
 
             this.menuView.OnOperatorSelected    += this.HandleOperatorSelected;
             this.menuView.OnOperatorFocused     += this.HandleOperatorFocused;
             this.commandPanel.OnCommandSelected += this.HandleCommandSelected;
             this.commandPanel.OnEntryFocused    += this.menuView.MoveSelectorTo;
-            this.subPanel.OnItemSelected        += this.HandleItemSelected;
-            this.subPanel.OnEntryFocused        += this.menuView.MoveSelectorTo;
 
             if (this.inputService != null)
             {
@@ -163,8 +160,6 @@ namespace CrimsonDraft.Combat
             this.menuView.OnOperatorFocused     -= this.HandleOperatorFocused;
             this.commandPanel.OnCommandSelected -= this.HandleCommandSelected;
             this.commandPanel.OnEntryFocused    -= this.menuView.MoveSelectorTo;
-            this.subPanel.OnItemSelected        -= this.HandleItemSelected;
-            this.subPanel.OnEntryFocused        -= this.menuView.MoveSelectorTo;
 
             if (this.inputService != null)
             {
@@ -216,7 +211,6 @@ namespace CrimsonDraft.Combat
         private void HandleOperatorSelected(int index)        => this.currentState.OnOperatorSelected(index);
         private void HandleOperatorFocused(int index)         => this.currentState.OnOperatorFocused(index);
         private void HandleCommandSelected(CombatCommand cmd) => this.currentState.OnCommandSelected(cmd);
-        private void HandleItemSelected(int index)            => this.currentState.OnItemSelected(index);
 
         #endregion
     }

@@ -25,7 +25,6 @@ namespace CrimsonDraft.Combat
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
-        [SerializeField] private float defendDurationSec              = 0.3f;
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
@@ -245,19 +244,10 @@ namespace CrimsonDraft.Combat
 
             switch (head.Type)
             {
-                case PendingActionType.Reload:
-                    this.inventory.ReloadOperator(head.AmmoBoxIndex, head.SlotIndex);
-                    var weapon = this.roster.Count > head.SlotIndex ? this.roster[head.SlotIndex].ActiveWeapon : null;
-                    this.menuView.SetOperatorAmmo(head.SlotIndex, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
-                    SetAnimationLock(this.operatorActionDurationSec);
-                    break;
-
                 case PendingActionType.UseItem:
+                    if (head.ItemIndex >= 0)
+                        this.inventory.RemoveItem(head.ItemIndex);
                     SetAnimationLock(this.operatorActionDurationSec);
-                    break;
-
-                case PendingActionType.Defend:
-                    SetAnimationLock(this.defendDurationSec);
                     break;
             }
         }
