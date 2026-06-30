@@ -60,5 +60,22 @@ namespace CrimsonDraft.Operators
             }
             return this.scratchAlive;
         }
+
+        public int[] GetHpSnapshot()
+        {
+            this.EnsureInitialized();
+            var snapshot = new int[this.slots.Length];
+            for (int i = 0; i < this.slots.Length; i++)
+                snapshot[i] = this.slots[i].Hp;
+            return snapshot;
+        }
+
+        public void RestoreHp(int[] snapshot)
+        {
+            this.EnsureInitialized();
+            int len = System.Math.Min(snapshot.Length, this.slots.Length);
+            for (int i = 0; i < len; i++)
+                this.slots[i].RestoreHp(snapshot[i]);
+        }
     }
 }
