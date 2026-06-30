@@ -71,7 +71,7 @@ namespace CrimsonDraft.UI
             {
                 CanCombine = view.Data.Combinable,
                 CanEquip   = view.Data.ItemType == ItemType.Weapon,
-                CanUse     = view.Data.ItemType == ItemType.Consumable
+                CanUse     = (view.Data is ConsumableData cd && cd.HealAmount > 0)
                           || view.Data.ItemType == ItemType.KeyItem
                           || view.Data.ItemType == ItemType.SocketItem,
             };
@@ -98,7 +98,35 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            if (view.Data.ItemType == ItemType.Consumable && view.Data is ConsumableData consumable)
+            {
+                HandleUseConsumable(view, consumable);
+                return;
+            }
+
             this.inventoryService.TryUseKey(view.Data.ItemId);
+        }
+
+        private void HandleUseConsumable(InventoryItemView view, ConsumableData consumable)
+        {
+            int operatorSlot = this.cursor.GetOperatorOf(view);
+            if (operatorSlot < 0) return;
+
+            if (this.roster[operatorSlot].IsAlive)
+                this.roster[operatorSlot].Heal(consumable.HealAmount);
+
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                if (this.inventoryService.Slots[i].Item == view.BoundItem)
+                {
+                    this.inventoryService.RemoveItem(i);
+                    break;
+                }
+            }
+
+            view.OwnerGrid?.RemoveItem(view);
+            Object.Destroy(view.gameObject);
+            this.partyPanel.Refresh();
         }
 
         private void HandleEquipWeapon(InventoryItemView view)

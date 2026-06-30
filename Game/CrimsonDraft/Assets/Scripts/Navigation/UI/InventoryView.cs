@@ -189,7 +189,9 @@ namespace CrimsonDraft.Navigation.UI
                                         ? new List<ContextMenuAction> { ContextMenuAction.Unequip, ContextMenuAction.Combine, ContextMenuAction.Examine }
                                         : new List<ContextMenuAction> { ContextMenuAction.Equip,   ContextMenuAction.Combine, ContextMenuAction.Examine },
                 ItemType.AmmoBox    => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
-                ItemType.Consumable => new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine },
+                ItemType.Consumable => item.Data is ConsumableData cd && cd.HealAmount > 0
+                                        ? new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine }
+                                        : new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
                 ItemType.KeyItem    => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine },
                 ItemType.SocketItem => new List<ContextMenuAction> { ContextMenuAction.Use, ContextMenuAction.Combine, ContextMenuAction.Examine },
                 _                   => new List<ContextMenuAction> { ContextMenuAction.Combine, ContextMenuAction.Examine }
