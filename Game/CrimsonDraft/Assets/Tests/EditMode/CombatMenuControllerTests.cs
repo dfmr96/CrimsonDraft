@@ -811,6 +811,14 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
+#if UNITY_EDITOR || DEBUG_COMBAT
+            public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+            {
+                bool alive = System.Array.IndexOf(this.occupiedSlots, slotIndex) >= 0;
+                int  hp    = this.hpBySlot.TryGetValue(slotIndex, out int v) ? v : 0;
+                return (hp, 100, !alive);
+            }
+#endif
         }
 
         private sealed class FakeOrchestrator : ICombatOrchestrator
@@ -856,6 +864,9 @@ namespace CrimsonDraft.Tests
                     if (this.slots[i].IsAlive) this.scratchAlive.Add(i);
                 return this.scratchAlive;
             }
+
+            public int[] GetHpSnapshot() => System.Array.Empty<int>();
+            public void RestoreHp(int[] snapshot) { }
 
             private sealed class FakeWeaponSlot : IWeaponSlot
             {
