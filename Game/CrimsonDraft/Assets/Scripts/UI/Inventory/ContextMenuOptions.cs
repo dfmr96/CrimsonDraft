@@ -7,5 +7,6 @@ namespace CrimsonDraft.UI
         public bool CanCombine;
         public bool CanEquip;
         public bool CanUse;
+        public bool CanInspect;
     }
 }

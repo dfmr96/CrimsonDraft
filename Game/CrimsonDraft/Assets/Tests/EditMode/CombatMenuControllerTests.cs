@@ -14,36 +14,36 @@ namespace CrimsonDraft.Tests
 {
     public sealed class CombatMenuControllerTests
     {
-        private FakeCombatActionMenuView menuView        = null!;
-        private FakeCommandPanelView     commandPanel    = null!;
-        private FakeSubPanelView         subPanel        = null!;
-        private FakeShotCountView        shotCountView   = null!;
-        private FakePublisher            publisher       = null!;
-        private FakeAimView              aimView         = null!;
-        private FakeBattlefieldView      battlefieldView = null!;
-        private FakeOperatorRoster       roster          = null!;
-        private FakeInventoryService     inventory       = null!;
-        private FakeOrchestrator         orchestrator    = null!;
+        private FakeCombatActionMenuView menuView            = null!;
+        private FakeCommandPanelView     commandPanel        = null!;
+        private FakeCombatInventoryView  combatInventoryView = null!;
+        private FakeShotCountView        shotCountView       = null!;
+        private FakePublisher            publisher           = null!;
+        private FakeAimView              aimView             = null!;
+        private FakeBattlefieldView      battlefieldView     = null!;
+        private FakeOperatorRoster       roster              = null!;
+        private FakeInventoryService     inventory           = null!;
+        private FakeOrchestrator         orchestrator        = null!;
 
         [SetUp]
         public void SetUp()
         {
-            this.menuView        = new FakeCombatActionMenuView();
-            this.commandPanel    = new FakeCommandPanelView();
-            this.subPanel        = new FakeSubPanelView();
-            this.shotCountView   = new FakeShotCountView();
-            this.publisher       = new FakePublisher();
-            this.aimView         = new FakeAimView();
-            this.battlefieldView = new FakeBattlefieldView();
-            this.roster          = new FakeOperatorRoster();
-            this.inventory       = new FakeInventoryService();
-            this.orchestrator    = new FakeOrchestrator();
+            this.menuView            = new FakeCombatActionMenuView();
+            this.commandPanel        = new FakeCommandPanelView();
+            this.combatInventoryView = new FakeCombatInventoryView();
+            this.shotCountView       = new FakeShotCountView();
+            this.publisher           = new FakePublisher();
+            this.aimView             = new FakeAimView();
+            this.battlefieldView     = new FakeBattlefieldView();
+            this.roster              = new FakeOperatorRoster();
+            this.inventory           = new FakeInventoryService();
+            this.orchestrator        = new FakeOrchestrator();
         }
 
         private CombatMenuController BuildAndInit(FakeInventoryService? inv = null)
         {
             var controller = new CombatMenuController(
-                this.menuView, this.commandPanel, this.subPanel, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster,
+                this.menuView, this.commandPanel, this.combatInventoryView, this.shotCountView, this.publisher, this.aimView, this.battlefieldView, this.roster,
                 inv ?? this.inventory, this.orchestrator);
             ((IInitializable)controller).Initialize();
             return controller;
@@ -55,13 +55,6 @@ namespace CrimsonDraft.Tests
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Assert.NotNull(onConfirm);
             onConfirm!.Invoke(controller, new object?[] { null });
-        }
-
-        private static void SetDisplayName(ItemData data, string name)
-        {
-            var so = new UnityEditor.SerializedObject(data);
-            so.FindProperty("displayName").stringValue = name;
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ── Existing subscription tests ────────────────────────────────
@@ -113,147 +106,44 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void CommandSelected_Reload_noCompatibleAmmo_showsSubPanelWithNoAmmoItem()
+        public void CommandSelected_Items_showsCombatInventory()
         {
             BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
 
-            Assert.IsTrue(this.subPanel.IsVisible);
-            Assert.AreEqual(1, this.subPanel.LastShownItems.Length);
-            Assert.AreEqual("NO AMMO", this.subPanel.LastShownItems[0].Label);
-        }
-
-        [Test]
-        public void CommandSelected_Reload_withCompatibleAmmo_showsSubPanelWithAmmoLabels()
-        {
-            var inv     = new FakeInventoryService();
-            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
-            SetDisplayName(boxData, "9MM FMJ");
-            inv.RegisterBox(new AmmoBoxItem(boxData, 45), canReload: true);
-
-            BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-
-            Assert.IsTrue(this.subPanel.IsVisible);
-            Assert.AreEqual(1, this.subPanel.LastShownItems.Length);
-            Assert.AreEqual("9MM FMJ \u00d745", this.subPanel.LastShownItems[0].Label);
-        }
-
-        [Test]
-        public void CommandSelected_Reload_withCompatibleAmmo_storesInventoryIndexMapping()
-        {
-            var inv     = new FakeInventoryService();
-            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
-            SetDisplayName(boxData, "9MM FMJ");
-            inv.RegisterBox(new AmmoBoxItem(boxData, 10), canReload: false); // index 0 — not compatible
-            inv.RegisterBox(new AmmoBoxItem(boxData, 20), canReload: true);  // index 1 — compatible
-
-            var c = BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-
-            Assert.AreEqual(1, c.ReloadAmmoBoxIndices.Length);
-            Assert.AreEqual(1, c.ReloadAmmoBoxIndices[0]);
-        }
-
-        [Test]
-        public void SubPanel_selectAmmoBox_callsReloadOperator_andHidesSubPanel()
-        {
-            var inv     = new FakeInventoryService();
-            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
-            SetDisplayName(boxData, "9MM FMJ");
-            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true); // inventory index 0
-
-            BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-
-            Assert.IsTrue(this.subPanel.IsVisible);
-
-            this.subPanel.RaiseOnItemSelected(0);
-
-            Assert.AreEqual(1, this.orchestrator.EnqueueCallCount,                       "Reload enqueued once");
-            Assert.AreEqual(PendingActionType.Reload, this.orchestrator.LastEnqueuedAction?.Type);
-            Assert.AreEqual(0, this.orchestrator.LastEnqueuedAction?.SlotIndex,    "correct operator slot");
-            Assert.AreEqual(0, this.orchestrator.LastEnqueuedAction?.AmmoBoxIndex, "correct ammo box index");
-            Assert.IsFalse(this.subPanel.IsVisible, "SubPanel hidden after reload");
-        }
-
-        [Test]
-        public void SubPanel_selectNoAmmo_doesNotCallReloadOperator()
-        {
-            var inv = new FakeInventoryService();
-
-            BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-
-            this.subPanel.RaiseOnItemSelected(0); // "NO AMMO" at index 0
-
-            Assert.AreEqual(0, inv.ReloadCallCount, "ReloadOperator not called");
-        }
-
-        [Test]
-        public void SubPanel_reload_updatesAmmoHud()
-        {
-            var inv     = new FakeInventoryService();
-            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
-            SetDisplayName(boxData, "9MM FMJ");
-            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true);
-
-            BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-            this.subPanel.RaiseOnItemSelected(0);
-
-            Assert.IsTrue(this.menuView.TryGetAmmo(0, out _));
-        }
-
-        [Test]
-        public void SubPanel_reload_transitionsBackToOperatorSelection()
-        {
-            var inv     = new FakeInventoryService();
-            var boxData = ScriptableObject.CreateInstance<AmmoBoxData>();
-            SetDisplayName(boxData, "9MM FMJ");
-            inv.RegisterBox(new AmmoBoxItem(boxData, 30), canReload: true);
-
-            BuildAndInit(inv);
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-            this.subPanel.RaiseOnItemSelected(0);
-
+            Assert.IsTrue(this.combatInventoryView.IsVisible);
+            Assert.AreEqual(0, this.combatInventoryView.LastShownOperatorSlot);
             Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
         [Test]
-        public void CommandSelected_Items_showsSubPanel()
+        public void Cancel_inCombatInventory_hidesInventory_commandPanelRemains()
         {
             BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
-            Assert.IsTrue(this.subPanel.IsVisible);
-        }
 
-        [Test]
-        public void CommandSelected_Defend_showsSubPanel()
-        {
-            BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Defend);
-            Assert.IsTrue(this.subPanel.IsVisible);
-        }
+            this.combatInventoryView.RaiseOnCancelled();
 
-        [Test]
-        public void Cancel_inSubPanel_hidesSubPanel_commandPanelRemains()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
-            c.HandleCancelPressed();
-            Assert.IsFalse(this.subPanel.IsVisible);
+            Assert.IsFalse(this.combatInventoryView.IsVisible);
             Assert.IsTrue(this.commandPanel.IsVisible);
+        }
+
+        [Test]
+        public void CombatInventory_itemUsed_enqueuesUseItemAction_andHidesInventory()
+        {
+            BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
+
+            this.combatInventoryView.RaiseOnItemUsed(5);
+
+            Assert.AreEqual(1, this.orchestrator.EnqueueCallCount);
+            Assert.AreEqual(PendingActionType.UseItem, this.orchestrator.LastEnqueuedAction?.Type);
+            Assert.AreEqual(1, this.orchestrator.LastEnqueuedAction?.SlotIndex);
+            Assert.AreEqual(5, this.orchestrator.LastEnqueuedAction?.ItemIndex);
+            Assert.IsFalse(this.combatInventoryView.IsVisible);
         }
 
         [Test]
@@ -286,12 +176,12 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShootCommand_doesNotShowSubPanel()
+        public void ShootCommand_doesNotShowCombatInventory()
         {
             BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-            Assert.IsFalse(this.subPanel.IsVisible);
+            Assert.IsFalse(this.combatInventoryView.IsVisible);
         }
 
         [Test]
@@ -360,30 +250,6 @@ namespace CrimsonDraft.Tests
 
             Assert.IsFalse(this.aimView.IsVisible);
             Assert.IsFalse(this.commandPanel.IsVisible);
-        }
-
-        [Test]
-        public void Reload_noCompatibleAmmo_doesNotRefillAmmo_andShootRemainsUnavailable()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-
-            for (int i = 0; i < 6; i++)
-            {
-                c.BeginShootConfiguration(0);
-                InvokeConfirm(c);
-                this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
-                InvokeConfirm(c);
-                this.menuView.RaiseOnOperatorSelected(0);
-            }
-
-            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
-
-            // Reload opens SubPanel with NO AMMO — cancel back to CommandPanel
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Reload);
-            c.HandleCancelPressed();
-
-            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.Shoot));
         }
 
         [Test]
@@ -580,8 +446,7 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
-            private readonly InventorySlot[]       slots       = new InventorySlot[8]; // 2 operators × 4
-            private readonly Dictionary<int, bool> canReloadBy = new();
+            private readonly InventorySlot[] slots = new InventorySlot[8]; // 2 operators × 4
 
             public FakeInventoryService()
             {
@@ -592,46 +457,27 @@ namespace CrimsonDraft.Tests
             public IReadOnlyList<InventorySlot> Slots    => this.slots;
             public int                          SlotCount => this.slots.Length;
 
-            public int ReloadCallCount  { get; private set; }
-            public int LastSlotIndex    { get; private set; } = -1;
-            public int LastOperatorSlot { get; private set; } = -1;
+            public int RemoveItemCallCount  { get; private set; }
+            public int LastRemovedSlotIndex { get; private set; } = -1;
 
             public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
             public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
-            public void RemoveItem(int slotIndex)                                   { }
+            public void RemoveItem(int slotIndex)
+            {
+                this.RemoveItemCallCount++;
+                this.LastRemovedSlotIndex = slotIndex;
+            }
             public void MoveItem(int fromSlot, int toSlot)                         { }
             public void EquipWeapon(int slotIndex, int operatorSlot)               { }
             public void UnequipWeapon(int slotIndex)                               { }
             public int  GetEquippedWeaponIndex(int operatorSlot)                   => -1;
-
-            public bool CanReload(int slotIndex, int operatorSlot)
-                => this.canReloadBy.TryGetValue(slotIndex, out bool v) && v;
-
-            public void ReloadOperator(int slotIndex, int operatorSlot)
-            {
-                this.ReloadCallCount++;
-                this.LastSlotIndex    = slotIndex;
-                this.LastOperatorSlot = operatorSlot;
-            }
-
+            public bool CanReload(int slotIndex, int operatorSlot)                 => false;
+            public void ReloadOperator(int slotIndex, int operatorSlot)            { }
             public bool            TryCombine(int slotA, int slotB)          => false;
             public KeyUseOutcome   TryUseKey(string keyItemId)               => new KeyUseOutcome(KeyUseResult.NotFound, -1);
             public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
             public void            LoadState(InventorySlot[] slots)          { }
             public InventorySlot[] GetRawSlots()                             => this.slots;
-
-            /// <summary>Places an ammo box in the next empty slot. canReload controls CanReload result.</summary>
-            public void RegisterBox(AmmoBoxItem box, bool canReload)
-            {
-                for (int i = 0; i < this.slots.Length; i++)
-                {
-                    if (!this.slots[i].IsEmpty) continue;
-                    this.slots[i].Item     = box;
-                    this.slots[i].Quantity = 1;
-                    this.canReloadBy[i]    = canReload;
-                    return;
-                }
-            }
         }
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
@@ -682,19 +528,20 @@ namespace CrimsonDraft.Tests
             }
         }
 
-        private sealed class FakeSubPanelView : ISubPanelView
+        private sealed class FakeCombatInventoryView : ICombatInventoryView
         {
-            public event Action<int>?           OnItemSelected;
-            public event Action<RectTransform>? OnEntryFocused;
-            public bool           IsVisible      { get; private set; }
-            public SubPanelItem[] LastShownItems { get; private set; } = Array.Empty<SubPanelItem>();
-            public void Show(SubPanelItem[] items, RectTransform __)
+            public event Action<int>? OnItemUsed;
+            public event Action?      OnCancelled;
+            public bool IsVisible             { get; private set; }
+            public int  LastShownOperatorSlot { get; private set; } = -1;
+            public void Show(int operatorSlot)
             {
-                this.LastShownItems = items;
-                this.IsVisible      = true;
+                this.LastShownOperatorSlot = operatorSlot;
+                this.IsVisible             = true;
             }
-            public void Hide()                                           => this.IsVisible = false;
-            public void RaiseOnItemSelected(int index)                   => this.OnItemSelected?.Invoke(index);
+            public void Hide()                          => this.IsVisible = false;
+            public void RaiseOnItemUsed(int slotIndex)   => this.OnItemUsed?.Invoke(slotIndex);
+            public void RaiseOnCancelled()               => this.OnCancelled?.Invoke();
         }
 
         private sealed class FakeShotCountView : IShotCountView

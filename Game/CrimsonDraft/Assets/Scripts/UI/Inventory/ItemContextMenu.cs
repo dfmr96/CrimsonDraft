@@ -39,6 +39,7 @@ namespace CrimsonDraft.UI
             this.isOpen      = true;
 
             this.options[0].SetDisabled(!options.CanEquip && !options.CanUse);
+            this.options[1].SetDisabled(!options.CanInspect);
             this.options[2].SetDisabled(!options.CanCombine);
 
             if (options.CanEquip)
