@@ -133,25 +133,50 @@ namespace CrimsonDraft.UI
         private void PopulateGrid(int opSlot)
         {
             ClearGrid();
-            int start     = opSlot * 4;
-            int end       = Mathf.Min(start + 4, this.inventoryService.SlotCount);
-            int nextCol   = 0;
+            int start = opSlot * 4;
+            int end   = Mathf.Min(start + 4, this.inventoryService.SlotCount);
 
+            // Pass 1: items with a saved 2D position go to their exact cell.
             for (int i = start; i < end; i++)
             {
                 var slot = this.inventoryService.Slots[i];
                 if (slot.IsEmpty || slot.Item == null) continue;
+                if (slot.GridCol < 0 || slot.GridRow < 0) continue;
 
-                // Items not yet placed in the grid UI have col/row = -1;
-                // fall back to sequential column placement on row 0.
-                int col = slot.GridCol >= 0 ? slot.GridCol : nextCol;
-                int row = slot.GridRow >= 0 ? slot.GridRow : 0;
-
-                SpawnItemView(slot.Item, col, row, slot.GridRotation);
-
-                if (slot.GridCol < 0)
-                    nextCol += slot.Item.Data.GridSize.x;
+                SpawnItemView(slot.Item, slot.GridCol, slot.GridRow, slot.GridRotation);
             }
+
+            // Pass 2: unpositioned items (e.g. picked up without opening the nav
+            // inventory) scan the whole grid for the first free cell — mirrors
+            // InventoryPopulator.TryFindSlot so items wrap across rows.
+            for (int i = start; i < end; i++)
+            {
+                var slot = this.inventoryService.Slots[i];
+                if (slot.IsEmpty || slot.Item == null) continue;
+                if (slot.GridCol >= 0 && slot.GridRow >= 0) continue;
+
+                if (TryFindFreeCell(slot.Item.Data.GridSize, out var origin))
+                    SpawnItemView(slot.Item, origin.x, origin.y, 0);
+                else
+                    Debug.LogWarning($"[CombatInventory] No free cell for {slot.Item.Data.DisplayName}");
+            }
+        }
+
+        private bool TryFindFreeCell(Vector2Int size, out Vector2Int origin)
+        {
+            int maxCol = this.grid.Columns - size.x;
+            int maxRow = this.grid.Rows    - size.y;
+            if (maxCol < 0 || maxRow < 0) { origin = default; return false; }
+
+            for (int row = 0; row <= maxRow; row++)
+                for (int col = 0; col <= maxCol; col++)
+                {
+                    var o = new Vector2Int(col, row);
+                    if (this.grid.CanPlace(o, size)) { origin = o; return true; }
+                }
+
+            origin = default;
+            return false;
         }
 
         private void SpawnItemView(InventoryItem item, int col, int row, int rotation)
