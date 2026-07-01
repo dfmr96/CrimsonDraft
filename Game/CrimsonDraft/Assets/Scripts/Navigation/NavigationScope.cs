@@ -65,6 +65,14 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
             builder.RegisterComponentInHierarchy<PickupRegistryDebugView>();
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Optional debug overlay — only registered if present in the scene, so it
+            // never breaks scope build when the GameObject isn't added.
+            var inventoryDebug = FindObjectOfType<InventoryDebugPrinter>(true);
+            if (inventoryDebug != null)
+                builder.RegisterComponent(inventoryDebug);
+#endif
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
