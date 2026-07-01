@@ -75,6 +75,10 @@ namespace CrimsonDraft.Combat
 
             var configs = BuildATBConfigs(this.encounter, this.roster, this.atbGaugeDivisor);
             this.atbSystem.Initialize(configs);
+
+            if (this.encounterContext.OperatorsStartFull)
+                this.atbSystem.FillOperatorGauges();
+
             for (int i = 0; i < this.roster.Count; i++)
                 this.menuView.SetOperatorDimmed(i, true);
 
@@ -245,11 +249,25 @@ namespace CrimsonDraft.Combat
             switch (head.Type)
             {
                 case PendingActionType.UseItem:
-                    if (head.ItemIndex >= 0)
-                        this.inventory.RemoveItem(head.ItemIndex);
+                    ApplyUseItem(head);
                     SetAnimationLock(this.operatorActionDurationSec);
                     break;
             }
+        }
+
+        private void ApplyUseItem(PendingAction action)
+        {
+            if (action.ItemIndex < 0 || action.ItemIndex >= this.inventory.Slots.Count) return;
+            InventorySlot slot = this.inventory.Slots[action.ItemIndex];
+            if (slot.IsEmpty || slot.Item?.Data is not ConsumableData consumable) return;
+
+            int targetSlot = action.TargetOperatorSlot >= 0 ? action.TargetOperatorSlot : action.SlotIndex;
+            if (targetSlot < this.roster.Count && this.roster[targetSlot].IsAlive)
+                this.roster[targetSlot].Heal(consumable.HealAmount);
+
+            slot.Quantity--;
+            if (slot.Quantity <= 0)
+                this.inventory.RemoveItem(action.ItemIndex);
         }
 
         private void ApplyEnemyAttack(PendingAction action)
@@ -310,8 +328,9 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = encounter.EnemySlots[i];
                 if (data == null) continue;
-                float gps = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
-                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps));
+                float gps          = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
+                float initialGauge = data.InitialGaugePct / 100f;
+                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps, initialGauge));
             }
 
             return configs;
