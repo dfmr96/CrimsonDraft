@@ -15,6 +15,7 @@ namespace CrimsonDraft.Combat
 
         public void Enter()
         {
+            this.context.Orchestrator.SetWaitMode(true);
             this.view.OnItemUsed   += HandleItemUsed;
             this.view.OnCancelled  += HandleCancelled;
             this.view.Show(this.context.SelectedOperator);
@@ -22,6 +23,7 @@ namespace CrimsonDraft.Combat
 
         public void Exit()
         {
+            this.context.Orchestrator.SetWaitMode(false);
             this.view.OnItemUsed  -= HandleItemUsed;
             this.view.OnCancelled -= HandleCancelled;
         }
