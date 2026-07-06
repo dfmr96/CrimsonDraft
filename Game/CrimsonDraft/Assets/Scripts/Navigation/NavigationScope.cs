@@ -7,7 +7,9 @@ using UnityEngine;
 using NaughtyAttributes;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
+using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Navigation.Map;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
@@ -30,6 +32,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private RoomTransitionContext roomTransitionContext = null!;
         [SerializeField] private SceneEntryContext     sceneEntryContext     = null!;
         [SerializeField] private RoomController        startingRoom         = null!;
+        [SerializeField] private MapDataSet            mapDataSet           = null!;
 
         [SerializeField] private DialogueRunner          generalRunner    = null!;
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
@@ -39,6 +42,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
         [SerializeField] private PickupInteractable[]    cachedPickups        = System.Array.Empty<PickupInteractable>();
+        [SerializeField] private MapPickupInteractable[] cachedMapPickups     = System.Array.Empty<MapPickupInteractable>();
         [SerializeField] private DocumentInteractable[]  cachedDocumentPickups = System.Array.Empty<DocumentInteractable>();
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
@@ -47,6 +51,7 @@ namespace CrimsonDraft.Navigation
         {
             builder.RegisterInstance(this.startingLoadout);
             builder.RegisterInstance(this.combineRecipeLibrary);
+            builder.RegisterInstance(this.mapDataSet);
             builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
@@ -59,6 +64,10 @@ namespace CrimsonDraft.Navigation
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<MapSceneConfig>();
+            builder.RegisterComponentInHierarchy<MapRenderer>();
+            builder.RegisterComponentInHierarchy<MapScreenView>();
+            builder.Register<MapScreenController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
@@ -104,10 +113,13 @@ namespace CrimsonDraft.Navigation
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
                    .AsImplementedInterfaces();
+            builder.Register<MapStateTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
             builder.Register<PickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterInstance(this.cachedMapPickups);
+            builder.Register<MapPickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedDocumentPickups);
             builder.Register<DocumentPickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
@@ -127,6 +139,8 @@ namespace CrimsonDraft.Navigation
         private void CacheScenePickups()
         {
             this.cachedPickups = FindObjectsByType<PickupInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            this.cachedMapPickups = FindObjectsByType<MapPickupInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

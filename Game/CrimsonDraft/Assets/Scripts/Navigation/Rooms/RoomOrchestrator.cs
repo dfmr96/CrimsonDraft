@@ -124,6 +124,8 @@ namespace CrimsonDraft.Navigation.Rooms
             this.isTransitioning = false;
         }
 
+        public RoomController? CurrentRoom => this.currentRoom;
+
         private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
         {
             foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
