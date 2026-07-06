@@ -28,6 +28,7 @@
 - [[Sistema de Diálogos]]
 - [[Sistema de Interactuables]]
 - [[Sistema de Transicion entre Decks]]
+- [[Sistema de Mapa]]
 - [[Sistema de Item Socket]]
 - [[Sistema de Movimiento]]
 - [[Sistema de IA de Navegacion]]
