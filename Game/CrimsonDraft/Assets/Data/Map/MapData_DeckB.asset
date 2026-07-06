@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a1ccf7c2f974d9b99ed4edbb61df017, type: 3}
+  m_Name: MapData_DeckB
+  m_EditorClassIdentifier: CrimsonDraft.Infrastructure::CrimsonDraft.Infrastructure.Map.MapData
+  sceneName: Deck_B_Development
+  displayName: Deck B
+  abbreviation: B
+  mapItemId: map_deck_b
+  gridSize: {x: 25, y: 25}
+  cellSize: 1
+  rooms:
+  - RoomId: PORT_STAIRS
+    Polygon:
+    - {x: -6.4000025, y: 1.9999971}
+    - {x: 6.1000023, y: 1.9999971}
+    - {x: 6.1000023, y: -4.5000052}
+    - {x: -6.4000025, y: -4.5000052}
+    Transform:
+      Offset: {x: -52.05, y: 6.4}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    DoorIds:
+    - DR_03
+    PickupIds: []
+  doors:
+  - DoorId: DR_03
+    Transform:
+      Offset: {x: -48.89, y: 12.250001}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
