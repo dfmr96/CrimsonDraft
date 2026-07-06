@@ -7,11 +7,14 @@ using UnityEngine.InputSystem.Controls;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Operators;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Player
 {
     public sealed class PlayerController : MonoBehaviour
     {
+        private const int PlayerOperatorSlot = 0;
+
         [SerializeField] private Rigidbody rb       = null!;
         [SerializeField] private Animator  animator = null!;
         [SerializeField] private float walkSpeed         = 4f;
@@ -29,18 +32,21 @@ namespace CrimsonDraft.Navigation.Player
 
         private static readonly int SpeedHash    = Animator.StringToHash("Speed");
         private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
+        private static readonly int ArmedHash    = Animator.StringToHash("Armed");
 
-        private IInputService  inputService = null!;
-        private IOperatorRoster? roster;
-        private InputDevice?   lastDevice;
+        private IInputService     inputService     = null!;
+        private IInventoryService inventoryService = null!;
+        private IOperatorRoster?  roster;
+        private InputDevice?      lastDevice;
 
         public bool IsAiming { get; private set; }
 
         [Inject]
-        public void Construct(IInputService inputService, IOperatorRoster roster)
+        public void Construct(IInputService inputService, IInventoryService inventoryService, IOperatorRoster roster)
         {
-            this.inputService = inputService;
-            this.roster       = roster;
+            this.inputService     = inputService;
+            this.inventoryService = inventoryService;
+            this.roster           = roster;
             this.inputService.Move.performed += OnMovePerformed;
         }
 
@@ -63,6 +69,9 @@ namespace CrimsonDraft.Navigation.Player
 
         private void FixedUpdate()
         {
+            var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
+            this.animator.SetBool(ArmedHash, isArmed);
+
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;

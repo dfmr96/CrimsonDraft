@@ -12,14 +12,15 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PlayerInteractionCaster : MonoBehaviour, IInteractionCaster
     {
-        private const int StandInteractType  = 0;
-        private const int CrouchInteractType = 2;
-
-        private static readonly int InteractTypeHash = Animator.StringToHash("InteractType");
+        private static readonly int IntTypeHash     = Animator.StringToHash("IntType");
+        private static readonly int InteractingHash = Animator.StringToHash("Interacting");
 
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
         [SerializeField] private Animator  animator = null!;
+        [SerializeField] private float     interactingDuration = 1f;
+
+        private Coroutine? interactingRoutine;
 
         private IInputService          inputService          = null!;
         private IInventoryService      inventoryService      = null!;
@@ -63,9 +64,15 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
 
-            var requiresCrouch = hit.collider.TryGetComponent<InteractCrouchFlag>(out var crouchFlag)
-                && crouchFlag.RequiresCrouch;
-            this.animator.SetInteger(InteractTypeHash, requiresCrouch ? CrouchInteractType : StandInteractType);
+            var animType = hit.collider.TryGetComponent<IAnimatedInteractable>(out var animated)
+                ? animated.AnimType
+                : InteractionAnimType.Stand;
+            this.animator.SetFloat(IntTypeHash, animType.ToBlendThreshold());
+
+            if (this.interactingRoutine != null)
+                StopCoroutine(this.interactingRoutine);
+            this.animator.SetBool(InteractingHash, true);
+            this.interactingRoutine = StartCoroutine(ClearInteractingAfterDelay());
 
             var context = new InteractionContext(
                 this.inventoryService,
@@ -76,6 +83,13 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.pickupDialogueService,
                 this.puzzleViewController);
             interactable.Interact(context);
+        }
+
+        private System.Collections.IEnumerator ClearInteractingAfterDelay()
+        {
+            yield return new WaitForSeconds(this.interactingDuration);
+            this.animator.SetBool(InteractingHash, false);
+            this.interactingRoutine = null;
         }
 
         public bool CanUseItem(ItemData item)
