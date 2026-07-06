@@ -117,6 +117,35 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Interact_whenNotLocked_marksDoorUnlockedInRegistry()
+        {
+            var registry    = new DoorStateRegistry();
+            var fakeService = new FakeFloorService();
+            var door        = MakeDoor(MakeUnlockedDoor(), fakeService, registry, "door-1");
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-1"),
+                "crossing an open door must mark it Unlocked on the map");
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+        }
+
+        [Test]
+        public void Interact_whenLockedNoKey_marksDoorLockedInRegistry()
+        {
+            var registry    = new DoorStateRegistry();
+            var fakeService = new FakeFloorService();
+            var door        = MakeDoor(MakeLockedDoor("door_locked"), fakeService, registry, "door-1");
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-1"));
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+        }
+
+        [Test]
         public void Interact_whenKeySuccess_startsDialogue_thenTransitionsOnComplete()
         {
             var fakeService = new FakeFloorService();

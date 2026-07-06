@@ -44,6 +44,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             if (!this.data.Locked || this.unlocked)
             {
+                this.registry.MarkUnlocked(this.doorId);
                 this.roomOrchestrator
                     .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
                     .Forget();
@@ -54,6 +55,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (keyItem == null)
             {
+                this.registry.MarkLocked(this.doorId);
                 context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                 return;
             }
@@ -64,6 +66,7 @@ namespace CrimsonDraft.Navigation.Interactables
             {
                 case KeyUseResult.NotFound:
                 case KeyUseResult.AlreadyDepleted:
+                    this.registry.MarkLocked(this.doorId);
                     context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                     break;
 
@@ -78,7 +81,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         onComplete: () =>
                         {
                             this.unlocked = true;
-                            this.registry.SetUnlocked(this.doorId);
+                            this.registry.MarkUnlocked(this.doorId);
                             this.roomOrchestrator
                                 .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
                                 .Forget();
@@ -97,7 +100,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         onComplete: () =>
                         {
                             this.unlocked = true;
-                            this.registry.SetUnlocked(this.doorId);
+                            this.registry.MarkUnlocked(this.doorId);
                             this.roomOrchestrator
                                 .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
                                 .Forget();

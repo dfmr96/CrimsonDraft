@@ -5,28 +5,35 @@ using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Interactables;
 
-namespace CrimsonDraft.Navigation.Interactables
+namespace CrimsonDraft.Navigation.Map
 {
-    public sealed class PickupInteractable : MonoBehaviour, IInteractable
+    /// <summary>A deck-plan pickup: on collection it registers the deck as known so its
+    /// unvisited rooms start drawing on the map (GDD: fog of war via the map item).</summary>
+    public sealed class MapPickupInteractable : MonoBehaviour, IInteractable
     {
         private const string PromptNode = "pickup_prompt";
 
         [SerializeField] private string   pickupId = null!;
         [SerializeField] private ItemData item     = null!;
+        [SerializeField] private MapData  map      = null!;
 
-        private PickupRegistry pickupRegistry = null!;
+        private PickupRegistry    pickupRegistry = null!;
+        private KnownMapsRegistry knownMaps      = null!;
+
+        public string PickupId => this.pickupId;
 
         [Inject]
-        public void Construct(PickupRegistry registry)
+        public void Construct(PickupRegistry registry, KnownMapsRegistry knownMaps)
         {
             this.pickupRegistry = registry;
+            this.knownMaps      = knownMaps;
             if (registry.IsCollected(this.pickupId))
                 gameObject.SetActive(false);
         }
-
-        public string PickupId => this.pickupId;
 
         public void Interact(InteractionContext context)
         {
@@ -46,6 +53,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 {
                     if (!pickupSucceeded) return;
                     this.pickupRegistry.SetCollected(this.pickupId);
+                    this.knownMaps.MarkKnown(this.map.SceneName);
                     gameObject.SetActive(false);
                 },
                 commands: new Dictionary<string, Action>
