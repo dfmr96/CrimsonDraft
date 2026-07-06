@@ -32,12 +32,53 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void GetMapState_whenNeverSet_returnsUnknown()
+        {
+            var registry = new DoorStateRegistry();
+            Assert.AreEqual(DoorMapState.Unknown, registry.GetMapState("door-a"));
+        }
+
+        [Test]
+        public void MarkLocked_fromUnknown_setsLocked()
+        {
+            var registry = new DoorStateRegistry();
+            registry.MarkLocked("door-a");
+            Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-a"));
+            Assert.IsFalse(registry.IsUnlocked("door-a"));
+        }
+
+        [Test]
+        public void MarkLocked_afterUnlocked_doesNotDowngrade()
+        {
+            var registry = new DoorStateRegistry();
+            registry.SetUnlocked("door-a");
+            registry.MarkLocked("door-a");
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-a"));
+            Assert.IsTrue(registry.IsUnlocked("door-a"));
+        }
+
+        [Test]
+        public void SetUnlocked_afterLocked_upgradesToUnlocked()
+        {
+            var registry = new DoorStateRegistry();
+            registry.MarkLocked("door-a");
+            registry.SetUnlocked("door-a");
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-a"));
+        }
+
+        [Test]
         public void LoadState_restoresGivenState()
         {
             var registry = new DoorStateRegistry();
-            registry.LoadState(new Dictionary<string, bool> { ["door-x"] = true });
+            registry.LoadState(new Dictionary<string, DoorMapState>
+            {
+                ["door-x"] = DoorMapState.Unlocked,
+                ["door-y"] = DoorMapState.Locked,
+            });
+
             Assert.IsTrue(registry.IsUnlocked("door-x"));
             Assert.IsFalse(registry.IsUnlocked("door-y"));
+            Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-y"));
         }
 
         [Test]
@@ -45,7 +86,7 @@ namespace CrimsonDraft.Tests
         {
             var registry = new DoorStateRegistry();
             registry.SetUnlocked("door-a");
-            Assert.IsTrue(registry.GetState().ContainsKey("door-a"));
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetState()["door-a"]);
         }
     }
 }
