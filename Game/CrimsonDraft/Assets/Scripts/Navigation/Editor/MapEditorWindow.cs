@@ -2,6 +2,7 @@
 
 using UnityEditor;
 using UnityEngine;
+using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Navigation.Map;
 
 namespace CrimsonDraft.Navigation.Editor
@@ -15,6 +16,11 @@ namespace CrimsonDraft.Navigation.Editor
         private float zoom = 1f;
         private MapRoomShape? draggingRoom;
         private MapDoorMarker? draggingDoor;
+
+        private MapData? gridSettingsTarget;
+        private SerializedObject? gridSettingsSerialized;
+        private bool gridSettingsExpanded = true;
+        private Rect canvasRect;
 
         [MenuItem("Tools/CrimsonDraft/Map Editor")]
         public static void Open()
@@ -34,7 +40,20 @@ namespace CrimsonDraft.Navigation.Editor
                 return;
             }
 
+            GUILayout.BeginVertical();
             DrawToolbar(config);
+            DrawGridSettings(config);
+            GUILayout.EndVertical();
+
+            // Reserve all remaining space below the header for the free-form canvas.
+            this.canvasRect = GUILayoutUtility.GetRect(
+                0f, 0f, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+
+            // BeginGroup makes mouse coordinates and draw calls relative to canvasRect AND
+            // clips anything drawn outside it — without this, grid lines/labels are drawn in
+            // absolute window coordinates with no clipping and bleed up into the header.
+            GUI.BeginGroup(this.canvasRect);
+
             HandleInput();
             DrawGrid(config);
 
@@ -45,6 +64,8 @@ namespace CrimsonDraft.Navigation.Editor
             foreach (var marker in FindObjectsByType<MapDoorMarker>(
                          FindObjectsInactive.Include, FindObjectsSortMode.None))
                 DrawDoor(marker);
+
+            GUI.EndGroup();
 
             Repaint();
         }
@@ -59,16 +80,47 @@ namespace CrimsonDraft.Navigation.Editor
             GUILayout.EndHorizontal();
         }
 
+        private void DrawGridSettings(MapSceneConfig config)
+        {
+            if (this.gridSettingsTarget != config.Map || this.gridSettingsSerialized == null)
+            {
+                this.gridSettingsTarget     = config.Map;
+                this.gridSettingsSerialized = new SerializedObject(config.Map);
+            }
+
+            this.gridSettingsExpanded = EditorGUILayout.Foldout(
+                this.gridSettingsExpanded, "Grid Settings", true);
+            if (!this.gridSettingsExpanded)
+                return;
+
+            this.gridSettingsSerialized.Update();
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("gridSize"));
+            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("cellSize"));
+            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("center"));
+            EditorGUILayout.HelpBox(
+                "Grid Size × Cell Size sets the camera's orthographic size (half of the larger " +
+                "extent). Center is where the camera looks by default — set it to the deck's " +
+                "actual world coordinates, since room offsets are authored in world space.",
+                MessageType.None);
+            EditorGUILayout.EndVertical();
+
+            this.gridSettingsSerialized.ApplyModifiedProperties();
+        }
+
+        // Drawing happens inside GUI.BeginGroup(canvasRect), so (0,0) is the group's own
+        // top-left corner — center on canvasRect's local size, not its absolute position.
+        private Vector2 CanvasCenter => this.canvasRect.size * 0.5f;
+
         private Vector2 MapToScreen(Vector2 mapPos)
             => new Vector2(mapPos.x, -mapPos.y) * (PixelsPerUnit * this.zoom)
                + this.pan
-               + new Vector2(position.width * 0.5f, position.height * 0.5f);
+               + CanvasCenter;
 
         private Vector2 ScreenToMap(Vector2 screenPos)
         {
-            var p = (screenPos - this.pan
-                     - new Vector2(position.width * 0.5f, position.height * 0.5f))
-                    / (PixelsPerUnit * this.zoom);
+            var p = (screenPos - this.pan - CanvasCenter) / (PixelsPerUnit * this.zoom);
             return new Vector2(p.x, -p.y);
         }
 
