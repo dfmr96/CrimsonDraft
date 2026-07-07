@@ -40,6 +40,7 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction InventoryCancel   { get; }
         InputAction InventoryNextTab  { get; }
         InputAction InventoryPrevTab  { get; }
+        InputAction InventoryCloseMap { get; }
 
         void SwitchToGameplay();
         void SwitchToCombat();

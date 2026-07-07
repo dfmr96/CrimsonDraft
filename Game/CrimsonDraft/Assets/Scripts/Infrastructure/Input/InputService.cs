@@ -63,6 +63,7 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction InventoryCancel   { get; }
         public InputAction InventoryNextTab  { get; }
         public InputAction InventoryPrevTab  { get; }
+        public InputAction InventoryCloseMap { get; }
 
         [Preserve]
         public InputService(InputActionAsset asset)
@@ -109,6 +110,7 @@ namespace CrimsonDraft.Infrastructure.Input
             InventoryCancel   = this.inventoryMap["Cancel"];
             InventoryNextTab  = this.inventoryMap["NextTab"];
             InventoryPrevTab  = this.inventoryMap["PrevTab"];
+            InventoryCloseMap = this.inventoryMap["CloseMap"];
         }
 
         void IInitializable.Initialize() => SwitchToGameplay();

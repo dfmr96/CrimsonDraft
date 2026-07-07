@@ -20,14 +20,35 @@ namespace CrimsonDraft.UI
         [Inject] private GridCursor        cursor        = null!;
         [Inject] private PartyPanelView    partyPanel    = null!;
         [Inject] private InventorySceneInit sceneInit    = null!;
+        [Inject] private TabManager        tabManager    = null!;
+
+        private const string MapTabName = "Map";
 
         public void Initialize()
         {
             this.inputService.OpenInventory.performed += Open;
-            this.cursor.OnCloseRequested              += Close;
+            this.inputService.OpenMap.performed        += OnToggleMap;
+            this.inputService.InventoryCloseMap.performed += OnToggleMap;
+            this.cursor.OnCloseRequested                += Close;
         }
 
         private void Open(InputAction.CallbackContext _) => Open();
+
+        // OpenMap lives in the Gameplay action map (fires when closed) and InventoryCloseMap
+        // in the Inventory map (fires when open) — same physical key (A), different map
+        // depending on current mode, so both route to the same toggle.
+        private void OnToggleMap(InputAction.CallbackContext _)
+        {
+            if (this.canvasRoot.activeSelf)
+            {
+                Close();
+                return;
+            }
+
+            Open();
+            this.tabManager.EnsureInitialized();
+            this.tabManager.ActivateTabByName(MapTabName);
+        }
 
         public void Open()
         {
@@ -69,7 +90,9 @@ namespace CrimsonDraft.UI
         public void Dispose()
         {
             this.inputService.OpenInventory.performed -= Open;
-            this.cursor.OnCloseRequested              -= Close;
+            this.inputService.OpenMap.performed        -= OnToggleMap;
+            this.inputService.InventoryCloseMap.performed -= OnToggleMap;
+            this.cursor.OnCloseRequested                -= Close;
         }
     }
 }
