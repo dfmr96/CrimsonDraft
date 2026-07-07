@@ -42,6 +42,8 @@ namespace CrimsonDraft.Infrastructure.Map
         [SerializeField] private string mapItemId = "";
         [SerializeField] private Vector2Int gridSize = new(25, 25);
         [SerializeField] private float cellSize = 1f;
+        [Tooltip("Where the map camera centers by default, in map-space (same space as room MapOffset). Rooms are usually offset in real world coordinates, so this should match the deck's actual coordinate range — it does not have to be (0,0).")]
+        [SerializeField] private Vector2 center = Vector2.zero;
         [SerializeField] private List<MapRoomData> rooms = new();
         [SerializeField] private List<MapDoorData> doors = new();
 
@@ -51,6 +53,7 @@ namespace CrimsonDraft.Infrastructure.Map
         public string MapItemId => this.mapItemId;
         public Vector2Int GridSize => this.gridSize;
         public float CellSize => this.cellSize;
+        public Vector2 Center => this.center;
         public IReadOnlyList<MapRoomData> Rooms => this.rooms;
         public IReadOnlyList<MapDoorData> Doors => this.doors;
 

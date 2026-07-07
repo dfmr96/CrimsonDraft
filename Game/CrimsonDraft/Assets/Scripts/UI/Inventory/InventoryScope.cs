@@ -26,6 +26,9 @@ namespace CrimsonDraft.UI
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<FilesTabController>().AsSelf().AsImplementedInterfaces();
 
+            if (FindFirstObjectByType<MapTabController>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<MapTabController>();
+
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.Register<InventorySceneInit>(Lifetime.Singleton);
         }

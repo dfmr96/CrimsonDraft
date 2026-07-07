@@ -66,8 +66,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MapSceneConfig>();
             builder.RegisterComponentInHierarchy<MapRenderer>();
-            builder.RegisterComponentInHierarchy<MapScreenView>();
-            builder.Register<MapScreenController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();

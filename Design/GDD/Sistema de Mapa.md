@@ -95,9 +95,11 @@ La ubicación de cada habitación en el plano es independiente de su posición r
 
 ### Pantalla de mapa
 
+El mapa vive como una pestaña más del menú de inventario (junto a Ítems y Notas/Documentos), no como una pantalla independiente con su propio atajo. Abrir el inventario y navegar a la pestaña Mapa es el único camino de acceso.
+
 ```
-Jugador abre el mapa (menú / botón dedicado)
-  → El juego de navegación se pausa (mismo tratamiento que el inventario)
+Jugador abre el inventario y navega a la pestaña Mapa
+  → El juego de navegación se pausa (mismo tratamiento que el resto del inventario)
   → Se muestra el plano del deck actual
       → Por cada habitación: calcular estado → decidir si se dibuja y con qué estilo
       → Por cada puerta de habitación dibujada: dibujar marca según estado
@@ -106,7 +108,7 @@ Jugador abre el mapa (menú / botón dedicado)
   → Selector de decks: lista solo los decks conocidos
       → Deck conocido = alguna habitación visitada, o plano en posesión
       → Al elegir otro deck: mismo dibujado, sin resaltado de jugador
-  → Cerrar mapa → se reanuda la navegación
+  → Cambiar a otra pestaña o cerrar el inventario → se reanuda la navegación
 ```
 
 La posición del jugador se comunica **resaltando la habitación actual**, no con un icono posicional. El sistema de habitaciones ya sabe cuál está activa; no se rastrea la posición exacta dentro de ella.
@@ -165,7 +167,7 @@ Que el layout del plano sea independiente de la geometría real protege la legib
 ## Pendiente
 
 - [ ] Definir la dirección de arte de la pantalla de mapa (paleta, materiales de cada estado, tipografía)
-- [ ] Definir el input exacto para abrir el mapa (botón dedicado vs. pestaña del menú)
+- [x] Definir el input exacto para abrir el mapa: resuelto, es una pestaña del menú de inventario (junto a Ítems y Notas), no un botón dedicado
 - [ ] Ubicar los ítems de plano de cada deck en el diseño de niveles
 - [ ] Decidir si los POIs narrativos (notas, puzzles) se marcan en el mapa (fuera de alcance en esta iteración)
 - [ ] Icono posicional exacto del jugador y minimapa en HUD: descartados por ahora, reevaluar tras playtest

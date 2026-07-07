@@ -1,6 +1,7 @@
 #nullable enable
 
 using NUnit.Framework;
+using Unity.Cinemachine;
 using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Infrastructure;
@@ -52,7 +53,7 @@ namespace CrimsonDraft.Tests
                 renderer.Generate(map, null);
 
                 renderer.Pan(new Vector2(999f, 999f));
-                var position = renderer.GetComponentInChildren<Camera>().transform.position;
+                var position = renderer.GetComponentInChildren<CinemachineCamera>().transform.position;
 
                 Assert.LessOrEqual(Mathf.Abs(position.x), map.GridSize.x * map.CellSize * 0.5f + 0.01f);
                 Assert.LessOrEqual(Mathf.Abs(position.z), map.GridSize.y * map.CellSize * 0.5f + 0.01f);
@@ -106,8 +107,14 @@ namespace CrimsonDraft.Tests
             var go = new GameObject("MapRenderer");
             var renderer = go.AddComponent<MapRenderer>();
 
+            var cameraGO = new GameObject("MapCamera");
+            cameraGO.transform.SetParent(go.transform, false);
+            var vcamGO = new GameObject("MapVirtualCamera");
+            vcamGO.transform.SetParent(go.transform, false);
+
             var so = new SerializedObject(renderer);
-            so.FindProperty("mapCamera").objectReferenceValue = go.AddComponent<Camera>();
+            so.FindProperty("mapCamera").objectReferenceValue = cameraGO.AddComponent<Camera>();
+            so.FindProperty("mapVirtualCamera").objectReferenceValue = vcamGO.AddComponent<CinemachineCamera>();
             var content = new GameObject("Content").transform;
             content.SetParent(go.transform, false);
             so.FindProperty("contentRoot").objectReferenceValue = content;

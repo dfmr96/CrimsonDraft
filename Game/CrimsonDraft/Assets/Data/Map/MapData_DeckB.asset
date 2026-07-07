@@ -16,8 +16,9 @@ MonoBehaviour:
   displayName: Deck B
   abbreviation: B
   mapItemId: map_deck_b
-  gridSize: {x: 25, y: 25}
-  cellSize: 1
+  gridSize: {x: 40, y: 40}
+  cellSize: 6
+  center: {x: -52.05, y: 6.4}
   rooms:
   - RoomId: PORT_STAIRS
     Polygon:
@@ -33,11 +34,32 @@ MonoBehaviour:
     DoorIds:
     - DR_03
     PickupIds: []
+  - RoomId: EXTERIOR_HALLWAY
+    Polygon:
+    - {x: -17.153831, y: -4.7542133}
+    - {x: 16.599998, y: -4.7542133}
+    - {x: 16.599998, y: -1}
+    - {x: -17.153831, y: -1}
+    Transform:
+      Offset: {x: -41.046562, y: -12.008728}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    DoorIds:
+    - DR_02
+    PickupIds: []
   doors:
+  - DoorId: DR_02
+    Transform:
+      Offset: {x: -43.91965, y: -28.563158}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
   - DoorId: DR_03
     Transform:
-      Offset: {x: -48.89, y: 12.250001}
-      Rotation: 0
+      Offset: {x: -45.912605, y: 3.5485115}
+      Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}

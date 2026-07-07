@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 using VContainer;
 using CrimsonDraft.Infrastructure;
@@ -13,6 +14,7 @@ namespace CrimsonDraft.Navigation.Map
     public sealed class MapRenderer : MonoBehaviour
     {
         [SerializeField] private Camera mapCamera = null!;
+        [SerializeField] private CinemachineCamera mapVirtualCamera = null!;
         [SerializeField] private Transform contentRoot = null!;
         [SerializeField] private int renderLayer = 30;
 
@@ -90,11 +92,24 @@ namespace CrimsonDraft.Navigation.Map
             material.color = new Color(c.r, c.g, c.b, t);
         }
 
+        // Map camera has its own CinemachineBrain isolated on OutputChannels.Channel01, so it
+        // never competes with the per-room follow cameras on the Default channel (and vice
+        // versa). Priority is set on top of that isolation for when multiple vcams eventually
+        // share this channel (e.g. one per deck).
+        private static readonly PrioritySettings ActivePriority   = new() { Enabled = true, Value = 100 };
+        private static readonly PrioritySettings InactivePriority = new() { Enabled = true, Value = 0 };
+
         public void SetVisible(bool visible)
         {
             EnsureInitialized();
             if (this.mapCamera != null)
                 this.mapCamera.gameObject.SetActive(visible);
+
+            if (this.mapVirtualCamera != null)
+            {
+                this.mapVirtualCamera.gameObject.SetActive(visible);
+                this.mapVirtualCamera.Priority = visible ? ActivePriority : InactivePriority;
+            }
         }
 
         public void Generate(MapData map, string? currentRoomId)
@@ -150,12 +165,13 @@ namespace CrimsonDraft.Navigation.Map
             if (this.currentMap == null)
                 return;
 
-            var pos = this.mapCamera.transform.position + new Vector3(delta.x, 0f, delta.y);
+            var pos = this.mapVirtualCamera.transform.position + new Vector3(delta.x, 0f, delta.y);
+            var center = this.currentMap.Center;
             float halfW = this.currentMap.GridSize.x * this.currentMap.CellSize * 0.5f;
             float halfH = this.currentMap.GridSize.y * this.currentMap.CellSize * 0.5f;
-            pos.x = Mathf.Clamp(pos.x, -halfW, halfW);
-            pos.z = Mathf.Clamp(pos.z, -halfH, halfH);
-            this.mapCamera.transform.position = pos;
+            pos.x = Mathf.Clamp(pos.x, center.x - halfW, center.x + halfW);
+            pos.z = Mathf.Clamp(pos.z, center.y - halfH, center.y + halfH);
+            this.mapVirtualCamera.transform.position = pos;
         }
 
         private void EnsureInitialized()
@@ -298,9 +314,13 @@ namespace CrimsonDraft.Navigation.Map
 
         private void CenterCamera(MapData map)
         {
-            this.mapCamera.transform.position = new Vector3(0f, CameraHeight, 0f);
-            this.mapCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-            this.mapCamera.orthographicSize = map.GridSize.y * map.CellSize * 0.5f;
+            this.mapVirtualCamera.transform.position = new Vector3(map.Center.x, CameraHeight, map.Center.y);
+            this.mapVirtualCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var lens = this.mapVirtualCamera.Lens;
+            lens.ModeOverride     = LensSettings.OverrideModes.Orthographic;
+            lens.OrthographicSize = map.GridSize.y * map.CellSize * 0.5f;
+            this.mapVirtualCamera.Lens = lens;
         }
     }
 }
