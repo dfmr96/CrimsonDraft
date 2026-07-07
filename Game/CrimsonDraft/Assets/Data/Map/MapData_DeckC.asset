@@ -18,7 +18,7 @@ MonoBehaviour:
   mapItemId: map_deck_c
   gridSize: {x: 50, y: 50}
   cellSize: 3
-  center: {x: 5.7401557, y: -11.994582}
+  center: {x: 5.740162, y: -13.930471}
   rooms:
   - RoomId: HALLWAY_A
     Polygon:
@@ -42,39 +42,28 @@ MonoBehaviour:
     PickupIds:
     - IN_Green_06
     - AM_9mm_07
-  - RoomId: ENERGY_ROOM
+  - RoomId: HALLWAY_B
     Polygon:
-    - {x: -6.8436656, y: -4.4371886}
-    - {x: -8.900005, y: -4.4371886}
-    - {x: -8.900005, y: -1.005002}
-    - {x: -2.5503235, y: -1.005002}
-    - {x: -2.5503235, y: -7.0890207}
-    - {x: 6.6007433, y: -7.0890207}
-    - {x: 6.6007433, y: -14.408033}
-    - {x: -6.8376675, y: -14.408033}
+    - {x: -5.5177655, y: -22.162153}
+    - {x: -8.899999, y: -22.162153}
+    - {x: -8.899999, y: -1.005002}
+    - {x: -5.383021, y: -1.005002}
+    - {x: -5.383021, y: -9.022409}
+    - {x: 11.5738125, y: -9.022409}
+    - {x: 11.5738125, y: -12.458436}
+    - {x: -1.6525156, y: -12.458436}
+    - {x: -1.6525156, y: -15.153364}
+    - {x: -5.51397, y: -15.153364}
     Transform:
-      Offset: {x: -2.0907514, y: -30.882095}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    DoorIds: []
-    PickupIds:
-    - AM_9mm_09
-  - RoomId: BALCONY_A
-    Polygon:
-    - {x: 13.595005, y: -4.4990044}
-    - {x: -8.900001, y: -4.4990044}
-    - {x: -8.900001, y: -1.0050049}
-    - {x: 13.595005, y: -1.0050049}
-    Transform:
-      Offset: {x: 30.937206, y: -10.302138}
+      Offset: {x: 6.0184937, y: -10.406495}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     DoorIds:
-    - DR_12
+    - DR_18
+    - DR_17
     PickupIds:
-    - KI_01
+    - AM_9mm_08
   - RoomId: LAB_HALLWAY
     Polygon:
     - {x: 3.1346955, y: -19.443771}
@@ -111,46 +100,43 @@ MonoBehaviour:
     DoorIds: []
     PickupIds:
     - IN_Green_07
-  - RoomId: HALLWAY_B
+  - RoomId: ENERGY_ROOM
     Polygon:
-    - {x: -5.5177655, y: -22.162153}
-    - {x: -8.899999, y: -22.162153}
-    - {x: -8.899999, y: -1.005002}
-    - {x: -5.383021, y: -1.005002}
-    - {x: -5.383021, y: -9.022409}
-    - {x: 11.5738125, y: -9.022409}
-    - {x: 11.5738125, y: -12.458436}
-    - {x: -1.6525156, y: -12.458436}
-    - {x: -1.6525156, y: -15.153364}
-    - {x: -5.51397, y: -15.153364}
+    - {x: -6.8436656, y: -4.4371886}
+    - {x: -8.900005, y: -4.4371886}
+    - {x: -8.900005, y: -1.005002}
+    - {x: -2.5503235, y: -1.005002}
+    - {x: -2.5503235, y: -7.0890207}
+    - {x: 6.6007433, y: -7.0890207}
+    - {x: 6.6007433, y: -14.408033}
+    - {x: -6.8376675, y: -14.408033}
     Transform:
-      Offset: {x: 6.0184937, y: -10.406495}
+      Offset: {x: -2.0907514, y: -30.882095}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    DoorIds: []
+    PickupIds:
+    - AM_9mm_09
+  - RoomId: BALCONY_A
+    Polygon:
+    - {x: 13.595005, y: -4.4990044}
+    - {x: -8.900001, y: -4.4990044}
+    - {x: -8.900001, y: -1.0050049}
+    - {x: 13.595005, y: -1.0050049}
+    Transform:
+      Offset: {x: 30.937206, y: -10.302138}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     DoorIds:
-    - DR_17
-    - DR_18
+    - DR_12
     PickupIds:
-    - AM_9mm_08
+    - KI_01
   doors:
-  - DoorId: DR_16
-    Transform:
-      Offset: {x: -6.876614, y: -1.3985504}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
   - DoorId: DR_0
     Transform:
       Offset: {x: 16.636482, y: -1.4553658}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_17
-    Transform:
-      Offset: {x: -4.7126164, y: -21.899813}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
@@ -166,6 +152,20 @@ MonoBehaviour:
     Transform:
       Offset: {x: 26.404524, y: -3.3958569}
       Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_17
+    Transform:
+      Offset: {x: -4.7126164, y: -21.899813}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_16
+    Transform:
+      Offset: {x: -6.876614, y: -1.3985504}
+      Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
