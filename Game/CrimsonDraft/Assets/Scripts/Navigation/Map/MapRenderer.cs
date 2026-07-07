@@ -129,7 +129,11 @@ namespace CrimsonDraft.Navigation.Map
             this.currentRoomRenderer = null;
             ClearContent();
 
-            bool deckKnown = MapStateResolver.IsDeckKnown(map, this.rooms, this.knownMaps);
+            // Per GDD: an unvisited room only draws (dimmed) once the player owns this deck's
+            // map item — visiting some OTHER room in the deck must not reveal the rest of it.
+            // (IsDeckKnown is intentionally broader — any room visited OR map owned — and is
+            // reserved for the deck selector's "which decks can I even look at" gate.)
+            bool hasMapItem = this.knownMaps.IsKnown(map.SceneName);
             var drawnDoorIds = new HashSet<string>();
 
             foreach (var room in map.Rooms)
@@ -139,7 +143,7 @@ namespace CrimsonDraft.Navigation.Map
                 bool isCompleted = roomState == RoomMapState.Visited && AreAllPickupsCollected(room.PickupIds);
 
                 var visualState = MapStateResolver.ResolveRoom(
-                    hasMap: deckKnown,
+                    hasMap: hasMapItem,
                     roomState: roomState,
                     isCurrentRoom: isCurrentRoom,
                     isCompleted: isCompleted);
