@@ -13,6 +13,16 @@ namespace CrimsonDraft.Navigation.Map
         [SerializeField] private float mapRotation;
         [SerializeField] private Vector2 size = new(1f, 0.25f);
 
+        [Tooltip("If true, this door is skipped entirely when baking the map — no MapDoorData " +
+                 "is created for it, so it never renders on the in-game map.")]
+        [SerializeField] private bool excludeFromMap;
+
+        public bool ExcludeFromMap
+        {
+            get => this.excludeFromMap;
+            set => this.excludeFromMap = value;
+        }
+
         public Vector2 MapOffset
         {
             get => this.mapOffset;

@@ -93,6 +93,9 @@ namespace CrimsonDraft.Navigation.Editor
 
             foreach (var marker in markers)
             {
+                if (marker.ExcludeFromMap)
+                    continue;
+
                 var doorId = marker.ResolveDoorId();
                 if (string.IsNullOrWhiteSpace(doorId))
                 {

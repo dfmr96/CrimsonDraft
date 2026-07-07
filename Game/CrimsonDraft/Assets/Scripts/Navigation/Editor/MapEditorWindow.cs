@@ -81,9 +81,76 @@ namespace CrimsonDraft.Navigation.Editor
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             GUILayout.Label($"Map: {config.Map.name}", EditorStyles.boldLabel);
             GUILayout.FlexibleSpace();
+
+            var selectedShape = Selection.activeGameObject != null
+                ? Selection.activeGameObject.GetComponent<MapRoomShape>()
+                : null;
+
+            using (new EditorGUI.DisabledScope(selectedShape == null))
+            {
+                if (GUILayout.Button("Straighten Room", EditorStyles.toolbarButton))
+                    StraightenRoom(selectedShape!);
+            }
+
+            if (GUILayout.Button("Straighten All", EditorStyles.toolbarButton))
+                StraightenAllRooms();
+
             if (GUILayout.Button("Bake Now", EditorStyles.toolbarButton))
                 MapBaker.Bake(config);
             GUILayout.EndHorizontal();
+        }
+
+        private static void StraightenRoom(MapRoomShape shape)
+        {
+            Undo.RecordObject(shape, "Straighten Room");
+            shape.LocalPoints = StraightenPolygon(shape.LocalPoints);
+            EditorUtility.SetDirty(shape);
+        }
+
+        private static void StraightenAllRooms()
+        {
+            var shapes = FindObjectsByType<MapRoomShape>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            Undo.SetCurrentGroupName("Straighten All Rooms");
+            int group = Undo.GetCurrentGroup();
+
+            foreach (var shape in shapes)
+                StraightenRoom(shape);
+
+            Undo.CollapseUndoOperations(group);
+        }
+
+        // Snaps every edge of a room's polygon to the nearest cardinal direction
+        // (0/90/180/270), preserving whichever axis each edge was already closest to.
+        // Vertex 0 is the anchor and is never modified.
+        private static Vector2[] StraightenPolygon(Vector2[] points)
+        {
+            if (points.Length < 3)
+                return points;
+
+            var result = (Vector2[])points.Clone();
+            for (int i = 1; i < result.Length; i++)
+            {
+                var prev = result[i - 1];
+                var cur = result[i];
+                var delta = cur - prev;
+                result[i] = Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)
+                    ? new Vector2(cur.x, prev.y)
+                    : new Vector2(prev.x, cur.y);
+            }
+
+            const float closureEpsilon = 0.01f;
+            var closingDelta = result[0] - result[^1];
+            if (Mathf.Abs(closingDelta.x) > closureEpsilon
+                && Mathf.Abs(closingDelta.y) > closureEpsilon)
+            {
+                Debug.LogWarning(
+                    "[MapEditorWindow] Straightened polygon did not close as a " +
+                    "rectilinear shape — the room may not be axis-aligned.");
+            }
+
+            return result;
         }
 
         private void DrawGridSettings(MapSceneConfig config)
@@ -200,11 +267,15 @@ namespace CrimsonDraft.Navigation.Editor
             var center = MapToScreen(marker.MapOffset);
             var size = marker.Size * PixelsPerUnit * this.zoom;
 
+            var color = selected ? Color.yellow : new Color(0.9f, 0.4f, 0.3f);
+            if (marker.ExcludeFromMap)
+                color.a = 0.35f;
+
             var oldMatrix = GUI.matrix;
             GUIUtility.RotateAroundPivot(marker.MapRotation, center);
             EditorGUI.DrawRect(
                 new Rect(center.x - size.x * 0.5f, center.y - size.y * 0.5f, size.x, size.y),
-                selected ? Color.yellow : new Color(0.9f, 0.4f, 0.3f));
+                color);
             GUI.matrix = oldMatrix;
         }
 
