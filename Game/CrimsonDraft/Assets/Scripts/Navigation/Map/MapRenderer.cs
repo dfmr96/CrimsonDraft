@@ -35,6 +35,11 @@ namespace CrimsonDraft.Navigation.Map
         [SerializeField] private float pulseSpeed = 3f;
         [SerializeField] private float pulseMin = 0.55f;
 
+        [Header("Zoom")]
+        [Tooltip("Multipliers applied to the map's base orthographic size. CycleZoom() steps " +
+                 "through these in order and wraps around; index 0 is the default on deck open.")]
+        [SerializeField] private float[] zoomLevels = { 1f, 1.6f, 0.6f };
+
         private RoomStateRegistry rooms = null!;
         private KnownMapsRegistry knownMaps = null!;
         private PickupRegistry pickups = null!;
@@ -44,6 +49,7 @@ namespace CrimsonDraft.Navigation.Map
         private MapData? currentMap;
         private Renderer? currentRoomRenderer;
         private bool initialized;
+        private int zoomIndex;
 
         private const float RoomHeight = 0f;
         private const float WallHeight = 0.2f;
@@ -159,6 +165,15 @@ namespace CrimsonDraft.Navigation.Map
             CenterCamera(map);
         }
 
+        public void CycleZoom()
+        {
+            if (this.currentMap == null || this.zoomLevels.Length == 0)
+                return;
+
+            this.zoomIndex = (this.zoomIndex + 1) % this.zoomLevels.Length;
+            ApplyZoom();
+        }
+
         public void Pan(Vector2 delta)
         {
             EnsureInitialized();
@@ -223,10 +238,13 @@ namespace CrimsonDraft.Navigation.Map
                 _ => this.roomVisitedMaterial,
             };
 
+        // Rotation sign matches MapEditorWindow's on-screen convention (which is what level
+        // design actually looks at while authoring): rotating a shape by MapRotation must
+        // look the same way in-game as it does in the Map Editor Window.
         private static Matrix4x4 TRS(MapElementTransform t, float height)
             => Matrix4x4.TRS(
                 new Vector3(t.Offset.x, height + t.ZOrder * 0.01f, t.Offset.y),
-                Quaternion.Euler(0f, -t.Rotation, 0f),
+                Quaternion.Euler(0f, t.Rotation, 0f),
                 new Vector3(t.Scale.x, 1f, t.Scale.y));
 
         private Renderer BuildRoomMesh(MapRoomData room, Material material)
@@ -317,9 +335,20 @@ namespace CrimsonDraft.Navigation.Map
             this.mapVirtualCamera.transform.position = new Vector3(map.Center.x, CameraHeight, map.Center.y);
             this.mapVirtualCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
+            this.zoomIndex = 0;
+            ApplyZoom();
+        }
+
+        private void ApplyZoom()
+        {
+            if (this.currentMap == null)
+                return;
+
+            float zoom = this.zoomLevels.Length > 0 ? this.zoomLevels[this.zoomIndex] : 1f;
+
             var lens = this.mapVirtualCamera.Lens;
             lens.ModeOverride     = LensSettings.OverrideModes.Orthographic;
-            lens.OrthographicSize = map.GridSize.y * map.CellSize * 0.5f;
+            lens.OrthographicSize = this.currentMap.GridSize.y * this.currentMap.CellSize * 0.5f * zoom;
             this.mapVirtualCamera.Lens = lens;
         }
     }

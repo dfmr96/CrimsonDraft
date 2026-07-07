@@ -14,9 +14,12 @@ using CrimsonDraft.Navigation.UI;
 namespace CrimsonDraft.UI
 {
     /// <summary>Drives the map inside its inventory tab: generates the current deck on
-    /// enable, pans while focused, and cycles known decks. Cancel is handled centrally by
-    /// TabManager (Map doesn't own it — see TabManager.OnCancelTab), so this class only
-    /// reacts to Confirm and navigation while the tab bar isn't active.</summary>
+    /// enable, pans while focused, and cycles zoom on Confirm. Cancel is handled centrally
+    /// by TabManager (Map doesn't own it — see TabManager.OnCancelTab), so this class only
+    /// reacts to Confirm and navigation while the tab bar isn't active.
+    /// KnownDecks/deck-cycling is kept ready but unwired: only one deck is known at a time
+    /// today, and Confirm (the only free single-press input in this tab) was repurposed for
+    /// zoom — wire a dedicated input for deck-cycling once there's more than one deck to test.</summary>
     public sealed class MapTabController : MonoBehaviour
     {
         [SerializeField] private MapScreenView mapScreenView = null!;
@@ -65,11 +68,7 @@ namespace CrimsonDraft.UI
         {
             if (this.tabManager.IsTabBarActive || this.shownMap == null) return;
 
-            var known = KnownDecks();
-            if (known.Count <= 1) return;
-
-            int idx = known.IndexOf(this.shownMap);
-            ShowDeck(known[(idx + 1) % known.Count]);
+            this.mapRenderer.CycleZoom();
         }
 
         private void ShowCurrentDeck()
