@@ -12,10 +12,14 @@ namespace CrimsonDraft.Navigation.Editor
     {
         private const float PixelsPerUnit = 20f;
 
+        private const float CenterHandleRadius = 8f;
+        private const float CenterHandlePickRadius = 10f;
+
         private Vector2 pan;
         private float zoom = 1f;
         private MapRoomShape? draggingRoom;
         private MapDoorMarker? draggingDoor;
+        private bool draggingCenter;
 
         private MapData? gridSettingsTarget;
         private SerializedObject? gridSettingsSerialized;
@@ -54,7 +58,7 @@ namespace CrimsonDraft.Navigation.Editor
             // absolute window coordinates with no clipping and bleed up into the header.
             GUI.BeginGroup(this.canvasRect);
 
-            HandleInput();
+            HandleInput(config);
             DrawGrid(config);
 
             foreach (var shape in FindObjectsByType<MapRoomShape>(
@@ -64,6 +68,8 @@ namespace CrimsonDraft.Navigation.Editor
             foreach (var marker in FindObjectsByType<MapDoorMarker>(
                          FindObjectsInactive.Include, FindObjectsSortMode.None))
                 DrawDoor(marker);
+
+            DrawCenterHandle(config);
 
             GUI.EndGroup();
 
@@ -106,6 +112,20 @@ namespace CrimsonDraft.Navigation.Editor
                 MessageType.None);
             EditorGUILayout.EndVertical();
 
+            this.gridSettingsSerialized.ApplyModifiedProperties();
+        }
+
+        // Shares gridSettingsSerialized with DrawGridSettings so dragging the handle and
+        // typing into the Grid Settings field stay consistent (same SerializedObject, same
+        // Undo group).
+        private void MoveCenter(MapSceneConfig config, Vector2 deltaMap)
+        {
+            if (this.gridSettingsSerialized == null || this.gridSettingsTarget != config.Map)
+                return;
+
+            this.gridSettingsSerialized.Update();
+            var centerProp = this.gridSettingsSerialized.FindProperty("center");
+            centerProp.vector2Value += deltaMap;
             this.gridSettingsSerialized.ApplyModifiedProperties();
         }
 
@@ -188,7 +208,29 @@ namespace CrimsonDraft.Navigation.Editor
             GUI.matrix = oldMatrix;
         }
 
-        private void HandleInput()
+        private void DrawCenterHandle(MapSceneConfig config)
+        {
+            var pos = MapToScreen(config.Map.Center);
+            const float r = CenterHandleRadius;
+
+            var diamond = new Vector3[]
+            {
+                new(pos.x, pos.y - r),
+                new(pos.x + r, pos.y),
+                new(pos.x, pos.y + r),
+                new(pos.x - r, pos.y),
+                new(pos.x, pos.y - r),
+            };
+
+            Handles.BeginGUI();
+            Handles.color = this.draggingCenter ? Color.yellow : new Color(0.4f, 1f, 0.4f, 1f);
+            Handles.DrawPolyLine(diamond);
+            Handles.EndGUI();
+
+            GUI.Label(new Rect(pos.x + r + 4f, pos.y - 8f, 60f, 16f), "Center", EditorStyles.miniBoldLabel);
+        }
+
+        private void HandleInput(MapSceneConfig config)
         {
             var e = Event.current;
 
@@ -204,17 +246,30 @@ namespace CrimsonDraft.Navigation.Editor
             }
             else if (e.type == EventType.MouseDown && e.button == 0)
             {
-                var hit = PickAt(e.mousePosition);
-                Selection.activeGameObject = hit;
-                this.draggingRoom = hit != null ? hit.GetComponent<MapRoomShape>() : null;
-                this.draggingDoor = hit != null ? hit.GetComponent<MapDoorMarker>() : null;
-                if (hit != null)
+                if (Vector2.Distance(e.mousePosition, MapToScreen(config.Map.Center)) <= CenterHandlePickRadius)
+                {
+                    this.draggingCenter = true;
                     e.Use();
+                }
+                else
+                {
+                    var hit = PickAt(e.mousePosition);
+                    Selection.activeGameObject = hit;
+                    this.draggingRoom = hit != null ? hit.GetComponent<MapRoomShape>() : null;
+                    this.draggingDoor = hit != null ? hit.GetComponent<MapDoorMarker>() : null;
+                    if (hit != null)
+                        e.Use();
+                }
             }
             else if (e.type == EventType.MouseDrag && e.button == 0)
             {
                 var deltaMap = new Vector2(e.delta.x, -e.delta.y) / (PixelsPerUnit * this.zoom);
-                if (this.draggingRoom != null)
+                if (this.draggingCenter)
+                {
+                    MoveCenter(config, deltaMap);
+                    e.Use();
+                }
+                else if (this.draggingRoom != null)
                 {
                     Undo.RecordObject(this.draggingRoom, "Move Map Room");
                     this.draggingRoom.MapOffset += deltaMap;
@@ -233,6 +288,7 @@ namespace CrimsonDraft.Navigation.Editor
             {
                 this.draggingRoom = null;
                 this.draggingDoor = null;
+                this.draggingCenter = false;
             }
             else if (e.type == EventType.KeyDown && e.keyCode == KeyCode.R)
             {

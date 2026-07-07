@@ -30,6 +30,9 @@ namespace CrimsonDraft.Navigation.Map
         [SerializeField] private Material doorUnknownMaterial = null!;
         [SerializeField] private Material doorLockedMaterial = null!;
         [SerializeField] private Material doorUnlockedMaterial = null!;
+        [Tooltip("Scales every door's authored Size when drawing it on the map, so doors read " +
+                 "clearly without having to touch each MapDoorMarker's Size individually.")]
+        [SerializeField] private float doorSizeMultiplier = 2.5f;
 
         [Header("Current room pulse")]
         [SerializeField] private float pulseSpeed = 3f;
@@ -296,7 +299,7 @@ namespace CrimsonDraft.Navigation.Map
             };
 
             var trs = TRS(door.Transform, DoorHeight);
-            Vector2 half = door.Size * 0.5f;
+            Vector2 half = door.Size * this.doorSizeMultiplier * 0.5f;
             var verts = new[]
             {
                 trs.MultiplyPoint3x4(new Vector3(-half.x, 0f, -half.y)),
