@@ -40,6 +40,7 @@ namespace CrimsonDraft.Combat
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
         private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
         private static readonly int ShootHash = Animator.StringToHash("Shoot");
+        private static readonly int AimHash = Animator.StringToHash("Aim");
 
         private void Awake()
         {
@@ -161,16 +162,27 @@ namespace CrimsonDraft.Combat
             if (!this.operatorAnimatorBySlot.TryGetValue(slotIndex, out var animator) || animator == null)
                 return;
 
+            // The "Shoot" trigger only has an outgoing transition defined from "AimingIdlePistol"
+            // (not the default "IdleUnarmed"), so Aim must be set and the transition into
+            // AimingIdlePistol must actually complete before triggering Shoot has any effect.
+            animator.SetBool(AimHash, true);
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName("AimingIdlePistol"))
+                await UniTask.NextFrame();
+
             int count = Mathf.Max(1, shotCount);
             for (int i = 0; i < count; i++)
             {
                 animator.SetTrigger(ShootHash);
-                await UniTask.NextFrame();
+                while (!animator.GetCurrentAnimatorStateInfo(0).IsName("ShootPistolFlexed2"))
+                    await UniTask.NextFrame();
+
                 var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
                 float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
                 if (duration > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(duration));
             }
+
+            animator.SetBool(AimHash, false);
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT
