@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -147,6 +148,8 @@ namespace CrimsonDraft.Combat
         }
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        public UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount) => UniTask.CompletedTask;
 
 #if UNITY_EDITOR || DEBUG_COMBAT
         public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)

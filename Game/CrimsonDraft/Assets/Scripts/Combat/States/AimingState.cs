@@ -1,5 +1,6 @@
 #nullable enable
 
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using CrimsonDraft.Operators;
 
@@ -15,6 +16,7 @@ namespace CrimsonDraft.Combat
         private readonly IOperatorRoster       roster;
 
         private bool awaitingDismiss;
+        private bool isPlayingBurst;
 
         internal AimingState(
             CombatMenuController  context,
@@ -36,6 +38,7 @@ namespace CrimsonDraft.Combat
         {
             this.context.Orchestrator.SetWaitMode(true);
             this.awaitingDismiss = false;
+            this.isPlayingBurst  = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
             this.aimView.Show();
         }
@@ -48,9 +51,11 @@ namespace CrimsonDraft.Combat
 
         public void OnConfirm()
         {
+            if (this.isPlayingBurst) return;
+
             if (this.awaitingDismiss)
             {
-                CloseAimAndReturnToOperatorSelection();
+                CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }
             this.aimView.Confirm();
@@ -85,14 +90,19 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = true;
         }
 
-        private void CloseAimAndReturnToOperatorSelection()
+        private async UniTaskVoid CloseAimAndReturnToOperatorSelectionAsync()
         {
-            this.context.Orchestrator.NotifyShootCompleted();
-            this.context.CurrentTargetSlot  = -1;
-            this.context.SelectedShotCount  = 1;
-            this.awaitingDismiss            = false;
+            this.awaitingDismiss = false;
             this.aimView.Hide();
             this.commandPanel.Hide();
+
+            this.isPlayingBurst = true;
+            await this.battlefieldView.PlayOperatorShootBurstAsync(this.context.SelectedOperator, this.context.SelectedShotCount);
+            this.isPlayingBurst = false;
+
+            this.context.Orchestrator.NotifyShootCompleted();
+            this.context.CurrentTargetSlot = -1;
+            this.context.SelectedShotCount = 1;
             this.context.TransitionTo(this.context.OperatorSelState);
         }
     }
