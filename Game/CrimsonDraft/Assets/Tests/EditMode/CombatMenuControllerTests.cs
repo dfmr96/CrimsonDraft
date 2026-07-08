@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using VContainer.Unity;
+using Cysharp.Threading.Tasks;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Inventory;
@@ -250,6 +251,62 @@ namespace CrimsonDraft.Tests
 
             Assert.IsFalse(this.aimView.IsVisible);
             Assert.IsFalse(this.commandPanel.IsVisible);
+        }
+
+        [Test]
+        public void ShotFired_extraConfirm_playsOperatorShootBurst_withSelectedOperatorAndShotCount()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(2);
+            c.BeginShootConfiguration(2);
+
+            this.shotCountView.Increment();
+            this.shotCountView.Increment(); // Value = 3
+
+            InvokeConfirm(c); // ShotCountSelectionState -> TargetSelState (enemies present)
+            InvokeConfirm(c); // TargetSelectionState -> AimingState
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> should trigger the burst
+
+            Assert.AreEqual(1, this.battlefieldView.BurstCallCount);
+            Assert.AreEqual(2, this.battlefieldView.LastBurstSlotIndex);
+            Assert.AreEqual(3, this.battlefieldView.LastBurstShotCount);
+        }
+
+        [Test]
+        public void OnConfirm_whileBurstPlaying_ignoresExtraConfirmAndDoesNotTransitionYet()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            this.battlefieldView.HoldNextBurst();
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c); // -> TargetSelState
+            InvokeConfirm(c); // -> AimingState
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss -> starts burst, held pending
+
+            Assert.AreEqual(1, this.battlefieldView.BurstCallCount);
+            Assert.IsFalse(this.aimView.IsVisible);
+            Assert.IsFalse(this.commandPanel.IsVisible);
+            Assert.AreEqual(0, this.orchestrator.NotifyShootCompletedCallCount);
+
+            InvokeConfirm(c); // should be ignored while the burst is still playing
+
+            Assert.AreEqual(1, this.battlefieldView.BurstCallCount);
+            Assert.AreEqual(0, this.orchestrator.NotifyShootCompletedCallCount);
+
+            this.battlefieldView.CompletePendingBurst();
+
+            Assert.AreEqual(1, this.orchestrator.NotifyShootCompletedCallCount);
         }
 
         [Test]
@@ -608,6 +665,10 @@ namespace CrimsonDraft.Tests
             private readonly System.Collections.Generic.Dictionary<int, int> hpBySlot = new();
             public bool   EnemyTargetVisible { get; private set; }
             public EnemyDamageResult LastDamageResult { get; private set; }
+            public int BurstCallCount      { get; private set; }
+            public int LastBurstSlotIndex  { get; private set; } = -1;
+            public int LastBurstShotCount  { get; private set; } = -1;
+            private UniTaskCompletionSource? pendingBurstSource;
 
             public void SetOccupiedSlots(int[] slots)
             {
@@ -620,6 +681,9 @@ namespace CrimsonDraft.Tests
             }
             public void SetMaskProfile(int slot, AimHitMaskProfile? profile) => this.maskBySlot[slot] = profile;
             public void SetEnemyHp(int slot, int hp) => this.hpBySlot[slot] = hp;
+
+            public void HoldNextBurst()        => this.pendingBurstSource = new UniTaskCompletionSource();
+            public void CompletePendingBurst() => this.pendingBurstSource?.TrySetResult();
 
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
@@ -658,6 +722,13 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
+            public UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount)
+            {
+                this.BurstCallCount++;
+                this.LastBurstSlotIndex = slotIndex;
+                this.LastBurstShotCount = shotCount;
+                return this.pendingBurstSource != null ? this.pendingBurstSource.Task : UniTask.CompletedTask;
+            }
 #if UNITY_EDITOR || DEBUG_COMBAT
             public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
             {
@@ -677,9 +748,10 @@ namespace CrimsonDraft.Tests
                 this.LastEnqueuedAction = action;
                 this.EnqueueCallCount++;
             }
+            public int  NotifyShootCompletedCallCount  { get; private set; }
             public void SetWaitMode(bool paused)       { }
             public bool IsOperatorReady(int slotIndex) => true;
-            public void NotifyShootCompleted()         { }
+            public void NotifyShootCompleted()         => this.NotifyShootCompletedCallCount++;
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster
