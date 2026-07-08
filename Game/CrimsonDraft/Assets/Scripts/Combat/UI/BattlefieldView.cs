@@ -38,6 +38,8 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, MeshRenderer> enemyRendererBySlot = new();
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
+        private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
+        private static readonly int ShootHash = Animator.StringToHash("Shoot");
 
         private void Awake()
         {
@@ -53,6 +55,7 @@ namespace CrimsonDraft.Combat
             this.enemyStateBySlot.Clear();
             this.enemyGoBySlot.Clear();
             this.enemyRendererBySlot.Clear();
+            this.operatorAnimatorBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -105,6 +108,10 @@ namespace CrimsonDraft.Combat
                 }
                 go.name = $"Operator_{i}";
                 this.spawnedSprites.Add(go);
+
+                var operatorAnimator = go.GetComponentInChildren<Animator>();
+                if (operatorAnimator != null)
+                    this.operatorAnimatorBySlot[i] = operatorAnimator;
             }
         }
 
@@ -149,7 +156,22 @@ namespace CrimsonDraft.Combat
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
-        public UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount) => UniTask.CompletedTask;
+        public async UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount)
+        {
+            if (!this.operatorAnimatorBySlot.TryGetValue(slotIndex, out var animator) || animator == null)
+                return;
+
+            int count = Mathf.Max(1, shotCount);
+            for (int i = 0; i < count; i++)
+            {
+                animator.SetTrigger(ShootHash);
+                await UniTask.NextFrame();
+                var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
+                float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
+                if (duration > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(duration));
+            }
+        }
 
 #if UNITY_EDITOR || DEBUG_COMBAT
         public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
