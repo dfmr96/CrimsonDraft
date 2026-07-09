@@ -1291,46 +1291,6 @@
 									</ChildrenList>
 									<ObjectLists/>
 								</RandomSequenceContainer>
-								<Sound Name="Attacking" ID="{BA683950-6EC1-4E0B-8B72-64C08F59F951}" ShortID="851158699">
-									<PropertyList>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>30</Value>
-											</ValueList>
-										</Property>
-										<Property Name="Volume" Type="Real64">
-											<ValueList>
-												<Value>-7</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="idle&amp;ataque" ID="{D2665E8F-B552-4539-9169-7C451276CB9C}">
-											<PropertyList>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimBegin" Type="Real64" Value="17.596720783575"/>
-												<Property Name="TrimEnd" Type="Real64" Value="19.0245884339554"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>idle&amp;ataque.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="583014744"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="idle&amp;ataque" ID="{D2665E8F-B552-4539-9169-7C451276CB9C}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
 								<RandomSequenceContainer Name="Eating" ID="{9B162CE5-80EE-4436-A113-F4BEF37D741A}" ShortID="416299158">
 									<PropertyList>
 										<Property Name="NormalOrShuffle" Type="int16" Value="0"/>
@@ -1496,18 +1456,195 @@
 									</ChildrenList>
 									<ObjectLists/>
 								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="RecievingDamage" ID="{14FDF350-3017-47CC-A550-5B93E2D5675A}" ShortID="29612182">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Z_ISI02" ID="{DF8EA11C-C29C-4717-AC68-95C7EA7FC7C9}" ShortID="974026548">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Z_ISI02" ID="{9060590B-F502-4C16-990B-2B22A907613E}">
+													<Language>SFX</Language>
+													<AudioFile>Z_ISI02.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="92259748"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Z_ISI02" ID="{9060590B-F502-4C16-990B-2B22A907613E}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="ZombieDeath" ID="{D673A90A-F074-467C-AF5A-CF9052E63D5A}" ShortID="815053497">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Z_MIKA03" ID="{49011850-0CBE-4E81-BB51-E14B46E2102B}" ShortID="989280163">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Z_MIKA03" ID="{4C7BBBE2-B2A0-4772-BECA-8041AE6B039C}">
+													<Language>SFX</Language>
+													<AudioFile>Z_MIKA03.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="735304760"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Z_MIKA03" ID="{4C7BBBE2-B2A0-4772-BECA-8041AE6B039C}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="ZombieAttacks" ID="{D21B32FC-D427-4A2E-9E79-46AF0AB65D51}" ShortID="985458075">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Attacking" ID="{BA683950-6EC1-4E0B-8B72-64C08F59F951}" ShortID="851158699">
+											<PropertyList>
+												<Property Name="Pitch" Type="int32">
+													<ValueList>
+														<Value>30</Value>
+													</ValueList>
+												</Property>
+												<Property Name="Volume" Type="Real64">
+													<ValueList>
+														<Value>-7</Value>
+													</ValueList>
+												</Property>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="ENEMIES" ID="{C4FC717F-AF74-44D3-8DAD-04BFA2ECDB87}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="idle&amp;ataque" ID="{D2665E8F-B552-4539-9169-7C451276CB9C}">
+													<PropertyList>
+														<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+														<Property Name="TrimBegin" Type="Real64" Value="17.596720783575"/>
+														<Property Name="TrimEnd" Type="Real64" Value="19.0245884339554"/>
+													</PropertyList>
+													<Language>SFX</Language>
+													<AudioFile>idle&amp;ataque.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="583014744"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="idle&amp;ataque" ID="{D2665E8F-B552-4539-9169-7C451276CB9C}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Z_K02" ID="{3D39DDEC-568C-4FC4-87D4-B9E0C2F3A7A7}" ShortID="755079937">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="ENEMIES" ID="{C4FC717F-AF74-44D3-8DAD-04BFA2ECDB87}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Z_K02" ID="{02A5EAB2-C980-4E57-972A-C095F9863E9C}">
+													<Language>SFX</Language>
+													<AudioFile>Z_K02.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="702208230"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Z_K02" ID="{02A5EAB2-C980-4E57-972A-C095F9863E9C}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Z_SUZU02" ID="{A84A1669-3F32-4906-91E9-3D9BD3487B0D}" ShortID="600797570">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Z_SUZU02" ID="{AF891F90-6616-4BF8-A5A8-8BEC0ECAF237}">
+													<Language>SFX</Language>
+													<AudioFile>Z_SUZU02.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="498714622"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Z_SUZU02" ID="{AF891F90-6616-4BF8-A5A8-8BEC0ECAF237}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
 							</ChildrenList>
 							<ObjectLists/>
 							<GroupingInfo>
 								<GroupingBehaviorList>
 									<GroupingBehavior>
-										<ItemRef Name="Attacking" ID="{BA683950-6EC1-4E0B-8B72-64C08F59F951}"/>
+										<ItemRef Name="ZombieDeath" ID="{D673A90A-F074-467C-AF5A-CF9052E63D5A}"/>
+									</GroupingBehavior>
+									<GroupingBehavior>
+										<ItemRef Name="RecievingDamage" ID="{14FDF350-3017-47CC-A550-5B93E2D5675A}"/>
 									</GroupingBehavior>
 									<GroupingBehavior>
 										<ItemRef Name="ZombieMouns" ID="{5C36AEB1-062C-42E7-AB3F-47E87E675937}"/>
 									</GroupingBehavior>
 									<GroupingBehavior>
 										<ItemRef Name="Eating" ID="{9B162CE5-80EE-4436-A113-F4BEF37D741A}"/>
+									</GroupingBehavior>
+									<GroupingBehavior>
+										<ItemRef Name="ZombieAttacks" ID="{D21B32FC-D427-4A2E-9E79-46AF0AB65D51}"/>
 									</GroupingBehavior>
 								</GroupingBehaviorList>
 								<GroupingList>
@@ -1524,9 +1661,21 @@
 										</ItemList>
 									</Grouping>
 									<Grouping>
+										<SwitchRef Name="Damaged" ID="{EF889A4C-EF60-4EAD-A429-A62D941D7384}"/>
+										<ItemList>
+											<ItemRef Name="RecievingDamage" ID="{14FDF350-3017-47CC-A550-5B93E2D5675A}"/>
+										</ItemList>
+									</Grouping>
+									<Grouping>
 										<SwitchRef Name="Attacking" ID="{AED87A66-D1F2-4E25-99A0-E26ABC89884A}"/>
 										<ItemList>
-											<ItemRef Name="Attacking" ID="{BA683950-6EC1-4E0B-8B72-64C08F59F951}"/>
+											<ItemRef Name="ZombieAttacks" ID="{D21B32FC-D427-4A2E-9E79-46AF0AB65D51}"/>
+										</ItemList>
+									</Grouping>
+									<Grouping>
+										<SwitchRef Name="Dying" ID="{E28D53F7-74CD-4C63-A156-D07DECC1AA65}"/>
+										<ItemList>
+											<ItemRef Name="ZombieDeath" ID="{D673A90A-F074-467C-AF5A-CF9052E63D5A}"/>
 										</ItemList>
 									</Grouping>
 								</GroupingList>

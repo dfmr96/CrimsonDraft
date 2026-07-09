@@ -11,7 +11,7 @@
 									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
 								</Reference>
 								<Reference Name="DefaultSwitchOrState">
-									<ObjectRef Name="Metal" ID="{EDAE98FF-2DE2-4F8F-8E45-EB67B3D0A499}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+									<ObjectRef Name="Open" ID="{7A0BF806-2062-4230-BE05-4BE13E0B1CD7}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
 								</Reference>
 								<Reference Name="OutputBus">
 									<ObjectRef Name="WORLD" ID="{E04A09F2-65D4-41D0-802F-109C11604A3A}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
@@ -230,6 +230,78 @@
 									</ChildrenList>
 									<ObjectLists/>
 								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="OpenDoors" ID="{EEC32F98-E74C-4434-AC3A-C98E08089080}" ShortID="685878560">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="DR_MTL01" ID="{BCC0C339-9D15-4CF9-B94F-5036124A597F}" ShortID="5749299">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="DR_MTL01" ID="{8554CB49-CAA2-4C93-B165-76F435096C0A}">
+													<Language>SFX</Language>
+													<AudioFile>DR_MTL01.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="710735092"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="DR_MTL01" ID="{8554CB49-CAA2-4C93-B165-76F435096C0A}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="CloseDoors" ID="{08C87251-B784-4DEF-852D-BD169EE3EE41}" ShortID="613966300">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="DR_MTL02" ID="{7C4E1B97-627E-4E16-A322-C96029C643B7}" ShortID="232342302">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="DR_MTL02" ID="{B82FAB0B-CF9E-4B27-8A25-92EDB98DA270}">
+													<Language>SFX</Language>
+													<AudioFile>DR_MTL02.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="540595669"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="DR_MTL02" ID="{B82FAB0B-CF9E-4B27-8A25-92EDB98DA270}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
 							</ChildrenList>
 							<ObjectLists/>
 							<GroupingInfo>
@@ -238,10 +310,28 @@
 										<ItemRef Name="WoodenDoors" ID="{5A415C4A-0770-4DC8-8169-32884B1F8212}"/>
 									</GroupingBehavior>
 									<GroupingBehavior>
+										<ItemRef Name="CloseDoors" ID="{08C87251-B784-4DEF-852D-BD169EE3EE41}"/>
+									</GroupingBehavior>
+									<GroupingBehavior>
 										<ItemRef Name="MetalDoors" ID="{8E2D0A6C-6FED-4054-8393-2C753F362F77}"/>
+									</GroupingBehavior>
+									<GroupingBehavior>
+										<ItemRef Name="OpenDoors" ID="{EEC32F98-E74C-4434-AC3A-C98E08089080}"/>
 									</GroupingBehavior>
 								</GroupingBehaviorList>
 								<GroupingList>
+									<Grouping>
+										<SwitchRef Name="Open" ID="{7A0BF806-2062-4230-BE05-4BE13E0B1CD7}"/>
+										<ItemList>
+											<ItemRef Name="OpenDoors" ID="{EEC32F98-E74C-4434-AC3A-C98E08089080}"/>
+										</ItemList>
+									</Grouping>
+									<Grouping>
+										<SwitchRef Name="Close" ID="{A3BA9824-1D77-4A78-BF7E-626717E28058}"/>
+										<ItemList>
+											<ItemRef Name="CloseDoors" ID="{08C87251-B784-4DEF-852D-BD169EE3EE41}"/>
+										</ItemList>
+									</Grouping>
 									<Grouping>
 										<SwitchRef Name="Wood" ID="{AC0872D2-38BE-4F75-B79C-0544E39038F3}"/>
 										<ItemList>

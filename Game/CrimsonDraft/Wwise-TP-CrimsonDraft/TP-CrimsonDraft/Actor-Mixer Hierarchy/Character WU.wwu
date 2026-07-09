@@ -1145,24 +1145,9 @@
 						</SwitchContainer>
 						<SwitchContainer Name="FireGuns" ID="{583DB351-A86C-4511-9A01-B9E15CF93A40}" ShortID="514520240">
 							<PropertyList>
-								<Property Name="Highpass" Type="int16">
-									<ValueList>
-										<Value>20</Value>
-									</ValueList>
-								</Property>
-								<Property Name="Lowpass" Type="int16">
-									<ValueList>
-										<Value>20</Value>
-									</ValueList>
-								</Property>
 								<Property Name="MakeUpGain" Type="Real64">
 									<ValueList>
 										<Value>-7</Value>
-									</ValueList>
-								</Property>
-								<Property Name="Pitch" Type="int32">
-									<ValueList>
-										<Value>-530</Value>
 									</ValueList>
 								</Property>
 							</PropertyList>
@@ -1171,7 +1156,7 @@
 									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
 								</Reference>
 								<Reference Name="DefaultSwitchOrState">
-									<ObjectRef Name="Pistols" ID="{9ADC467B-02AD-4CAF-BCE4-E4C86E156DFD}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+									<ObjectRef Name="REPistols" ID="{F3C0A54C-C10C-41F9-BDCC-464B579603BB}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
 								</Reference>
 								<Reference Name="OutputBus">
 									<ObjectRef Name="PLAYER" ID="{82202B8D-9C9F-4399-BAFF-04058900DCB7}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
@@ -1316,10 +1301,103 @@
 									</ChildrenList>
 									<ObjectLists/>
 								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="REPistols" ID="{2180196E-2771-462A-BC3E-46216970DA0C}" ShortID="549318356">
+									<PropertyList>
+										<Property Name="OverrideOutput" Type="bool" Value="True"/>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>4</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="GUN01" ID="{45DD6A8A-2A29-43D1-B71C-41A326194971}" ShortID="491324382">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="GUN01" ID="{3988F195-7774-4724-B40F-FBA6F00AEB21}">
+													<Language>SFX</Language>
+													<AudioFile>GUN01.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="813649322"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="GUN01" ID="{3988F195-7774-4724-B40F-FBA6F00AEB21}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
+								<RandomSequenceContainer Name="REShotgun" ID="{20419139-C0B7-4FB7-A585-895A5E02FDE5}" ShortID="32686011">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="PLAYER" ID="{82202B8D-9C9F-4399-BAFF-04058900DCB7}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="SHOT01" ID="{681D6A28-22AE-4DC8-8C4B-AA67CC3C2D90}" ShortID="976804830">
+											<PropertyList>
+												<Property Name="Volume" Type="Real64">
+													<ValueList>
+														<Value>6</Value>
+													</ValueList>
+												</Property>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="PLAYER" ID="{82202B8D-9C9F-4399-BAFF-04058900DCB7}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="SHOT01" ID="{E7F91621-AC49-4E2D-8469-DBC94BAA0C69}">
+													<Language>SFX</Language>
+													<AudioFile>SHOT01.WAV</AudioFile>
+													<MediaIDList>
+														<MediaID ID="167341198"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="SHOT01" ID="{E7F91621-AC49-4E2D-8469-DBC94BAA0C69}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
 							</ChildrenList>
 							<ObjectLists/>
 							<GroupingInfo>
 								<GroupingBehaviorList>
+									<GroupingBehavior>
+										<ItemRef Name="REShotgun" ID="{20419139-C0B7-4FB7-A585-895A5E02FDE5}"/>
+									</GroupingBehavior>
+									<GroupingBehavior>
+										<ItemRef Name="REPistols" ID="{2180196E-2771-462A-BC3E-46216970DA0C}"/>
+									</GroupingBehavior>
 									<GroupingBehavior>
 										<ItemRef Name="Shotgun" ID="{7E212D74-8584-45E8-A728-FB68DE8370F1}"/>
 									</GroupingBehavior>
@@ -1332,6 +1410,18 @@
 										<SwitchRef Name="Shotgun" ID="{EC3EDA0E-E5F2-4878-BDE3-6001805B72EF}"/>
 										<ItemList>
 											<ItemRef Name="Shotgun" ID="{7E212D74-8584-45E8-A728-FB68DE8370F1}"/>
+										</ItemList>
+									</Grouping>
+									<Grouping>
+										<SwitchRef Name="REShotgun" ID="{20B8A130-6D42-459F-88A6-C29CCA509267}"/>
+										<ItemList>
+											<ItemRef Name="REShotgun" ID="{20419139-C0B7-4FB7-A585-895A5E02FDE5}"/>
+										</ItemList>
+									</Grouping>
+									<Grouping>
+										<SwitchRef Name="REPistols" ID="{F3C0A54C-C10C-41F9-BDCC-464B579603BB}"/>
+										<ItemList>
+											<ItemRef Name="REPistols" ID="{2180196E-2771-462A-BC3E-46216970DA0C}"/>
 										</ItemList>
 									</Grouping>
 									<Grouping>
