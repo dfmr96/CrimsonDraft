@@ -6,6 +6,13 @@ public class RestartGame : MonoBehaviour
 {
     [SerializeField] private string gameSceneName = "GameScene";
 
+    private RestartAudio audio;
+
+    private void Awake()
+    {
+        TryGetComponent(out audio);
+    }
+
     private void Update()
     {
         if (Keyboard.current != null &&
@@ -18,6 +25,9 @@ public class RestartGame : MonoBehaviour
     private void Restart()
     {
         Time.timeScale = 1f;
+
+        audio?.PlayRestart();
+
         SceneManager.LoadScene(gameSceneName);
     }
 }

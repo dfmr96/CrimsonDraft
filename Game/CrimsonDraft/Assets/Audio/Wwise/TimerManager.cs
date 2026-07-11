@@ -13,13 +13,19 @@ public class TimerManager : MonoBehaviour
     [Header("Scenes")]
     [SerializeField] private string defeatSceneName = "DefeatScene";
 
+    [Header("Tension")]
+    [SerializeField] private float lowTimeThreshold = 10f;
+
     private float currentTime;
     private bool timerRunning;
     private bool gameFinished;
+    private bool lowTimeTriggered;
+    private TimerAudio audio;
 
     private void Awake()
     {
         Instance = this;
+        TryGetComponent(out audio);
     }
 
     private void Start()
@@ -42,6 +48,12 @@ public class TimerManager : MonoBehaviour
             UpdateTimerUI();
             Defeat();
             return;
+        }
+
+        if (!lowTimeTriggered && currentTime <= lowTimeThreshold)
+        {
+            lowTimeTriggered = true;
+            audio?.PlayLowTime();
         }
 
         UpdateTimerUI();
@@ -68,6 +80,8 @@ public class TimerManager : MonoBehaviour
         gameFinished = true;
         timerRunning = false;
         Time.timeScale = 1f;
+
+        audio?.PlayDefeat();
 
         SceneManager.LoadScene(defeatSceneName);
     }
