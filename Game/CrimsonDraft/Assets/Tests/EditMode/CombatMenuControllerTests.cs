@@ -254,7 +254,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotFired_extraConfirm_playsOperatorShootBurst_withSelectedOperatorAndShotCount()
+        public void ShotFired_extraConfirm_playsOperatorShootBurst_withSelectedOperatorEnemyAndShots()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 100);
@@ -268,13 +268,38 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c); // ShotCountSelectionState -> TargetSelState (enemies present)
             InvokeConfirm(c); // TargetSelectionState -> AimingState
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            var shots = new[]
+            {
+                new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20),
+                new ResolvedShot(1, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0),
+                new ResolvedShot(2, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40),
+            };
+            this.aimView.FireResolvedShots(shots);
 
             InvokeConfirm(c); // dismiss aim window -> should trigger the burst
 
             Assert.AreEqual(1, this.battlefieldView.BurstCallCount);
-            Assert.AreEqual(2, this.battlefieldView.LastBurstSlotIndex);
-            Assert.AreEqual(3, this.battlefieldView.LastBurstShotCount);
+            Assert.AreEqual(2, this.battlefieldView.LastBurstOperatorSlotIndex);
+            Assert.AreEqual(1, this.battlefieldView.LastBurstEnemySlotIndex);
+            Assert.AreEqual(3, this.battlefieldView.LastBurstShots.Length);
+            Assert.AreEqual(ShotZone.Head, this.battlefieldView.LastBurstShots[2].Zone);
+        }
+
+        [Test]
+        public void ShotFired_extraConfirm_noEnemyTarget_passesNegativeOneEnemySlotToBurst()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0); // no occupied enemy slots -> ShotCountSelectionState goes straight to AimingState
+
+            InvokeConfirm(c); // ShotCountSelectionState -> AimingState directly (no enemies)
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss -> triggers burst
+
+            Assert.AreEqual(-1, this.battlefieldView.LastBurstEnemySlotIndex);
+            Assert.AreEqual(1, this.battlefieldView.LastBurstShots.Length);
         }
 
         [Test]
@@ -665,9 +690,10 @@ namespace CrimsonDraft.Tests
             private readonly System.Collections.Generic.Dictionary<int, int> hpBySlot = new();
             public bool   EnemyTargetVisible { get; private set; }
             public EnemyDamageResult LastDamageResult { get; private set; }
-            public int BurstCallCount      { get; private set; }
-            public int LastBurstSlotIndex  { get; private set; } = -1;
-            public int LastBurstShotCount  { get; private set; } = -1;
+            public int BurstCallCount             { get; private set; }
+            public int LastBurstOperatorSlotIndex  { get; private set; } = -1;
+            public int LastBurstEnemySlotIndex     { get; private set; } = -1;
+            public ResolvedShot[] LastBurstShots   { get; private set; } = Array.Empty<ResolvedShot>();
             private UniTaskCompletionSource? pendingBurstSource;
 
             public void SetOccupiedSlots(int[] slots)
@@ -722,11 +748,12 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
-            public UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount)
+            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
             {
                 this.BurstCallCount++;
-                this.LastBurstSlotIndex = slotIndex;
-                this.LastBurstShotCount = shotCount;
+                this.LastBurstOperatorSlotIndex = operatorSlotIndex;
+                this.LastBurstEnemySlotIndex = enemySlotIndex;
+                this.LastBurstShots = shots;
                 return this.pendingBurstSource != null ? this.pendingBurstSource.Task : UniTask.CompletedTask;
             }
 #if UNITY_EDITOR || DEBUG_COMBAT
