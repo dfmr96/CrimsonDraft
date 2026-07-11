@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using CrimsonDraft.Operators;
@@ -17,6 +18,7 @@ namespace CrimsonDraft.Combat
 
         private bool awaitingDismiss;
         private bool isPlayingBurst;
+        private ResolvedShot[] pendingShots = Array.Empty<ResolvedShot>();
 
         internal AimingState(
             CombatMenuController  context,
@@ -63,6 +65,8 @@ namespace CrimsonDraft.Combat
 
         private void HandleShotsResolved(ResolvedShot[] shots)
         {
+            this.pendingShots = shots ?? Array.Empty<ResolvedShot>();
+
             int totalDamage = 0;
             if (shots != null)
             {
@@ -97,7 +101,10 @@ namespace CrimsonDraft.Combat
             this.commandPanel.Hide();
 
             this.isPlayingBurst = true;
-            await this.battlefieldView.PlayOperatorShootBurstAsync(this.context.SelectedOperator, this.context.SelectedShotCount);
+            await this.battlefieldView.PlayOperatorShootBurstAsync(
+                this.context.SelectedOperator,
+                this.context.CurrentTargetSlot,
+                this.pendingShots);
             this.isPlayingBurst = false;
 
             this.context.Orchestrator.NotifyShootCompleted();

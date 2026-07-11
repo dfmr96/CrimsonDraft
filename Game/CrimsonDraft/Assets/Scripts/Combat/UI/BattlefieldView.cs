@@ -157,9 +157,9 @@ namespace CrimsonDraft.Combat
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
-        public async UniTask PlayOperatorShootBurstAsync(int slotIndex, int shotCount)
+        public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
         {
-            if (!this.operatorAnimatorBySlot.TryGetValue(slotIndex, out var animator) || animator == null)
+            if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
                 return;
 
             // The "Shoot" trigger only has an outgoing transition defined from "AimingIdlePistol"
@@ -169,7 +169,7 @@ namespace CrimsonDraft.Combat
             while (!animator.GetCurrentAnimatorStateInfo(0).IsName("AimingIdlePistol"))
                 await UniTask.NextFrame();
 
-            int count = Mathf.Max(1, shotCount);
+            int count = Mathf.Max(1, shots.Length);
             for (int i = 0; i < count; i++)
             {
                 animator.SetTrigger(ShootHash);
