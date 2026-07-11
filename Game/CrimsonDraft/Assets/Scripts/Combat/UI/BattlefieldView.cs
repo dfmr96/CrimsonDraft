@@ -41,6 +41,10 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
         private static readonly int ShootHash = Animator.StringToHash("Shoot");
         private static readonly int AimHash = Animator.StringToHash("Aim");
+        private readonly Dictionary<int, Animator> enemyAnimatorBySlot = new();
+        private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
+        private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
+        private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
 
         private void Awake()
         {
@@ -57,6 +61,8 @@ namespace CrimsonDraft.Combat
             this.enemyGoBySlot.Clear();
             this.enemyRendererBySlot.Clear();
             this.operatorAnimatorBySlot.Clear();
+            this.enemyAnimatorBySlot.Clear();
+            this.enemyHitToggleBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -82,6 +88,8 @@ namespace CrimsonDraft.Combat
                 this.spawnedSprites.Add(go);
                 this.enemyGoBySlot[i] = go;
                 if (mr != null) this.enemyRendererBySlot[i] = mr;
+                var enemyAnimator = go.GetComponentInChildren<Animator>();
+                if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
                     CurrentHp = Mathf.Max(1, enemy.MaxHp),
@@ -173,6 +181,10 @@ namespace CrimsonDraft.Combat
             for (int i = 0; i < count; i++)
             {
                 animator.SetTrigger(ShootHash);
+
+                if (i < shots.Length && shots[i].Zone != ShotZone.Miss)
+                    this.TriggerEnemyFlinch(enemySlotIndex);
+
                 while (!animator.GetCurrentAnimatorStateInfo(0).IsName("ShootPistolFlexed2"))
                     await UniTask.NextFrame();
 
@@ -183,6 +195,16 @@ namespace CrimsonDraft.Combat
             }
 
             animator.SetBool(AimHash, false);
+        }
+
+        private void TriggerEnemyFlinch(int enemySlotIndex)
+        {
+            if (enemySlotIndex < 0) return;
+            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
+
+            bool useHit2 = this.enemyHitToggleBySlot.TryGetValue(enemySlotIndex, out var toggle) && toggle;
+            animator.SetTrigger(useHit2 ? Hit2Hash : Hit1Hash);
+            this.enemyHitToggleBySlot[enemySlotIndex] = !useHit2;
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT
