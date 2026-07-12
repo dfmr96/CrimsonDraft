@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{11D724F5-A599-487C-95DF-EB81F176161F}" SchemaVersion="103">
+	<AudioObjects>
+		<WorkUnit Name="ObjectPickup" ID="{11D724F5-A599-487C-95DF-EB81F176161F}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="ObjectPickup" ID="{785BDB9B-42BC-4F2C-ABC3-01328645DE45}" ShortID="378387715">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="Keys_pick up" ID="{DA467005-F461-401E-AA23-B57FF337232E}">
+							<Language>SFX</Language>
+							<AudioFile>Keys_pick up.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="647147193"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ObjectLists/>
+					<ActiveSourceList>
+						<ActiveSource Name="Keys_pick up" ID="{DA467005-F461-401E-AA23-B57FF337232E}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>
