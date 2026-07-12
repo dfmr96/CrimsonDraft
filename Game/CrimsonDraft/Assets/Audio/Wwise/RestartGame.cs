@@ -1,3 +1,4 @@
+using CrimsonDraft.Audio;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -26,7 +27,7 @@ public class RestartGame : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        audio?.PlayRestart();
+        if (audio != null) audio.PlayRestart();
 
         SceneManager.LoadScene(gameSceneName);
     }

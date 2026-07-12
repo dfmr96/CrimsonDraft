@@ -1,3 +1,4 @@
+using CrimsonDraft.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -66,7 +67,7 @@ public class ScoreManager : MonoBehaviour
         gameFinished = true;
         Time.timeScale = 1f;
 
-        audio?.PlayVictory();
+        if (audio != null) audio.PlayVictory();
 
         SceneManager.LoadScene(victorySceneName);
     }

@@ -1,3 +1,4 @@
+using CrimsonDraft.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -53,7 +54,7 @@ public class TimerManager : MonoBehaviour
         if (!lowTimeTriggered && currentTime <= lowTimeThreshold)
         {
             lowTimeTriggered = true;
-            audio?.PlayLowTime();
+            if (audio != null) audio.PlayLowTime();
         }
 
         UpdateTimerUI();
@@ -81,7 +82,7 @@ public class TimerManager : MonoBehaviour
         timerRunning = false;
         Time.timeScale = 1f;
 
-        audio?.PlayDefeat();
+        if (audio != null) audio.PlayDefeat();
 
         SceneManager.LoadScene(defeatSceneName);
     }

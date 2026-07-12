@@ -1,3 +1,4 @@
+using CrimsonDraft.Audio;
 using UnityEngine;
 
 public class PickupPoints : MonoBehaviour
@@ -14,7 +15,7 @@ public class PickupPoints : MonoBehaviour
         if (!other.CompareTag("Player"))
             return;
 
-        audio?.PlayPickup();
+        if (audio != null) audio.PlayPickup();
 
         ScoreManager.Instance.CollectKey();
 

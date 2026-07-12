@@ -8742,6 +8742,7 @@ GameObject:
   - component: {fileID: 1190934449}
   - component: {fileID: 1190934448}
   - component: {fileID: 1190934447}
+  - component: {fileID: 1190934450}
   m_Layer: 5
   m_Name: MensajeInicial
   m_TagString: Untagged
@@ -8822,6 +8823,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1190934445}
   m_CullTransparentMesh: 1
+--- !u!114 &1190934450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190934445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2116213caa6f9d4d8252e213f02cbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.TutorialAudio
+  openEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  closeEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
 --- !u!43 &1195853260
 Mesh:
   m_ObjectHideFlags: 0
@@ -10280,7 +10301,7 @@ MonoBehaviour:
   data:
     idInternal: 0
     valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 44f4564f95f8d344290cb3fed0ac58ed, type: 2}
+    WwiseObjectReference: {fileID: 0}
   useCallbacks: 0
   Callbacks: []
   playingId: 0
@@ -10664,7 +10685,7 @@ MonoBehaviour:
   data:
     idInternal: 0
     valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 042a4f82c69066d48ad2f3da061c03eb, type: 2}
+    WwiseObjectReference: {fileID: 11400000, guid: d08ec2b7ee9e6d941aa2623703591a9f, type: 2}
   decodeBank: 0
   loadAsynchronous: 0
   saveDecodedBank: 0
@@ -12464,6 +12485,8 @@ GameObject:
   - component: {fileID: 2052802613}
   - component: {fileID: 2052802612}
   - component: {fileID: 2052802614}
+  - component: {fileID: 2052802615}
+  - component: {fileID: 2052802616}
   m_Layer: 0
   m_Name: ScoreManager
   m_TagString: Untagged
@@ -12515,6 +12538,43 @@ MonoBehaviour:
   startTime: 360
   timerText: {fileID: 921963408}
   defeatSceneName: Defeat_Scene
+  lowTimeThreshold: 10
+--- !u!114 &2052802615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052802611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7763361aaa685b447861b7ed98fd31ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.ScoreManagerAudio
+  victoryEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+--- !u!114 &2052802616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052802611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a45e5b640c2964c42a3d38816d9790c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.TimerAudio
+  defeatEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  lowTimeEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
 --- !u!43 &2100574287
 Mesh:
   m_ObjectHideFlags: 0
