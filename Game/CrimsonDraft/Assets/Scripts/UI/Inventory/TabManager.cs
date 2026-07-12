@@ -24,7 +24,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private FilesTabController? filesTab;
 
         [Header("Audio")]
-        [SerializeField] private InventorySoundManager sfx = null!;
+        [SerializeField] private InventorySfxData sfx = null!;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -136,7 +136,7 @@ namespace CrimsonDraft.UI
             {
                 this.focusedTabIndex = (this.focusedTabIndex + dir.x + this.tabs.Length) % this.tabs.Length;
                 SetTabBarFocus(this.focusedTabIndex);
-                this.sfx?.PlayCursorMove();
+                this.sfx?.PlayCursor(gameObject);
             }
         }
 
@@ -179,7 +179,7 @@ namespace CrimsonDraft.UI
             else
                 this.gridCursor?.HideSelectorForTabBar();
 
-            this.sfx?.PlayCursorOnItem();
+            this.sfx?.PlayCursor(gameObject);
         }
 
         void ExitTabBar()
@@ -206,7 +206,7 @@ namespace CrimsonDraft.UI
             this.currentIndex = index;
             this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
-            this.sfx?.PlayTabSwitch();
+            this.sfx?.PlayCursor(gameObject);
 
             if (this.currentIndex == 0)
                 this.gridCursor?.ShowSelectorAfterTabBar();

@@ -21,7 +21,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private TabManager?         tabManager;
 
         [Header("Audio")]
-        [SerializeField] private InventorySoundManager sfx = null!;
+        [SerializeField] private InventorySfxData sfx = null!;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -169,7 +169,7 @@ namespace CrimsonDraft.UI
             if (dir.y != 0 && dir != this.lastDir)
             {
                 this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayMenuNavigate();
+                this.sfx?.PlayCursor(gameObject);
                 this.lastDir      = dir;
                 this.holding      = true;
                 this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
@@ -177,7 +177,7 @@ namespace CrimsonDraft.UI
             else if (dir.y != 0 && this.holding && Time.unscaledTime >= this.nextMoveTime)
             {
                 this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayMenuNavigate();
+                this.sfx?.PlayCursor(gameObject);
                 this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
@@ -223,12 +223,7 @@ namespace CrimsonDraft.UI
             this.currentCell = next;
             PlaceSelectorAt(this.currentCell);
 
-            if (this.heldItem != null)
-                this.sfx?.PlayItemMove();
-            else if (CurrentGrid.GetItemAt(this.currentCell) != null)
-                this.sfx?.PlayCursorOnItem();
-            else
-                this.sfx?.PlayCursorMove();
+            this.sfx?.PlayCursor(gameObject);
         }
 
         // ── Input Callbacks ──────────────────────────────────────────────────
@@ -248,7 +243,7 @@ namespace CrimsonDraft.UI
             if (this.heldItem != null)
             {
                 this.heldItem.Rotate();
-                this.sfx?.PlayItemRotate();
+                this.sfx?.PlayCursor(gameObject);
                 UpdateHeldItemVisual();
                 PlaceSelectorAt(this.currentCell);
                 return;
@@ -258,7 +253,7 @@ namespace CrimsonDraft.UI
 
             if (this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayMenuConfirm();
+                this.sfx?.PlayDecide(gameObject);
                 this.contextMenu.ConfirmSelection();
                 return;
             }
@@ -266,7 +261,7 @@ namespace CrimsonDraft.UI
             InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item != null)
             {
-                this.sfx?.PlayMenuOpen();
+                this.sfx?.PlayDecide(gameObject);
                 OnCellConfirmed?.Invoke(item);
                 if (this.tooltip != null)
                     this.tooltip.ShowAboveSelector(this.selectorRect);
@@ -281,13 +276,13 @@ namespace CrimsonDraft.UI
             {
                 this.IsCombineMode = false;
                 OnCombineCancelled?.Invoke();
-                this.sfx?.PlayMenuCancel();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayMenuCancel();
+                this.sfx?.PlayCancel(gameObject);
                 this.contextMenu.Close();
                 return;
             }
@@ -345,14 +340,14 @@ namespace CrimsonDraft.UI
 
             if (item.BoundItem.IsEquipped)
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             this.currentCell = item.GridOrigin;
             PlaceSelectorAt(this.currentCell);
 
-            this.sfx?.PlayItemPickup();
+            this.sfx?.PlayDecide(gameObject);
             this.heldFromGrid = CurrentGrid;
             this.heldItem     = item;
 
@@ -367,7 +362,7 @@ namespace CrimsonDraft.UI
 
             if (!targetGrid.IsWithinBounds(this.currentCell, this.heldItem!.GridSize))
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
@@ -380,13 +375,13 @@ namespace CrimsonDraft.UI
 
             if (overlapping != null && overlapping.BoundItem.IsEquipped)
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             if (overlapping == null)
             {
-                this.sfx?.PlayItemPlace();
+                this.sfx?.PlayDecide(gameObject);
                 PlaceHeldItem(targetGrid, this.currentCell);
             }
             else
@@ -395,7 +390,7 @@ namespace CrimsonDraft.UI
 
                 if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
                 {
-                    this.sfx?.PlayItemSwap();
+                    this.sfx?.PlayDecide(gameObject);
                     Vector2Int    originBeforeSwap   = this.heldItem!.GridOrigin;
                     InventoryGrid fromGridBeforeSwap = this.heldFromGrid!;
                     PlaceHeldItem(targetGrid, this.currentCell);
@@ -408,7 +403,7 @@ namespace CrimsonDraft.UI
                 }
                 else
                 {
-                    this.sfx?.PlayItemPlaceInvalid();
+                    this.sfx?.PlayCancel(gameObject);
                     targetGrid.PlaceItem(overlapping);
                 }
             }

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{CCD741DC-B941-451F-808D-D60A6DF1560B}" SchemaVersion="103">
+	<AudioObjects>
+		<WorkUnit Name="UI WU" ID="{CCD741DC-B941-451F-808D-D60A6DF1560B}" PersistMode="Standalone">
+			<ChildrenList>
+				<ActorMixer Name="Inventory" ID="{81D5DF8F-DA2F-4359-AD97-474487DBDE9C}" ShortID="154153107">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<RandomSequenceContainer Name="Cursor" ID="{B0229406-919D-4F7A-8940-C64EDDEE1B1F}" ShortID="112166900">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<Sound Name="CursorSFX" ID="{4C4EA025-D4AF-425F-9DC7-A9483D565569}" ShortID="341266471">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="CURSOR (2)" ID="{052B214D-6077-4C6A-8619-55AF90C8928C}">
+											<Language>SFX</Language>
+											<AudioFile>CURSOR (2).wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="1001515774"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="CURSOR (2)" ID="{052B214D-6077-4C6A-8619-55AF90C8928C}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+							</ChildrenList>
+							<ObjectLists/>
+						</RandomSequenceContainer>
+						<RandomSequenceContainer Name="Decide" ID="{94E1FA98-5F10-4094-ABF4-4E3A781EE7F0}" ShortID="684635945">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<Sound Name="DecideSFX" ID="{836B32CF-4E4C-459F-94C6-B73F119ECC48}" ShortID="348348014">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="DECIDE" ID="{F7D74A55-A831-46C9-9F79-46087D4B568C}">
+											<Language>SFX</Language>
+											<AudioFile>DECIDE.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="752742090"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="DECIDE" ID="{F7D74A55-A831-46C9-9F79-46087D4B568C}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+							</ChildrenList>
+							<ObjectLists/>
+						</RandomSequenceContainer>
+						<RandomSequenceContainer Name="Cancel" ID="{4115A831-471D-4352-AE17-ADB86CE414E0}" ShortID="529013613">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<Sound Name="CancelSFX" ID="{6C3FA433-2D5A-477E-BA7C-34B79CE97434}" ShortID="585205698">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Cancel (2)" ID="{08395754-80CD-4308-AD2A-0843A63A12C5}">
+											<Language>SFX</Language>
+											<AudioFile>Cancel (2).wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="716525506"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Cancel (2)" ID="{08395754-80CD-4308-AD2A-0843A63A12C5}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+							</ChildrenList>
+							<ObjectLists/>
+						</RandomSequenceContainer>
+					</ChildrenList>
+					<ObjectLists/>
+				</ActorMixer>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

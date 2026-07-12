@@ -19,6 +19,9 @@ namespace AK
         static const AkUniqueID PLAY_FIREGUNSSC = 2180097029U;
         static const AkUniqueID PLAY_FOOTSTEPSSC = 3119045201U;
         static const AkUniqueID PLAY_HEARTBEATSFX = 2420947455U;
+        static const AkUniqueID PLAY_INVENTORY_CANCEL = 3424589339U;
+        static const AkUniqueID PLAY_INVENTORY_CURSOR = 918818359U;
+        static const AkUniqueID PLAY_INVENTORY_DECIDE = 553967029U;
         static const AkUniqueID PLAY_MSC_MANAGER = 3143732789U;
         static const AkUniqueID PLAY_RADIOSC = 3489459273U;
         static const AkUniqueID PLAY_SHELLCASING = 1647385053U;
