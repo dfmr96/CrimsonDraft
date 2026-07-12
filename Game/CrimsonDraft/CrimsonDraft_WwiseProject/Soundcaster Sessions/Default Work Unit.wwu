@@ -1,6 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{18BF49C7-20D4-41F1-8750-5E5FFB6BE89F}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{6BABEB28-2AC9-43B3-B37B-8B37481EC98E}" SchemaVersion="103">
 	<SoundcasterSessions>
-		<WorkUnit Name="Default Work Unit" ID="{18BF49C7-20D4-41F1-8750-5E5FFB6BE89F}" PersistMode="Standalone"/>
+		<WorkUnit Name="Default Work Unit" ID="{6BABEB28-2AC9-43B3-B37B-8B37481EC98E}" PersistMode="Standalone">
+			<ChildrenList>
+				<SoundcasterSession Name="TP1" ID="{6CE62160-06C8-4B9A-A8B5-6FB22F809A64}">
+					<ModuleList>
+						<Module>
+							<ObjectRef Name="Play_All" ID="{3E2AC85F-2CB6-46D4-B94F-C9729F6BF480}" WorkUnitID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}"/>
+							<Position X="0" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_SFX_Step" ID="{400550AA-FBCC-490A-B821-DAD05F1A7C66}" WorkUnitID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}"/>
+							<Position X="0" Y="2"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Stop_All" ID="{EF0FDC75-6B5C-422B-B28F-128B2AB878FF}" WorkUnitID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}"/>
+							<Position X="1" Y="0"/>
+						</Module>
+					</ModuleList>
+					<RTPCValueList ShowAll="true">
+						<RTPCValue>
+							<GameParameterRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}"/>
+							<Value>0</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="Player_Health" ID="{60201F31-66CE-4B56-B67F-DC1197F08E2E}"/>
+							<Value>100</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="Player_CruiseDistance" ID="{B71AFF37-DABD-4F2F-9CFA-DC60F3A9CBDC}"/>
+							<Value>50</Value>
+						</RTPCValue>
+					</RTPCValueList>
+					<CurrentStateList ShowAll="true">
+						<CurrentStateRef Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+					</CurrentStateList>
+					<CurrentSwitchList ShowAll="true"/>
+				</SoundcasterSession>
+				<SoundcasterSession Name="Clase10_SC" ID="{953EDD97-F71A-4148-8A09-0D6EA0EAC7A6}">
+					<ModuleList>
+						<Module>
+							<ObjectRef Name="Play_Ej1_02" ID="{ACCC9561-FBC0-4892-850E-79C65D71FBEE}" WorkUnitID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}"/>
+							<Position X="1" Y="0"/>
+						</Module>
+					</ModuleList>
+					<RTPCValueList ShowAll="true">
+						<RTPCValue>
+							<GameParameterRef Name="EnemyDistance" ID="{6F46FCFB-6A1D-424E-86FD-C688DC03C62C}"/>
+							<Value>0</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}"/>
+							<Value>0</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="Player_Health" ID="{60201F31-66CE-4B56-B67F-DC1197F08E2E}"/>
+							<Value>100</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="Player_CruiseDistance" ID="{B71AFF37-DABD-4F2F-9CFA-DC60F3A9CBDC}"/>
+							<Value>50</Value>
+						</RTPCValue>
+					</RTPCValueList>
+					<CurrentStateList ShowAll="true">
+						<CurrentStateRef Name="None" ID="{372B37D0-410D-43D4-B176-65519AC21ABA}"/>
+						<CurrentStateRef Name="None" ID="{0D69359F-1A21-49BC-87AE-B5D1739EC323}"/>
+						<CurrentStateRef Name="Explore" ID="{3081EF99-9B80-47CE-8EEE-B012A8F01B9F}"/>
+						<CurrentStateRef Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+					</CurrentStateList>
+					<CurrentSwitchList ShowAll="true"/>
+				</SoundcasterSession>
+			</ChildrenList>
+		</WorkUnit>
 	</SoundcasterSessions>
 </WwiseDocument>

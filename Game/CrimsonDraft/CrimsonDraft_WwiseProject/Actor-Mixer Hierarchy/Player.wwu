@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{518579A3-D59D-4CE6-AAE9-D80413F9B556}" SchemaVersion="103">
+	<AudioObjects>
+		<WorkUnit Name="Player" ID="{518579A3-D59D-4CE6-AAE9-D80413F9B556}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="SFX_Breath" ID="{FEDFF596-3EB5-4657-8C9F-9FFB4C18BFCB}" ShortID="767809412">
+					<PropertyList>
+						<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+						<Property Name="Lowpass" Type="int16">
+							<RTPCList>
+								<RTPC Name="" ID="{E27F1B0F-4617-49F9-8A72-5270C61E2996}" ShortID="879792702">
+									<ReferenceList>
+										<Reference Name="ControlInput">
+											<ObjectRef Name="Player_Health" ID="{60201F31-66CE-4B56-B67F-DC1197F08E2E}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+										</Reference>
+									</ReferenceList>
+									<Curve Name="" ID="{00B63449-AC67-4A98-AC97-33ED119D95CB}">
+										<PropertyList>
+											<Property Name="Flags" Type="int32" Value="65537"/>
+										</PropertyList>
+										<PointList>
+											<Point>
+												<XPos>0</XPos>
+												<YPos>50</YPos>
+												<Flags>5</Flags>
+											</Point>
+											<Point>
+												<XPos>15.26196</XPos>
+												<YPos>22</YPos>
+												<Flags>0</Flags>
+												<SegmentShape>Constant</SegmentShape>
+											</Point>
+											<Point>
+												<XPos>25.62742</XPos>
+												<YPos>0</YPos>
+												<Flags>0</Flags>
+											</Point>
+											<Point>
+												<XPos>100</XPos>
+												<YPos>0</YPos>
+												<Flags>37</Flags>
+											</Point>
+										</PointList>
+									</Curve>
+								</RTPC>
+							</RTPCList>
+						</Property>
+						<Property Name="OverrideOutput" Type="bool" Value="True"/>
+						<Property Name="Pitch" Type="int32">
+							<ValueList>
+								<Value>-350</Value>
+							</ValueList>
+						</Property>
+						<Property Name="Volume" Type="Real64">
+							<ValueList>
+								<Value>4</Value>
+							</ValueList>
+							<RTPCList>
+								<RTPC Name="" ID="{BF0A6021-AECB-4F6E-A487-EAC2BB9A5786}" ShortID="414680180">
+									<ReferenceList>
+										<Reference Name="ControlInput">
+											<ObjectRef Name="Player_Health" ID="{60201F31-66CE-4B56-B67F-DC1197F08E2E}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+										</Reference>
+									</ReferenceList>
+									<Curve Name="" ID="{CFAFEC5B-2418-42CC-93D1-86753543D5E2}">
+										<PropertyList>
+											<Property Name="Flags" Type="int32" Value="3"/>
+										</PropertyList>
+										<PointList>
+											<Point>
+												<XPos>0</XPos>
+												<YPos>9.72153</YPos>
+												<Flags>5</Flags>
+											</Point>
+											<Point>
+												<XPos>25</XPos>
+												<YPos>0</YPos>
+												<Flags>0</Flags>
+												<SegmentShape>Exp3</SegmentShape>
+											</Point>
+											<Point>
+												<XPos>50</XPos>
+												<YPos>-200</YPos>
+												<Flags>0</Flags>
+												<SegmentShape>InvertedSCurve</SegmentShape>
+											</Point>
+											<Point>
+												<XPos>100</XPos>
+												<YPos>-200</YPos>
+												<Flags>37</Flags>
+											</Point>
+										</PointList>
+									</Curve>
+								</RTPC>
+							</RTPCList>
+						</Property>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Player" ID="{B091CA46-9ECD-4817-BA99-2C0CD3278422}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="Breath" ID="{127CE670-C841-4DE4-94D4-FECC4B0EAB51}">
+							<PropertyList>
+								<Property Name="FadeInDuration" Type="Real64" Value="0.957447811447811"/>
+								<Property Name="FadeOutDuration" Type="Real64" Value="1.15359163393191"/>
+								<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+								<Property Name="TrimBegin" Type="Real64" Value="0.119680976430976"/>
+								<Property Name="TrimEnd" Type="Real64" Value="2.69947091283202"/>
+							</PropertyList>
+							<Language>SFX</Language>
+							<AudioFile>Breath.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="1065652155"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ObjectLists/>
+					<ActiveSourceList>
+						<ActiveSource Name="Breath" ID="{127CE670-C841-4DE4-94D4-FECC4B0EAB51}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

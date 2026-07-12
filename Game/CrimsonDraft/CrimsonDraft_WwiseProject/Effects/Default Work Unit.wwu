@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{EDF22E96-22B0-44CF-A0AB-35B079D19EE7}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{5904DF0A-E41E-42BA-BEEA-CBF6CC8649CC}" SchemaVersion="103">
 	<Effects>
-		<WorkUnit Name="Default Work Unit" ID="{EDF22E96-22B0-44CF-A0AB-35B079D19EE7}" PersistMode="Standalone"/>
+		<WorkUnit Name="Default Work Unit" ID="{5904DF0A-E41E-42BA-BEEA-CBF6CC8649CC}" PersistMode="Standalone">
+			<ChildrenList>
+				<Effect Name="REV_CustomHallway" ID="{FDA3C037-2F8F-4B92-B8B9-F17A8BF19ABA}" PluginName="Wwise Matrix Reverb" CompanyID="0" PluginID="115" PluginType="3">
+					<PropertyList>
+						<Property Name="HFRatio" Type="Real32" Value="1.5"/>
+						<Property Name="ReverbTime" Type="Real32" Value="2.15"/>
+					</PropertyList>
+				</Effect>
+				<Effect Name="New_Wwise_Guitar_Distortion" ID="{0D49FA9F-68DE-401B-A3FF-44F3ED277798}" PluginName="Wwise Guitar Distortion" CompanyID="0" PluginID="126" PluginType="3">
+					<PropertyList>
+						<Property Name="DistortionDrive" Type="Real32" Value="0"/>
+						<Property Name="DistortionTone" Type="Real32" Value="7"/>
+						<Property Name="DistortionType" Type="int32" Value="3"/>
+					</PropertyList>
+				</Effect>
+			</ChildrenList>
+		</WorkUnit>
 	</Effects>
 </WwiseDocument>

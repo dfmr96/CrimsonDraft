@@ -1,14 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{7545F752-5622-458E-8302-2EA57E41CE30}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}" SchemaVersion="103">
 	<Busses>
-		<WorkUnit Name="Default Work Unit" ID="{7545F752-5622-458E-8302-2EA57E41CE30}" PersistMode="Standalone">
+		<WorkUnit Name="Default Work Unit" ID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}" PersistMode="Standalone">
 			<ChildrenList>
 				<Bus Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}">
 					<ReferenceList>
 						<Reference Name="AudioDevice">
-							<ObjectRef Name="System" ID="{E78ECA92-E0A0-4FBA-9D0E-4ACD63A83385}" WorkUnitID="{56F2998C-B61B-4ADB-9BFE-5A58B41C89F6}"/>
+							<ObjectRef Name="System" ID="{385B416F-B499-459D-B45D-9FAADE0432D4}" WorkUnitID="{39C5A7A2-30F0-4B5B-9659-99563C2EFD82}"/>
 						</Reference>
 					</ReferenceList>
+					<ChildrenList>
+						<Bus Name="SFX" ID="{7ADDA768-4DE5-49CE-89FB-A14B6D4BB316}">
+							<ChildrenList>
+								<Bus Name="Player" ID="{B091CA46-9ECD-4817-BA99-2C0CD3278422}">
+									<ReferenceList>
+										<Reference Name="UserAuxSend0">
+											<ObjectRef Name="AUX_ReverbHallway" ID="{3DC70304-57DF-455C-9A39-1EF293111748}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<StateInfo>
+										<StatePropertyList>
+											<Property Name="UserAuxSendVolume0"/>
+											<Property Name="Volume"/>
+										</StatePropertyList>
+										<StateGroupList>
+											<StateGroupInfo>
+												<StateGroupRef Name="ST_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}"/>
+											</StateGroupInfo>
+										</StateGroupList>
+										<CustomStateList>
+											<CustomState>
+												<StateRef Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+												<CustomState Name="" ID="{197316CE-5151-47F3-8DC2-07B14DDAE96B}" ShortID="263374398">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+												<CustomState Name="" ID="{5FF156A1-0524-49D6-A8F3-B70BA16B8839}" ShortID="432207465"/>
+											</CustomState>
+										</CustomStateList>
+									</StateInfo>
+									<ObjectLists/>
+								</Bus>
+								<AuxBus Name="AUX_ReverbHallway" ID="{3DC70304-57DF-455C-9A39-1EF293111748}">
+									<ReferenceList>
+										<Reference Name="Effect0" PluginName="Wwise Matrix Reverb" CompanyID="0" PluginID="115" PluginType="3">
+											<ObjectRef Name="REV_CustomHallway" ID="{FDA3C037-2F8F-4B92-B8B9-F17A8BF19ABA}" WorkUnitID="{5904DF0A-E41E-42BA-BEEA-CBF6CC8649CC}"/>
+										</Reference>
+									</ReferenceList>
+									<ObjectLists/>
+								</AuxBus>
+								<Bus Name="World" ID="{ACADC53F-069B-4DDA-BB8E-3E34316C5BBA}">
+									<ReferenceList>
+										<Reference Name="UserAuxSend0">
+											<ObjectRef Name="AUX_ReverbHallway" ID="{3DC70304-57DF-455C-9A39-1EF293111748}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<StateInfo>
+										<StatePropertyList>
+											<Property Name="UserAuxSendVolume0"/>
+										</StatePropertyList>
+										<StateGroupList>
+											<StateGroupInfo>
+												<StateGroupRef Name="ST_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}"/>
+											</StateGroupInfo>
+										</StateGroupList>
+										<CustomStateList>
+											<CustomState>
+												<StateRef Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+												<CustomState Name="" ID="{058D227E-7914-4DAE-A20B-452E84CB94FB}" ShortID="654167996">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+												<CustomState Name="" ID="{0B9DF9F5-68EB-4339-8516-DEDC44543432}" ShortID="877519688"/>
+											</CustomState>
+										</CustomStateList>
+									</StateInfo>
+									<ObjectLists/>
+								</Bus>
+							</ChildrenList>
+							<ObjectLists/>
+						</Bus>
+					</ChildrenList>
 					<ObjectLists/>
 				</Bus>
 			</ChildrenList>

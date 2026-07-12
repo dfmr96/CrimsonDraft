@@ -1,199 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{28BC757A-91B3-4448-8C6B-53FEC396EAB2}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}" SchemaVersion="103">
 	<Events>
-		<WorkUnit Name="Default Work Unit" ID="{28BC757A-91B3-4448-8C6B-53FEC396EAB2}" PersistMode="Standalone">
+		<WorkUnit Name="Default Work Unit" ID="{66E7B257-D9A3-4A5F-B673-4BBDBF4E2228}" PersistMode="Standalone">
 			<ChildrenList>
-				<Event Name="Play_Footstep_Walk" ID="{8916DD0A-29D3-48DB-8C0B-51F5803EA71F}">
+				<Event Name="Play_SFX_Ambience" ID="{02F997AE-F074-4910-8278-339285FB958F}">
 					<ChildrenList>
-						<Action Name="Play_Footstep_Walk" ID="{CBEECF28-7FB4-433F-8ABB-3A3377DC3A65}" ShortID="80370339">
+						<Action Name="" ID="{A69D79FF-33F6-4B3D-85D3-00CA4F46974F}" ShortID="655824664">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="SwitchContainer_Walk" ID="{9EA0756F-7353-4958-8325-0566DF308110}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
+									<ObjectRef Name="Location" ID="{DFA83276-4E3E-4358-9014-74FC856BA359}" WorkUnitID="{D02D89B9-C496-4B51-BA9E-0B95BFC72A62}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_Footstep_Run" ID="{2A6515DC-71B4-4773-9655-6DE5236812E8}">
+				<Event Name="Play_SFX_Step" ID="{400550AA-FBCC-490A-B821-DAD05F1A7C66}">
 					<ChildrenList>
-						<Action Name="Play_Footstep_Run" ID="{01A66440-DD2F-4E3F-BE26-44C3F7F5383C}" ShortID="967580968">
+						<Action Name="" ID="{B0F46B26-DE99-48A4-8339-917520D6026B}" ShortID="372037778">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="SwitchContainer_Run" ID="{C45E8D46-D042-485C-969A-F7265883CE53}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
+									<ObjectRef Name="Surface" ID="{9697D2C8-0566-4289-9FF3-213D93B97F8F}" WorkUnitID="{DE45E4F7-A350-4CEE-896D-80B111610C2C}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Folder Name="Inventory" ID="{8A0360C9-260F-49C4-9223-264F0F4A4A5D}" ShortID="664131884">
+				<Event Name="Play_All" ID="{3E2AC85F-2CB6-46D4-B94F-C9729F6BF480}">
 					<ChildrenList>
-						<Event Name="Play_Inventory_CursorMove" ID="{D84E3FE7-127C-4C6A-8DA2-85131D1D87AF}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_CursorMove" ID="{AB717689-604D-4586-8B7F-7577CD4F5EA3}" ShortID="761569876">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_CursorMove" ID="{768D360A-CD39-4813-AF40-302ACF6178F9}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_CursorOnItem" ID="{D515C18A-27E4-442F-8F43-4D6E51F7EF3D}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_CursorOnItem" ID="{AA1E5CA2-D886-45F7-B280-E401B900C407}" ShortID="862974251">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_CursorOnItem" ID="{865443DF-B762-457B-9177-7AE1537825D3}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemPickup" ID="{F897F4BA-0B82-4B70-8B9C-AB6D791E49C7}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemPickup" ID="{E777DD93-D85E-43AE-8044-4D70DB4C60B4}" ShortID="763235463">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemPickup" ID="{BDF9A887-8B3C-43A4-8617-08CBF51E5C83}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemPlace" ID="{8B59EC6B-CBA9-4008-A11F-3048CB77FC4F}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemPlace" ID="{BBE14C32-1A9F-409B-A0F5-CD517F462F23}" ShortID="13205122">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemPlace" ID="{2EFC6210-6C54-463A-ABB2-D6DE908DC462}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemPlaceInvalid" ID="{AAE8DEB6-0E20-47E4-BD82-635229BEAB16}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemPlaceInvalid" ID="{12E81004-DE4D-4287-89FB-1212B61D8236}" ShortID="934168375">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemPlaceInvalid" ID="{BAD644E6-A229-4B91-BA4F-BCE3E2F620AD}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemRotate" ID="{9AC12AE1-3D96-4C2C-BCBE-C43A5770670D}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemRotate" ID="{609205DE-8FDC-48EE-AE44-8C0653ABE2B9}" ShortID="892855454">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemRotate" ID="{BD0BECA2-17F1-4117-B4C7-484C7E50AA2C}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemSwap" ID="{34B08C75-362E-4427-B586-0CB0C52DCE96}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemSwap" ID="{2DCCE143-FBE5-44FE-A149-84F78BC5E6CC}" ShortID="849857682">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemSwap" ID="{B4CA678D-9F39-45BD-A87C-6088D8A9D35C}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_MenuOpen" ID="{E9E7865E-994F-41FE-95ED-6EB1D66783DA}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_MenuOpen" ID="{C48372D9-37A2-4F25-B238-187D1B8DE387}" ShortID="108812529">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_MenuOpen" ID="{8BEB2CD0-1169-4CA3-A323-9CC3D7497F65}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_MenuNavigate" ID="{BD276F1A-FC85-47CE-8EB9-4C9377FB0C8C}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_MenuNavigate" ID="{97B37DBD-0635-4041-9F5C-B5BBF8F4049C}" ShortID="563506646">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_MenuNavigate" ID="{7EED6329-73A3-42E1-B127-4EB1F5A98D74}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_MenuConfirm" ID="{98777389-282C-4BCA-A372-03B5C8885941}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_MenuConfirm" ID="{FAD26696-4B5D-4BBF-9BCB-B16ED471755C}" ShortID="81511148">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_MenuConfirm" ID="{D45B91C1-EF89-4688-9F80-3D95265799A6}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_MenuCancel" ID="{DFFDA3C0-C5C6-4569-8A7F-4E7C2BF1D997}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_MenuCancel" ID="{4F4E20CC-6A5F-4CF6-A8D2-D976B5F16F4B}" ShortID="1058721084">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_MenuCancel" ID="{1C6750DA-722F-4399-92C0-FB2E6C5152BC}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_InspectOpen" ID="{68E9A7BC-C3B3-42FE-BFC2-2AB1D15B275F}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_InspectOpen" ID="{DF592C3D-E996-4C23-8F85-EBC67F75AF43}" ShortID="260999871">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_InspectOpen" ID="{40672EC7-F890-432B-A903-CA64D9CDC0CE}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_InspectClose" ID="{3EA20B5D-B3AB-43FA-ABE5-EF4C7C3E5FC3}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_InspectClose" ID="{97E03A03-0748-46B6-AA61-339DC8EF880A}" ShortID="1013708357">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_InspectClose" ID="{C7CA2CCE-A638-4BA4-9541-7CA1DC250FE4}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_TabSwitch" ID="{99D9993A-8A34-49C5-8F4D-E5DF4FB8D0C0}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_TabSwitch" ID="{9D294E70-823B-48DE-A003-9612280781D8}" ShortID="181377887">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_TabSwitch" ID="{447B5B1B-B1D8-4A65-A8C1-6E2656E505F4}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
-						<Event Name="Play_Inventory_ItemMove" ID="{FF4B94B8-3BF9-4D6A-A9AF-37A09C2C3003}">
-							<ChildrenList>
-								<Action Name="Play_Inventory_ItemMove" ID="{0B858383-E647-4912-9BF3-0E9723B183DA}" ShortID="341877180">
-									<ReferenceList>
-										<Reference Name="Target">
-											<ObjectRef Name="SFX_Inventory_ItemMove" ID="{0685BCCF-B178-48C6-9C08-D4DBBD347C35}" WorkUnitID="{11056E67-F199-4766-8962-6DE864E99F47}"/>
-										</Reference>
-									</ReferenceList>
-								</Action>
-							</ChildrenList>
-						</Event>
+						<Action Name="" ID="{3E9AEFED-B155-41BE-B2D4-AD97CA3F8853}" ShortID="89892391">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Location" ID="{DFA83276-4E3E-4358-9014-74FC856BA359}" WorkUnitID="{D02D89B9-C496-4B51-BA9E-0B95BFC72A62}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+						<Action Name="" ID="{46D45B28-A35C-4FD7-A698-3198B7518CCC}" ShortID="457327095">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="SFX_Breath" ID="{FEDFF596-3EB5-4657-8C9F-9FFB4C18BFCB}" WorkUnitID="{518579A3-D59D-4CE6-AAE9-D80413F9B556}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
 					</ChildrenList>
-				</Folder>
+				</Event>
+				<Event Name="Stop_All" ID="{EF0FDC75-6B5C-422B-B28F-128B2AB878FF}">
+					<ChildrenList>
+						<Action Name="" ID="{18749697-ABE2-4A21-AA14-E659460A4253}" ShortID="1032220570">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="3"/>
+							</PropertyList>
+							<ReferenceList/>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_CHIPTUNE_ZONE2_170BPM_EX17" ID="{338AD0CC-1169-42A6-B37B-CAF2F0AE6A29}">
+					<ChildrenList>
+						<Action Name="" ID="{0CF12A6E-ED75-47A2-9FA3-E4FEC5640C9F}" ShortID="663850502">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="CHIPTUNE_ZONE2_170BPM_EX17" ID="{6CB73E2C-201A-48E1-9C3C-147071EE08C9}" WorkUnitID="{E70A5AB9-E032-49E3-9BC0-626A3F3586CC}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_Playlist_Zone2" ID="{22B3FC8C-5273-490D-B32F-4D8DBDA5A5AF}">
+					<ChildrenList>
+						<Action Name="" ID="{1C917FA4-EA99-485A-BF17-A16D9EF3092A}" ShortID="31592197">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Playlist_Zone2" ID="{603C1033-C39F-422B-9F28-3BC446A6FC63}" WorkUnitID="{E70A5AB9-E032-49E3-9BC0-626A3F3586CC}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_SW_Level1" ID="{A72115CA-C623-44E9-A4CE-4D27E8C35D9B}">
+					<ChildrenList>
+						<Action Name="" ID="{354EE373-6E48-4991-8BF0-FB3EF04ED390}" ShortID="375070717">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="SW_Level1" ID="{6DE8FD1E-B789-42C5-9E0B-BDD1ACA81F4A}" WorkUnitID="{E70A5AB9-E032-49E3-9BC0-626A3F3586CC}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="BonusZone1" ID="{6FA0CD48-F27D-481E-BFF1-5F410FAB505A}">
+					<ChildrenList>
+						<Action Name="" ID="{13B80910-07E8-41C2-B296-4D159875A70C}" ShortID="760006700">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Zone1" ID="{AAD87457-D560-488E-A43E-CD7DEDD45CE9}" WorkUnitID="{A3AE64E4-5A6D-480A-9E3F-3A4A9D7A9B8E}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_Ej1_02" ID="{ACCC9561-FBC0-4892-850E-79C65D71FBEE}">
+					<ChildrenList>
+						<Action Name="" ID="{A56C46E9-1D0A-408F-81FA-4A923B9F428E}" ShortID="842583326">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Ej1_02" ID="{8F69E094-E722-4643-9410-4BEC7A80E2CE}" WorkUnitID="{18196777-01FA-4939-BD94-0778D750A3F8}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

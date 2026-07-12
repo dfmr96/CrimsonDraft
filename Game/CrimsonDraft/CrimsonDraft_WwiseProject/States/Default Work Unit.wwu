@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{AB905FE2-A292-453A-9E1B-D73EDDC6E8BF}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{DD30C8E4-C003-4FCD-A658-F53D8F5D6305}" SchemaVersion="103">
 	<States>
-		<WorkUnit Name="Default Work Unit" ID="{AB905FE2-A292-453A-9E1B-D73EDDC6E8BF}" PersistMode="Standalone"/>
+		<WorkUnit Name="Default Work Unit" ID="{DD30C8E4-C003-4FCD-A658-F53D8F5D6305}" PersistMode="Standalone">
+			<ChildrenList>
+				<StateGroup Name="ST_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}">
+					<ChildrenList>
+						<State Name="None" ID="{6363E826-4103-42AB-A105-49027D4F08F5}"/>
+						<State Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+						<State Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+					</ChildrenList>
+					<TransitionList>
+						<Transition>
+							<StartState Name="Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+							<EndState Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+							<Time>1</Time>
+							<IsShared>true</IsShared>
+						</Transition>
+					</TransitionList>
+				</StateGroup>
+			</ChildrenList>
+		</WorkUnit>
 	</States>
 </WwiseDocument>
