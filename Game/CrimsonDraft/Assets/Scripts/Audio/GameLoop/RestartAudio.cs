@@ -8,8 +8,8 @@ namespace CrimsonDraft.Audio
     public sealed class RestartAudio : MonoBehaviour
     {
         [Header("Wwise")]
-        [SerializeField] private AK.Wwise.Event restartEvent = new();
+        [SerializeField] private WwiseTrigger restartTrigger = new();
 
-        public void PlayRestart() => restartEvent?.Post(gameObject);
+        public void PlayRestart() => restartTrigger.Fire(gameObject);
     }
 }

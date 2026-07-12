@@ -8,8 +8,8 @@ namespace CrimsonDraft.Audio
     public sealed class ScoreManagerAudio : MonoBehaviour
     {
         [Header("Wwise")]
-        [SerializeField] private AK.Wwise.Event victoryEvent = new();
+        [SerializeField] private WwiseTrigger victoryTrigger = new();
 
-        public void PlayVictory() => victoryEvent?.Post(gameObject);
+        public void PlayVictory() => victoryTrigger.Fire(gameObject);
     }
 }
