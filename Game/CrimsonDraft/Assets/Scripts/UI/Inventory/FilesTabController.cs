@@ -45,6 +45,7 @@ namespace CrimsonDraft.UI
         [Inject] private TabManager                       tabManager           = null!;
         [Inject] private InventoryOpenCloseController     openCloseController  = null!;
         [Inject] private ISubscriber<NoteCollectedEvent>   noteCollectedSub     = null!;
+        [Inject] private InventorySfxData                 sfx                  = null!;
 
         private IDisposable? noteSubscription;
 
@@ -209,6 +210,8 @@ namespace CrimsonDraft.UI
                 MoveCarousel(dir);
             else
                 MoveGrid(dir);
+
+            this.sfx?.PlayCursor(gameObject);
         }
 
         void MoveCarousel(Vector2Int dir)
@@ -296,13 +299,17 @@ namespace CrimsonDraft.UI
 
             var doc = this.filteredNotes[this.selectedIndex];
             if (!string.IsNullOrEmpty(doc.NoteId))
+            {
+                this.sfx?.PlayFileOpen(gameObject);
                 OpenNote(doc);
+            }
         }
 
         void OnCancel(InputAction.CallbackContext _)
         {
             if (this.detailView.IsOpen)
             {
+                this.sfx?.PlayCancel(gameObject);
                 this.detailView.Hide();
                 return;
             }

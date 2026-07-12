@@ -264,6 +264,10 @@ namespace CrimsonDraft.UI
                 if (this.tooltip != null)
                     this.tooltip.ShowAboveSelector(this.selectorRect);
             }
+            else
+            {
+                this.sfx?.PlayInvalidAction(gameObject);
+            }
         }
 
         void OnCancel(InputAction.CallbackContext ctx)

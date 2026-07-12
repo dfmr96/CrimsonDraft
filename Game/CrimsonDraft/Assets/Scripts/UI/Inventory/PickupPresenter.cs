@@ -28,6 +28,9 @@ namespace CrimsonDraft.UI
         [SerializeField] private Transform        optionsContainer = null!;
         [SerializeField] private PickupOptionItem optionPrefab     = null!;
 
+        [Header("Audio")]
+        [SerializeField] private InventorySfxData? sfxData;
+
         private readonly List<PickupOptionItem> pool = new();
 
         private IInputService? inputService;
@@ -103,7 +106,7 @@ namespace CrimsonDraft.UI
                 item.gameObject.SetActive(true);
                 item.Setup(options[i]);
                 item.Hovered = _ => { selectedIndex = capturedIdx; HighlightOnly(pool[capturedIdx]); };
-                item.Clicked = clicked => optionTcs.TrySetResult(clicked.Option);
+                item.Clicked = clicked => { PlayConfirmSfx(clicked.Option); optionTcs.TrySetResult(clicked.Option); };
             }
 
             for (int i = options.Length; i < pool.Count; i++)
@@ -126,7 +129,11 @@ namespace CrimsonDraft.UI
                     if      (v.x >  0.5f) ShiftSelection(1);
                     else if (v.x < -0.5f) ShiftSelection(-1);
                 };
-                onConfirm = _ => optionTcs?.TrySetResult(pool[selectedIndex].Option);
+                onConfirm = _ =>
+                {
+                    PlayConfirmSfx(pool[selectedIndex].Option);
+                    optionTcs?.TrySetResult(pool[selectedIndex].Option);
+                };
 
                 inputService.PickupNavigate.performed += onNavigate;
                 inputService.PickupConfirm.performed  += onConfirm;
@@ -176,10 +183,23 @@ namespace CrimsonDraft.UI
 
             if (right) ShiftSelection(1);
             if (left)  ShiftSelection(-1);
-            if (confirm) optionTcs.TrySetResult(pool[selectedIndex].Option);
+            if (confirm)
+            {
+                PlayConfirmSfx(pool[selectedIndex].Option);
+                optionTcs.TrySetResult(pool[selectedIndex].Option);
+            }
         }
 
         // ── Internal ─────────────────────────────────────────────────────────
+
+        private void PlayConfirmSfx(DialogueOption? option)
+        {
+            string text = option?.Line.Text.Text ?? string.Empty;
+            if (string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
+                sfxData?.PlayCancel(gameObject);
+            else
+                sfxData?.PlayDecide(gameObject);
+        }
 
         private void ShiftSelection(int dir)
         {
@@ -187,6 +207,7 @@ namespace CrimsonDraft.UI
             selectedIndex = (selectedIndex + dir + optionCount) % optionCount;
             for (int i = 0; i < optionCount; i++)
                 pool[i].SetHighlight(i == selectedIndex);
+            sfxData?.PlayCursor(gameObject);
         }
 
         private void EnsurePool(int count)

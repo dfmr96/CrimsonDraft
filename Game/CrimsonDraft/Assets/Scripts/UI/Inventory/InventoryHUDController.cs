@@ -19,6 +19,7 @@ namespace CrimsonDraft.UI
         private readonly ItemContextMenu   contextMenu;
         private readonly PartyPanelView    partyPanel;
         private readonly IInteractionCaster interactionCaster;
+        private readonly InventorySfxData  sfx;
 
         private InventoryItemView? combineSourceItem;
 
@@ -31,7 +32,8 @@ namespace CrimsonDraft.UI
             GridCursor         cursor,
             ItemContextMenu    contextMenu,
             PartyPanelView     partyPanel,
-            IInteractionCaster interactionCaster)
+            IInteractionCaster interactionCaster,
+            InventorySfxData   sfx)
         {
             this.inventoryService  = inventoryService;
             this.combineService    = combineService;
@@ -41,6 +43,7 @@ namespace CrimsonDraft.UI
             this.contextMenu       = contextMenu;
             this.partyPanel        = partyPanel;
             this.interactionCaster = interactionCaster;
+            this.sfx               = sfx;
         }
 
         public void Initialize()
@@ -228,6 +231,7 @@ namespace CrimsonDraft.UI
                 if (ammoItem.Data.Caliber != weaponItem.Data.Caliber ||
                     weaponItem.CurrentAmmo >= weaponItem.MaxAmmo)
                 {
+                    this.sfx.PlayInvalidAction(this.cursor.gameObject);
                     ExitCombineMode();
                     return;
                 }
@@ -259,7 +263,12 @@ namespace CrimsonDraft.UI
 
             // Recipe combine — visual layer only
             var resultData = this.combineService.TryGetResult(source.Data, target.Data);
-            if (resultData == null) { ExitCombineMode(); return; }
+            if (resultData == null)
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                ExitCombineMode();
+                return;
+            }
 
             // Free cells first so HasSpace sees the space A and B would release
             InventoryGrid? preferredGrid = source.OwnerGrid;
@@ -281,6 +290,7 @@ namespace CrimsonDraft.UI
             Object.Destroy(source.gameObject);
             Object.Destroy(target.gameObject);
             this.itemSpawner.Spawn(resultData, preferredGrid);
+            this.sfx.PlayDecide(this.cursor.gameObject);
             ExitCombineMode();
         }
 

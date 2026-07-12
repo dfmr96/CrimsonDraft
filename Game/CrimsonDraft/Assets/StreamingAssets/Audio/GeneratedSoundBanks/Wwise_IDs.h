@@ -27,6 +27,7 @@ namespace AK
         static const AkUniqueID PLAY_SHELLCASING = 1647385053U;
         static const AkUniqueID PLAY_UI_INVALIDACTION = 367771734U;
         static const AkUniqueID PLAY_UI_MAPOPEN = 2183478263U;
+        static const AkUniqueID PLAY_UI_NOTEOPEN = 164040611U;
         static const AkUniqueID PLAY_WEATHERBC = 384760087U;
         static const AkUniqueID PLAY_ZOMBIE_DAMAGE = 876165436U;
         static const AkUniqueID PLAY_ZOMBIESC = 2417702238U;
