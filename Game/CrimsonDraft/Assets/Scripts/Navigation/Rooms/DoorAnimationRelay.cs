@@ -13,5 +13,7 @@ namespace CrimsonDraft.Navigation.Rooms
             => this.controller = controller;
 
         public void OnAnimationComplete() => this.controller.OnAnimationComplete();
+
+        public void OnDoorOpenSfx() => this.controller.PlayDoorOpenSfx();
     }
 }
