@@ -8,10 +8,14 @@ namespace CrimsonDraft.UI
 {
     public sealed class InventoryScope : LifetimeScope
     {
+        [SerializeField] private InventorySfxData inventorySfxData = null!;
+
         protected override void Configure(IContainerBuilder builder)
         {
             // IInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
             // are resolved from the parent NavigationScope — do NOT register them here.
+
+            builder.RegisterInstance(this.inventorySfxData);
 
             builder.RegisterComponentInHierarchy<InventoryPopulator>().AsImplementedInterfaces().AsSelf();
 

@@ -21,18 +21,25 @@ namespace CrimsonDraft.UI
         [Inject] private PartyPanelView    partyPanel    = null!;
         [Inject] private InventorySceneInit sceneInit    = null!;
         [Inject] private TabManager        tabManager    = null!;
+        [Inject] private InventorySfxData  sfxData       = null!;
 
         private const string MapTabName = "Map";
 
         public void Initialize()
         {
             this.inputService.OpenInventory.performed += Open;
+            this.inputService.InventoryClose.performed += OnCloseKey;
             this.inputService.OpenMap.performed        += OnToggleMap;
             this.inputService.InventoryCloseMap.performed += OnToggleMap;
             this.cursor.OnCloseRequested                += Close;
         }
 
         private void Open(InputAction.CallbackContext _) => Open();
+
+        // OpenInventory lives in the Gameplay action map (fires when closed) and InventoryClose
+        // in the Inventory map (fires when open) — same physical key (Z), different map
+        // depending on current mode, so both route through the same close path as tab-bar back.
+        private void OnCloseKey(InputAction.CallbackContext _) => this.cursor.RequestClose();
 
         // OpenMap lives in the Gameplay action map (fires when closed) and InventoryCloseMap
         // in the Inventory map (fires when open) — same physical key (A), different map
@@ -57,6 +64,7 @@ namespace CrimsonDraft.UI
             this.canvasRoot.SetActive(true);
             this.sceneInit.EnsureSynced();
             this.partyPanel.Refresh();
+            this.sfxData.PlayDecide(this.gameObject);
             FadeVolume(1f);
         }
 
@@ -66,6 +74,7 @@ namespace CrimsonDraft.UI
             this.canvasRoot.SetActive(false);
             Time.timeScale = 1f;
             this.inputService.SwitchToGameplay();
+            this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
         }
 
@@ -90,6 +99,7 @@ namespace CrimsonDraft.UI
         public void Dispose()
         {
             this.inputService.OpenInventory.performed -= Open;
+            this.inputService.InventoryClose.performed -= OnCloseKey;
             this.inputService.OpenMap.performed        -= OnToggleMap;
             this.inputService.InventoryCloseMap.performed -= OnToggleMap;
             this.cursor.OnCloseRequested                -= Close;

@@ -6,19 +6,23 @@
 				<SoundcasterSession Name="ElMarinera" ID="{E2A2722A-8A11-4963-938B-22E4C4001A12}">
 					<ModuleList>
 						<Module>
-							<ObjectRef Name="Play_WeatherBC" ID="{92AB1E01-DED8-4997-B214-33B812606B43}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<ObjectRef Name="Play_DoorLockedInteract" ID="{B1AA4512-488C-477A-812B-AC65E7CEC851}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
 							<Position X="0" Y="0"/>
 						</Module>
 						<Module>
-							<ObjectRef Name="Play_AmbienceSC" ID="{B7750151-810E-40E1-998B-42D2FB4C5799}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<ObjectRef Name="Play_Inventory_Cancel" ID="{F7478B20-DD6D-4D90-8015-A5BE21841E0E}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
 							<Position X="0" Y="1"/>
 						</Module>
 						<Module>
-							<ObjectRef Name="Play_ZombieSC" ID="{3D0951BE-2B8A-4B2D-84F0-D80E0B27CF89}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<ObjectRef Name="Play_AmbienceSC" ID="{B7750151-810E-40E1-998B-42D2FB4C5799}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="0" Y="2"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_DoorsSC" ID="{9D282456-0F58-4D69-BE35-B23757A60139}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
 							<Position X="1" Y="0"/>
 						</Module>
 						<Module>
-							<ObjectRef Name="Play_FireGunsSC" ID="{DE49BBBC-E947-457C-B920-D2C6A0DA008B}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<ObjectRef Name="Play_Inventory_Cursor" ID="{02D1DF5D-E14C-478B-9EA6-C2C60A303388}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
 							<Position X="1" Y="1"/>
 						</Module>
 						<Module>
@@ -26,12 +30,12 @@
 							<Position X="1" Y="2"/>
 						</Module>
 						<Module>
-							<ObjectRef Name="Play_FootStepsSC" ID="{09D82782-0B7F-416E-935D-EA208393549E}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
-							<Position X="2" Y="0"/>
+							<ObjectRef Name="Play_Inventory_Decide" ID="{1C030430-4D89-471D-910F-5E6DF21C2B8B}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="2" Y="1"/>
 						</Module>
 						<Module>
-							<ObjectRef Name="Play_DoorsSC" ID="{9D282456-0F58-4D69-BE35-B23757A60139}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
-							<Position X="2" Y="1"/>
+							<ObjectRef Name="Play_FireGunsSC" ID="{DE49BBBC-E947-457C-B920-D2C6A0DA008B}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="2" Y="2"/>
 						</Module>
 						<Module>
 							<ObjectRef Name="Play_RadioSC" ID="{6BBDB871-2800-444C-8D72-D24D514A7124}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
@@ -40,6 +44,22 @@
 						<Module>
 							<ObjectRef Name="Play_HeartbeatSFX" ID="{02288AC9-F158-4DC8-A247-0E0308AC29C8}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
 							<Position X="3" Y="1"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_Zombie_Damage" ID="{F01FF81C-B3F4-400E-BFA6-6D2BA6DEC76E}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="3" Y="2"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_ZombieSC" ID="{3D0951BE-2B8A-4B2D-84F0-D80E0B27CF89}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="4" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_FootStepsSC" ID="{09D82782-0B7F-416E-935D-EA208393549E}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="4" Y="1"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_WeatherBC" ID="{92AB1E01-DED8-4997-B214-33B812606B43}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="4" Y="2"/>
 						</Module>
 					</ModuleList>
 					<RTPCValueList ShowAll="true">
@@ -65,7 +85,7 @@
 						</RTPCValue>
 					</RTPCValueList>
 					<CurrentStateList ShowAll="true">
-						<CurrentStateRef Name="Room" ID="{94019670-6953-4449-B027-EE6A7A4DA423}"/>
+						<CurrentStateRef Name="None" ID="{D777B240-A369-4858-9A7E-58C81758B6B8}"/>
 						<CurrentStateRef Name="Navigation" ID="{816FB592-0331-450A-AFFA-8D733B19A655}"/>
 					</CurrentStateList>
 					<CurrentSwitchList ShowAll="true">
@@ -74,7 +94,7 @@
 						<CurrentSwitchRef Name="Pistols" ID="{9ADC467B-02AD-4CAF-BCE4-E4C86E156DFD}"/>
 						<CurrentSwitchRef Name="Attacking" ID="{AED87A66-D1F2-4E25-99A0-E26ABC89884A}"/>
 						<CurrentSwitchRef Name="Carpet" ID="{0E8F0E08-E25A-466E-87BF-C390C79F3C11}"/>
-						<CurrentSwitchRef Name="DeckB" ID="{22AC347F-1F0B-489C-AD7F-E42D802977A2}"/>
+						<CurrentSwitchRef Name="DeckC" ID="{202118C4-D37B-4831-A933-9E1BF33A42E3}"/>
 					</CurrentSwitchList>
 				</SoundcasterSession>
 			</ChildrenList>

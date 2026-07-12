@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using VContainer;
 
 namespace CrimsonDraft.UI
 {
@@ -14,8 +15,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private TMP_Text    itemName      = null!;
         [SerializeField] private TMP_Text    itemDescription = null!;
 
-        [Header("Audio")]
-        [SerializeField] private InventorySfxData sfx = null!;
+        [Inject] private InventorySfxData sfx = null!;
 
         private InventoryItemView? currentItem;
 

@@ -20,9 +20,6 @@ namespace CrimsonDraft.UI
         [SerializeField] private InspectPanel        inspectPanel = null!;
         [SerializeField] private TabManager?         tabManager;
 
-        [Header("Audio")]
-        [SerializeField] private InventorySfxData sfx = null!;
-
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
@@ -35,7 +32,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
         [SerializeField] private Color colorNormalItem  = Color.white;
 
-        [Inject] private IInputService inputService = null!;
+        [Inject] private IInputService    inputService = null!;
+        [Inject] private InventorySfxData sfx          = null!;
         private bool inputBound;
 
         // Combine mode — set by InventoryHUDController

@@ -23,14 +23,12 @@ namespace CrimsonDraft.UI
         [SerializeField] private GridCursor          gridCursor         = null!;
         [SerializeField] private FilesTabController? filesTab;
 
-        [Header("Audio")]
-        [SerializeField] private InventorySfxData sfx = null!;
-
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
 
-        [Inject] private IInputService inputService = null!;
+        [Inject] private IInputService    inputService = null!;
+        [Inject] private InventorySfxData sfx          = null!;
         private bool inputBound;
 
         private int  currentIndex;
@@ -179,7 +177,7 @@ namespace CrimsonDraft.UI
             else
                 this.gridCursor?.HideSelectorForTabBar();
 
-            this.sfx?.PlayCursor(gameObject);
+            this.sfx?.PlayCancel(gameObject);
         }
 
         void ExitTabBar()
@@ -206,7 +204,11 @@ namespace CrimsonDraft.UI
             this.currentIndex = index;
             this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
-            this.sfx?.PlayCursor(gameObject);
+
+            if (this.tabs[this.currentIndex].name == "Map")
+                this.sfx?.PlayMapOpen(gameObject);
+            else
+                this.sfx?.PlayDecide(gameObject);
 
             if (this.currentIndex == 0)
                 this.gridCursor?.ShowSelectorAfterTabBar();
