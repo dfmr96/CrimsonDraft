@@ -14,6 +14,7 @@ namespace AK
     namespace EVENTS
     {
         static const AkUniqueID PLAY_AMBIENCESC = 433061256U;
+        static const AkUniqueID PLAY_DOORLOCKEDINTERACT = 1907839430U;
         static const AkUniqueID PLAY_DOORSSC = 5477307U;
         static const AkUniqueID PLAY_FIREGUNSSC = 2180097029U;
         static const AkUniqueID PLAY_FOOTSTEPSSC = 3119045201U;
