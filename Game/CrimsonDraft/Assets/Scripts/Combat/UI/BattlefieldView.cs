@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using VContainer;
+using CrimsonDraft.Operators;
+using CrimsonDraft.Audio;
 
 namespace CrimsonDraft.Combat
 {
@@ -45,6 +48,14 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+
+        private IOperatorRoster? roster;
+
+        [Inject]
+        public void Construct(IOperatorRoster roster)
+        {
+            this.roster = roster;
+        }
 
         private void Awake()
         {
@@ -121,6 +132,10 @@ namespace CrimsonDraft.Combat
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
                 if (operatorAnimator != null)
                     this.operatorAnimatorBySlot[i] = operatorAnimator;
+
+                var operatorAudio = go.GetComponentInChildren<OperatorCombatAudio>();
+                if (operatorAudio != null && this.roster != null)
+                    operatorAudio.Bind(this.roster, i);
             }
         }
 
