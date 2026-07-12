@@ -16,9 +16,10 @@ namespace CrimsonDraft.Navigation.Interactables
         private const string OpenedNodeName = "door_opened_feedback";
 
         [SerializeField] private string        doorId               = null!;
-        [SerializeField] private DoorData       data                = null!;
-        [SerializeField] private RoomController destination          = null!;
-        [SerializeField] private GameObject     doorTransitionPrefab = null!;
+        [SerializeField] private DoorData      data                 = null!;
+        [SerializeField] private RoomController destination         = null!;
+        [SerializeField] private GameObject    doorTransitionPrefab = null!;
+        [SerializeField] private AK.Wwise.Event doorLockedEvent     = new();
 
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
@@ -56,6 +57,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (keyItem == null)
             {
                 this.registry.MarkLocked(this.doorId);
+                this.doorLockedEvent.Post(gameObject);
                 context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                 return;
             }
@@ -67,6 +69,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 case KeyUseResult.NotFound:
                 case KeyUseResult.AlreadyDepleted:
                     this.registry.MarkLocked(this.doorId);
+                    this.doorLockedEvent.Post(gameObject);
                     context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                     break;
 
