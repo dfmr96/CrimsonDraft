@@ -15,8 +15,9 @@ namespace CrimsonDraft.Audio
             public AK.Wwise.Switch WwiseSwitch;
         }
 
-        [SerializeField] private AK.Wwise.Event       fireGunEvent    = new();
-        [SerializeField] private GunTypeSwitchEntry[] gunTypeSwitches = Array.Empty<GunTypeSwitchEntry>();
+        [SerializeField] private AK.Wwise.Event       fireGunEvent     = new();
+        [SerializeField] private GunTypeSwitchEntry[] gunTypeSwitches  = Array.Empty<GunTypeSwitchEntry>();
+        [SerializeField] private AK.Wwise.Event       shellCasingEvent = new();
 
         private IOperatorRoster? roster;
         private int              slotIndex = -1;
@@ -48,5 +49,8 @@ namespace CrimsonDraft.Audio
 
             this.fireGunEvent.Post(gameObject);
         }
+
+        // Called by Animation Event on the ShootPistolFlexed2 clip, later than PlayFireGunSfx's event.
+        public void PlayShellCasingSfx() => this.shellCasingEvent.Post(gameObject);
     }
 }
