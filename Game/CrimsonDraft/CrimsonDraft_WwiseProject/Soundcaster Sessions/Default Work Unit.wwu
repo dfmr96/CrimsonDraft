@@ -1,6 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{18BF49C7-20D4-41F1-8750-5E5FFB6BE89F}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{C198961A-54DF-4358-AB78-5AE67CC1A7EE}" SchemaVersion="103">
 	<SoundcasterSessions>
-		<WorkUnit Name="Default Work Unit" ID="{18BF49C7-20D4-41F1-8750-5E5FFB6BE89F}" PersistMode="Standalone"/>
+		<WorkUnit Name="Default Work Unit" ID="{C198961A-54DF-4358-AB78-5AE67CC1A7EE}" PersistMode="Standalone">
+			<ChildrenList>
+				<SoundcasterSession Name="ElMarinera" ID="{E2A2722A-8A11-4963-938B-22E4C4001A12}">
+					<ModuleList>
+						<Module>
+							<ObjectRef Name="Play_WeatherBC" ID="{92AB1E01-DED8-4997-B214-33B812606B43}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="0" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_AmbienceSC" ID="{B7750151-810E-40E1-998B-42D2FB4C5799}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="0" Y="1"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_ZombieSC" ID="{3D0951BE-2B8A-4B2D-84F0-D80E0B27CF89}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="1" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_FireGunsSC" ID="{DE49BBBC-E947-457C-B920-D2C6A0DA008B}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="1" Y="1"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_MSC_Manager" ID="{3CCEE1FE-81FA-415A-BC3D-BE6ED8314C79}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="1" Y="2"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_FootStepsSC" ID="{09D82782-0B7F-416E-935D-EA208393549E}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="2" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_DoorsSC" ID="{9D282456-0F58-4D69-BE35-B23757A60139}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="2" Y="1"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_RadioSC" ID="{6BBDB871-2800-444C-8D72-D24D514A7124}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="3" Y="0"/>
+						</Module>
+						<Module>
+							<ObjectRef Name="Play_HeartbeatSFX" ID="{02288AC9-F158-4DC8-A247-0E0308AC29C8}" WorkUnitID="{EB881065-AD46-4371-82B7-4D1A4A2D27B3}"/>
+							<Position X="3" Y="1"/>
+						</Module>
+					</ModuleList>
+					<RTPCValueList ShowAll="true">
+						<RTPCValue>
+							<GameParameterRef Name="MusicHPF" ID="{76D0748D-107F-403C-B8E4-904E4204308D}"/>
+							<Value>95.7142857142857</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="OutsideStormForce" ID="{B8D8431A-2464-42E0-93AE-5DDDDDC08A91}"/>
+							<Value>50</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="PlayerLife" ID="{FEBB4A45-6E20-42F8-BD51-BAA77BD6CE27}"/>
+							<Value>100</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="InsideStormForce" ID="{750A48F7-47E8-4A30-8E1B-ED714AC6F116}"/>
+							<Value>48</Value>
+						</RTPCValue>
+						<RTPCValue>
+							<GameParameterRef Name="SignalProximity" ID="{85CABB77-7B84-4BDD-9887-8BE9CB7C7330}"/>
+							<Value>0</Value>
+						</RTPCValue>
+					</RTPCValueList>
+					<CurrentStateList ShowAll="true">
+						<CurrentStateRef Name="Room" ID="{94019670-6953-4449-B027-EE6A7A4DA423}"/>
+						<CurrentStateRef Name="Navigation" ID="{816FB592-0331-450A-AFFA-8D733B19A655}"/>
+					</CurrentStateList>
+					<CurrentSwitchList ShowAll="true">
+						<CurrentSwitchRef Name="MorseCode" ID="{A3AD9542-5530-40FF-B7A8-6EF5989C9032}"/>
+						<CurrentSwitchRef Name="Close" ID="{A3BA9824-1D77-4A78-BF7E-626717E28058}"/>
+						<CurrentSwitchRef Name="REPistols" ID="{F3C0A54C-C10C-41F9-BDCC-464B579603BB}"/>
+						<CurrentSwitchRef Name="Attacking" ID="{AED87A66-D1F2-4E25-99A0-E26ABC89884A}"/>
+						<CurrentSwitchRef Name="Carpet" ID="{0E8F0E08-E25A-466E-87BF-C390C79F3C11}"/>
+						<CurrentSwitchRef Name="DeckC" ID="{202118C4-D37B-4831-A933-9E1BF33A42E3}"/>
+					</CurrentSwitchList>
+				</SoundcasterSession>
+			</ChildrenList>
+		</WorkUnit>
 	</SoundcasterSessions>
 </WwiseDocument>

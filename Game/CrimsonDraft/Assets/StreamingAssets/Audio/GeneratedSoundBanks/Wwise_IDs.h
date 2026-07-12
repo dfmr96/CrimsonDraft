@@ -20,6 +20,7 @@ namespace AK
         static const AkUniqueID PLAY_HEARTBEATSFX = 2420947455U;
         static const AkUniqueID PLAY_MSC_MANAGER = 3143732789U;
         static const AkUniqueID PLAY_RADIOSC = 3489459273U;
+        static const AkUniqueID PLAY_SHELLCASING = 1647385053U;
         static const AkUniqueID PLAY_WEATHERBC = 384760087U;
         static const AkUniqueID PLAY_ZOMBIE_DAMAGE = 876165436U;
         static const AkUniqueID PLAY_ZOMBIESC = 2417702238U;

@@ -1,14 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{7545F752-5622-458E-8302-2EA57E41CE30}" SchemaVersion="103">
+<WwiseDocument Type="WorkUnit" ID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}" SchemaVersion="103">
 	<Busses>
-		<WorkUnit Name="Default Work Unit" ID="{7545F752-5622-458E-8302-2EA57E41CE30}" PersistMode="Standalone">
+		<WorkUnit Name="Default Work Unit" ID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}" PersistMode="Standalone">
 			<ChildrenList>
 				<Bus Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}">
 					<ReferenceList>
 						<Reference Name="AudioDevice">
-							<ObjectRef Name="System" ID="{E78ECA92-E0A0-4FBA-9D0E-4ACD63A83385}" WorkUnitID="{56F2998C-B61B-4ADB-9BFE-5A58B41C89F6}"/>
+							<ObjectRef Name="System" ID="{B4D0CB3A-D1CF-4DC4-8333-86457C3278E2}" WorkUnitID="{4CFEE172-8398-4B24-AABF-FA479882E921}"/>
 						</Reference>
 					</ReferenceList>
+					<ChildrenList>
+						<Bus Name="MX" ID="{E4A24276-3BCD-4125-91DA-93D19A8DE1D1}">
+							<ObjectLists/>
+						</Bus>
+						<Bus Name="SFX" ID="{54018967-B438-4FCF-8086-5D0EBC0AA202}">
+							<ChildrenList>
+								<Bus Name="PLAYER" ID="{82202B8D-9C9F-4399-BAFF-04058900DCB7}">
+									<ReferenceList>
+										<Reference Name="UserAuxSend0">
+											<ObjectRef Name="AUX_REVERB" ID="{1E84E460-1E9B-4323-AB53-EFB2809DEEC9}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+									</ReferenceList>
+									<StateInfo>
+										<StatePropertyList>
+											<Property Name="BusVolume"/>
+											<Property Name="UserAuxSendVolume0"/>
+										</StatePropertyList>
+										<StateGroupList>
+											<StateGroupInfo>
+												<StateGroupRef Name="Ambients" ID="{F9213406-1B50-49BE-86BB-F60CACD2F837}"/>
+											</StateGroupInfo>
+										</StateGroupList>
+										<CustomStateList>
+											<CustomState>
+												<StateRef Name="Kitchen" ID="{2D546AB2-4BF4-4083-A000-86F3EC693E33}"/>
+												<CustomState Name="" ID="{6E9724B6-5CA6-4E2E-AF7A-1395BF5A2566}" ShortID="531118406">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Stairs" ID="{EAE60F99-C8CE-40B6-98CB-D641EA81B464}"/>
+												<CustomState Name="" ID="{7B6E8214-B438-4EEA-8577-D8496B336465}" ShortID="45014203"/>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Room" ID="{94019670-6953-4449-B027-EE6A7A4DA423}"/>
+												<CustomState Name="" ID="{724C12A9-7E19-4F5A-A8D2-0A360DCE4D15}" ShortID="22636575">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Balcony" ID="{845A25B9-4BE9-44FC-8617-E42A3AB61CCD}"/>
+												<CustomState Name="" ID="{46CBAC91-E217-4D0E-99D6-F3FE5003BB9A}" ShortID="24528691">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Bathroom" ID="{693EDE3C-1EC4-4611-AD41-B3855F96A8A1}"/>
+												<CustomState Name="" ID="{F8C30916-A216-431B-93CB-3E17471C5A4A}" ShortID="1012155811">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+											<CustomState>
+												<StateRef Name="Hallway" ID="{6121245B-1787-4A83-93D4-B36B161B8166}"/>
+												<CustomState Name="" ID="{3172C4F1-0874-4C19-BBA8-ECE988001E3A}" ShortID="545689887">
+													<PropertyList>
+														<Property Name="UserAuxSendVolume0" Type="Real64" Value="-108"/>
+													</PropertyList>
+												</CustomState>
+											</CustomState>
+										</CustomStateList>
+									</StateInfo>
+									<ObjectLists/>
+								</Bus>
+								<Bus Name="ENEMIES" ID="{C4FC717F-AF74-44D3-8DAD-04BFA2ECDB87}">
+									<ObjectLists/>
+								</Bus>
+								<Bus Name="WORLD" ID="{E04A09F2-65D4-41D0-802F-109C11604A3A}">
+									<ObjectLists/>
+								</Bus>
+								<AuxBus Name="AUX_REVERB" ID="{1E84E460-1E9B-4323-AB53-EFB2809DEEC9}">
+									<ReferenceList>
+										<Reference Name="Effect0" PluginName="Wwise Matrix Reverb" CompanyID="0" PluginID="115" PluginType="3">
+											<ObjectRef Name="Big_Garage1" ID="{172402A8-22F4-40FC-BE1D-5269594CB633}" WorkUnitID="{E8613F7D-BAD3-45CD-A3ED-505576F31277}"/>
+										</Reference>
+									</ReferenceList>
+									<ObjectLists/>
+								</AuxBus>
+								<Bus Name="UI" ID="{2AE02916-CBCC-4D5D-BC63-45ECEF6CEC60}">
+									<ObjectLists/>
+								</Bus>
+							</ChildrenList>
+							<ObjectLists/>
+						</Bus>
+					</ChildrenList>
 					<ObjectLists/>
 				</Bus>
 			</ChildrenList>

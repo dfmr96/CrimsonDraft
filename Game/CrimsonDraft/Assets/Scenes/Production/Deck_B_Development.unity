@@ -790,6 +790,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8100677151573602050, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: data.WwiseObjectReference
+      value: 
+      objectReference: {fileID: 11400000, guid: 3d9a5d80e11619b42b9c8f5b8b118246, type: 2}
     - target: {fileID: 8132209282943458271, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
@@ -1164,11 +1168,11 @@ PrefabInstance:
       objectReference: {fileID: 428924802}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.7660445
+      value: 0.7660445
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.64278764
+      value: 0.64278764
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2277,7 +2281,7 @@ PrefabInstance:
       objectReference: {fileID: 1668211118}
     - target: {fileID: 555441370089600270, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: m_VersionIndex
-      value: 4336
+      value: 4378
       objectReference: {fileID: 0}
     - target: {fileID: 641388099358700943, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: mapOffset.x
@@ -2353,7 +2357,7 @@ PrefabInstance:
       objectReference: {fileID: 232465240}
     - target: {fileID: 3857819523749883702, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: m_VersionIndex
-      value: 4366
+      value: 4408
       objectReference: {fileID: 0}
     - target: {fileID: 3947681910963787577, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: m_Mesh
@@ -2361,7 +2365,7 @@ PrefabInstance:
       objectReference: {fileID: 1446379596}
     - target: {fileID: 3947681910963787577, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: m_VersionIndex
-      value: 4366
+      value: 4408
       objectReference: {fileID: 0}
     - target: {fileID: 4145507084688951437, guid: d8179dcd8e79a77449228376c7e745d8, type: 3}
       propertyPath: mapOffset.x
@@ -2806,6 +2810,7 @@ GameObject:
   - component: {fileID: 524030420}
   - component: {fileID: 524030419}
   - component: {fileID: 524030418}
+  - component: {fileID: 524030422}
   m_Layer: 0
   m_Name: Debug_Tools
   m_TagString: Untagged
@@ -2876,6 +2881,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &524030422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 524030417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a98b0036f637fac42989e46bcf200528, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.InventoryDebugPrinter
+  toggleKey: 94
+  showOnStart: 0
 --- !u!43 &529058112
 Mesh:
   m_ObjectHideFlags: 0
@@ -3068,7 +3087,7 @@ PrefabInstance:
       objectReference: {fileID: 1430851488}
     - target: {fileID: 555441370089600270, guid: 6eed26320b9e35140a9734c6d9976dba, type: 3}
       propertyPath: m_VersionIndex
-      value: 3929
+      value: 3971
       objectReference: {fileID: 0}
     - target: {fileID: 1989551545372593219, guid: 6eed26320b9e35140a9734c6d9976dba, type: 3}
       propertyPath: m_Mesh
@@ -4502,7 +4521,7 @@ PrefabInstance:
       objectReference: {fileID: 397971492}
     - target: {fileID: 555441370089600270, guid: 1cacc345462468340a83d151e5850ab3, type: 3}
       propertyPath: m_VersionIndex
-      value: 4041
+      value: 4083
       objectReference: {fileID: 0}
     - target: {fileID: 1989551545372593219, guid: 1cacc345462468340a83d151e5850ab3, type: 3}
       propertyPath: m_Mesh
@@ -5768,7 +5787,7 @@ PrefabInstance:
       objectReference: {fileID: 168067098}
     - target: {fileID: 555441370089600270, guid: be489d10d56e6454ca6f2f58a6249a34, type: 3}
       propertyPath: m_VersionIndex
-      value: 4065
+      value: 4107
       objectReference: {fileID: 0}
     - target: {fileID: 1989551545372593219, guid: be489d10d56e6454ca6f2f58a6249a34, type: 3}
       propertyPath: m_Mesh
@@ -7051,7 +7070,7 @@ PrefabInstance:
       objectReference: {fileID: 1630063348}
     - target: {fileID: 555441370089600270, guid: 96999c23ce7bcc3478d19685625103ca, type: 3}
       propertyPath: m_VersionIndex
-      value: 4024
+      value: 4066
       objectReference: {fileID: 0}
     - target: {fileID: 1432313179759671859, guid: 96999c23ce7bcc3478d19685625103ca, type: 3}
       propertyPath: mapOffset.x
@@ -7626,7 +7645,7 @@ PrefabInstance:
       objectReference: {fileID: 1782506490}
     - target: {fileID: 555441370089600270, guid: ed3d1e3a17299724d8cd0a6815a1549b, type: 3}
       propertyPath: m_VersionIndex
-      value: 4059
+      value: 4101
       objectReference: {fileID: 0}
     - target: {fileID: 1264896455480484054, guid: ed3d1e3a17299724d8cd0a6815a1549b, type: 3}
       propertyPath: destination
@@ -7939,7 +7958,7 @@ PrefabInstance:
       objectReference: {fileID: 5701618}
     - target: {fileID: 555441370089600270, guid: 38807c24063438e4297bf2bc7bfe3c93, type: 3}
       propertyPath: m_VersionIndex
-      value: 3947
+      value: 3989
       objectReference: {fileID: 0}
     - target: {fileID: 1989551545372593219, guid: 38807c24063438e4297bf2bc7bfe3c93, type: 3}
       propertyPath: m_Mesh
@@ -9325,7 +9344,7 @@ PrefabInstance:
       objectReference: {fileID: 12040015}
     - target: {fileID: 555441370089600270, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: m_VersionIndex
-      value: 4229
+      value: 4271
       objectReference: {fileID: 0}
     - target: {fileID: 627690946089512959, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: fromRoom
@@ -9429,7 +9448,7 @@ PrefabInstance:
       objectReference: {fileID: 1856887198}
     - target: {fileID: 3947681910963787577, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: m_VersionIndex
-      value: 4239
+      value: 4281
       objectReference: {fileID: 0}
     - target: {fileID: 4403288585701545634, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: mapOffset.x
@@ -9521,7 +9540,7 @@ PrefabInstance:
       objectReference: {fileID: 1471173498}
     - target: {fileID: 7306670906080198564, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: m_VersionIndex
-      value: 4259
+      value: 4301
       objectReference: {fileID: 0}
     - target: {fileID: 7657792442024040715, guid: 5498f5a1f60319841a78499c7b63327f, type: 3}
       propertyPath: fromRoom
