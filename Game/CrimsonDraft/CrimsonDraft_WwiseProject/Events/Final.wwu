@@ -3,9 +3,39 @@
 	<Events>
 		<WorkUnit Name="Final" ID="{99E8520C-43C3-427B-BF00-71C81C799BAE}" PersistMode="Standalone">
 			<ChildrenList>
-				<Event Name="PickupObject" ID="{F0E5E264-7846-4846-8EC7-5233DC6C744E}"/>
-				<Event Name="OpenDoor" ID="{17AB9DC5-2394-4E63-8441-68114446EFEB}"/>
-				<Event Name="LevelEnd" ID="{0F3E8666-541C-4641-A361-A00FF8946435}"/>
+				<Event Name="PickupObject" ID="{F0E5E264-7846-4846-8EC7-5233DC6C744E}">
+					<ChildrenList>
+						<Action Name="" ID="{12DA7ED8-74AB-42DD-A190-D40E178DDF5B}" ShortID="586372238">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="CHIPTUNE_ZONE1 BASE_170BPM_EX9" ID="{7A6AC282-F8F8-4265-851C-434CEFEE58D8}" WorkUnitID="{1D6F85F8-B7D3-4DDF-91C7-FC40325185C3}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="OpenDoor" ID="{17AB9DC5-2394-4E63-8441-68114446EFEB}">
+					<ChildrenList>
+						<Action Name="" ID="{0C8BF5CC-94D0-4EE0-82FE-1123927C4253}" ShortID="228897187">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="CHIPTUNE_ZONE1 LEAD V2_170BPM_EX9" ID="{04744FAE-26CB-4C14-A2BB-9C183B4C9F6D}" WorkUnitID="{1D6F85F8-B7D3-4DDF-91C7-FC40325185C3}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="LevelEnd" ID="{0F3E8666-541C-4641-A361-A00FF8946435}">
+					<ChildrenList>
+						<Action Name="" ID="{C5C87084-858E-4551-BC8A-E5875D936E05}" ShortID="29661798">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="CHIPTUNE_ZONE1 LEAD V1_170BPM_EX9" ID="{B48E251D-7EFD-40E6-BBDF-E648B035011D}" WorkUnitID="{1D6F85F8-B7D3-4DDF-91C7-FC40325185C3}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 				<Event Name="Play_SFX_Ambience" ID="{02F997AE-F074-4910-8278-339285FB958F}">
 					<ChildrenList>
 						<Action Name="" ID="{A69D79FF-33F6-4B3D-85D3-00CA4F46974F}" ShortID="655824664">
