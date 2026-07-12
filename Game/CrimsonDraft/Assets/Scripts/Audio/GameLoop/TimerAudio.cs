@@ -8,10 +8,10 @@ namespace CrimsonDraft.Audio
     public sealed class TimerAudio : MonoBehaviour
     {
         [Header("Wwise")]
-        [SerializeField] private AK.Wwise.Event defeatEvent  = new();
-        [SerializeField] private AK.Wwise.Event lowTimeEvent = new();
+        [SerializeField] private WwiseTrigger defeatTrigger  = new();
+        [SerializeField] private WwiseTrigger lowTimeTrigger = new();
 
-        public void PlayDefeat()  => defeatEvent?.Post(gameObject);
-        public void PlayLowTime() => lowTimeEvent?.Post(gameObject);
+        public void PlayDefeat()  => defeatTrigger.Fire(gameObject);
+        public void PlayLowTime() => lowTimeTrigger.Fire(gameObject);
     }
 }

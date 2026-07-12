@@ -8,8 +8,8 @@ namespace CrimsonDraft.Audio
     public sealed class PickupPointAudio : MonoBehaviour
     {
         [Header("Wwise")]
-        [SerializeField] private AK.Wwise.Event pickupEvent = new();
+        [SerializeField] private WwiseTrigger pickupTrigger = new();
 
-        public void PlayPickup() => pickupEvent?.Post(gameObject);
+        public void PlayPickup() => pickupTrigger.Fire(gameObject);
     }
 }
