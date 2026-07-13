@@ -57,6 +57,11 @@ namespace CrimsonDraft.UI
         public void PlayTabSwitch()        => Post(this.tabSwitchEvent);
 
         // ── Core ─────────────────────────────────────────────────────────────
-        private void Post(AK.Wwise.Event ev) => ev?.Post(gameObject);
+        private void Post(AK.Wwise.Event ev)
+        {
+            Debug.Log($"[InventorySoundManager] Post — valid: {ev.IsValid()} (\"{ev.Name}\")");
+            var playingId = ev?.Post(gameObject) ?? 0;
+            Debug.Log($"[InventorySoundManager] Post result — playingId: {playingId} (0 = failed/invalid)");
+        }
     }
 }
