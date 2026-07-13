@@ -35,10 +35,10 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private void OnSkip(InputAction.CallbackContext _)
         {
-            if (!this.canSkip) return;
+            /*if (!this.canSkip) return;
             this.canSkip = false;
             DOTween.Kill(this.fadeOverlay);
-            OnAnimationComplete();
+            OnAnimationComplete();*/
         }
 
         private void Start()

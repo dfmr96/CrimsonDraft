@@ -172,7 +172,7 @@
 							<ChildrenList>
 								<MusicSegment Name="Mistery_01" ID="{B3BD92AB-B2BC-482A-9AFA-92E130DE9380}" ShortID="636639196">
 									<PropertyList>
-										<Property Name="EndPosition" Type="Real64" Value="59807.5778696984"/>
+										<Property Name="EndPosition" Type="Real64" Value="208202.176870748"/>
 									</PropertyList>
 									<ReferenceList>
 										<Reference Name="Conversion">
@@ -183,26 +183,23 @@
 										</Reference>
 									</ReferenceList>
 									<ChildrenList>
-										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{50C2979A-87C2-4219-90D6-0B06270A3C26}" ShortID="966360999">
+										<MusicTrack Name="Tension_BKG_Music" ID="{3E78C79F-51C5-4FA8-B2F4-0775545AD67C}" ShortID="591739928">
 											<ReferenceList>
-												<Reference Name="Conversion">
-													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-												</Reference>
 												<Reference Name="OutputBus">
 													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
 												</Reference>
 											</ReferenceList>
 											<ChildrenList>
-												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{AF6FE685-B34B-4EE1-9FA8-61390535C0CD}">
+												<AudioFileSource Name="Tension_BKG_Music" ID="{6D191738-0E0D-4BF9-8FDE-83124D97AABB}">
 													<Language>SFX</Language>
-													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<AudioFile>Tension_BKG_Music.wav</AudioFile>
 													<MediaIDList>
-														<MediaID ID="562214868"/>
+														<MediaID ID="106108882"/>
 													</MediaIDList>
 												</AudioFileSource>
 											</ChildrenList>
 											<TransitionList>
-												<MusicTransition Name="Root" ID="{6AF36279-55AE-4D9D-9E41-391544D8F348}">
+												<MusicTransition Name="Root" ID="{AA7C62E7-3405-4DE8-B58C-C841613F78F6}">
 													<PropertyList>
 														<Property Name="IsFolder" Type="bool" Value="True"/>
 													</PropertyList>
@@ -213,34 +210,34 @@
 												<ObjectList Name="Sequences">
 													<Reference>
 														<Local>
-															<MusicTrackSequence Name="" ID="{79BD2B9A-D8A6-46F4-94CE-19F2237161C8}">
+															<MusicTrackSequence Name="" ID="{1DF1E7DE-FA62-4925-B034-9281B0B80929}">
 																<ObjectLists>
 																	<ObjectList Name="Clips">
 																		<Reference>
 																			<Local>
-																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{8DAF6DF0-8B78-442B-9E79-11382BD80431}">
+																				<MusicClip Name="Tension_BKG_Music" ID="{35CF7235-5436-464B-9674-6D540A78A801}">
 																					<PropertyList>
-																						<Property Name="BeginTrimOffset" Type="Real64" Value="6106.31609335794"/>
-																						<Property Name="EndTrimOffset" Type="Real64" Value="59106.3160933579"/>
-																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
-																						<Property Name="FadeOutDuration" Type="Real64" Value="1698.2863130005"/>
-																						<Property Name="PlayAt" Type="Real64" Value="-6106.31609335794"/>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="5999.99999999999"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="58981.2810626093"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="787.491896710688"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="1378.1108192437"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-5999.99999999999"/>
 																					</PropertyList>
-																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{AF6FE685-B34B-4EE1-9FA8-61390535C0CD}"/>
+																					<AudioSourceRef Name="Tension_BKG_Music" ID="{6D191738-0E0D-4BF9-8FDE-83124D97AABB}"/>
 																					<PropertyCurveList>
 																						<PropertyCurve PropertyName="Highpass">
-																							<Curve Name="" ID="{9EF6A2C6-FAB9-489F-A4F6-E444352CF23D}">
+																							<Curve Name="" ID="{35E749DA-C60F-4776-B0BE-004E62026D61}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>59.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -248,18 +245,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Lowpass">
-																							<Curve Name="" ID="{2FD78FDC-A29B-42E4-9225-4CE25F70F315}">
+																							<Curve Name="" ID="{4A43209E-6135-4614-8190-F2ED266DF11B}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>59.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -267,18 +264,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Volume">
-																							<Curve Name="" ID="{6C58A110-3812-4485-88AB-5EB141C268A5}">
+																							<Curve Name="" ID="{2BD761A3-BE3F-4B4A-AEE8-9204019C37A3}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="3"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>59.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -366,7 +363,7 @@
 							<ChildrenList>
 								<MusicSegment Name="Mistery_02" ID="{CFDA924F-FC55-416A-A353-4FE0411E3394}" ShortID="861961703">
 									<PropertyList>
-										<Property Name="EndPosition" Type="Real64" Value="54673.0992287877"/>
+										<Property Name="EndPosition" Type="Real64" Value="62981.2810626093"/>
 									</PropertyList>
 									<ReferenceList>
 										<Reference Name="Conversion">
@@ -377,7 +374,7 @@
 										</Reference>
 									</ReferenceList>
 									<ChildrenList>
-										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{E2BD252C-21D8-4739-AF21-238C7E2F579E}" ShortID="817939566">
+										<MusicTrack Name="Tension_BKG_Music" ID="{8575C6D4-EFF0-4277-818B-D60B90BE552A}" ShortID="299261887">
 											<ReferenceList>
 												<Reference Name="Conversion">
 													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
@@ -387,16 +384,16 @@
 												</Reference>
 											</ReferenceList>
 											<ChildrenList>
-												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{A5330D83-0D7D-4B5A-93AD-6BC9D4CEACB4}">
+												<AudioFileSource Name="Tension_BKG_Music" ID="{65857BD2-C949-4D6B-84E1-3CBCC0EB9787}">
 													<Language>SFX</Language>
-													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<AudioFile>Tension_BKG_Music.wav</AudioFile>
 													<MediaIDList>
-														<MediaID ID="562214868"/>
+														<MediaID ID="106108882"/>
 													</MediaIDList>
 												</AudioFileSource>
 											</ChildrenList>
 											<TransitionList>
-												<MusicTransition Name="Root" ID="{4EE09DEB-44E6-4C62-B834-C94B2A6EC45C}">
+												<MusicTransition Name="Root" ID="{48EBDB35-FA6C-466E-8B2E-3F6D06607548}">
 													<PropertyList>
 														<Property Name="IsFolder" Type="bool" Value="True"/>
 													</PropertyList>
@@ -407,34 +404,34 @@
 												<ObjectList Name="Sequences">
 													<Reference>
 														<Local>
-															<MusicTrackSequence Name="" ID="{D04D77BC-732D-41D8-9853-34B695413F9A}">
+															<MusicTrackSequence Name="" ID="{81AED49C-9C44-4E35-AB31-E0A4A3C9869C}">
 																<ObjectLists>
 																	<ObjectList Name="Clips">
 																		<Reference>
 																			<Local>
-																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{4AF18C64-C404-4953-B21C-A1E5BE32D26F}">
+																				<MusicClip Name="Tension_BKG_Music" ID="{A3695E57-7E98-432E-BB21-922F025AA7C9}">
 																					<PropertyList>
-																						<Property Name="BeginTrimOffset" Type="Real64" Value="6106.31609335794"/>
-																						<Property Name="EndTrimOffset" Type="Real64" Value="58106.3160933579"/>
-																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
-																						<Property Name="FadeOutDuration" Type="Real64" Value="2736.73039481889"/>
-																						<Property Name="PlayAt" Type="Real64" Value="-6106.31609335794"/>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="5999.99999999999"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="58981.2810626093"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="787.491896710688"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="1378.1108192437"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-5999.99999999999"/>
 																					</PropertyList>
-																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{A5330D83-0D7D-4B5A-93AD-6BC9D4CEACB4}"/>
+																					<AudioSourceRef Name="Tension_BKG_Music" ID="{65857BD2-C949-4D6B-84E1-3CBCC0EB9787}"/>
 																					<PropertyCurveList>
 																						<PropertyCurve PropertyName="Highpass">
-																							<Curve Name="" ID="{077BFD8C-601A-402C-AC42-79C182300116}">
+																							<Curve Name="" ID="{9C038952-6BE2-447A-B010-76E36E4C0E7A}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>58.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -442,18 +439,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Lowpass">
-																							<Curve Name="" ID="{E6182E91-A578-46C9-85B3-BA2057A02E6C}">
+																							<Curve Name="" ID="{907AD35F-12A9-40DE-BAAC-7D5B3A880EBD}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>58.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -461,18 +458,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Volume">
-																							<Curve Name="" ID="{A3FE3C76-7AC6-4989-93EC-8709621095D3}">
+																							<Curve Name="" ID="{849E3B24-4193-4871-9D03-2664494B214A}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="3"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>6.10632</XPos>
+																										<XPos>6</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>58.10632</XPos>
+																										<XPos>58.98128</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -491,7 +488,7 @@
 												</ObjectList>
 											</ObjectLists>
 										</MusicTrack>
-										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION_01" ID="{F4CAF2E0-D0BD-4857-AE47-35F5DB2E3DF8}" ShortID="769052246">
+										<MusicTrack Name="Tension_BKG_Music_02" ID="{987CCB81-051C-447C-A89B-650B5FE160F9}" ShortID="592382242">
 											<ReferenceList>
 												<Reference Name="Conversion">
 													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
@@ -501,16 +498,16 @@
 												</Reference>
 											</ReferenceList>
 											<ChildrenList>
-												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{5653EB02-68EB-407B-9101-69EB19C85AEC}">
+												<AudioFileSource Name="Tension_BKG_Music" ID="{79BC9FAC-AE08-4B94-AC0B-E99FAB8D277C}">
 													<Language>SFX</Language>
-													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<AudioFile>Tension_BKG_Music.wav</AudioFile>
 													<MediaIDList>
-														<MediaID ID="562214868"/>
+														<MediaID ID="106108882"/>
 													</MediaIDList>
 												</AudioFileSource>
 											</ChildrenList>
 											<TransitionList>
-												<MusicTransition Name="Root" ID="{0A174661-2D68-40FB-90B2-6C18850679FE}">
+												<MusicTransition Name="Root" ID="{C2087945-7D81-42D6-8159-E8139A8BB2A9}">
 													<PropertyList>
 														<Property Name="IsFolder" Type="bool" Value="True"/>
 													</PropertyList>
@@ -521,34 +518,34 @@
 												<ObjectList Name="Sequences">
 													<Reference>
 														<Local>
-															<MusicTrackSequence Name="" ID="{F75D244B-D9DE-4603-9E51-C8327987ED28}">
+															<MusicTrackSequence Name="" ID="{2D650B02-3F74-4B6E-A266-7AB856439FDD}">
 																<ObjectLists>
 																	<ObjectList Name="Clips">
 																		<Reference>
 																			<Local>
-																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{6CFE62B4-9D93-4DC5-A007-5A31E07588A3}">
+																				<MusicClip Name="Tension_BKG_Music" ID="{DFCE2CD7-62D0-4419-8B89-68DB386446B6}">
 																					<PropertyList>
-																						<Property Name="BeginTrimOffset" Type="Real64" Value="63624.5799585207"/>
-																						<Property Name="EndTrimOffset" Type="Real64" Value="110297.679187308"/>
-																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
-																						<Property Name="FadeOutDuration" Type="Real64" Value="1871.3603266369"/>
-																						<Property Name="PlayAt" Type="Real64" Value="-55624.5799585207"/>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="63579.5179884211"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="110233.929404652"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="787.491896710688"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="1378.1108192437"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-55579.5179884211"/>
 																					</PropertyList>
-																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{5653EB02-68EB-407B-9101-69EB19C85AEC}"/>
+																					<AudioSourceRef Name="Tension_BKG_Music" ID="{79BC9FAC-AE08-4B94-AC0B-E99FAB8D277C}"/>
 																					<PropertyCurveList>
 																						<PropertyCurve PropertyName="Highpass">
-																							<Curve Name="" ID="{EC295597-C4A9-412A-B8EB-DCAF645240D4}">
+																							<Curve Name="" ID="{82DE1466-74AC-4775-9C13-82F485A484DB}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>63.62458</XPos>
+																										<XPos>63.57952</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>110.29768</XPos>
+																										<XPos>110.23393</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -556,18 +553,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Lowpass">
-																							<Curve Name="" ID="{5DE89202-D48C-4C4F-B287-106D221037E4}">
+																							<Curve Name="" ID="{649E1197-9D67-44BC-B6AE-AA4908353A6B}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="1"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>63.62458</XPos>
+																										<XPos>63.57952</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>110.29768</XPos>
+																										<XPos>110.23393</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -575,18 +572,18 @@
 																							</Curve>
 																						</PropertyCurve>
 																						<PropertyCurve PropertyName="Volume">
-																							<Curve Name="" ID="{373E9D71-9922-48E0-9526-34F2A507E9AD}">
+																							<Curve Name="" ID="{4CEE722B-95F4-4173-8E4B-CB1270051F96}">
 																								<PropertyList>
 																									<Property Name="Flags" Type="int32" Value="3"/>
 																								</PropertyList>
 																								<PointList>
 																									<Point>
-																										<XPos>63.62458</XPos>
+																										<XPos>63.57952</XPos>
 																										<YPos>0</YPos>
 																										<Flags>5</Flags>
 																									</Point>
 																									<Point>
-																										<XPos>110.29768</XPos>
+																										<XPos>110.23393</XPos>
 																										<YPos>0</YPos>
 																										<Flags>37</Flags>
 																									</Point>
@@ -693,7 +690,17 @@
 											<ObjectRef Name="Tension_01" ID="{7AC958B5-1426-4A89-9A97-762E79D1B37D}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}"/>
 										</Reference>
 									</ReferenceList>
-									<TransitionInfo/>
+									<TransitionInfo>
+										<DestinationFadeIn>
+											<MusicFade Name="Destination Fade-in" ID="{234D2A39-AC86-4843-9402-661FF70C00B4}">
+												<PropertyList>
+													<Property Name="FadeCurve" Type="int16" Value="2"/>
+													<Property Name="FadeOffset" Type="Real64" Value="-0.6"/>
+													<Property Name="FadeTime" Type="Real64" Value="1.5"/>
+												</PropertyList>
+											</MusicFade>
+										</DestinationFadeIn>
+									</TransitionInfo>
 								</MusicTransition>
 								<MusicTransition Name="Transition" ID="{EBE31C4C-C78C-46A4-96B5-8C92789BD0CA}">
 									<PropertyList>
