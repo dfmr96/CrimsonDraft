@@ -3449,11 +3449,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7660445
+      value: -0.7660445
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.64278764
+      value: -0.64278764
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.y
@@ -3660,10 +3660,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4798706774219675278, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 805969893}
+    - targetCorrespondingSourceObject: {fileID: 3093239896220117129, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 758220029}
   m_SourcePrefab: {fileID: 100100000, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
 --- !u!4 &109292240 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5206867273097330544, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+  m_PrefabInstance: {fileID: 109292239}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &109292241 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3093239896220117129, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
   m_PrefabInstance: {fileID: 109292239}
   m_PrefabAsset: {fileID: 0}
 --- !u!43 &135432121
@@ -6862,6 +6870,22 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2853819599513674915, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
   m_PrefabInstance: {fileID: 109292239}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &758220029
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 109292241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17d2f8c4ff59b104f8828e4567ddfc1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DebugEndGameButtons
+  victorySceneName: Victory_Scene
+  defeatSceneName: Defeat_Scene
+  skipToVictoryAction: {fileID: 4660635121294532536, guid: 4a85ddb076b12364988f28a092aaad6d, type: 3}
+  skipToDefeatAction: {fileID: 3146347397406746114, guid: 4a85ddb076b12364988f28a092aaad6d, type: 3}
 --- !u!43 &773190163
 Mesh:
   m_ObjectHideFlags: 0
@@ -11060,7 +11084,7 @@ MonoBehaviour:
   decodeBank: 0
   loadAsynchronous: 1
   saveDecodedBank: 0
-  unloadTriggerList: 958ca0ea
+  unloadTriggerList: 
   bankNameInternal: 
   valueGuidInternal: 
 --- !u!4 &1532542917
@@ -12932,29 +12956,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7763361aaa685b447861b7ed98fd31ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.ScoreManagerAudio
-  victoryTrigger:
-    kind: 0
-    wwiseEvent:
-      idInternal: 0
-      valueGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: cfc05160fdc072d458fdb0babe65f79d, type: 2}
-    wwiseState:
-      idInternal: 0
-      valueGuidInternal: 
-      groupIdInternal: 0
-      groupGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
-    wwiseSwitch:
-      idInternal: 0
-      valueGuidInternal: 
-      groupIdInternal: 0
-      groupGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
-    wwiseRtpc:
-      idInternal: 0
-      valueGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
-    rtpcValue: 1
 --- !u!114 &2052802616
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12967,29 +12968,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a45e5b640c2964c42a3d38816d9790c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.TimerAudio
-  defeatTrigger:
-    kind: 0
-    wwiseEvent:
-      idInternal: 0
-      valueGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: cfc05160fdc072d458fdb0babe65f79d, type: 2}
-    wwiseState:
-      idInternal: 0
-      valueGuidInternal: 
-      groupIdInternal: 0
-      groupGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: 06a5ccd9ea3f6f2498197bd26187b098, type: 2}
-    wwiseSwitch:
-      idInternal: 0
-      valueGuidInternal: 
-      groupIdInternal: 0
-      groupGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: 97ca61f2b8ec5a6499a55c8609e7290c, type: 2}
-    wwiseRtpc:
-      idInternal: 0
-      valueGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
-    rtpcValue: 1
   lowTime1Trigger:
     kind: 0
     wwiseEvent:
