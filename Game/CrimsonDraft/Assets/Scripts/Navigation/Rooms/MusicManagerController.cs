@@ -13,8 +13,8 @@ namespace CrimsonDraft.Navigation.Rooms
     {
         [SerializeField] private AK.Wwise.Event  mscEvent        = new(); // Play_MSC_Manager
         [SerializeField] private AK.Wwise.State  navigationState = new(); // PlayerState:Navigation
-        [SerializeField] private AK.Wwise.State  safeRoomState   = new(); // PlayerState:SafeRoom
         [SerializeField] private AK.Wwise.Switch doorsSector     = new(); // MarineraSector:Doors
+        [SerializeField] private AK.Wwise.Switch saveRoomSector  = new(); // MarineraSector:SafeRoom
         [SerializeField] private AK.Wwise.Switch defaultSector   = new(); // MarineraSector fallback (e.g. DeckB)
 
         [Inject] private IRoomOrchestrator                        roomOrchestrator                = null!;
@@ -23,6 +23,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private IDisposable? startedSubscription;
         private IDisposable? transitionedSubscription;
+        private uint          lastSectorId = AK.Wwise.BaseType.InvalidId;
 
         void IInitializable.Initialize()
         {
@@ -35,27 +36,46 @@ namespace CrimsonDraft.Navigation.Rooms
         // WeatherAmbienceController — Wwise silently drops the event if posted too early.
         private void Start()
         {
-            ApplyRoom(this.roomOrchestrator.CurrentRoom);
+            // PlayerState stays Navigation for this whole feature — SafeRoom is now a
+            // MarineraSector value instead of a separate PlayerState, so there's no state
+            // transition to manage here (Combat/Dialogue/Menu/GameOver are still deferred).
+            this.navigationState.SetValue();
+            ApplySector(this.roomOrchestrator.CurrentRoom);
             this.mscEvent.Post(gameObject);
         }
 
-        private void OnRoomTransitionStarted(RoomTransitionStartedEvent e) => this.doorsSector.SetValue(gameObject);
-
-        private void OnRoomTransitioned(RoomTransitionedEvent e) => ApplyRoom(e.ActiveRoom);
-
-        private void ApplyRoom(RoomController? room)
+        private void OnRoomTransitionStarted(RoomTransitionStartedEvent e)
         {
-            var sectorProfile = room != null ? room.GetComponent<RoomSectorProfile>() : null;
-            if (sectorProfile != null)
-                sectorProfile.MarineraSector.SetValue(gameObject);
-            else
-                this.defaultSector.SetValue(gameObject);
+            this.doorsSector.SetValue(gameObject);
+            this.lastSectorId = this.doorsSector.Id;
+        }
 
+        private void OnRoomTransitioned(RoomTransitionedEvent e) => ApplySector(e.ActiveRoom);
+
+        private void ApplySector(RoomController? room)
+        {
             var isSaveRoom = room != null && room.GetComponent<SaveRoomMarker>() != null;
+            AK.Wwise.Switch targetSwitch;
+
             if (isSaveRoom)
-                this.safeRoomState.SetValue();
+            {
+                targetSwitch = this.saveRoomSector;
+            }
             else
-                this.navigationState.SetValue();
+            {
+                var sectorProfile = room != null ? room.GetComponent<RoomSectorProfile>() : null;
+                targetSwitch = sectorProfile != null ? sectorProfile.MarineraSector : this.defaultSector;
+            }
+
+            // Wwise treats every SetSwitch call as a cue to re-evaluate the Music Switch
+            // Container, restarting the current segment even when the value doesn't
+            // actually change (e.g. moving between two rooms that both resolve to DeckB).
+            // Only call SetValue when the resolved switch is genuinely different.
+            if (targetSwitch.Id == this.lastSectorId)
+                return;
+
+            targetSwitch.SetValue(gameObject);
+            this.lastSectorId = targetSwitch.Id;
         }
 
         void IDisposable.Dispose()

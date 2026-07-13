@@ -63,7 +63,6 @@ namespace AK
                 static const AkUniqueID MENU = 2607556080U;
                 static const AkUniqueID NAVIGATION = 1082482811U;
                 static const AkUniqueID NONE = 748895195U;
-                static const AkUniqueID SAFEROOM = 604931459U;
             } // namespace STATE
         } // namespace PLAYERSTATE
 
@@ -107,6 +106,7 @@ namespace AK
                 static const AkUniqueID DECKC = 1199012609U;
                 static const AkUniqueID DOORS = 2150196036U;
                 static const AkUniqueID LABORATORY = 766371778U;
+                static const AkUniqueID SAFEROOM = 604931459U;
             } // namespace SWITCH
         } // namespace MARINERASECTOR
 
