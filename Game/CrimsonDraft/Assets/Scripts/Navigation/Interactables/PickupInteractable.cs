@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 
@@ -16,7 +17,13 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string   pickupId = null!;
         [SerializeField] private ItemData item     = null!;
 
-        private PickupRegistry pickupRegistry = null!;
+        private PickupRegistry        pickupRegistry = null!;
+        private PickupInteractableAudio? audio;
+
+        private void Awake()
+        {
+            TryGetComponent(out audio);
+        }
 
         [Inject]
         public void Construct(PickupRegistry registry)
@@ -43,6 +50,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () =>
                 {
                     if (!pickupSucceeded) return;
+                    if (audio != null) audio.Play();
                     this.pickupRegistry.SetCollected(this.pickupId);
                     gameObject.SetActive(false);
                 },

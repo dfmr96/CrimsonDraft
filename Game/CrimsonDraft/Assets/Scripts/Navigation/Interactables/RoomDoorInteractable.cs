@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using VContainer;
 using UnityEngine;
 using Yarn.Unity;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Rooms;
@@ -25,7 +26,13 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private IRoomOrchestrator roomOrchestrator = null!;
         private DoorStateRegistry registry         = null!;
+        private DoorAudio?        audio;
         private bool              unlocked;
+
+        private void Awake()
+        {
+            TryGetComponent(out audio);
+        }
 
         [Inject]
         public void Construct(IRoomOrchestrator roomOrchestrator, DoorStateRegistry registry)
@@ -44,9 +51,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             if (!this.data.Locked || this.unlocked)
             {
-                this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                    .Forget();
+                OpenAndTransition();
                 return;
             }
 
@@ -79,9 +84,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.SetUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            OpenAndTransition();
                         });
                     break;
 
@@ -98,12 +101,20 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.SetUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            OpenAndTransition();
                         });
                     break;
             }
+        }
+
+        // Only reached when the door is actually open (unlocked or successfully unlocked).
+        private void OpenAndTransition()
+        {
+            if (audio != null) audio.Play();
+
+            this.roomOrchestrator
+                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                .Forget();
         }
     }
 }
