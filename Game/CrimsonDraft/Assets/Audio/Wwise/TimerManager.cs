@@ -22,7 +22,7 @@ public class TimerManager : MonoBehaviour
     private float currentTime;
     private bool timerRunning;
     private bool gameFinished;
-    private bool lowTime1Triggered;    
+    private bool lowTime1Triggered;
     private bool lowTime2Triggered;
     private TimerAudio audio;
 
@@ -37,7 +37,7 @@ public class TimerManager : MonoBehaviour
         currentTime = startTime;
         timerRunning = false;
         UpdateTimerUI();
-       
+
     }
 
     private void Update()
@@ -57,16 +57,13 @@ public class TimerManager : MonoBehaviour
 
         if (!lowTime1Triggered && currentTime <= lowTime1Threshold)
         {
-            audio.PlayLowTime1();
+            if (audio != null) audio.PlayLowTime1();
             lowTime1Triggered = true;
-       
-            
         }
-        else if(!lowTime2Triggered && currentTime <= lowTime2Threshold)
+        else if (!lowTime2Triggered && currentTime <= lowTime2Threshold)
         {
-            audio.PlayLowTime2();
+            if (audio != null) audio.PlayLowTime2();
             lowTime2Triggered = true;
-            
         }
 
         UpdateTimerUI();
@@ -93,8 +90,6 @@ public class TimerManager : MonoBehaviour
         gameFinished = true;
         timerRunning = false;
         Time.timeScale = 1f;
-
-        if (audio != null) audio.PlayDefeat();
 
         SceneManager.LoadScene(defeatSceneName);
     }

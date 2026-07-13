@@ -1,4 +1,3 @@
-using CrimsonDraft.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -13,7 +12,6 @@ public class ScoreManager : MonoBehaviour
     private int collectedKeys;
     private int totalKeys;
     private bool gameFinished;
-    private ScoreManagerAudio audio;
 
     private void Awake()
     {
@@ -25,8 +23,6 @@ public class ScoreManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-
-        TryGetComponent(out audio);
     }
 
     private void Start()
@@ -66,8 +62,6 @@ public class ScoreManager : MonoBehaviour
     {
         gameFinished = true;
         Time.timeScale = 1f;
-
-        if (audio != null) audio.PlayVictory();
 
         SceneManager.LoadScene(victorySceneName);
     }
