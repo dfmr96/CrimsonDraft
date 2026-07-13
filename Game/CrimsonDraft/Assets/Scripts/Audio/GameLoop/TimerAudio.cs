@@ -9,9 +9,14 @@ namespace CrimsonDraft.Audio
     {
         [Header("Wwise")]
         [SerializeField] private WwiseTrigger defeatTrigger  = new();
-        [SerializeField] private WwiseTrigger lowTimeTrigger = new();
+        [SerializeField] private WwiseTrigger lowTime1Trigger = new();
+        [SerializeField] private WwiseTrigger lowTime2Trigger = new();
+        
 
         public void PlayDefeat()  => defeatTrigger.Fire(gameObject);
-        public void PlayLowTime() => lowTimeTrigger.Fire(gameObject);
+        public void PlayLowTime1() => lowTime1Trigger.Fire(gameObject);
+        public void PlayLowTime2() => lowTime2Trigger.Fire(gameObject);
+
+
     }
 }

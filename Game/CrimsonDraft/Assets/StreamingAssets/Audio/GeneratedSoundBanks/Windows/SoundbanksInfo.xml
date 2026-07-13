@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="12" SoundbankVersion="140">
 	<RootPaths>
-		<ProjectRoot>C:\Users\juang\Documents\Git\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\</ProjectRoot>
-		<SourceFilesRoot>C:\Users\juang\Documents\Git\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Windows\</SourceFilesRoot>
-		<SoundBanksRoot>C:\Users\juang\Documents\Git\CrimsonDraft\Game\CrimsonDraft\Assets\StreamingAssets\Audio\GeneratedSoundBanks\Windows\</SoundBanksRoot>
+		<ProjectRoot>E:\Users\Franco\Documents\GitHub\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\</ProjectRoot>
+		<SourceFilesRoot>E:\Users\Franco\Documents\GitHub\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Windows\</SourceFilesRoot>
+		<SoundBanksRoot>E:\Users\Franco\Documents\GitHub\CrimsonDraft\Game\CrimsonDraft\Assets\StreamingAssets\Audio\GeneratedSoundBanks\Windows\</SoundBanksRoot>
 		<ExternalSourcesInputFile></ExternalSourcesInputFile>
-		<ExternalSourcesOutputRoot>C:\Users\juang\Documents\Git\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\GeneratedSoundBanks\Windows</ExternalSourcesOutputRoot>
+		<ExternalSourcesOutputRoot>E:\Users\Franco\Documents\GitHub\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\GeneratedSoundBanks\Windows</ExternalSourcesOutputRoot>
 	</RootPaths>
 	<DialogueEvents/>
 	<StreamedFiles/>
@@ -28,7 +28,7 @@
 				</StateGroup>
 			</StateGroups>
 		</SoundBank>
-		<SoundBank Id="3319015848" Language="SFX" Hash="3941978655">
+		<SoundBank Id="3319015848" Language="SFX" Hash="810606675">
 			<ObjectPath>\SoundBanks\Default Work Unit\SoundBankFinal</ObjectPath>
 			<ShortName>SoundBankFinal</ShortName>
 			<Path>SoundBankFinal.bnk</Path>
@@ -96,7 +96,7 @@
 							<Path>SFX\Breath_3D5C3857.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
-					<DefaultSwitchValue>{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}</DefaultSwitchValue>
+					<DefaultSwitchValue>{F324F3D1-2D05-44EC-8ED9-D49C7049D059}</DefaultSwitchValue>
 					<SwitchContainers>
 						<SwitchContainer SwitchValue="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}">
 							<Media>
@@ -129,6 +129,10 @@
 							<ShortName>Whale Call-Answer Close (echo) 7.wav</ShortName>
 							<Path>SFX\Whale Call-Answer Close (echo) 7_03C03144.wem</Path>
 						</File>
+						<File Id="562214868" Language="SFX">
+							<ShortName>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</ShortName>
+							<Path>SFX\Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION_D79FB2B7.wem</Path>
+						</File>
 						<File Id="572947101" Language="SFX">
 							<ShortName>dampfsto-bk6ymjc7.wav</ShortName>
 							<Path>SFX\dampfsto-bk6ymjc7_998B17D5.wem</Path>
@@ -150,6 +154,33 @@
 							<Path>SFX\make-a-steam-engine-hissi-ycw5qslc_AE0AF111.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
+					<SwitchContainers>
+						<SwitchContainer SwitchValue="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}">
+							<Children>
+								<SwitchContainer SwitchValue="{6940FEA4-5A52-4F06-8178-33A2A68ECE65}">
+									<Media>
+										<File Id="562214868"/>
+									</Media>
+								</SwitchContainer>
+							</Children>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}">
+							<Children>
+								<SwitchContainer SwitchValue="{44864371-392E-4AFE-B54F-18F11A94487C}">
+									<Media>
+										<File Id="562214868"/>
+									</Media>
+								</SwitchContainer>
+							</Children>
+						</SwitchContainer>
+					</SwitchContainers>
+					<ActionSetState>
+						<ActionSetStateEntry Id="2198133169" Name="Hallway" ObjectPath="\States\Default Work Unit\ST_Locations\Hallway"/>
+						<ActionSetStateEntry Id="3195609653" Name="InProgress" ObjectPath="\States\Default Work Unit\GameState\InProgress"/>
+					</ActionSetState>
+					<ActionSetSwitch>
+						<ActionSetSwitchEntry Id="612484356" Name="Tension_00" ObjectPath="\Switches\Default Work Unit\Tension\Tension_00"/>
+					</ActionSetSwitch>
 				</Event>
 				<Event Id="144961872" Name="Play_SFX_Step" ObjectPath="\Events\Final\Play_SFX_Step" DurationType="Infinite">
 					<IncludedMemoryFiles>
@@ -219,12 +250,36 @@
 						<State Id="2213992659" Name="Exterior" ObjectPath="\States\Default Work Unit\ST_Locations\Exterior" GUID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
 					</States>
 				</StateGroup>
+				<StateGroup Id="2198133169" Name="Hallway" ObjectPath="\States\Default Work Unit\ST_Locations\Hallway" GUID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}">
+					<States/>
+				</StateGroup>
+				<StateGroup Id="3195609653" Name="InProgress" ObjectPath="\States\Default Work Unit\GameState\InProgress" GUID="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}">
+					<States/>
+				</StateGroup>
+				<StateGroup Id="4091656514" Name="GameState" ObjectPath="\States\Default Work Unit\GameState" GUID="{39775474-D6DD-4A10-BBB3-B33BF1AD9A38}">
+					<States>
+						<State Id="748895195" Name="None" ObjectPath="\States\Default Work Unit\GameState\None" GUID="{057A3697-35DF-4837-8879-F788BCA698F4}"/>
+						<State Id="2716678721" Name="Victory" ObjectPath="\States\Default Work Unit\GameState\Victory" GUID="{F3CFB5BA-3AFE-4955-A61F-9839EB2F28EF}"/>
+						<State Id="1593864692" Name="Defeat" ObjectPath="\States\Default Work Unit\GameState\Defeat" GUID="{0EE2B7B9-B1E7-4C19-9BD3-9EF9B0897A29}"/>
+						<State Id="3195609653" Name="InProgress" ObjectPath="\States\Default Work Unit\GameState\InProgress" GUID="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}"/>
+					</States>
+				</StateGroup>
 			</StateGroups>
 			<SwitchGroups>
+				<SwitchGroup Id="612484356" Name="Tension_00" ObjectPath="\Switches\Default Work Unit\Tension\Tension_00" GUID="{800ECED3-BF03-4A86-A2C2-08302CE50F29}">
+					<Switches/>
+				</SwitchGroup>
 				<SwitchGroup Id="1350496757" Name="PlayerMovement" ObjectPath="\Switches\Default Work Unit\PlayerMovement" GUID="{45D343C0-35B9-4051-A148-FB3454163E30}">
 					<Switches>
 						<Switch Id="2108779966" Name="Walk" ObjectPath="\Switches\Default Work Unit\PlayerMovement\Walk" GUID="{8641DD8A-FBB2-4F3D-8A96-A7255AFDA1F3}"/>
 						<Switch Id="712161704" Name="Run" ObjectPath="\Switches\Default Work Unit\PlayerMovement\Run" GUID="{7D0C2CB3-B0CF-462C-BC8E-CDE61E7142D5}"/>
+					</Switches>
+				</SwitchGroup>
+				<SwitchGroup Id="1571361561" Name="Tension" ObjectPath="\Switches\Default Work Unit\Tension" GUID="{4C69B56A-36D4-4720-ACAF-047BD258D0E5}">
+					<Switches>
+						<Switch Id="612484356" Name="Tension_00" ObjectPath="\Switches\Default Work Unit\Tension\Tension_00" GUID="{800ECED3-BF03-4A86-A2C2-08302CE50F29}"/>
+						<Switch Id="612484357" Name="Tension_01" ObjectPath="\Switches\Default Work Unit\Tension\Tension_01" GUID="{6940FEA4-5A52-4F06-8178-33A2A68ECE65}"/>
+						<Switch Id="612484358" Name="Tension_02" ObjectPath="\Switches\Default Work Unit\Tension\Tension_02" GUID="{44864371-392E-4AFE-B54F-18F11A94487C}"/>
 					</Switches>
 				</SwitchGroup>
 			</SwitchGroups>
