@@ -5,12 +5,13 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using VContainer;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation.Player
 {
-    public sealed class PlayerController : MonoBehaviour
+    public sealed class PlayerController : MonoBehaviour, IPlayerMotion
     {
         [SerializeField] private Rigidbody rb       = null!;
         [SerializeField] private Animator  animator = null!;
@@ -34,7 +35,9 @@ namespace CrimsonDraft.Navigation.Player
         private IOperatorRoster? roster;
         private InputDevice?   lastDevice;
 
-        public bool IsAiming { get; private set; }
+        public bool  IsAiming     { get; private set; }
+        public bool  IsSprinting  { get; private set; }
+        public float CurrentSpeed { get; private set; }
 
         [Inject]
         public void Construct(IInputService inputService, IOperatorRoster roster)
@@ -67,6 +70,8 @@ namespace CrimsonDraft.Navigation.Player
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetFloat(SpeedHash, 0f);
+                this.CurrentSpeed = 0f;
+                this.IsSprinting  = false;
                 return;
             }
 
@@ -76,6 +81,8 @@ namespace CrimsonDraft.Navigation.Player
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetFloat(SpeedHash, 0f);
+                this.CurrentSpeed = 0f;
+                this.IsSprinting  = false;
                 return;
             }
 
@@ -96,11 +103,15 @@ namespace CrimsonDraft.Navigation.Player
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetFloat(SpeedHash, 0f);
+                this.CurrentSpeed = 0f;
+                this.IsSprinting  = false;
                 return;
             }
 
             this.rb.linearVelocity = resolvedDir * speed;
             this.animator.SetFloat(SpeedHash, animSpeed);
+            this.CurrentSpeed = speed;
+            this.IsSprinting  = isSprinting;
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
