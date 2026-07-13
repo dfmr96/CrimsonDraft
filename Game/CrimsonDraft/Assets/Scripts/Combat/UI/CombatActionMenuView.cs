@@ -144,9 +144,17 @@ namespace CrimsonDraft.Combat
                 FocusNextFrame(index).Forget();
         }
 
+        // Guards against multiple operators becoming ready in the same ATB tick each
+        // scheduling their own deferred focus (SetOperatorDimmed's needsFocus check sees a
+        // stale null selection for all of them since none of the deferred calls has run yet)
+        // — without this, whichever one resolves last silently steals focus from the first.
+        private bool focusRequestPending;
+
         private async UniTaskVoid FocusNextFrame(int index)
         {
+            this.focusRequestPending = true;
             await UniTask.DelayFrame(2);
+            this.focusRequestPending = false;
             EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
         }
 
@@ -199,8 +207,8 @@ namespace CrimsonDraft.Combat
             if (!dimmed && EventSystem.current != null)
             {
                 var selected = EventSystem.current.currentSelectedGameObject;
-                bool needsFocus = selected == null ||
-                    (selected.TryGetComponent<UnityEngine.UI.Selectable>(out var sel) && !sel.IsInteractable());
+                bool needsFocus = !this.focusRequestPending && (selected == null ||
+                    (selected.TryGetComponent<UnityEngine.UI.Selectable>(out var sel) && !sel.IsInteractable()));
                 if (needsFocus)
                     FocusNextFrame(index).Forget();
             }

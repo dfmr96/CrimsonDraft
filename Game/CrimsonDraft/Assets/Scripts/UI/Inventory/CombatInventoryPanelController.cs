@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
@@ -26,6 +27,7 @@ namespace CrimsonDraft.UI
 
         [Inject] private IInventoryService inventoryService = null!;
         [Inject] private IInputService     inputService     = null!;
+        [Inject] private CombatSfxData     sfx              = null!;
 
         public event Action<int>? OnItemUsed;
         public event Action?      OnCancelled;
@@ -251,12 +253,14 @@ namespace CrimsonDraft.UI
             if (dir.y != 0 && dir != this.lastDir)
             {
                 this.contextMenu.NavigateMenu(dir.y);
+                this.sfx?.PlayCursor(gameObject);
                 this.lastDir      = dir;
                 this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
             }
             else if (dir.y != 0 && Time.unscaledTime >= this.nextMoveTime)
             {
                 this.contextMenu.NavigateMenu(dir.y);
+                this.sfx?.PlayCursor(gameObject);
                 this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
@@ -280,6 +284,7 @@ namespace CrimsonDraft.UI
             next.y = Mathf.Clamp(next.y, 0, this.grid.Rows    - 1);
             this.currentCell = next;
             UpdateSelector();
+            this.sfx?.PlayCursor(gameObject);
         }
 
         private void UpdateSelector()
@@ -311,6 +316,7 @@ namespace CrimsonDraft.UI
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
+                this.sfx?.PlayDecide(gameObject);
                 this.contextMenu.ConfirmSelection();
                 return;
             }
@@ -322,6 +328,7 @@ namespace CrimsonDraft.UI
                 if (target != null && target.Data.ItemType == ItemType.Weapon
                     && this.inventoryService.CanReload(this.pendingCombineSlot, this.operatorSlot))
                 {
+                    this.sfx?.PlayDecide(gameObject);
                     ExecuteReload(this.pendingCombineSlot);
                 }
                 // If target isn't valid (full, wrong caliber), stay in combine mode
@@ -332,6 +339,7 @@ namespace CrimsonDraft.UI
             InventoryItemView? view = this.grid.GetItemAt(this.currentCell);
             if (view == null) return;
 
+            this.sfx?.PlayDecide(gameObject);
             int slotIndex = FindSlotIndex(view);
             var options = new ContextMenuOptions
             {
@@ -347,16 +355,19 @@ namespace CrimsonDraft.UI
             if (!this.isActive) return;
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
+                this.sfx?.PlayCancel(gameObject);
                 this.contextMenu.Close();
                 return;
             }
             // Exit combine mode back to normal grid navigation
             if (this.pendingCombineSlot >= 0)
             {
+                this.sfx?.PlayCancel(gameObject);
                 this.pendingCombineSlot = -1;
                 UpdateSelector();
                 return;
             }
+            this.sfx?.PlayCancel(gameObject);
             OnCancelled?.Invoke();
         }
 

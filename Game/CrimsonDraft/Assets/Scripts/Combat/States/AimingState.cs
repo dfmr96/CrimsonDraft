@@ -3,6 +3,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -15,6 +16,7 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView      battlefieldView;
         private readonly IAimView              aimView;
         private readonly IOperatorRoster       roster;
+        private readonly CombatSfxData?        sfx;
 
         private bool awaitingDismiss;
         private bool isPlayingBurst;
@@ -26,7 +28,8 @@ namespace CrimsonDraft.Combat
             ICommandPanelView     commandPanel,
             IBattlefieldView      battlefieldView,
             IAimView              aimView,
-            IOperatorRoster       roster)
+            IOperatorRoster       roster,
+            CombatSfxData?        sfx = null)
         {
             this.context         = context;
             this.menuView        = menuView;
@@ -34,6 +37,7 @@ namespace CrimsonDraft.Combat
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.sfx             = sfx;
         }
 
         public void Enter()
@@ -54,6 +58,8 @@ namespace CrimsonDraft.Combat
         public void OnConfirm()
         {
             if (this.isPlayingBurst) return;
+
+            this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
 
             if (this.awaitingDismiss)
             {

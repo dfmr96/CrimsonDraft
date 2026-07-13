@@ -3,6 +3,7 @@
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure.Cameras;
 
 namespace CrimsonDraft.Combat
@@ -16,8 +17,12 @@ namespace CrimsonDraft.Combat
     /// </summary>
     public sealed class CombatScope : LifetimeScope
     {
+        [SerializeField] private CombatSfxData sfxData = null!;
+
         protected override void Configure(IContainerBuilder builder)
         {
+            builder.RegisterInstance(this.sfxData);
+
             builder.Register<CombatSessionController>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<CombatActionMenuView>().AsImplementedInterfaces();

@@ -1,5 +1,6 @@
 #nullable enable
 
+using CrimsonDraft.Audio;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView     battlefieldView;
         private readonly IAimView             aimView;
         private readonly IOperatorRoster      roster;
+        private readonly CombatSfxData?       sfx;
 
         internal ShotCountSelectionState(
             CombatMenuController context,
@@ -21,7 +23,8 @@ namespace CrimsonDraft.Combat
             IShotCountView       shotCountView,
             IBattlefieldView     battlefieldView,
             IAimView             aimView,
-            IOperatorRoster      roster)
+            IOperatorRoster      roster,
+            CombatSfxData?       sfx = null)
         {
             this.context         = context;
             this.commandPanel    = commandPanel;
@@ -29,6 +32,7 @@ namespace CrimsonDraft.Combat
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.sfx             = sfx;
         }
 
         public void Enter()
@@ -49,6 +53,7 @@ namespace CrimsonDraft.Combat
 
         public void OnConfirm()
         {
+            this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
             int max = GetMaxAvailable();
             this.context.SelectedShotCount = Mathf.Clamp(this.shotCountView.Value, 1, max);
             this.shotCountView.Hide();
@@ -70,8 +75,16 @@ namespace CrimsonDraft.Combat
 
         public void OnNavigate(Vector2 dir)
         {
-            if      (dir.x > 0.5f)  this.shotCountView.Increment();
-            else if (dir.x < -0.5f) this.shotCountView.Decrement();
+            if (dir.x > 0.5f)
+            {
+                this.shotCountView.Increment();
+                this.sfx?.PlayCursor(this.commandPanel.PanelRect.gameObject);
+            }
+            else if (dir.x < -0.5f)
+            {
+                this.shotCountView.Decrement();
+                this.sfx?.PlayCursor(this.commandPanel.PanelRect.gameObject);
+            }
         }
 
         private int GetMaxAvailable()
