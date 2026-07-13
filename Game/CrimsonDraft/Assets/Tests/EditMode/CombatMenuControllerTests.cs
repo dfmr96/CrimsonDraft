@@ -494,6 +494,11 @@ namespace CrimsonDraft.Tests
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
                 this.ammoByOperator.TryGetValue(index, out ammo);
+            private readonly Dictionary<int, float> healthByOperator = new();
+            public void SetOperatorHealth(int index, float hpRatio) =>
+                this.healthByOperator[index] = hpRatio;
+            public bool TryGetHealth(int index, out float hpRatio) =>
+                this.healthByOperator.TryGetValue(index, out hpRatio);
             public void SetDimmed(bool dimmed) { }
             public void SetOperatorDimmed(int index, bool dimmed) { }
             public RectTransform GetOperatorAnchor(int index) =>
@@ -534,7 +539,7 @@ namespace CrimsonDraft.Tests
             public event Action?      OnCancelled;
             public bool IsVisible             { get; private set; }
             public int  LastShownOperatorSlot { get; private set; } = -1;
-            public void Show(int operatorSlot)
+            public void Show(int operatorSlot, RectTransform operatorOverviewRect)
             {
                 this.LastShownOperatorSlot = operatorSlot;
                 this.IsVisible             = true;

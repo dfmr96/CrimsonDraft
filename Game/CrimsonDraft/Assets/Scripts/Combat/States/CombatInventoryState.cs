@@ -4,13 +4,15 @@ namespace CrimsonDraft.Combat
 {
     internal sealed class CombatInventoryState : ICombatMenuState
     {
-        private readonly CombatMenuController context;
-        private readonly ICombatInventoryView view;
+        private readonly CombatMenuController  context;
+        private readonly ICombatInventoryView  view;
+        private readonly ICombatActionMenuView menuView;
 
-        internal CombatInventoryState(CombatMenuController context, ICombatInventoryView view)
+        internal CombatInventoryState(CombatMenuController context, ICombatInventoryView view, ICombatActionMenuView menuView)
         {
-            this.context = context;
-            this.view    = view;
+            this.context  = context;
+            this.view     = view;
+            this.menuView = menuView;
         }
 
         public void Enter()
@@ -18,7 +20,7 @@ namespace CrimsonDraft.Combat
             this.context.Orchestrator.SetWaitMode(true);
             this.view.OnItemUsed   += HandleItemUsed;
             this.view.OnCancelled  += HandleCancelled;
-            this.view.Show(this.context.SelectedOperator);
+            this.view.Show(this.context.SelectedOperator, this.menuView.GetOperatorOverviewRect(this.context.SelectedOperator));
         }
 
         public void Exit()

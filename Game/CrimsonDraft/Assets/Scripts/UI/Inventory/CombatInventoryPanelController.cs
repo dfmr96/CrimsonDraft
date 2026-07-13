@@ -105,7 +105,7 @@ namespace CrimsonDraft.UI
 
         // ── ICombatInventoryView ─────────────────────────────────────────────
 
-        public void Show(int opSlot)
+        public void Show(int opSlot, RectTransform operatorOverviewRect)
         {
             this.operatorSlot      = opSlot;
             this.currentCell       = Vector2Int.zero;
@@ -113,9 +113,29 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineSlot = -1;
 
+            RepositionToOperator(operatorOverviewRect);
             PopulateGrid(opSlot);
             SetVisible(true);
             UpdateSelector();
+        }
+
+        // Keeps the panel's configured Y, but centers it horizontally on the
+        // selected operator's overview panel.
+        private void RepositionToOperator(RectTransform operatorOverviewRect)
+        {
+            var panel   = (RectTransform)this.transform;
+            var hudRoot = (RectTransform)this.transform.parent;
+
+            var corners = new Vector3[4];
+            operatorOverviewRect.GetWorldCorners(corners);
+            var center   = (corners[0] + corners[2]) * 0.5f;
+            var localPos = hudRoot.InverseTransformPoint(center);
+
+            float pivotCorrX = (panel.pivot.x - 0.5f) * panel.rect.width;
+            panel.localPosition = new Vector3(
+                localPos.x + pivotCorrX,
+                panel.localPosition.y,
+                panel.localPosition.z);
         }
 
         public void Hide()

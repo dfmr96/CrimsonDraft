@@ -41,6 +41,7 @@ namespace CrimsonDraft.Combat
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
             SyncAllOperatorAmmo();
+            SyncAllOperatorHealth();
 
             for (int i = 0; i < this.roster.Count; i++)
             {
@@ -87,6 +88,12 @@ namespace CrimsonDraft.Combat
                 var weapon = this.roster[i].ActiveWeapon;
                 this.menuView.SetOperatorAmmo(i, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
             }
+        }
+
+        private void SyncAllOperatorHealth()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio);
         }
     }
 }

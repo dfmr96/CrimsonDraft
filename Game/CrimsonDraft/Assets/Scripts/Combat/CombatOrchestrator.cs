@@ -349,14 +349,14 @@ namespace CrimsonDraft.Combat
 
         private void SyncAllEcgStates()
         {
-            if (this.ecgFeedback == null) return;
             for (int i = 0; i < this.roster.Count; i++)
             {
-                bool isPresent = this.roster[i].IsPresent;
-                this.ecgFeedback.SetOperatorHealthState(
-                    i,
-                    isPresent ? this.roster[i].HpRatio : 0f,
-                    isPresent && this.roster[i].IsAlive);
+                bool  isPresent = this.roster[i].IsPresent;
+                float hpRatio   = isPresent ? this.roster[i].HpRatio : 0f;
+                bool  isAlive   = isPresent && this.roster[i].IsAlive;
+
+                this.ecgFeedback?.SetOperatorHealthState(i, hpRatio, isAlive);
+                this.menuView.SetOperatorHealth(i, hpRatio);
             }
         }
     }
