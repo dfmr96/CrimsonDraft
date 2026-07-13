@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{3121381D-6B29-4F42-8E7A-143DB046A1B7}" SchemaVersion="103" RootDocumentID="{99E8520C-43C3-427B-BF00-71C81C799BAE}" ParentDocumentID="{99E8520C-43C3-427B-BF00-71C81C799BAE}">
+	<Events>
+		<WorkUnit Name="GameState" ID="{3121381D-6B29-4F42-8E7A-143DB046A1B7}" OwnerID="{99E8520C-43C3-427B-BF00-71C81C799BAE}" PersistMode="Nested">
+			<ChildrenList>
+				<Event Name="Set_ST_Lose" ID="{5B47D5FF-73CC-42FF-AAF0-192FF077BEE2}">
+					<ChildrenList>
+						<Action Name="" ID="{B4EB873C-6E88-4598-92BD-7CCB43C58584}" ShortID="97762350">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Lose" ID="{98C1D77E-1E9B-4AA6-BB8A-5332098A384A}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Set_ST_Win" ID="{D17E5C3F-C5D8-46DF-A933-92A6D5837D14}">
+					<ChildrenList>
+						<Action Name="" ID="{60FAF954-60FF-42E9-912F-70401763FD72}" ShortID="390340155">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Win" ID="{2DF1EBF8-BF66-4FA2-B2A9-240455D42ECA}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Set_ST_Playing" ID="{AB7A9B61-649C-4594-A400-55FF84558A28}">
+					<ChildrenList>
+						<Action Name="" ID="{CAF1F2FB-5D66-49F0-8D8E-CAC64D1878D3}" ShortID="320708024">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Playing" ID="{3C147623-3860-43C2-BAC2-57D3ADC3F505}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+			</ChildrenList>
+		</WorkUnit>
+	</Events>
+</WwiseDocument>

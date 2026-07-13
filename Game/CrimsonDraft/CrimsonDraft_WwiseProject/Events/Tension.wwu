@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{9FC70EBF-97F6-4EEC-A96E-F05F1497071B}" SchemaVersion="103" RootDocumentID="{99E8520C-43C3-427B-BF00-71C81C799BAE}" ParentDocumentID="{99E8520C-43C3-427B-BF00-71C81C799BAE}">
+	<Events>
+		<WorkUnit Name="Tension" ID="{9FC70EBF-97F6-4EEC-A96E-F05F1497071B}" OwnerID="{99E8520C-43C3-427B-BF00-71C81C799BAE}" PersistMode="Nested">
+			<ChildrenList>
+				<Event Name="Play_SFX_Step" ID="{B256B0BD-77CE-4AAB-A116-049F15B398B1}">
+					<ChildrenList>
+						<Action Name="" ID="{C34F772C-9FDB-47F2-85FE-53D246276796}" ShortID="372037779">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Surface" ID="{9697D2C8-0566-4289-9FF3-213D93B97F8F}" WorkUnitID="{DE45E4F7-A350-4CEE-896D-80B111610C2C}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_PickupObject" ID="{F0E5E264-7846-4846-8EC7-5233DC6C744E}">
+					<ChildrenList>
+						<Action Name="" ID="{12DA7ED8-74AB-42DD-A190-D40E178DDF5B}" ShortID="586372238">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="ObjectPickup" ID="{785BDB9B-42BC-4F2C-ABC3-01328645DE45}" WorkUnitID="{11D724F5-A599-487C-95DF-EB81F176161F}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_OpenDoor" ID="{17AB9DC5-2394-4E63-8441-68114446EFEB}">
+					<ChildrenList>
+						<Action Name="" ID="{75A48D1B-4EF9-4724-89FC-587D02EFBFF5}" ShortID="227781546">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="8"/>
+							</PropertyList>
+							<ReferenceList/>
+						</Action>
+						<Action Name="" ID="{0C8BF5CC-94D0-4EE0-82FE-1123927C4253}" ShortID="228897187">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="OpenCloseDoor" ID="{155CB4DE-7B62-40A2-8EAF-0049D70DCEA4}" WorkUnitID="{CDAD84F7-631C-40D9-8440-97C7BCA712FE}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Resume_All" ID="{F353A332-D866-417B-8E8A-AEBC508F0E6B}">
+					<ChildrenList>
+						<Action Name="" ID="{BD8FD483-76C4-48B4-954E-55F9896A20FD}" ShortID="741395046">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="10"/>
+							</PropertyList>
+							<ReferenceList/>
+						</Action>
+					</ChildrenList>
+				</Event>
+			</ChildrenList>
+		</WorkUnit>
+	</Events>
+</WwiseDocument>

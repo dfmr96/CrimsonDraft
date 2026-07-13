@@ -38,7 +38,7 @@ MonoBehaviour:
     ParentPath: Master-Mixer Hierarchy\Default Work Unit
     guid: fc0b7174e8cead4392f694a6912450e9
     GuidInternal: 
-    m_lastTime: -8584176870212252647
+    m_lastTime: -8584176616601961771
     List:
     - name: AUX_ReverbHallway
       guid: 0403c73ddf575c459a391ef293111748
@@ -143,7 +143,7 @@ MonoBehaviour:
     ParentPath: SoundBanks\Default Work Unit
     guid: dd7ecbeadfb6a84ab76e407ef35a9dcb
     GuidInternal: 
-    m_lastTime: -8584176830454264443
+    m_lastTime: -8584176469953237107
     List:
     - name: Final
       guid: b692e2f43598554cb06369a7c7ffd8aa
@@ -160,20 +160,7 @@ MonoBehaviour:
         guid: b692e2f43598554cb06369a7c7ffd8aa
       Path: SoundBanks\Default Work Unit\Final
   EventWwu:
-  - PhysicalPath: Events\Default Work Unit.wwu
-    PathAndIcons:
-    - ElementName: Events
-      ObjectType: 5
-      guid: 00000000000000000000000000000000
-    - ElementName: Default Work Unit
-      ObjectType: 12
-      guid: 57b2e766a3d95f4ab6734bbdbf4e2228
-    ParentPath: Events\Default Work Unit
-    guid: 57b2e766a3d95f4ab6734bbdbf4e2228
-    GuidInternal: 
-    m_lastTime: -8584176844898224467
-    List: []
-  - PhysicalPath: Events\Final.wwu
+  - PhysicalPath: Events\Ambience.wwu
     PathAndIcons:
     - ElementName: Events
       ObjectType: 5
@@ -181,99 +168,14 @@ MonoBehaviour:
     - ElementName: Final
       ObjectType: 12
       guid: 0c52e899c3437b42bf0071c81c799bae
-    ParentPath: Events\Final
-    guid: 0c52e899c3437b42bf0071c81c799bae
+    - ElementName: Ambience
+      ObjectType: 12
+      guid: 9926acf658d1154280d3291aca593f33
+    ParentPath: Events\Final\Ambience
+    guid: 9926acf658d1154280d3291aca593f33
     GuidInternal: 
-    m_lastTime: -8584176783043886709
+    m_lastTime: -8584176504693860753
     List:
-    - name: Ambience
-      guid: 4b0b39fccceec34e81989ef3b9fbe72b
-      id: 85412153
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Ambience
-        ObjectType: 4
-        guid: 4b0b39fccceec34e81989ef3b9fbe72b
-      Path: Events\Final\Ambience
-      maxAttenuation: 0
-      maxDuration: -1
-      minDuration: -1
-    - name: GameState
-      guid: 5d18f122ec125643950d9554a9295629
-      id: 4091656514
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: GameState
-        ObjectType: 4
-        guid: 5d18f122ec125643950d9554a9295629
-      Path: Events\Final\GameState
-      maxAttenuation: 0
-      maxDuration: -1
-      minDuration: -1
-    - name: Play_GameState
-      guid: e306de6918ff1d4f944ac99d55874b80
-      id: 1463903803
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: GameState
-        ObjectType: 4
-        guid: 5d18f122ec125643950d9554a9295629
-      - ElementName: Play_GameState
-        ObjectType: 3
-        guid: e306de6918ff1d4f944ac99d55874b80
-      Path: Events\Final\GameState\Play_GameState
-      maxAttenuation: 0
-      maxDuration: 0
-      minDuration: 0
-    - name: Play_OpenDoor
-      guid: c59dab179423634e844168114446efeb
-      id: 4143125550
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Play_OpenDoor
-        ObjectType: 3
-        guid: c59dab179423634e844168114446efeb
-      Path: Events\Final\Play_OpenDoor
-      maxAttenuation: 0
-      maxDuration: 4.28775
-      minDuration: 4.28775
-    - name: Play_PickupObject
-      guid: 64e2e5f0467846488ec75233dc6c744e
-      id: 3663969443
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Play_PickupObject
-        ObjectType: 3
-        guid: 64e2e5f0467846488ec75233dc6c744e
-      Path: Events\Final\Play_PickupObject
-      maxAttenuation: 0
-      maxDuration: 1.700862
-      minDuration: 1.700862
     - name: Play_SFX_Ambience
       guid: 5342bdfe9f5f9e4280f413580d63e178
       id: 724258642
@@ -285,8 +187,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: Ambience
-        ObjectType: 4
-        guid: 4b0b39fccceec34e81989ef3b9fbe72b
+        ObjectType: 12
+        guid: 9926acf658d1154280d3291aca593f33
       - ElementName: Play_SFX_Ambience
         ObjectType: 3
         guid: 5342bdfe9f5f9e4280f413580d63e178
@@ -294,40 +196,6 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
-    - name: Play_SFX_Step
-      guid: bdb056b2ce77ab4aa116049f15b398b1
-      id: 144961872
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Play_SFX_Step
-        ObjectType: 3
-        guid: bdb056b2ce77ab4aa116049f15b398b1
-      Path: Events\Final\Play_SFX_Step
-      maxAttenuation: 0
-      maxDuration: -1
-      minDuration: -1
-    - name: Resume_All
-      guid: 32a353f366d87b418e8aaebc508f0e6b
-      id: 3679762312
-      PathAndIcons:
-      - ElementName: Events
-        ObjectType: 5
-        guid: 00000000000000000000000000000000
-      - ElementName: Final
-        ObjectType: 12
-        guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Resume_All
-        ObjectType: 3
-        guid: 32a353f366d87b418e8aaebc508f0e6b
-      Path: Events\Final\Resume_All
-      maxAttenuation: 0
-      maxDuration: 0
-      minDuration: 0
     - name: Set_ST_Exterior
       guid: 897584f6958507419a65b0f14ae8aa21
       id: 2658221160
@@ -339,8 +207,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: Ambience
-        ObjectType: 4
-        guid: 4b0b39fccceec34e81989ef3b9fbe72b
+        ObjectType: 12
+        guid: 9926acf658d1154280d3291aca593f33
       - ElementName: Set_ST_Exterior
         ObjectType: 3
         guid: 897584f6958507419a65b0f14ae8aa21
@@ -359,8 +227,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: Ambience
-        ObjectType: 4
-        guid: 4b0b39fccceec34e81989ef3b9fbe72b
+        ObjectType: 12
+        guid: 9926acf658d1154280d3291aca593f33
       - ElementName: Set_ST_Hallway
         ObjectType: 3
         guid: 767d69e1ca3e68469ea6bb474008dfd1
@@ -368,6 +236,65 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0
       minDuration: 0
+  - PhysicalPath: Events\Default Work Unit.wwu
+    PathAndIcons:
+    - ElementName: Events
+      ObjectType: 5
+      guid: 00000000000000000000000000000000
+    - ElementName: Default Work Unit
+      ObjectType: 12
+      guid: 57b2e766a3d95f4ab6734bbdbf4e2228
+    ParentPath: Events\Default Work Unit
+    guid: 57b2e766a3d95f4ab6734bbdbf4e2228
+    GuidInternal: 
+    m_lastTime: -8584176616602011817
+    List: []
+  - PhysicalPath: Events\Final.wwu
+    PathAndIcons:
+    - ElementName: Events
+      ObjectType: 5
+      guid: 00000000000000000000000000000000
+    - ElementName: Final
+      ObjectType: 12
+      guid: 0c52e899c3437b42bf0071c81c799bae
+    ParentPath: Events\Final
+    guid: 0c52e899c3437b42bf0071c81c799bae
+    GuidInternal: 
+    m_lastTime: -8584176468609479733
+    List:
+    - name: StopAll
+      guid: 732ae9f3e5e75043b625403f22bd442a
+      id: 3086540886
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: StopAll
+        ObjectType: 3
+        guid: 732ae9f3e5e75043b625403f22bd442a
+      Path: Events\Final\StopAll
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
+  - PhysicalPath: Events\GameState.wwu
+    PathAndIcons:
+    - ElementName: Events
+      ObjectType: 5
+      guid: 00000000000000000000000000000000
+    - ElementName: Final
+      ObjectType: 12
+      guid: 0c52e899c3437b42bf0071c81c799bae
+    - ElementName: GameState
+      ObjectType: 12
+      guid: 1d382131296b424f8e7a143db046a1b7
+    ParentPath: Events\Final\GameState
+    guid: 1d382131296b424f8e7a143db046a1b7
+    GuidInternal: 
+    m_lastTime: -8584176492018324113
+    List:
     - name: Set_ST_Lose
       guid: ffd5475bcc73ff42aaf0192ff077bee2
       id: 745949601
@@ -379,8 +306,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: GameState
-        ObjectType: 4
-        guid: 5d18f122ec125643950d9554a9295629
+        ObjectType: 12
+        guid: 1d382131296b424f8e7a143db046a1b7
       - ElementName: Set_ST_Lose
         ObjectType: 3
         guid: ffd5475bcc73ff42aaf0192ff077bee2
@@ -399,8 +326,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: GameState
-        ObjectType: 4
-        guid: 5d18f122ec125643950d9554a9295629
+        ObjectType: 12
+        guid: 1d382131296b424f8e7a143db046a1b7
       - ElementName: Set_ST_Playing
         ObjectType: 3
         guid: 619b7aab9c649445a40055ff84558a28
@@ -419,8 +346,8 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: GameState
-        ObjectType: 4
-        guid: 5d18f122ec125643950d9554a9295629
+        ObjectType: 12
+        guid: 1d382131296b424f8e7a143db046a1b7
       - ElementName: Set_ST_Win
         ObjectType: 3
         guid: 3f5c7ed1d8c5df46a93392a6d5837d14
@@ -428,6 +355,82 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0
       minDuration: 0
+  - PhysicalPath: Events\Music.wwu
+    PathAndIcons:
+    - ElementName: Events
+      ObjectType: 5
+      guid: 00000000000000000000000000000000
+    - ElementName: Final
+      ObjectType: 12
+      guid: 0c52e899c3437b42bf0071c81c799bae
+    - ElementName: Music
+      ObjectType: 12
+      guid: f5afc6557608dc49b9cb2705e1530c06
+    ParentPath: Events\Final\Music
+    guid: f5afc6557608dc49b9cb2705e1530c06
+    GuidInternal: 
+    m_lastTime: -8584176504693729921
+    List:
+    - name: Play_Defeat
+      guid: 3ce3b689abb40543acaf4d1af42ada61
+      id: 324646143
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Music
+        ObjectType: 12
+        guid: f5afc6557608dc49b9cb2705e1530c06
+      - ElementName: Play_Defeat
+        ObjectType: 3
+        guid: 3ce3b689abb40543acaf4d1af42ada61
+      Path: Events\Final\Music\Play_Defeat
+      maxAttenuation: 0
+      maxDuration: 112.18895
+      minDuration: 112.18895
+    - name: Play_GameState
+      guid: e306de6918ff1d4f944ac99d55874b80
+      id: 1463903803
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Music
+        ObjectType: 12
+        guid: f5afc6557608dc49b9cb2705e1530c06
+      - ElementName: Play_GameState
+        ObjectType: 3
+        guid: e306de6918ff1d4f944ac99d55874b80
+      Path: Events\Final\Music\Play_GameState
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
+    - name: Play_Victory
+      guid: 0ec4bab4cd202c4b889116898e1ac797
+      id: 2453267296
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Music
+        ObjectType: 12
+        guid: f5afc6557608dc49b9cb2705e1530c06
+      - ElementName: Play_Victory
+        ObjectType: 3
+        guid: 0ec4bab4cd202c4b889116898e1ac797
+      Path: Events\Final\Music\Play_Victory
+      maxAttenuation: 0
+      maxDuration: 59.52
+      minDuration: 59.52
     - name: Set_Tension_01
       guid: 064dc15f75f21d4592ca9566563b3c46
       id: 134307522
@@ -438,13 +441,13 @@ MonoBehaviour:
       - ElementName: Final
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Tension
-        ObjectType: 4
-        guid: 934de3f17b1f6d4eb45d028dffb66277
+      - ElementName: Music
+        ObjectType: 12
+        guid: f5afc6557608dc49b9cb2705e1530c06
       - ElementName: Set_Tension_01
         ObjectType: 3
         guid: 064dc15f75f21d4592ca9566563b3c46
-      Path: Events\Final\Tension\Set_Tension_01
+      Path: Events\Final\Music\Set_Tension_01
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
@@ -458,19 +461,35 @@ MonoBehaviour:
       - ElementName: Final
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
-      - ElementName: Tension
-        ObjectType: 4
-        guid: 934de3f17b1f6d4eb45d028dffb66277
+      - ElementName: Music
+        ObjectType: 12
+        guid: f5afc6557608dc49b9cb2705e1530c06
       - ElementName: Set_Tension_02
         ObjectType: 3
         guid: 5877035f8f8e5d49be03de9a5e470751
-      Path: Events\Final\Tension\Set_Tension_02
+      Path: Events\Final\Music\Set_Tension_02
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
-    - name: Tension
-      guid: 934de3f17b1f6d4eb45d028dffb66277
-      id: 1571361561
+  - PhysicalPath: Events\Tension.wwu
+    PathAndIcons:
+    - ElementName: Events
+      ObjectType: 5
+      guid: 00000000000000000000000000000000
+    - ElementName: Final
+      ObjectType: 12
+      guid: 0c52e899c3437b42bf0071c81c799bae
+    - ElementName: Tension
+      ObjectType: 12
+      guid: bf0ec79ff697ec4ea96ef05f1497071b
+    ParentPath: Events\Final\Tension
+    guid: bf0ec79ff697ec4ea96ef05f1497071b
+    GuidInternal: 
+    m_lastTime: -8584176492084199570
+    List:
+    - name: Play_OpenDoor
+      guid: c59dab179423634e844168114446efeb
+      id: 4143125550
       PathAndIcons:
       - ElementName: Events
         ObjectType: 5
@@ -479,12 +498,75 @@ MonoBehaviour:
         ObjectType: 12
         guid: 0c52e899c3437b42bf0071c81c799bae
       - ElementName: Tension
-        ObjectType: 4
-        guid: 934de3f17b1f6d4eb45d028dffb66277
-      Path: Events\Final\Tension
+        ObjectType: 12
+        guid: bf0ec79ff697ec4ea96ef05f1497071b
+      - ElementName: Play_OpenDoor
+        ObjectType: 3
+        guid: c59dab179423634e844168114446efeb
+      Path: Events\Final\Tension\Play_OpenDoor
+      maxAttenuation: 0
+      maxDuration: 4.28775
+      minDuration: 4.28775
+    - name: Play_PickupObject
+      guid: 64e2e5f0467846488ec75233dc6c744e
+      id: 3663969443
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Tension
+        ObjectType: 12
+        guid: bf0ec79ff697ec4ea96ef05f1497071b
+      - ElementName: Play_PickupObject
+        ObjectType: 3
+        guid: 64e2e5f0467846488ec75233dc6c744e
+      Path: Events\Final\Tension\Play_PickupObject
+      maxAttenuation: 0
+      maxDuration: 1.700862
+      minDuration: 1.700862
+    - name: Play_SFX_Step
+      guid: bdb056b2ce77ab4aa116049f15b398b1
+      id: 144961872
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Tension
+        ObjectType: 12
+        guid: bf0ec79ff697ec4ea96ef05f1497071b
+      - ElementName: Play_SFX_Step
+        ObjectType: 3
+        guid: bdb056b2ce77ab4aa116049f15b398b1
+      Path: Events\Final\Tension\Play_SFX_Step
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
+    - name: Resume_All
+      guid: 32a353f366d87b418e8aaebc508f0e6b
+      id: 3679762312
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Final
+        ObjectType: 12
+        guid: 0c52e899c3437b42bf0071c81c799bae
+      - ElementName: Tension
+        ObjectType: 12
+        guid: bf0ec79ff697ec4ea96ef05f1497071b
+      - ElementName: Resume_All
+        ObjectType: 3
+        guid: 32a353f366d87b418e8aaebc508f0e6b
+      Path: Events\Final\Tension\Resume_All
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
   RtpcWwu:
   - PhysicalPath: Game Parameters\Default Work Unit.wwu
     PathAndIcons:
@@ -497,7 +579,7 @@ MonoBehaviour:
     ParentPath: Game Parameters\Default Work Unit
     guid: e6bff76c84eade4fbff47c911c16ea04
     GuidInternal: 
-    m_lastTime: -8584176874379548361
+    m_lastTime: -8584176616602001804
     List:
     - name: Ocean_Intensity
       guid: 13e3adf3ba9f7348883094f0206272bb
@@ -552,7 +634,7 @@ MonoBehaviour:
     ParentPath: Game Parameters\Final
     guid: a5c6c3adf064574ab01ec351de899e73
     GuidInternal: 
-    m_lastTime: -8584176870165172622
+    m_lastTime: -8584176616601991803
     List: []
   StateWwu:
   - PhysicalPath: States\Default Work Unit.wwu
@@ -566,7 +648,7 @@ MonoBehaviour:
     ParentPath: States\Default Work Unit
     guid: e4c830dd03c0cd4fa658f53d8f5d6305
     GuidInternal: 
-    m_lastTime: -8584176870212327625
+    m_lastTime: -8584176616600530421
     List: []
   - PhysicalPath: States\Final.wwu
     PathAndIcons:
@@ -579,7 +661,7 @@ MonoBehaviour:
     ParentPath: States\Final
     guid: 802162da3f031846b7f8c741c221bf92
     GuidInternal: 
-    m_lastTime: -8584176869479917635
+    m_lastTime: -8584176616600530421
     List:
     - name: STG_GameState
       guid: f84addda6d1d3c47886d6e3d1f495748
@@ -741,7 +823,7 @@ MonoBehaviour:
     ParentPath: Switches\Default Work Unit
     guid: eb33d2558e29ab429ea54694cff104ce
     GuidInternal: 
-    m_lastTime: -8584176874364918321
+    m_lastTime: -8584176616600520412
     List: []
   - PhysicalPath: Switches\Final.wwu
     PathAndIcons:
@@ -754,7 +836,7 @@ MonoBehaviour:
     ParentPath: Switches\Final
     guid: 940a5436a4caca4cbe0d6fb219de1923
     GuidInternal: 
-    m_lastTime: -8584176873093960211
+    m_lastTime: -8584176616600520412
     List:
     - name: SWG_Tension
       guid: cff1178fc4f3fe44879ee52dd6373adc
@@ -836,9 +918,9 @@ MonoBehaviour:
     GuidInternal: 
     m_lastTime: -8584176874364788321
     List: []
-  ExpandedFileSystemItemIds: 0100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000e00000010000000120000001300000015000000160000001700000018000000190000001a0000001c0000001d0000001e0000001f00000021000000220000002400000025000000260000002b0000003600000037000000
-  ExpandedWaapiItemIds: 0100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000e00000010000000120000001300000015000000160000001700000018000000190000001a0000001c0000001d0000001e0000001f00000021000000220000002400000025000000260000002b000000
-  AutoSyncSelection: 1
-  autoPopulateEnabled: 1
-  currentDataSource: 1
+  ExpandedFileSystemItemIds: 0100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000e0000001000000012000000130000001400000015000000160000001700000018000000190000001a0000001c0000001d0000001e0000001f00000021000000220000002400000025000000260000002b00000036000000370000008a0000008c0000008e000000
+  ExpandedWaapiItemIds: 0100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000e0000001000000012000000130000001400000015000000160000001700000018000000190000001a0000001c0000001d0000001e0000001f00000021000000220000002400000025000000260000002b00000036000000370000008a0000008c0000008e000000
+  AutoSyncSelection: 0
+  autoPopulateEnabled: 0
+  currentDataSource: 0
   CurrentPluginConfig: Profile
