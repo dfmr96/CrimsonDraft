@@ -31,6 +31,7 @@ namespace AK
         static const AkUniqueID PLAY_WEATHERBC = 384760087U;
         static const AkUniqueID PLAY_ZOMBIE_DAMAGE = 876165436U;
         static const AkUniqueID PLAY_ZOMBIESC = 2417702238U;
+        static const AkUniqueID STOP_RADIO = 151474297U;
     } // namespace EVENTS
 
     namespace STATES
