@@ -1,0 +1,748 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}" SchemaVersion="103">
+	<InteractiveMusic>
+		<WorkUnit Name="Final" ID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}" PersistMode="Standalone">
+			<ChildrenList>
+				<Folder Name="Assets" ID="{1BB2988D-17BE-487F-817C-BF712731FE3D}" ShortID="612458674">
+					<ChildrenList>
+						<MusicSegment Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{A6B2FF26-1EEB-4EC2-B2E3-838FDEC3CE31}" ShortID="398072738">
+							<PropertyList>
+								<Property Name="EndPosition" Type="Real64" Value="205021.317188601"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{BD182679-AAF9-4FA9-8AD7-E02C9D1FF3A0}" ShortID="958474016">
+									<ReferenceList>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{BC2DF7EB-F989-4875-B342-3C3E1E01D956}">
+											<Language>SFX</Language>
+											<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="562214868"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<TransitionList>
+										<MusicTransition Name="Root" ID="{9D12AC87-3204-46E0-B92D-4A0F383CDDDC}">
+											<PropertyList>
+												<Property Name="IsFolder" Type="bool" Value="True"/>
+											</PropertyList>
+											<TransitionInfo/>
+										</MusicTransition>
+									</TransitionList>
+									<ObjectLists>
+										<ObjectList Name="Sequences">
+											<Reference>
+												<Local>
+													<MusicTrackSequence Name="" ID="{A82AB7C9-2C94-4570-8B91-8E8B2D32F1AC}">
+														<ObjectLists>
+															<ObjectList Name="Clips">
+																<Reference>
+																	<Local>
+																		<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{F80F7027-8B4E-496E-AD64-4539AFD3D613}">
+																			<PropertyList>
+																				<Property Name="BeginTrimOffset" Type="Real64" Value="163.701521751226"/>
+																				<Property Name="EndTrimOffset" Type="Real64" Value="155200.34209233"/>
+																				<Property Name="PlayAt" Type="Real64" Value="-163.701521751226"/>
+																			</PropertyList>
+																			<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{BC2DF7EB-F989-4875-B342-3C3E1E01D956}"/>
+																			<PropertyCurveList>
+																				<PropertyCurve PropertyName="Highpass">
+																					<Curve Name="" ID="{B633E5B7-78F8-4275-B78F-C53B19AAD9BC}">
+																						<PropertyList>
+																							<Property Name="Flags" Type="int32" Value="1"/>
+																						</PropertyList>
+																						<PointList>
+																							<Point>
+																								<XPos>0.1637</XPos>
+																								<YPos>0</YPos>
+																								<Flags>5</Flags>
+																							</Point>
+																							<Point>
+																								<XPos>155.20034</XPos>
+																								<YPos>0</YPos>
+																								<Flags>37</Flags>
+																							</Point>
+																						</PointList>
+																					</Curve>
+																				</PropertyCurve>
+																				<PropertyCurve PropertyName="Lowpass">
+																					<Curve Name="" ID="{F4626F8D-388D-46AE-8B0C-BB38FF1E32DB}">
+																						<PropertyList>
+																							<Property Name="Flags" Type="int32" Value="1"/>
+																						</PropertyList>
+																						<PointList>
+																							<Point>
+																								<XPos>0.1637</XPos>
+																								<YPos>0</YPos>
+																								<Flags>5</Flags>
+																							</Point>
+																							<Point>
+																								<XPos>155.20034</XPos>
+																								<YPos>0</YPos>
+																								<Flags>37</Flags>
+																							</Point>
+																						</PointList>
+																					</Curve>
+																				</PropertyCurve>
+																				<PropertyCurve PropertyName="Volume">
+																					<Curve Name="" ID="{4D5C353C-45FD-4A51-A8FB-25CF73558B01}">
+																						<PropertyList>
+																							<Property Name="Flags" Type="int32" Value="3"/>
+																						</PropertyList>
+																						<PointList>
+																							<Point>
+																								<XPos>0.1637</XPos>
+																								<YPos>0</YPos>
+																								<Flags>5</Flags>
+																							</Point>
+																							<Point>
+																								<XPos>155.20034</XPos>
+																								<YPos>0</YPos>
+																								<Flags>37</Flags>
+																							</Point>
+																						</PointList>
+																					</Curve>
+																				</PropertyCurve>
+																			</PropertyCurveList>
+																		</MusicClip>
+																	</Local>
+																</Reference>
+															</ObjectList>
+														</ObjectLists>
+													</MusicTrackSequence>
+												</Local>
+											</Reference>
+										</ObjectList>
+									</ObjectLists>
+								</MusicTrack>
+							</ChildrenList>
+							<ObjectLists>
+								<ObjectList Name="Cues">
+									<Reference>
+										<Local>
+											<MusicCue Name="Entry Cue" ID="{C4150557-068D-4CA2-913A-C26231495F49}"/>
+										</Local>
+									</Reference>
+									<Reference>
+										<Local>
+											<MusicCue Name="Exit Cue" ID="{EFB8E409-CA11-4D1E-AC1E-13ADE353F402}">
+												<PropertyList>
+													<Property Name="CueType" Type="int16" Value="1"/>
+													<Property Name="TimeMs" Type="Real64" Value="22455.1300215407"/>
+												</PropertyList>
+											</MusicCue>
+										</Local>
+									</Reference>
+								</ObjectList>
+							</ObjectLists>
+						</MusicSegment>
+					</ChildrenList>
+				</Folder>
+				<MusicSwitchContainer Name="Mistery" ID="{6A260F1E-70B9-47C5-94FE-5FA0AB26653D}" ShortID="218868149">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<MusicPlaylistContainer Name="Tension_01" ID="{7AC958B5-1426-4A89-9A97-762E79D1B37D}" ShortID="665940960">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<MusicSegment Name="Mistery_01" ID="{B3BD92AB-B2BC-482A-9AFA-92E130DE9380}" ShortID="636639196">
+									<PropertyList>
+										<Property Name="EndPosition" Type="Real64" Value="59807.5778696984"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{50C2979A-87C2-4219-90D6-0B06270A3C26}" ShortID="966360999">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{AF6FE685-B34B-4EE1-9FA8-61390535C0CD}">
+													<Language>SFX</Language>
+													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="562214868"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<TransitionList>
+												<MusicTransition Name="Root" ID="{6AF36279-55AE-4D9D-9E41-391544D8F348}">
+													<PropertyList>
+														<Property Name="IsFolder" Type="bool" Value="True"/>
+													</PropertyList>
+													<TransitionInfo/>
+												</MusicTransition>
+											</TransitionList>
+											<ObjectLists>
+												<ObjectList Name="Sequences">
+													<Reference>
+														<Local>
+															<MusicTrackSequence Name="" ID="{79BD2B9A-D8A6-46F4-94CE-19F2237161C8}">
+																<ObjectLists>
+																	<ObjectList Name="Clips">
+																		<Reference>
+																			<Local>
+																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{8DAF6DF0-8B78-442B-9E79-11382BD80431}">
+																					<PropertyList>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="6106.31609335794"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="59106.3160933579"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="1698.2863130005"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-6106.31609335794"/>
+																					</PropertyList>
+																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{AF6FE685-B34B-4EE1-9FA8-61390535C0CD}"/>
+																					<PropertyCurveList>
+																						<PropertyCurve PropertyName="Highpass">
+																							<Curve Name="" ID="{9EF6A2C6-FAB9-489F-A4F6-E444352CF23D}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>59.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Lowpass">
+																							<Curve Name="" ID="{2FD78FDC-A29B-42E4-9225-4CE25F70F315}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>59.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Volume">
+																							<Curve Name="" ID="{6C58A110-3812-4485-88AB-5EB141C268A5}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="3"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>59.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																					</PropertyCurveList>
+																				</MusicClip>
+																			</Local>
+																		</Reference>
+																	</ObjectList>
+																</ObjectLists>
+															</MusicTrackSequence>
+														</Local>
+													</Reference>
+												</ObjectList>
+											</ObjectLists>
+										</MusicTrack>
+									</ChildrenList>
+									<ObjectLists>
+										<ObjectList Name="Cues">
+											<Reference>
+												<Local>
+													<MusicCue Name="Entry Cue" ID="{A16C85BC-F1BE-413F-B10B-6AE058F51BAE}">
+														<PropertyList>
+															<Property Name="TimeMs" Type="Real64" Value="6000"/>
+														</PropertyList>
+													</MusicCue>
+												</Local>
+											</Reference>
+											<Reference>
+												<Local>
+													<MusicCue Name="Exit Cue" ID="{918C22F0-5FED-4EB7-88AE-8DB006090F97}">
+														<PropertyList>
+															<Property Name="CueType" Type="int16" Value="1"/>
+															<Property Name="TimeMs" Type="Real64" Value="46000"/>
+														</PropertyList>
+													</MusicCue>
+												</Local>
+											</Reference>
+										</ObjectList>
+									</ObjectLists>
+								</MusicSegment>
+							</ChildrenList>
+							<TransitionList>
+								<MusicTransition Name="Root" ID="{F3E0BBD2-E61C-493D-9960-588580DC38EA}">
+									<PropertyList>
+										<Property Name="IsFolder" Type="bool" Value="True"/>
+									</PropertyList>
+									<ChildrenList>
+										<MusicTransition Name="Transition" ID="{1A7AB193-0722-4E2F-A381-10DD7737E40C}">
+											<TransitionInfo/>
+										</MusicTransition>
+									</ChildrenList>
+									<TransitionInfo/>
+								</MusicTransition>
+							</TransitionList>
+							<ObjectLists/>
+							<Playlist>
+								<MusicPlaylistItem Name="" ID="{8CCB6133-90E2-4ECE-89B8-26EAF2B11772}" ShortID="347152938">
+									<PropertyList>
+										<Property Name="LoopCount" Type="int16" Value="0"/>
+									</PropertyList>
+									<ChildrenList>
+										<MusicPlaylistItem Name="" ID="{4CB661E8-6750-4A86-BDE6-923A578C29B4}" ShortID="613724474">
+											<PropertyList>
+												<Property Name="LoopCount" Type="int16" Value="0"/>
+												<Property Name="PlaylistItemType" Type="int16" Value="1"/>
+											</PropertyList>
+											<SegmentRef Name="Mistery_01" ID="{B3BD92AB-B2BC-482A-9AFA-92E130DE9380}"/>
+										</MusicPlaylistItem>
+									</ChildrenList>
+								</MusicPlaylistItem>
+							</Playlist>
+						</MusicPlaylistContainer>
+						<MusicPlaylistContainer Name="Tension_02" ID="{170C186F-9C7A-4661-916E-60048C8F25AF}" ShortID="301824555">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<MusicSegment Name="Mistery_02" ID="{CFDA924F-FC55-416A-A353-4FE0411E3394}" ShortID="861961703">
+									<PropertyList>
+										<Property Name="EndPosition" Type="Real64" Value="54673.0992287877"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{E2BD252C-21D8-4739-AF21-238C7E2F579E}" ShortID="817939566">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{A5330D83-0D7D-4B5A-93AD-6BC9D4CEACB4}">
+													<Language>SFX</Language>
+													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="562214868"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<TransitionList>
+												<MusicTransition Name="Root" ID="{4EE09DEB-44E6-4C62-B834-C94B2A6EC45C}">
+													<PropertyList>
+														<Property Name="IsFolder" Type="bool" Value="True"/>
+													</PropertyList>
+													<TransitionInfo/>
+												</MusicTransition>
+											</TransitionList>
+											<ObjectLists>
+												<ObjectList Name="Sequences">
+													<Reference>
+														<Local>
+															<MusicTrackSequence Name="" ID="{D04D77BC-732D-41D8-9853-34B695413F9A}">
+																<ObjectLists>
+																	<ObjectList Name="Clips">
+																		<Reference>
+																			<Local>
+																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{4AF18C64-C404-4953-B21C-A1E5BE32D26F}">
+																					<PropertyList>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="6106.31609335794"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="58106.3160933579"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="2736.73039481889"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-6106.31609335794"/>
+																					</PropertyList>
+																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{A5330D83-0D7D-4B5A-93AD-6BC9D4CEACB4}"/>
+																					<PropertyCurveList>
+																						<PropertyCurve PropertyName="Highpass">
+																							<Curve Name="" ID="{077BFD8C-601A-402C-AC42-79C182300116}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>58.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Lowpass">
+																							<Curve Name="" ID="{E6182E91-A578-46C9-85B3-BA2057A02E6C}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>58.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Volume">
+																							<Curve Name="" ID="{A3FE3C76-7AC6-4989-93EC-8709621095D3}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="3"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>6.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>58.10632</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																					</PropertyCurveList>
+																				</MusicClip>
+																			</Local>
+																		</Reference>
+																	</ObjectList>
+																</ObjectLists>
+															</MusicTrackSequence>
+														</Local>
+													</Reference>
+												</ObjectList>
+											</ObjectLists>
+										</MusicTrack>
+										<MusicTrack Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION_01" ID="{F4CAF2E0-D0BD-4857-AE47-35F5DB2E3DF8}" ShortID="769052246">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{5653EB02-68EB-407B-9101-69EB19C85AEC}">
+													<Language>SFX</Language>
+													<AudioFile>Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="562214868"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<TransitionList>
+												<MusicTransition Name="Root" ID="{0A174661-2D68-40FB-90B2-6C18850679FE}">
+													<PropertyList>
+														<Property Name="IsFolder" Type="bool" Value="True"/>
+													</PropertyList>
+													<TransitionInfo/>
+												</MusicTransition>
+											</TransitionList>
+											<ObjectLists>
+												<ObjectList Name="Sequences">
+													<Reference>
+														<Local>
+															<MusicTrackSequence Name="" ID="{F75D244B-D9DE-4603-9E51-C8327987ED28}">
+																<ObjectLists>
+																	<ObjectList Name="Clips">
+																		<Reference>
+																			<Local>
+																				<MusicClip Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{6CFE62B4-9D93-4DC5-A007-5A31E07588A3}">
+																					<PropertyList>
+																						<Property Name="BeginTrimOffset" Type="Real64" Value="63624.5799585207"/>
+																						<Property Name="EndTrimOffset" Type="Real64" Value="110297.679187308"/>
+																						<Property Name="FadeInDuration" Type="Real64" Value="1094.69215792755"/>
+																						<Property Name="FadeOutDuration" Type="Real64" Value="1871.3603266369"/>
+																						<Property Name="PlayAt" Type="Real64" Value="-55624.5799585207"/>
+																					</PropertyList>
+																					<AudioSourceRef Name="Go-Back-to-Sleep-by-ROCK-BURWELL-from-OBSESSION" ID="{5653EB02-68EB-407B-9101-69EB19C85AEC}"/>
+																					<PropertyCurveList>
+																						<PropertyCurve PropertyName="Highpass">
+																							<Curve Name="" ID="{EC295597-C4A9-412A-B8EB-DCAF645240D4}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>63.62458</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>110.29768</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Lowpass">
+																							<Curve Name="" ID="{5DE89202-D48C-4C4F-B287-106D221037E4}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="1"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>63.62458</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>110.29768</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																						<PropertyCurve PropertyName="Volume">
+																							<Curve Name="" ID="{373E9D71-9922-48E0-9526-34F2A507E9AD}">
+																								<PropertyList>
+																									<Property Name="Flags" Type="int32" Value="3"/>
+																								</PropertyList>
+																								<PointList>
+																									<Point>
+																										<XPos>63.62458</XPos>
+																										<YPos>0</YPos>
+																										<Flags>5</Flags>
+																									</Point>
+																									<Point>
+																										<XPos>110.29768</XPos>
+																										<YPos>0</YPos>
+																										<Flags>37</Flags>
+																									</Point>
+																								</PointList>
+																							</Curve>
+																						</PropertyCurve>
+																					</PropertyCurveList>
+																				</MusicClip>
+																			</Local>
+																		</Reference>
+																	</ObjectList>
+																</ObjectLists>
+															</MusicTrackSequence>
+														</Local>
+													</Reference>
+												</ObjectList>
+											</ObjectLists>
+										</MusicTrack>
+									</ChildrenList>
+									<ObjectLists>
+										<ObjectList Name="Cues">
+											<Reference>
+												<Local>
+													<MusicCue Name="Entry Cue" ID="{E6EE80BD-5C8A-4044-9680-8E793C267A19}">
+														<PropertyList>
+															<Property Name="TimeMs" Type="Real64" Value="6000"/>
+														</PropertyList>
+													</MusicCue>
+												</Local>
+											</Reference>
+											<Reference>
+												<Local>
+													<MusicCue Name="Exit Cue" ID="{414969AA-C3BC-40DF-BB84-6020FB3DD92F}">
+														<PropertyList>
+															<Property Name="CueType" Type="int16" Value="1"/>
+															<Property Name="TimeMs" Type="Real64" Value="44000"/>
+														</PropertyList>
+													</MusicCue>
+												</Local>
+											</Reference>
+										</ObjectList>
+									</ObjectLists>
+								</MusicSegment>
+							</ChildrenList>
+							<TransitionList>
+								<MusicTransition Name="Root" ID="{56A162A2-6780-4A16-810F-1F30E9C59B72}">
+									<PropertyList>
+										<Property Name="IsFolder" Type="bool" Value="True"/>
+									</PropertyList>
+									<ChildrenList>
+										<MusicTransition Name="Transition" ID="{3AFD3185-1AD8-4158-9CFF-6D7BDDF7D1DF}">
+											<TransitionInfo/>
+										</MusicTransition>
+									</ChildrenList>
+									<TransitionInfo/>
+								</MusicTransition>
+							</TransitionList>
+							<ObjectLists/>
+							<Playlist>
+								<MusicPlaylistItem Name="" ID="{5E777F95-9CAE-4C0B-9A41-B1D6202C2D84}" ShortID="729137631">
+									<PropertyList>
+										<Property Name="LoopCount" Type="int16" Value="0"/>
+									</PropertyList>
+									<ChildrenList>
+										<MusicPlaylistItem Name="" ID="{189CF469-497D-4BC0-BF97-5F1535F825DA}" ShortID="29811453">
+											<PropertyList>
+												<Property Name="LoopCount" Type="int16" Value="0"/>
+												<Property Name="PlaylistItemType" Type="int16" Value="1"/>
+											</PropertyList>
+											<SegmentRef Name="Mistery_02" ID="{CFDA924F-FC55-416A-A353-4FE0411E3394}"/>
+										</MusicPlaylistItem>
+									</ChildrenList>
+								</MusicPlaylistItem>
+							</Playlist>
+						</MusicPlaylistContainer>
+					</ChildrenList>
+					<TransitionList>
+						<MusicTransition Name="Root" ID="{C51AFFA4-CA9A-485C-B767-412527ED107C}">
+							<PropertyList>
+								<Property Name="IsFolder" Type="bool" Value="True"/>
+							</PropertyList>
+							<ChildrenList>
+								<MusicTransition Name="Transition" ID="{10980BD0-AE7F-45C1-A83E-6615691782C9}">
+									<PropertyList>
+										<Property Name="EnableDestinationFadeIn" Type="bool" Value="True"/>
+										<Property Name="ExitSourceAt" Type="int16" Value="0"/>
+										<Property Name="UseTransitionObject" Type="bool" Value="True"/>
+									</PropertyList>
+									<TransitionInfo/>
+								</MusicTransition>
+								<MusicTransition Name="Transition" ID="{4AC526DE-9912-46EA-B433-5EAC03DC8092}">
+									<PropertyList>
+										<Property Name="DestinationContextType" Type="int16" Value="2"/>
+										<Property Name="DestinationJumpPositionPreset" Type="int16" Value="1"/>
+										<Property Name="EnableDestinationFadeIn" Type="bool" Value="True"/>
+										<Property Name="ExitSourceAt" Type="int16" Value="0"/>
+										<Property Name="SourceContextType" Type="int16" Value="2"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="DestinationContextObject">
+											<ObjectRef Name="Tension_02" ID="{170C186F-9C7A-4661-916E-60048C8F25AF}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}"/>
+										</Reference>
+										<Reference Name="SourceContextObject">
+											<ObjectRef Name="Tension_01" ID="{7AC958B5-1426-4A89-9A97-762E79D1B37D}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}"/>
+										</Reference>
+									</ReferenceList>
+									<TransitionInfo/>
+								</MusicTransition>
+								<MusicTransition Name="Transition" ID="{EBE31C4C-C78C-46A4-96B5-8C92789BD0CA}">
+									<PropertyList>
+										<Property Name="DestinationContextType" Type="int16" Value="2"/>
+										<Property Name="DestinationJumpPositionPreset" Type="int16" Value="1"/>
+										<Property Name="EnableSourceFadeOut" Type="bool" Value="True"/>
+										<Property Name="SourceContextType" Type="int16" Value="2"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="DestinationContextObject">
+											<ObjectRef Name="Tension_01" ID="{7AC958B5-1426-4A89-9A97-762E79D1B37D}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}"/>
+										</Reference>
+										<Reference Name="SourceContextObject">
+											<ObjectRef Name="Tension_02" ID="{170C186F-9C7A-4661-916E-60048C8F25AF}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}"/>
+										</Reference>
+									</ReferenceList>
+									<TransitionInfo/>
+								</MusicTransition>
+							</ChildrenList>
+							<TransitionInfo/>
+						</MusicTransition>
+					</TransitionList>
+					<ObjectLists/>
+					<ArgumentList>
+						<ArgumentRef Name="GameState" ID="{39775474-D6DD-4A10-BBB3-B33BF1AD9A38}"/>
+						<ArgumentRef Name="Tension" ID="{4C69B56A-36D4-4720-ACAF-047BD258D0E5}"/>
+					</ArgumentList>
+					<EntryList>
+						<Entry>
+							<Path>
+								<PathElementRef Name="InProgress" ID="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}"/>
+								<PathElementRef Name="Tension_01" ID="{6940FEA4-5A52-4F06-8178-33A2A68ECE65}"/>
+							</Path>
+							<AudioNodeInfo>
+								<AudioNodeRef Name="Tension_01" ID="{7AC958B5-1426-4A89-9A97-762E79D1B37D}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}" Platform="Linked"/>
+							</AudioNodeInfo>
+						</Entry>
+						<Entry>
+							<Path>
+								<PathElementRef Name="InProgress" ID="{7D00D250-8C27-4A43-B8C0-D0794E1B192C}"/>
+								<PathElementRef Name="Tension_02" ID="{44864371-392E-4AFE-B54F-18F11A94487C}"/>
+							</Path>
+							<AudioNodeInfo>
+								<AudioNodeRef Name="Tension_02" ID="{170C186F-9C7A-4661-916E-60048C8F25AF}" WorkUnitID="{49B3B322-F316-4411-BD7E-CD1B38E79E6C}" Platform="Linked"/>
+							</AudioNodeInfo>
+						</Entry>
+					</EntryList>
+				</MusicSwitchContainer>
+			</ChildrenList>
+		</WorkUnit>
+	</InteractiveMusic>
+</WwiseDocument>
