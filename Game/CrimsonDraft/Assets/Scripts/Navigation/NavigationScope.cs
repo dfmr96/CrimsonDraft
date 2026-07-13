@@ -112,6 +112,7 @@ namespace CrimsonDraft.Navigation
                    .AsSelf()
                    .AsImplementedInterfaces();
             builder.Register<MapStateTracker>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<WeatherAmbienceController>().AsImplementedInterfaces();
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
