@@ -4,18 +4,21 @@
 		<WorkUnit Name="Footsteps" ID="{DE45E4F7-A350-4CEE-896D-80B111610C2C}" PersistMode="Standalone">
 			<ChildrenList>
 				<SwitchContainer Name="Surface" ID="{9697D2C8-0566-4289-9FF3-213D93B97F8F}" ShortID="109251731">
+					<PropertyList>
+						<Property Name="SwitchBehavior" Type="int16" Value="1"/>
+					</PropertyList>
 					<ReferenceList>
 						<Reference Name="Conversion">
 							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
 						</Reference>
 						<Reference Name="DefaultSwitchOrState">
-							<ObjectRef Name="Walk" ID="{8641DD8A-FBB2-4F3D-8A96-A7255AFDA1F3}" WorkUnitID="{55D233EB-298E-42AB-9EA5-4694CFF104CE}"/>
+							<ObjectRef Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
 						</Reference>
 						<Reference Name="OutputBus">
 							<ObjectRef Name="Player" ID="{B091CA46-9ECD-4817-BA99-2C0CD3278422}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
 						</Reference>
 						<Reference Name="SwitchGroupOrStateGroup">
-							<ObjectRef Name="PlayerMovement" ID="{45D343C0-35B9-4051-A148-FB3454163E30}" WorkUnitID="{55D233EB-298E-42AB-9EA5-4694CFF104CE}"/>
+							<ObjectRef Name="STG_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
 						</Reference>
 					</ReferenceList>
 					<ChildrenList>
@@ -31,7 +34,6 @@
 								<Property Name="PlayMechanismSpecialTransitions" Type="bool" Value="True"/>
 								<Property Name="PlayMechanismSpecialTransitionsType" Type="int16" Value="1"/>
 								<Property Name="PlayMechanismSpecialTransitionsValue" Type="Real64" Value="0.1"/>
-								<Property Name="PlayMechanismStepOrContinuous" Type="int16" Value="0"/>
 								<Property Name="RandomAvoidRepeatingCount" Type="int32" Value="2"/>
 								<Property Name="Volume" Type="Real64">
 									<ValueList>
@@ -105,11 +107,6 @@
 								</Sound>
 								<Sound Name="SFX_Footstep_Metal_04" ID="{5200F45E-9CC8-418A-AFA6-D3FAFA706672}" ShortID="445651059">
 									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
 										<Property Name="Pitch" Type="int32">
 											<ValueList>
 												<Value>-350</Value>
@@ -171,11 +168,6 @@
 								</Sound>
 								<Sound Name="SFX_Footstep_Metal_05" ID="{D6EE9F02-4ED1-422F-8B96-41D7D2F71832}" ShortID="761898641">
 									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
 										<Property Name="Pitch" Type="int32">
 											<ValueList>
 												<Value>-130</Value>
@@ -245,596 +237,230 @@
 							</ChildrenList>
 							<ObjectLists/>
 						</RandomSequenceContainer>
+						<RandomSequenceContainer Name="Sand" ID="{97EF4074-AB63-460A-B8FB-CD227959DB80}" ShortID="1006010290">
+							<PropertyList>
+								<Property Name="Highpass" Type="int16">
+									<ValueList>
+										<Value>52</Value>
+									</ValueList>
+								</Property>
+								<Property Name="NormalOrShuffle" Type="int16" Value="0"/>
+								<Property Name="PlayMechanismLoop" Type="bool" Value="True"/>
+								<Property Name="RandomAvoidRepeatingCount" Type="int32" Value="2"/>
+								<Property Name="Volume" Type="Real64">
+									<ValueList>
+										<Value>-3</Value>
+									</ValueList>
+								</Property>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<Sound Name="SFX_Footstep_Sand_01" ID="{D0BD402E-901F-4B9F-8AFD-0A438639D926}" ShortID="302335994">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_1" ID="{1CC84DD5-9D4A-4DB3-A852-893B63F92A59}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.0093029310489628"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0514109347442681"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_1.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="724107994"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_1" ID="{1CC84DD5-9D4A-4DB3-A852-893B63F92A59}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Footstep_Sand_02" ID="{02163A82-23F9-4B53-8B6F-E50DD660D5FA}" ShortID="813605342">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_2" ID="{523FD3E7-39F6-45A5-8A50-E50CEF9E259A}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.0108481896312584"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0443360793625344"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_2.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="337234878"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_2" ID="{523FD3E7-39F6-45A5-8A50-E50CEF9E259A}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Footstep_Sand_03" ID="{24583617-298D-4E2E-B4E8-C93A61E62970}" ShortID="256314371">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_3" ID="{F8CF6288-F580-4C54-BED9-66580BB24058}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.00621165039154457"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0387033601319316"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_3.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="468357899"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_3" ID="{F8CF6288-F580-4C54-BED9-66580BB24058}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Footstep_Sand_04" ID="{841E8E48-976E-4DBE-B498-E648A021E240}" ShortID="520152946">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_4" ID="{F917C922-C64B-4A97-A9DD-EC0B21B39DA2}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.00856730571016285"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0628269085411942"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_4.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="1021232889"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_4" ID="{F917C922-C64B-4A97-A9DD-EC0B21B39DA2}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Footstep_Sand_05" ID="{604EBA11-A447-4E0E-AA24-704C607DBC32}" ShortID="1014169007">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_5" ID="{FD610CBC-CB89-43FC-B346-7DD290BD21CC}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.0162479417505873"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0390966098373506"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_5.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="722391449"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_5" ID="{FD610CBC-CB89-43FC-B346-7DD290BD21CC}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Footstep_Sand_06" ID="{1C64CC52-10E8-4CB0-AB99-A3BC2BDBDAC9}" ShortID="456711009">
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Builder_Game_Footstep_Walk_Snow_6" ID="{F770687A-3BD3-48B1-A094-E58050412953}">
+											<PropertyList>
+												<Property Name="FadeInDuration" Type="Real64" Value="0.0181283736839292"/>
+												<Property Name="FadeOutDuration" Type="Real64" Value="0.0383285615031647"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="0.15"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Builder_Game_Footstep_Walk_Snow_6.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="296533369"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Builder_Game_Footstep_Walk_Snow_6" ID="{F770687A-3BD3-48B1-A094-E58050412953}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+							</ChildrenList>
+							<ObjectLists/>
+						</RandomSequenceContainer>
 					</ChildrenList>
-					<StateInfo>
-						<StateGroupList>
-							<StateGroupInfo>
-								<StateGroupRef Name="PlayerMovement" ID="{1076A389-7B8A-45C3-B5D1-DA7315200574}"/>
-							</StateGroupInfo>
-						</StateGroupList>
-						<CustomStateList>
-							<CustomState>
-								<StateRef Name="Run" ID="{B7F8ACF7-DEAC-444D-A2DB-19E0737C7DCF}"/>
-								<CustomState Name="" ID="{22A61DB9-4E26-41A4-85EE-C1AA3FBF1D5B}" ShortID="589208675"/>
-							</CustomState>
-							<CustomState>
-								<StateRef Name="Walk" ID="{B6823742-569D-4CE7-9856-CF33BF180EF9}"/>
-								<CustomState Name="" ID="{25C5BB47-160D-4B86-B586-52E64C10809E}" ShortID="599849274"/>
-							</CustomState>
-						</CustomStateList>
-					</StateInfo>
 					<ObjectLists/>
 					<GroupingInfo>
 						<GroupingBehaviorList>
+							<GroupingBehavior>
+								<ItemRef Name="Sand" ID="{97EF4074-AB63-460A-B8FB-CD227959DB80}"/>
+							</GroupingBehavior>
 							<GroupingBehavior>
 								<ItemRef Name="Metal" ID="{10BEE47B-F9C0-4830-A500-370A434D7F20}"/>
 							</GroupingBehavior>
 						</GroupingBehaviorList>
-					</GroupingInfo>
-				</SwitchContainer>
-				<SwitchContainer Name="Movement" ID="{24917223-9506-4152-8ED9-535C1B8CDD5E}" ShortID="978516802">
-					<PropertyList>
-						<Property Name="SwitchBehavior" Type="int16" Value="1"/>
-					</PropertyList>
-					<ReferenceList>
-						<Reference Name="Conversion">
-							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-						</Reference>
-						<Reference Name="DefaultSwitchOrState">
-							<ObjectRef Name="Walk" ID="{8641DD8A-FBB2-4F3D-8A96-A7255AFDA1F3}" WorkUnitID="{55D233EB-298E-42AB-9EA5-4694CFF104CE}"/>
-						</Reference>
-						<Reference Name="OutputBus">
-							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-						</Reference>
-						<Reference Name="SwitchGroupOrStateGroup">
-							<ObjectRef Name="PlayerMovement" ID="{45D343C0-35B9-4051-A148-FB3454163E30}" WorkUnitID="{55D233EB-298E-42AB-9EA5-4694CFF104CE}"/>
-						</Reference>
-					</ReferenceList>
-					<ChildrenList>
-						<Sound Name="Footsteps_ running" ID="{8F08EF7A-07F4-45C4-AF85-65230ABF3DAA}" ShortID="233221119">
-							<PropertyList>
-								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
-							</PropertyList>
-							<ReferenceList>
-								<Reference Name="Conversion">
-									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-								</Reference>
-								<Reference Name="OutputBus">
-									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-								</Reference>
-							</ReferenceList>
-							<ChildrenList>
-								<AudioFileSource Name="Footsteps_ running" ID="{286EEAA5-B333-4404-839B-D991A63C2458}">
-									<Language>SFX</Language>
-									<AudioFile>Footsteps_ running.wav</AudioFile>
-									<MediaIDList>
-										<MediaID ID="51924260"/>
-									</MediaIDList>
-								</AudioFileSource>
-							</ChildrenList>
-							<ObjectLists/>
-							<ActiveSourceList>
-								<ActiveSource Name="Footsteps_ running" ID="{286EEAA5-B333-4404-839B-D991A63C2458}" Platform="Linked"/>
-							</ActiveSourceList>
-						</Sound>
-						<Sound Name="Footsteps_walking" ID="{6BCFE26E-2D65-46EC-BE00-CEB442AAE6FA}" ShortID="75072980">
-							<PropertyList>
-								<Property Name="Inclusion" Type="bool">
-									<ValueList>
-										<Value>False</Value>
-									</ValueList>
-								</Property>
-								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
-							</PropertyList>
-							<ReferenceList>
-								<Reference Name="Conversion">
-									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-								</Reference>
-								<Reference Name="OutputBus">
-									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-								</Reference>
-							</ReferenceList>
-							<ChildrenList>
-								<AudioFileSource Name="Footsteps_walking" ID="{3BD591C8-970B-4F32-842F-11961237114B}">
-									<Language>SFX</Language>
-									<AudioFile>Footsteps_walking.wav</AudioFile>
-									<MediaIDList>
-										<MediaID ID="518647212"/>
-									</MediaIDList>
-								</AudioFileSource>
-							</ChildrenList>
-							<ObjectLists/>
-							<ActiveSourceList>
-								<ActiveSource Name="Footsteps_walking" ID="{3BD591C8-970B-4F32-842F-11961237114B}" Platform="Linked"/>
-							</ActiveSourceList>
-						</Sound>
-						<RandomSequenceContainer Name="Walk" ID="{A386675E-3367-48BB-A132-7FEDE327EBEB}" ShortID="602758620">
-							<PropertyList>
-								<Property Name="NormalOrShuffle" Type="int16" Value="0"/>
-								<Property Name="Pitch" Type="int32">
-									<ValueList>
-										<Value>-200</Value>
-									</ValueList>
-								</Property>
-								<Property Name="PlayMechanismLoop" Type="bool" Value="True"/>
-								<Property Name="PlayMechanismSpecialTransitions" Type="bool" Value="True"/>
-								<Property Name="PlayMechanismSpecialTransitionsType" Type="int16" Value="1"/>
-								<Property Name="PlayMechanismSpecialTransitionsValue" Type="Real64" Value="0.1"/>
-								<Property Name="PlayMechanismStepOrContinuous" Type="int16" Value="0"/>
-								<Property Name="RandomAvoidRepeatingCount" Type="int32" Value="2"/>
-								<Property Name="Volume" Type="Real64">
-									<ValueList>
-										<Value>2</Value>
-									</ValueList>
-								</Property>
-							</PropertyList>
-							<ReferenceList>
-								<Reference Name="Conversion">
-									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-								</Reference>
-								<Reference Name="OutputBus">
-									<ObjectRef Name="Player" ID="{B091CA46-9ECD-4817-BA99-2C0CD3278422}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-								</Reference>
-							</ReferenceList>
-							<ChildrenList>
-								<Sound Name="SFX_Footstep_Metal_01" ID="{F50E6229-D86E-4E86-A329-35499D30FBA3}" ShortID="885853276">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 2" ID="{D9053D37-453C-4C95-BBEF-9501412CCC34}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00730786122090471"/>
-												<Property Name="FadeOutDuration" Type="Real64" Value="0.0365393061045236"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 2.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="58637128"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 2" ID="{D9053D37-453C-4C95-BBEF-9501412CCC34}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_02" ID="{3C4A8B9E-E6F2-453B-B23C-A9F8A0DAE4DC}" ShortID="594321354">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 24" ID="{86AA1B71-7BD9-48A2-8B3B-C04CC4CAFAF8}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.011945542380325"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 24.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="537506932"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 24" ID="{86AA1B71-7BD9-48A2-8B3B-C04CC4CAFAF8}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_04" ID="{F610BAE8-63E4-43B9-9D71-8E091F04E01C}" ShortID="255032203">
-									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-350</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 12" ID="{F81EC60D-88D3-45F6-B9C5-52996DF01ADD}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00322529644268772"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 12.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="15304823"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 12" ID="{F81EC60D-88D3-45F6-B9C5-52996DF01ADD}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_03" ID="{AB3E256B-01C0-46FF-ABC1-7D33500C4142}" ShortID="1048305800">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 27" ID="{82405DCE-A314-4110-9ACC-14FFC50282FC}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00664734299516907"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 27.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="795094609"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 27" ID="{82405DCE-A314-4110-9ACC-14FFC50282FC}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_05" ID="{DDACB45C-F82B-4FCE-BD41-3D8FF0365472}" ShortID="447110478">
-									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-130</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 14" ID="{41A2CF4F-E359-4D9A-AF3D-2AE84ED268AC}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00480632411067193"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 14.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="747069465"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 14" ID="{41A2CF4F-E359-4D9A-AF3D-2AE84ED268AC}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_06" ID="{1EA7891E-5C59-479E-BDD8-A6B1C5B05867}" ShortID="498762591">
-									<PropertyList>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-230</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 17" ID="{FC908219-2012-4F53-8D54-722344282D06}">
-											<PropertyList>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimBegin" Type="Real64" Value="0.0145595081247255"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 17.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="397554827"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 17" ID="{FC908219-2012-4F53-8D54-722344282D06}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-							</ChildrenList>
-							<ObjectLists/>
-						</RandomSequenceContainer>
-						<RandomSequenceContainer Name="Run" ID="{D636C563-DDB4-4B4A-A904-9F3D5A4E9485}" ShortID="857096257">
-							<PropertyList>
-								<Property Name="NormalOrShuffle" Type="int16" Value="0"/>
-								<Property Name="Pitch" Type="int32">
-									<ValueList>
-										<Value>-200</Value>
-									</ValueList>
-								</Property>
-								<Property Name="PlayMechanismLoop" Type="bool" Value="True"/>
-								<Property Name="PlayMechanismSpecialTransitions" Type="bool" Value="True"/>
-								<Property Name="PlayMechanismSpecialTransitionsType" Type="int16" Value="1"/>
-								<Property Name="PlayMechanismSpecialTransitionsValue" Type="Real64" Value="0.1"/>
-								<Property Name="PlayMechanismStepOrContinuous" Type="int16" Value="0"/>
-								<Property Name="RandomAvoidRepeatingCount" Type="int32" Value="2"/>
-								<Property Name="Volume" Type="Real64">
-									<ValueList>
-										<Value>2</Value>
-									</ValueList>
-								</Property>
-							</PropertyList>
-							<ReferenceList>
-								<Reference Name="Conversion">
-									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-								</Reference>
-								<Reference Name="OutputBus">
-									<ObjectRef Name="Player" ID="{B091CA46-9ECD-4817-BA99-2C0CD3278422}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-								</Reference>
-							</ReferenceList>
-							<ChildrenList>
-								<Sound Name="SFX_Footstep_Metal_01" ID="{6EACA862-25E7-40E0-86F0-5792F427EC96}" ShortID="820277288">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 2" ID="{A1A80D74-01F8-4567-B174-2147413A9F20}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00730786122090471"/>
-												<Property Name="FadeOutDuration" Type="Real64" Value="0.0365393061045236"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimEnd" Type="Real64" Value="0.225"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 2.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="263293343"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 2" ID="{A1A80D74-01F8-4567-B174-2147413A9F20}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_02" ID="{43678BE7-5FA1-49DA-81FC-E544B72CB04C}" ShortID="897513693">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 24" ID="{2C4D569B-34C7-410E-83B2-1B9FE859A71A}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.011945542380325"/>
-												<Property Name="FadeOutDuration" Type="Real64" Value="0.0474116523400191"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimEnd" Type="Real64" Value="0.225"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 24.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="276196158"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 24" ID="{2C4D569B-34C7-410E-83B2-1B9FE859A71A}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_04" ID="{CFED7D1D-CC47-462C-94D3-B821636D688A}" ShortID="282718600">
-									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-350</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 12" ID="{496CAEC9-0E64-4AC4-9B82-9356346C2E98}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00322529644268772"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 12.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="15304823"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 12" ID="{496CAEC9-0E64-4AC4-9B82-9356346C2E98}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_03" ID="{E422F3DD-030F-4A0D-AF4E-3C0A4C84A0CD}" ShortID="789293593">
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 27" ID="{BE99F0DE-9559-440C-AA56-05FF8164B572}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00664734299516907"/>
-												<Property Name="FadeOutDuration" Type="Real64" Value="0.0670257879656161"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimEnd" Type="Real64" Value="0.225"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Board Walk Barefoot Male - 27.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="911877295"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Board Walk Barefoot Male - 27" ID="{BE99F0DE-9559-440C-AA56-05FF8164B572}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_05" ID="{E9DCB943-7A42-484C-B7D2-75749F8BB518}" ShortID="951476715">
-									<PropertyList>
-										<Property Name="Inclusion" Type="bool">
-											<ValueList>
-												<Value>False</Value>
-											</ValueList>
-										</Property>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-130</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 14" ID="{FAD0592F-A443-4474-9B1D-BDA89B702A3D}">
-											<PropertyList>
-												<Property Name="FadeInDuration" Type="Real64" Value="0.00480632411067193"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 14.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="747069465"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 14" ID="{FAD0592F-A443-4474-9B1D-BDA89B702A3D}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-								<Sound Name="SFX_Footstep_Metal_06" ID="{CE373750-1D54-46F0-A736-A7AC317CBBC4}" ShortID="298884595">
-									<PropertyList>
-										<Property Name="Pitch" Type="int32">
-											<ValueList>
-												<Value>-230</Value>
-											</ValueList>
-										</Property>
-									</PropertyList>
-									<ReferenceList>
-										<Reference Name="Conversion">
-											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
-										</Reference>
-										<Reference Name="OutputBus">
-											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
-										</Reference>
-									</ReferenceList>
-									<ChildrenList>
-										<AudioFileSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 17" ID="{D4424D67-D376-457F-B487-0A7910D06231}">
-											<PropertyList>
-												<Property Name="FadeOutDuration" Type="Real64" Value="0.031098376313276"/>
-												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
-												<Property Name="TrimBegin" Type="Real64" Value="0.0145595081247255"/>
-												<Property Name="TrimEnd" Type="Real64" Value="0.225"/>
-											</PropertyList>
-											<Language>SFX</Language>
-											<AudioFile>Timothy McHugh -  Barefoot on Metal\FOOTSTEP - Metal Plate Run Barefoot Male - 17.wav</AudioFile>
-											<MediaIDList>
-												<MediaID ID="184027157"/>
-											</MediaIDList>
-										</AudioFileSource>
-									</ChildrenList>
-									<ObjectLists/>
-									<ActiveSourceList>
-										<ActiveSource Name="FOOTSTEP - Metal Plate Run Barefoot Male - 17" ID="{D4424D67-D376-457F-B487-0A7910D06231}" Platform="Linked"/>
-									</ActiveSourceList>
-								</Sound>
-							</ChildrenList>
-							<ObjectLists/>
-						</RandomSequenceContainer>
-					</ChildrenList>
-					<ObjectLists/>
-					<GroupingInfo>
-						<GroupingBehaviorList>
-							<GroupingBehavior>
-								<ItemRef Name="Walk" ID="{A386675E-3367-48BB-A132-7FEDE327EBEB}"/>
-							</GroupingBehavior>
-							<GroupingBehavior>
-								<ItemRef Name="Run" ID="{D636C563-DDB4-4B4A-A904-9F3D5A4E9485}"/>
-							</GroupingBehavior>
-							<GroupingBehavior>
-								<ItemRef Name="Footsteps_walking" ID="{6BCFE26E-2D65-46EC-BE00-CEB442AAE6FA}"/>
-							</GroupingBehavior>
-							<GroupingBehavior>
-								<ItemRef Name="Footsteps_ running" ID="{8F08EF7A-07F4-45C4-AF85-65230ABF3DAA}"/>
-							</GroupingBehavior>
-						</GroupingBehaviorList>
 						<GroupingList>
 							<Grouping>
-								<SwitchRef Name="Walk" ID="{8641DD8A-FBB2-4F3D-8A96-A7255AFDA1F3}"/>
+								<SwitchRef Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
 								<ItemList>
-									<ItemRef Name="Walk" ID="{A386675E-3367-48BB-A132-7FEDE327EBEB}"/>
+									<ItemRef Name="Sand" ID="{97EF4074-AB63-460A-B8FB-CD227959DB80}"/>
 								</ItemList>
 							</Grouping>
 							<Grouping>
-								<SwitchRef Name="Run" ID="{7D0C2CB3-B0CF-462C-BC8E-CDE61E7142D5}"/>
+								<SwitchRef Name="ST_Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
 								<ItemList>
-									<ItemRef Name="Run" ID="{D636C563-DDB4-4B4A-A904-9F3D5A4E9485}"/>
+									<ItemRef Name="Metal" ID="{10BEE47B-F9C0-4830-A500-370A434D7F20}"/>
 								</ItemList>
 							</Grouping>
 						</GroupingList>

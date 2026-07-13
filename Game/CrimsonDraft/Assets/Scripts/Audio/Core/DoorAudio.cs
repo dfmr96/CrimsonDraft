@@ -12,7 +12,11 @@ namespace CrimsonDraft.Audio
     {
         [Header("Wwise")]
         [SerializeField] private WwiseTrigger openCloseTrigger = new();
+        [SerializeField] private WwiseTrigger resumeAllTrigger = new();
 
-        public void Play() => openCloseTrigger.Fire(gameObject);
+        public void Play() => openCloseTrigger.FireWithEndCallback(gameObject, OnOpenCloseEnd);
+
+        private void OnOpenCloseEnd(object cookie, AkCallbackType type, AkCallbackInfo info)
+            => resumeAllTrigger.Fire(gameObject);
     }
 }

@@ -12,19 +12,18 @@
 							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
 						</Reference>
 						<Reference Name="DefaultSwitchOrState">
-							<ObjectRef Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}" WorkUnitID="{DD30C8E4-C003-4FCD-A658-F53D8F5D6305}"/>
+							<ObjectRef Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
 						</Reference>
 						<Reference Name="OutputBus">
 							<ObjectRef Name="World" ID="{ACADC53F-069B-4DDA-BB8E-3E34316C5BBA}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
 						</Reference>
 						<Reference Name="SwitchGroupOrStateGroup">
-							<ObjectRef Name="ST_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}" WorkUnitID="{DD30C8E4-C003-4FCD-A658-F53D8F5D6305}"/>
+							<ObjectRef Name="STG_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}" WorkUnitID="{DA622180-033F-4618-B7F8-C741C221BF92}"/>
 						</Reference>
 					</ReferenceList>
 					<ChildrenList>
 						<BlendContainer Name="Hallway" ID="{DB11A872-63BA-43AD-8CC1-F1F0B5B58C62}" ShortID="524565133">
 							<PropertyList>
-								<Property Name="BlendBehavior" Type="int16" Value="1"/>
 								<Property Name="OverrideOutput" Type="bool" Value="True"/>
 								<Property Name="Volume" Type="Real64">
 									<ValueList>
@@ -382,17 +381,529 @@
 							</ChildrenList>
 							<ObjectLists/>
 						</BlendContainer>
+						<BlendContainer Name="Exterior" ID="{A8866E39-2442-4A18-8DB2-0372787A46AB}" ShortID="956929626">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<Sound Name="SFX_Wind" ID="{E67161FB-E0D6-4287-8450-44BA1D7CBDE5}" ShortID="729026300">
+									<PropertyList>
+										<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+										<Property Name="IsStreamingEnabled" Type="bool">
+											<ValueList>
+												<Value>True</Value>
+											</ValueList>
+										</Property>
+										<Property Name="IsZeroLantency" Type="bool">
+											<ValueList>
+												<Value>True</Value>
+											</ValueList>
+										</Property>
+										<Property Name="Pitch" Type="int32">
+											<ValueList>
+												<Value>-30</Value>
+											</ValueList>
+										</Property>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-12</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1" ID="{C2FB7C39-E8ED-4FB9-AFF0-A60B2139BC1D}">
+											<PropertyList>
+												<Property Name="CrossfadeDuration" Type="Real64" Value="9957.316"/>
+												<Property Name="FadeInDuration" Type="Real64" Value="3.38488439306359"/>
+												<Property Name="LoopBegin" Type="Real64" Value="46.3468786127167"/>
+												<Property Name="LoopEnd" Type="Real64" Value="77.3315895953755"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimBegin" Type="Real64" Value="36.7129768786127"/>
+												<Property Name="TrimEnd" Type="Real64" Value="89.8296242774564"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="909962976"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1" ID="{C2FB7C39-E8ED-4FB9-AFF0-A60B2139BC1D}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<RandomSequenceContainer Name="Misc" ID="{E18BFFA5-4E7E-4E2F-8166-2B9EE25F9E25}" ShortID="518026792">
+									<PropertyList>
+										<Property Name="PlayMechanismLoop" Type="bool" Value="True"/>
+										<Property Name="PlayMechanismSpecialTransitionsType" Type="int16" Value="1"/>
+										<Property Name="PlayMechanismSpecialTransitionsValue" Type="Real64" Value="2">
+											<ModifierList>
+												<ModifierInfo>
+													<Modifier Name="" ID="{0FD385A6-444A-4D50-82AB-5548A798C976}">
+														<PropertyList>
+															<Property Name="Enabled" Type="bool" Value="True"/>
+															<Property Name="Max" Type="Real64" Value="10"/>
+															<Property Name="Min" Type="Real64" Value="-1"/>
+														</PropertyList>
+													</Modifier>
+												</ModifierInfo>
+											</ModifierList>
+										</Property>
+										<Property Name="PlayMechanismStepOrContinuous" Type="int16" Value="0"/>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-9</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="SFX_CruiseHorn" ID="{83E7DD5E-919F-477B-9293-A767E4DFEFA4}" ShortID="125267784">
+											<PropertyList>
+												<Property Name="Volume" Type="Real64">
+													<RTPCList>
+														<RTPC Name="" ID="{18512451-C024-4D9D-88E8-2BB8CF6761E7}" ShortID="953390550">
+															<ReferenceList>
+																<Reference Name="ControlInput">
+																	<ObjectRef Name="Player_CruiseDistance" ID="{B71AFF37-DABD-4F2F-9CFA-DC60F3A9CBDC}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+																</Reference>
+															</ReferenceList>
+															<Curve Name="" ID="{5EA09AF4-EC7C-4E57-8CE3-FC4CCD43F0ED}">
+																<PropertyList>
+																	<Property Name="Flags" Type="int32" Value="3"/>
+																</PropertyList>
+																<PointList>
+																	<Point>
+																		<XPos>0</XPos>
+																		<YPos>8.60249</YPos>
+																		<Flags>5</Flags>
+																	</Point>
+																	<Point>
+																		<XPos>100</XPos>
+																		<YPos>-200</YPos>
+																		<Flags>37</Flags>
+																	</Point>
+																</PointList>
+															</Curve>
+														</RTPC>
+													</RTPCList>
+												</Property>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="573826__trp__cruise-ship-horn-harbour-saint-john-191003" ID="{9762C149-E48F-40DE-AD8A-011A06B18D1B}">
+													<PropertyList>
+														<Property Name="FadeInDuration" Type="Real64" Value="0.2"/>
+														<Property Name="FadeOutDuration" Type="Real64" Value="1.4038240004817"/>
+														<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+														<Property Name="TrimEnd" Type="Real64" Value="4.94390191473988"/>
+													</PropertyList>
+													<Language>SFX</Language>
+													<AudioFile>573826__trp__cruise-ship-horn-harbour-saint-john-191003.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="272954962"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="573826__trp__cruise-ship-horn-harbour-saint-john-191003" ID="{9762C149-E48F-40DE-AD8A-011A06B18D1B}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Silence" ID="{99876350-80E4-491D-8B34-622A45697D3C}" ShortID="187273197">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<SourcePlugin Name="Wwise Silence" ID="{CDEB4B42-8023-4FA0-A82E-9B2CE92488CB}" ShortID="637631429" PluginName="Wwise Silence" CompanyID="0" PluginID="101">
+													<PropertyList>
+														<Property Name="Length" Type="Real32" Value="2"/>
+														<Property Name="LengthMax" Type="Real32" Value="5"/>
+													</PropertyList>
+													<Language>SFX</Language>
+												</SourcePlugin>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Wwise Silence" ID="{CDEB4B42-8023-4FA0-A82E-9B2CE92488CB}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="SFX_Thunder" ID="{08A8FC07-E976-4855-B349-7BF6279D4F01}" ShortID="64307490">
+											<PropertyList>
+												<Property Name="Volume" Type="Real64">
+													<ValueList>
+														<Value>-1</Value>
+													</ValueList>
+													<RTPCList>
+														<RTPC Name="" ID="{9FEBF97B-185E-4B8F-8512-87681D8EA784}" ShortID="80887208">
+															<ReferenceList>
+																<Reference Name="ControlInput">
+																	<ObjectRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+																</Reference>
+															</ReferenceList>
+															<Curve Name="" ID="{D63F6FE6-1B43-4A9B-B9C2-5906A2FD470C}">
+																<PropertyList>
+																	<Property Name="Flags" Type="int32" Value="3"/>
+																</PropertyList>
+																<PointList>
+																	<Point>
+																		<XPos>0</XPos>
+																		<YPos>-200</YPos>
+																		<Flags>5</Flags>
+																	</Point>
+																	<Point>
+																		<XPos>59.79499</XPos>
+																		<YPos>-200</YPos>
+																		<Flags>0</Flags>
+																	</Point>
+																	<Point>
+																		<XPos>75</XPos>
+																		<YPos>0</YPos>
+																		<Flags>0</Flags>
+																		<SegmentShape>Constant</SegmentShape>
+																	</Point>
+																	<Point>
+																		<XPos>100</XPos>
+																		<YPos>12.13935</YPos>
+																		<Flags>37</Flags>
+																	</Point>
+																</PointList>
+															</Curve>
+														</RTPC>
+													</RTPCList>
+												</Property>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="Thunder close" ID="{DEEA4295-D608-4C11-B75C-C952CCA5BF0A}">
+													<PropertyList>
+														<Property Name="FadeInDuration" Type="Real64" Value="0.47553323699422"/>
+														<Property Name="FadeOutDuration" Type="Real64" Value="0.914486994219653"/>
+														<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+														<Property Name="TrimEnd" Type="Real64" Value="6.36482947976878"/>
+													</PropertyList>
+													<Language>SFX</Language>
+													<AudioFile>Thunder close.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="1039379494"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="Thunder close" ID="{DEEA4295-D608-4C11-B75C-C952CCA5BF0A}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+								</RandomSequenceContainer>
+								<Sound Name="SFX_Ocean_Medium" ID="{168E8A21-2D3D-4D68-9792-F389823DC0AA}" ShortID="591337651">
+									<PropertyList>
+										<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+										<Property Name="IsStreamingEnabled" Type="bool">
+											<ValueList>
+												<Value>True</Value>
+											</ValueList>
+										</Property>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-4</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Trim_Beach_Ocean_" ID="{D0DAFE7A-0718-413C-9087-4E517EBA26D4}">
+											<PropertyList>
+												<Property Name="CrossfadeDuration" Type="Real64" Value="3368.421"/>
+												<Property Name="FadeInDuration" Type="Real64" Value="2.7384960718294"/>
+												<Property Name="LoopBegin" Type="Real64" Value="7.18294051627385"/>
+												<Property Name="LoopEnd" Type="Real64" Value="21.7283950617284"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="35.2861952861953"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Trim_Beach_Ocean_.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="361127154"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Trim_Beach_Ocean_" ID="{D0DAFE7A-0718-413C-9087-4E517EBA26D4}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Ocean_Light" ID="{B9061B8B-D14C-4479-A630-1BFE53E3EB59}" ShortID="306774574">
+									<PropertyList>
+										<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+										<Property Name="IsStreamingEnabled" Type="bool">
+											<ValueList>
+												<Value>True</Value>
+											</ValueList>
+										</Property>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-4</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Trim_GAF SFX04 - LIQUIDS - Ocean Water Movement Close_01" ID="{CE196893-65C1-4392-9A17-2311C796166C}">
+											<PropertyList>
+												<Property Name="CrossfadeDuration" Type="Real64" Value="2736.842"/>
+												<Property Name="FadeInDuration" Type="Real64" Value="2.10998877665544"/>
+												<Property Name="LoopBegin" Type="Real64" Value="5.47699214365881"/>
+												<Property Name="LoopEnd" Type="Real64" Value="31.5600448933782"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimEnd" Type="Real64" Value="33.1762065095398"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Trim_GAF SFX04 - LIQUIDS - Ocean Water Movement Close_01.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="928256885"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Trim_GAF SFX04 - LIQUIDS - Ocean Water Movement Close_01" ID="{CE196893-65C1-4392-9A17-2311C796166C}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+								<Sound Name="SFX_Ocean_Hard" ID="{CABE4AE6-39DB-4D87-B34D-FC81D1F491BB}" ShortID="706022937">
+									<PropertyList>
+										<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+										<Property Name="IsStreamingEnabled" Type="bool">
+											<ValueList>
+												<Value>True</Value>
+											</ValueList>
+										</Property>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-2</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{CE4539C8-F4CA-4A0E-B36D-71B45FA56499}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{74710BFC-CEE8-43AD-92F6-94A6912450E9}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<AudioFileSource Name="Trim_W 04 Water_24_Splashing, Sailing, Small, Fishing, Ship_T03_01" ID="{5ADF3DC4-A28B-48FF-A77E-620EDC5205D7}">
+											<PropertyList>
+												<Property Name="CrossfadeDuration" Type="Real64" Value="2918.301"/>
+												<Property Name="FadeInDuration" Type="Real64" Value="2.86953558735503"/>
+												<Property Name="LoopBegin" Type="Real64" Value="9.4729247100636"/>
+												<Property Name="LoopEnd" Type="Real64" Value="23.2674391601197"/>
+												<Property Name="OverrideWavLoop" Type="bool" Value="True"/>
+												<Property Name="TrimBegin" Type="Real64" Value="1.72863589599701"/>
+												<Property Name="TrimEnd" Type="Real64" Value="29.0756557706697"/>
+											</PropertyList>
+											<Language>SFX</Language>
+											<AudioFile>Trim_W 04 Water_24_Splashing, Sailing, Small, Fishing, Ship_T03_01.wav</AudioFile>
+											<MediaIDList>
+												<MediaID ID="366026261"/>
+											</MediaIDList>
+										</AudioFileSource>
+									</ChildrenList>
+									<ObjectLists/>
+									<ActiveSourceList>
+										<ActiveSource Name="Trim_W 04 Water_24_Splashing, Sailing, Small, Fishing, Ship_T03_01" ID="{5ADF3DC4-A28B-48FF-A77E-620EDC5205D7}" Platform="Linked"/>
+									</ActiveSourceList>
+								</Sound>
+							</ChildrenList>
+							<ObjectLists/>
+							<BlendTrackList>
+								<BlendTrack Name="Light" ID="{2A2C0A98-4C24-49CD-B1F6-9953D6F18884}" ShortID="204717551">
+									<PropertyList>
+										<Property Name="EnableCrossFading" Type="bool" Value="True"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="LayerCrossFadeControlInput">
+											<ObjectRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+										</Reference>
+									</ReferenceList>
+									<BlendTrackAssocList>
+										<BlendTrackAssoc>
+											<ItemRef Name="SFX_Ocean_Light" ID="{B9061B8B-D14C-4479-A630-1BFE53E3EB59}"/>
+											<CrossfadingInfo>
+												<LeftEdgePos>0</LeftEdgePos>
+												<LeftFadingMode>Automatic</LeftFadingMode>
+												<RightEdgePos>34.4273912680757</RightEdgePos>
+												<RightFadingMode>Automatic</RightFadingMode>
+											</CrossfadingInfo>
+										</BlendTrackAssoc>
+										<BlendTrackAssoc>
+											<ItemRef Name="SFX_Ocean_Medium" ID="{168E8A21-2D3D-4D68-9792-F389823DC0AA}"/>
+											<CrossfadingInfo>
+												<LeftEdgePos>22.7588706896552</LeftEdgePos>
+												<LeftFadingMode>Automatic</LeftFadingMode>
+												<RightEdgePos>68.8990264182425</RightEdgePos>
+												<RightFadingMode>Automatic</RightFadingMode>
+											</CrossfadingInfo>
+										</BlendTrackAssoc>
+										<BlendTrackAssoc>
+											<ItemRef Name="SFX_Ocean_Hard" ID="{CABE4AE6-39DB-4D87-B34D-FC81D1F491BB}"/>
+											<CrossfadingInfo>
+												<LeftEdgePos>50.3173939098999</LeftEdgePos>
+												<LeftFadingMode>Automatic</LeftFadingMode>
+												<RightEdgePos>100</RightEdgePos>
+												<RightFadingMode>Automatic</RightFadingMode>
+											</CrossfadingInfo>
+										</BlendTrackAssoc>
+									</BlendTrackAssocList>
+								</BlendTrack>
+								<BlendTrack Name="Wind" ID="{B471216B-617A-44DF-A507-E8A98908FA79}" ShortID="793868001">
+									<PropertyList>
+										<Property Name="EnableCrossFading" Type="bool" Value="True"/>
+										<Property Name="Volume" Type="Real64">
+											<RTPCList>
+												<RTPC Name="" ID="{27243EF6-1818-45FC-8815-EAF18338CBEA}" ShortID="924931853">
+													<ReferenceList>
+														<Reference Name="ControlInput">
+															<ObjectRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+														</Reference>
+													</ReferenceList>
+													<Curve Name="" ID="{F705E9D2-E11C-431E-BBEB-9CDE417F1445}">
+														<PropertyList>
+															<Property Name="Flags" Type="int32" Value="3"/>
+														</PropertyList>
+														<PointList>
+															<Point>
+																<XPos>0</XPos>
+																<YPos>-10.34832</YPos>
+																<Flags>5</Flags>
+															</Point>
+															<Point>
+																<XPos>100</XPos>
+																<YPos>2.10471</YPos>
+																<Flags>37</Flags>
+															</Point>
+														</PointList>
+													</Curve>
+												</RTPC>
+											</RTPCList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="LayerCrossFadeControlInput">
+											<ObjectRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+										</Reference>
+									</ReferenceList>
+									<BlendTrackAssocList>
+										<BlendTrackAssoc>
+											<ItemRef Name="SFX_Wind" ID="{E67161FB-E0D6-4287-8450-44BA1D7CBDE5}"/>
+											<CrossfadingInfo>
+												<LeftEdgePos>0</LeftEdgePos>
+												<LeftFadingMode>Automatic</LeftFadingMode>
+												<RightEdgePos>100</RightEdgePos>
+												<RightFadingMode>Automatic</RightFadingMode>
+											</CrossfadingInfo>
+										</BlendTrackAssoc>
+									</BlendTrackAssocList>
+								</BlendTrack>
+								<BlendTrack Name="Random" ID="{E646C57D-8D49-48AC-AC0D-78E0DFD891B6}" ShortID="187368215">
+									<PropertyList>
+										<Property Name="EnableCrossFading" Type="bool" Value="True"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="LayerCrossFadeControlInput">
+											<ObjectRef Name="Ocean_Intensity" ID="{F3ADE313-9FBA-4873-8830-94F0206272BB}" WorkUnitID="{6CF7BFE6-EA84-4FDE-BFF4-7C911C16EA04}"/>
+										</Reference>
+									</ReferenceList>
+									<BlendTrackAssocList>
+										<BlendTrackAssoc>
+											<ItemRef Name="Misc" ID="{E18BFFA5-4E7E-4E2F-8166-2B9EE25F9E25}"/>
+											<CrossfadingInfo>
+												<LeftEdgePos>0</LeftEdgePos>
+												<LeftFadingMode>Automatic</LeftFadingMode>
+												<RightEdgePos>100</RightEdgePos>
+												<RightFadingMode>Automatic</RightFadingMode>
+											</CrossfadingInfo>
+										</BlendTrackAssoc>
+									</BlendTrackAssocList>
+								</BlendTrack>
+							</BlendTrackList>
+						</BlendContainer>
 					</ChildrenList>
 					<ObjectLists/>
 					<GroupingInfo>
 						<GroupingBehaviorList>
+							<GroupingBehavior>
+								<ItemRef Name="Exterior" ID="{A8866E39-2442-4A18-8DB2-0372787A46AB}"/>
+							</GroupingBehavior>
 							<GroupingBehavior>
 								<ItemRef Name="Hallway" ID="{DB11A872-63BA-43AD-8CC1-F1F0B5B58C62}"/>
 							</GroupingBehavior>
 						</GroupingBehaviorList>
 						<GroupingList>
 							<Grouping>
-								<SwitchRef Name="Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+								<SwitchRef Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+								<ItemList>
+									<ItemRef Name="Exterior" ID="{A8866E39-2442-4A18-8DB2-0372787A46AB}"/>
+								</ItemList>
+							</Grouping>
+							<Grouping>
+								<SwitchRef Name="ST_Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
 								<ItemList>
 									<ItemRef Name="Hallway" ID="{DB11A872-63BA-43AD-8CC1-F1F0B5B58C62}"/>
 								</ItemList>

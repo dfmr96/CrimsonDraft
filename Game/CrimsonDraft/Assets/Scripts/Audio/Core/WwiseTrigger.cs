@@ -23,6 +23,20 @@ namespace CrimsonDraft.Audio
         [SerializeField] private AK.Wwise.RTPC   wwiseRtpc   = new();
         [SerializeField] private float           rtpcValue   = 1f;
 
+        /// Posts an Event kind with a callback invoked once Wwise reports AK_EndOfEvent
+        /// for it. No-op (calls Fire and returns) for every other kind.
+        public uint FireWithEndCallback(GameObject target, AkCallbackManager.EventCallback callback)
+        {
+            if (kind != Kind.Event)
+            {
+                Fire(target);
+                return 0;
+            }
+
+            var playingId = wwiseEvent?.Post(target, (uint)AkCallbackType.AK_EndOfEvent, callback) ?? 0;
+            return playingId;
+        }
+
         /// Returns false only when an Event kind fails to post (e.g. its SoundBank
         /// hasn't finished loading yet) — callers can use this to retry.
         public bool Fire(GameObject target)

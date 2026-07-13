@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{DA622180-033F-4618-B7F8-C741C221BF92}" SchemaVersion="103">
+	<States>
+		<WorkUnit Name="Final" ID="{DA622180-033F-4618-B7F8-C741C221BF92}" PersistMode="Standalone">
+			<ChildrenList>
+				<StateGroup Name="STG_Locations" ID="{15A66B8C-C1E1-4E19-AEC7-46A73010679A}">
+					<ChildrenList>
+						<State Name="None" ID="{6363E826-4103-42AB-A105-49027D4F08F5}"/>
+						<State Name="ST_Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+						<State Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+					</ChildrenList>
+					<TransitionList>
+						<Transition>
+							<StartState Name="ST_Exterior" ID="{BBA1876E-5FC7-4228-BADD-F3B1F9255FD3}"/>
+							<EndState Name="ST_Hallway" ID="{F324F3D1-2D05-44EC-8ED9-D49C7049D059}"/>
+							<Time>1</Time>
+							<IsShared>true</IsShared>
+						</Transition>
+					</TransitionList>
+				</StateGroup>
+				<StateGroup Name="STG_GameState" ID="{DADD4AF8-1D6D-473C-886D-6E3D1F495748}">
+					<ChildrenList>
+						<State Name="None" ID="{09FD32F2-7961-43C3-B5C3-F44CEA41C722}"/>
+						<State Name="Win" ID="{2DF1EBF8-BF66-4FA2-B2A9-240455D42ECA}"/>
+						<State Name="Lose" ID="{98C1D77E-1E9B-4AA6-BB8A-5332098A384A}"/>
+						<State Name="Playing" ID="{3C147623-3860-43C2-BAC2-57D3ADC3F505}"/>
+					</ChildrenList>
+				</StateGroup>
+			</ChildrenList>
+		</WorkUnit>
+	</States>
+</WwiseDocument>
