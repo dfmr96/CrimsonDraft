@@ -2334,6 +2334,22 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5916905329384515146, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: playerObject
+      value: 
+      objectReference: {fileID: 281032094}
+    - target: {fileID: 5916905329384515146, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: runSwitch.WwiseObjectReference
+      value: 
+      objectReference: {fileID: 11400000, guid: f304e76ea7118db47822a456cfe82193, type: 2}
+    - target: {fileID: 5916905329384515146, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: walkSwitch.WwiseObjectReference
+      value: 
+      objectReference: {fileID: 11400000, guid: 66da7b01b43972c498ad19ce26107076, type: 2}
+    - target: {fileID: 5916905329384515146, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: footstepEvent.WwiseObjectReference
+      value: 
+      objectReference: {fileID: 11400000, guid: b854d76fc64f56f419027f2267ffb181, type: 2}
     - target: {fileID: 5925856857052605806, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalPosition.x
       value: 14.68
@@ -3292,11 +3308,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.7660445
+      value: 0.7660445
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.64278764
+      value: 0.64278764
       objectReference: {fileID: 0}
     - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_LocalRotation.y
@@ -3499,6 +3515,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1863053065432815656, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 281032096}
+    - targetCorrespondingSourceObject: {fileID: 3127923117032096776, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1184722573}
+    - targetCorrespondingSourceObject: {fileID: 3127923117032096776, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1184722572}
   m_SourcePrefab: {fileID: 100100000, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
 --- !u!4 &109292240 stripped
 Transform:
@@ -4184,7 +4206,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 281032094}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd874ac0107f2254eb2f8cfd84f6a19d, type: 3}
   m_Name: 
@@ -4205,8 +4227,7 @@ MonoBehaviour:
     groupIdInternal: 0
     groupGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: f304e76ea7118db47822a456cfe82193, type: 2}
-  rb: {fileID: 0}
-  minSpeedSqr: 0.05
+  playerObject: {fileID: 281032094}
 --- !u!1 &313664390
 GameObject:
   m_ObjectHideFlags: 0
@@ -5483,9 +5504,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 758220028}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -155.34998, y: 142.3}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 155.35, y: -25}
   m_SizeDelta: {x: 310.7, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &609696998
@@ -7063,9 +7084,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 758220028}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 155.78955, y: 142.3}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -155.79, y: -25}
   m_SizeDelta: {x: 311.5791, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &921963408
@@ -8643,6 +8664,58 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &1184722569 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3127923117032096776, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+  m_PrefabInstance: {fileID: 109292239}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1184722572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1184722569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd1da5992eaf4954e9d37f005a62ad74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.PickupPointAudio
+  pickupTrigger:
+    kind: 0
+    wwiseEvent:
+      idInternal: 0
+      valueGuidInternal: 
+      WwiseObjectReference: {fileID: 11400000, guid: 3d7a6d484b07cd54ba65fed7aafcd6e6, type: 2}
+    wwiseState:
+      idInternal: 0
+      valueGuidInternal: 
+      groupIdInternal: 0
+      groupGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    wwiseSwitch:
+      idInternal: 0
+      valueGuidInternal: 
+      groupIdInternal: 0
+      groupGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    wwiseRtpc:
+      idInternal: 0
+      valueGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    rtpcValue: 1
+--- !u!114 &1184722573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1184722569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7fcfb28dc75a0740b0c2b4a5106023e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupPoints
 --- !u!1 &1190934445
 GameObject:
   m_ObjectHideFlags: 0
@@ -8753,7 +8826,7 @@ MonoBehaviour:
     wwiseEvent:
       idInternal: 0
       valueGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
+      WwiseObjectReference: {fileID: 11400000, guid: 3d7a6d484b07cd54ba65fed7aafcd6e6, type: 2}
     wwiseState:
       idInternal: 0
       valueGuidInternal: 
@@ -8776,7 +8849,7 @@ MonoBehaviour:
     wwiseEvent:
       idInternal: 0
       valueGuidInternal: 
-      WwiseObjectReference: {fileID: 0}
+      WwiseObjectReference: {fileID: 11400000, guid: 3d7a6d484b07cd54ba65fed7aafcd6e6, type: 2}
     wwiseState:
       idInternal: 0
       valueGuidInternal: 
@@ -8794,6 +8867,8 @@ MonoBehaviour:
       valueGuidInternal: 
       WwiseObjectReference: {fileID: 0}
     rtpcValue: 1
+  maxRetries: 10
+  retryInterval: 0.5
 --- !u!43 &1195853260
 Mesh:
   m_ObjectHideFlags: 0
@@ -10252,7 +10327,7 @@ MonoBehaviour:
   data:
     idInternal: 0
     valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 3bfada2d45f089e4fbc04365b53cd2c4, type: 2}
+    WwiseObjectReference: {fileID: 0}
   useCallbacks: 0
   Callbacks: []
   playingId: 0
@@ -10638,7 +10713,7 @@ MonoBehaviour:
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: a2a238bba155ce24f90ed86d2bb0be98, type: 2}
   decodeBank: 0
-  loadAsynchronous: 0
+  loadAsynchronous: 1
   saveDecodedBank: 0
   unloadTriggerList: 958ca0ea
   bankNameInternal: 
@@ -12507,7 +12582,7 @@ MonoBehaviour:
     wwiseEvent:
       idInternal: 0
       valueGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: a675b96c2ebc8354f843c7b23c96e5c9, type: 2}
+      WwiseObjectReference: {fileID: 0}
     wwiseState:
       idInternal: 0
       valueGuidInternal: 
@@ -12542,7 +12617,7 @@ MonoBehaviour:
     wwiseEvent:
       idInternal: 0
       valueGuidInternal: 
-      WwiseObjectReference: {fileID: 11400000, guid: a675b96c2ebc8354f843c7b23c96e5c9, type: 2}
+      WwiseObjectReference: {fileID: 0}
     wwiseState:
       idInternal: 0
       valueGuidInternal: 
@@ -12561,7 +12636,7 @@ MonoBehaviour:
       WwiseObjectReference: {fileID: 0}
     rtpcValue: 1
   lowTimeTrigger:
-    kind: 3
+    kind: 0
     wwiseEvent:
       idInternal: 0
       valueGuidInternal: 
@@ -13226,19 +13301,62 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3020790456144418305, guid: ace8969e1d86601468f651437c51f5d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 859070707843156409}
   m_SourcePrefab: {fileID: 100100000, guid: ace8969e1d86601468f651437c51f5d7, type: 3}
 --- !u!114 &859070707843156407 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4234276118483516649, guid: ace8969e1d86601468f651437c51f5d7, type: 3}
   m_PrefabInstance: {fileID: 859070707843156406}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 859070707843156408}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 373e142344c00434999858f48f55f661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.RoomDoorInteractable
+--- !u!1 &859070707843156408 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3020790456144418305, guid: ace8969e1d86601468f651437c51f5d7, type: 3}
+  m_PrefabInstance: {fileID: 859070707843156406}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &859070707843156409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 859070707843156408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b7bd7b549fe85c47b9c1802773736b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.DoorAudio
+  openCloseTrigger:
+    kind: 0
+    wwiseEvent:
+      idInternal: 0
+      valueGuidInternal: 
+      WwiseObjectReference: {fileID: 11400000, guid: 297aab7dcbe2abc42bfd17c015665835, type: 2}
+    wwiseState:
+      idInternal: 0
+      valueGuidInternal: 
+      groupIdInternal: 0
+      groupGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    wwiseSwitch:
+      idInternal: 0
+      valueGuidInternal: 
+      groupIdInternal: 0
+      groupGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    wwiseRtpc:
+      idInternal: 0
+      valueGuidInternal: 
+      WwiseObjectReference: {fileID: 0}
+    rtpcValue: 1
 --- !u!114 &2556815873891224630 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2924993658861290880, guid: ace8969e1d86601468f651437c51f5d7, type: 3}
