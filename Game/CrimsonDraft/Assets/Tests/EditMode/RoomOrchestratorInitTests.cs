@@ -170,6 +170,8 @@ namespace CrimsonDraft.Tests
             public InputAction AimFire                => null!;
             public InputAction Pause                  => null!;
             public InputAction Sprint                 => null!;
+            public InputAction SkiptoVictory           => null!;
+            public InputAction SkiptoDefeat            => null!;
             public InputAction CombatNavigate         => null!;
             public InputAction CombatConfirm          => null!;
             public InputAction CombatCancel           => null!;

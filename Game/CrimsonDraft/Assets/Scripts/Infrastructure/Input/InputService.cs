@@ -39,6 +39,8 @@ namespace CrimsonDraft.Infrastructure.Input
         public InputAction AimFire { get; }
         public InputAction Pause { get; }
         public InputAction Sprint { get; }
+        public InputAction SkiptoVictory { get; }
+        public InputAction SkiptoDefeat { get; }
         public InputAction CombatNavigate { get; }
         public InputAction CombatConfirm { get; }
         public InputAction CombatCancel { get; }
@@ -84,6 +86,8 @@ namespace CrimsonDraft.Infrastructure.Input
             AimFire       = this.gameplayMap[nameof(AimFire)];
             Pause         = this.gameplayMap[nameof(Pause)];
             Sprint        = this.gameplayMap[nameof(Sprint)];
+            SkiptoVictory = this.gameplayMap[nameof(SkiptoVictory)];
+            SkiptoDefeat  = this.gameplayMap[nameof(SkiptoDefeat)];
 
             CombatNavigate = this.uiMap[NavigateAction];
             CombatConfirm  = this.uiMap["Submit"];

@@ -15,6 +15,8 @@ namespace CrimsonDraft.Infrastructure.Input
         InputAction AimFire { get; }
         InputAction Pause { get; }
         InputAction Sprint { get; }
+        InputAction SkiptoVictory { get; }
+        InputAction SkiptoDefeat { get; }
 
         InputAction CombatNavigate { get; }
         InputAction CombatConfirm { get; }
