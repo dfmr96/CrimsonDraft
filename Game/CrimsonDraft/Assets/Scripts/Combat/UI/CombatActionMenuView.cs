@@ -23,21 +23,15 @@ namespace CrimsonDraft.Combat
 
         #region Fields
 
-        [SerializeField] private ActionMenuItem[] operators       = Array.Empty<ActionMenuItem>();
-        [SerializeField] private TMP_Text[]       operatorAmmoLabels = Array.Empty<TMP_Text>();
-        [SerializeField] private Image[]          operatorHealthIcons = Array.Empty<Image>();
+        [SerializeField] private ActionMenuItem[]    operators       = Array.Empty<ActionMenuItem>();
+        [SerializeField] private TMP_Text[]          operatorAmmoLabels = Array.Empty<TMP_Text>();
+        [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
         [SerializeField] private float bobAmplitude = 4f;
         [SerializeField] private float bobDuration  = 0.4f;
-
-        [Header("Health States (ECG icon)")]
-        [SerializeField] private Sprite? healthSpriteNormal; // 75-100%
-        [SerializeField] private Sprite? healthSpriteMid;    // 50-75%
-        [SerializeField] private Sprite? healthSpriteLow;    // 25-50%
-        [SerializeField] private Sprite? healthSpriteCritic; // 0-25%
 
         [Header("Weapon Icon")]
         [SerializeField] private float weaponIconCellSize = 32f; // px per GridSize unit (1×1 = 32px)
@@ -60,7 +54,7 @@ namespace CrimsonDraft.Combat
             le.ignoreLayout = true;
             this.selectorMark.gameObject.SetActive(false);
             this.TryAutoWireOperatorAmmoLabels();
-            this.TryAutoWireOperatorHealthIcons();
+            this.TryAutoWireOperatorEcgAnimators();
             this.TryAutoWireOperatorWeaponIcons();
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
@@ -154,18 +148,18 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        private void TryAutoWireOperatorHealthIcons()
+        private void TryAutoWireOperatorEcgAnimators()
         {
             if (this.operators.Length == 0)
                 return;
 
-            bool hasAssignedAll = this.operatorHealthIcons != null && this.operatorHealthIcons.Length >= this.operators.Length;
+            bool hasAssignedAll = this.operatorEcgAnimators != null && this.operatorEcgAnimators.Length >= this.operators.Length;
             if (hasAssignedAll)
             {
                 bool allFilled = true;
                 for (int i = 0; i < this.operators.Length; i++)
                 {
-                    if (this.operatorHealthIcons[i] == null)
+                    if (this.operatorEcgAnimators[i] == null)
                     {
                         allFilled = false;
                         break;
@@ -176,7 +170,7 @@ namespace CrimsonDraft.Combat
                     return;
             }
 
-            this.operatorHealthIcons = new Image[this.operators.Length];
+            this.operatorEcgAnimators = new ECGSweepAnimator[this.operators.Length];
             for (int i = 0; i < this.operators.Length; i++)
             {
                 var item = this.operators[i];
@@ -187,11 +181,11 @@ namespace CrimsonDraft.Combat
                 if (overview == null)
                     continue;
 
-                var ecgNode = overview.Find("ECG");
+                var ecgNode = overview.Find("ECG_BG");
                 if (ecgNode == null)
                     continue;
 
-                this.operatorHealthIcons[i] = ecgNode.GetComponent<Image>();
+                this.operatorEcgAnimators[i] = ecgNode.GetComponent<ECGSweepAnimator>();
             }
         }
 
@@ -369,14 +363,14 @@ namespace CrimsonDraft.Combat
         {
             this.pendingHealthByOperator[index] = hpRatio;
 
-            if (index < 0 || index >= this.operatorHealthIcons.Length)
+            if (index < 0 || index >= this.operatorEcgAnimators.Length)
                 return;
 
-            var icon = this.operatorHealthIcons[index];
-            if (icon == null)
+            var animator = this.operatorEcgAnimators[index];
+            if (animator == null)
                 return;
 
-            ApplyHealthIcon(icon, hpRatio);
+            animator.SetHealthState(hpRatio);
         }
 
         private void ApplyPendingHealthIcons()
@@ -384,32 +378,15 @@ namespace CrimsonDraft.Combat
             foreach (var kvp in this.pendingHealthByOperator)
             {
                 int index = kvp.Key;
-                if (index < 0 || index >= this.operatorHealthIcons.Length)
+                if (index < 0 || index >= this.operatorEcgAnimators.Length)
                     continue;
 
-                var icon = this.operatorHealthIcons[index];
-                if (icon == null)
+                var animator = this.operatorEcgAnimators[index];
+                if (animator == null)
                     continue;
 
-                ApplyHealthIcon(icon, kvp.Value);
+                animator.SetHealthState(kvp.Value);
             }
-        }
-
-        private void ApplyHealthIcon(Image icon, float hpRatio)
-        {
-            var sprite = ResolveHealthSprite(hpRatio);
-#if UNITY_EDITOR
-            Debug.Log($"[HealthIconDebug] {icon.gameObject.name} hpRatio={hpRatio:F2} -> {(sprite == null ? "NULL" : sprite.name)}");
-#endif
-            icon.sprite = sprite;
-        }
-
-        private Sprite? ResolveHealthSprite(float hpRatio)
-        {
-            if (hpRatio <= 0.25f) return this.healthSpriteCritic;
-            if (hpRatio <= 0.50f) return this.healthSpriteLow;
-            if (hpRatio <= 0.75f) return this.healthSpriteMid;
-            return this.healthSpriteNormal;
         }
 
         // weapon is the operator's ActiveWeapon (PrimaryWeapon ?? SecondaryWeapon) —
