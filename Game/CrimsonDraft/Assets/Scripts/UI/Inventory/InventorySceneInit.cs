@@ -1,5 +1,6 @@
 #nullable enable
 
+using UnityEngine;
 using VContainer;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
@@ -39,6 +40,21 @@ namespace CrimsonDraft.UI
             int slotsPerOperator = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
                 : 4;
+
+            // Remove views left over from a previous open whose backing item no longer
+            // exists (e.g. a consumable fully used up in combat while the UI was in memory).
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                InventoryGrid grid = this.gridGroup.GetGrid(g);
+                if (grid == null) continue;
+
+                foreach (var view in grid.GetComponentsInChildren<InventoryItemView>(true))
+                {
+                    if (ItemStillInInventory(view.BoundItem)) continue;
+                    grid.RemoveItem(view);
+                    Object.Destroy(view.gameObject);
+                }
+            }
 
             // Refresh displayed quantities on views that survived from a previous open
             // (e.g. ammo consumed in combat while the UI was already in memory).
@@ -99,6 +115,13 @@ namespace CrimsonDraft.UI
                     this.partyPanel.GetWidget(opIndex)?.SetEquippedWeapon(w1, 1);
                 }
             }
+        }
+
+        private bool ItemStillInInventory(InventoryItem item)
+        {
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+                if (this.inventoryService.Slots[i].Item == item) return true;
+            return false;
         }
     }
 }

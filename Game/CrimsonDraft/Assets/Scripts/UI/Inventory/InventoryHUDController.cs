@@ -23,6 +23,8 @@ namespace CrimsonDraft.UI
 
         private InventoryItemView? combineSourceItem;
 
+        private static readonly Color ColorCombineSourceTint = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f); // #9A9F5C
+
         [Preserve]
         public InventoryHUDController(
             IInventoryService  inventoryService,
@@ -175,7 +177,7 @@ namespace CrimsonDraft.UI
         {
             this.combineSourceItem   = source;
             this.cursor.IsCombineMode = true;
-            source.GetComponent<UnityEngine.UI.Image>().color = new Color(1f, 0.8f, 0f, 0.9f);
+            source.GetComponent<UnityEngine.UI.Image>().color = ColorCombineSourceTint;
         }
 
         private void ExitCombineMode()

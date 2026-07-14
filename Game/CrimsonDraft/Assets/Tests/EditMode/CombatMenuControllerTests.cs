@@ -581,6 +581,7 @@ namespace CrimsonDraft.Tests
                 this.healthByOperator[index] = hpRatio;
             public bool TryGetHealth(int index, out float hpRatio) =>
                 this.healthByOperator.TryGetValue(index, out hpRatio);
+            public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
             public void SetDimmed(bool dimmed) { }
             public void SetOperatorDimmed(int index, bool dimmed) { }
             public RectTransform GetOperatorAnchor(int index) =>
