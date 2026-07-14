@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -24,6 +25,11 @@ namespace CrimsonDraft.UI
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
+
+        [Header("Use Feedback")]
+        [SerializeField] private int   useFeedbackBlinkCount    = 3;
+        [SerializeField] private float useFeedbackBlinkInterval = 0.08f;
+        [SerializeField] private Color useFeedbackColor         = Color.white;
 
         [Inject] private IInventoryService inventoryService = null!;
         [Inject] private IInputService     inputService     = null!;
@@ -81,6 +87,7 @@ namespace CrimsonDraft.UI
 
         void OnDisable()
         {
+            DOTween.Kill(this.selectorImage);
             if (this.inputService == null) return;
             this.inputService.CombatConfirm.performed -= OnConfirmInput;
             this.inputService.CombatCancel.performed  -= OnCancelInput;
@@ -107,7 +114,7 @@ namespace CrimsonDraft.UI
 
         // ── ICombatInventoryView ─────────────────────────────────────────────
 
-        public void Show(int opSlot)
+        public void Show(int opSlot, RectTransform operatorOverviewRect)
         {
             this.operatorSlot      = opSlot;
             this.currentCell       = Vector2Int.zero;
@@ -115,13 +122,34 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineSlot = -1;
 
+            RepositionToOperator(operatorOverviewRect);
             PopulateGrid(opSlot);
             SetVisible(true);
             UpdateSelector();
         }
 
+        // Keeps the panel's configured Y, but centers it horizontally on the
+        // selected operator's overview panel.
+        private void RepositionToOperator(RectTransform operatorOverviewRect)
+        {
+            var panel   = (RectTransform)this.transform;
+            var hudRoot = (RectTransform)this.transform.parent;
+
+            var corners = new Vector3[4];
+            operatorOverviewRect.GetWorldCorners(corners);
+            var center   = (corners[0] + corners[2]) * 0.5f;
+            var localPos = hudRoot.InverseTransformPoint(center);
+
+            float pivotCorrX = (panel.pivot.x - 0.5f) * panel.rect.width;
+            panel.localPosition = new Vector3(
+                localPos.x + pivotCorrX,
+                panel.localPosition.y,
+                panel.localPosition.z);
+        }
+
         public void Hide()
         {
+            DOTween.Kill(this.selectorImage);
             this.isActive          = false;
             this.pendingCombineSlot = -1;
             if (this.contextMenu != null && this.contextMenu.IsOpen)
@@ -374,8 +402,12 @@ namespace CrimsonDraft.UI
         private void HandleUse(InventoryItemView view)
         {
             int slotIndex = FindSlotIndex(view);
-            if (slotIndex >= 0) { OnItemUsed?.Invoke(slotIndex); return; }
-            Debug.LogWarning("[CombatInventory] Used item not found in operator's inventory slots");
+            if (slotIndex < 0)
+            {
+                Debug.LogWarning("[CombatInventory] Used item not found in operator's inventory slots");
+                return;
+            }
+            PlayUseFeedback(() => OnItemUsed?.Invoke(slotIndex));
         }
 
         private void HandleCombine(InventoryItemView view)
@@ -396,7 +428,25 @@ namespace CrimsonDraft.UI
             this.inventoryService.ReloadOperator(ammoSlotIndex, this.operatorSlot);
             this.pendingCombineSlot = -1;
             // -1 signals "turn consumed, but no item to remove" to the orchestrator
-            OnItemUsed?.Invoke(-1);
+            PlayUseFeedback(() => OnItemUsed?.Invoke(-1));
+        }
+
+        // Blinks the selector a few times to give the player feedback that the
+        // action landed, then hands off to the caller (which closes the panel).
+        private void PlayUseFeedback(Action onComplete)
+        {
+            this.isActive = false;
+
+            Color baseColor = this.selectorImage.color;
+            DOTween.Kill(this.selectorImage);
+
+            var sequence = DOTween.Sequence().SetTarget(this.selectorImage);
+            for (int i = 0; i < this.useFeedbackBlinkCount; i++)
+            {
+                sequence.Append(this.selectorImage.DOColor(this.useFeedbackColor, this.useFeedbackBlinkInterval));
+                sequence.Append(this.selectorImage.DOColor(baseColor, this.useFeedbackBlinkInterval));
+            }
+            sequence.OnComplete(() => onComplete());
         }
 
         private int FindSlotIndex(InventoryItemView view)

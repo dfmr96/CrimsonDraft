@@ -24,16 +24,24 @@ namespace CrimsonDraft.Combat
 
         [SerializeField] private ActionMenuItem[] operators       = Array.Empty<ActionMenuItem>();
         [SerializeField] private TMP_Text[]       operatorAmmoLabels = Array.Empty<TMP_Text>();
+        [SerializeField] private Image[]          operatorHealthIcons = Array.Empty<Image>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
         [SerializeField] private float bobAmplitude = 4f;
         [SerializeField] private float bobDuration  = 0.4f;
 
+        [Header("Health States (ECG icon)")]
+        [SerializeField] private Sprite? healthSpriteNormal; // 75-100%
+        [SerializeField] private Sprite? healthSpriteMid;    // 50-75%
+        [SerializeField] private Sprite? healthSpriteLow;    // 25-50%
+        [SerializeField] private Sprite? healthSpriteCritic; // 0-25%
+
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
-        private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator = new();
+        private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
+        private readonly Dictionary<int, float>                  pendingHealthByOperator = new();
 
         #endregion
 
@@ -46,7 +54,9 @@ namespace CrimsonDraft.Combat
             le.ignoreLayout = true;
             this.selectorMark.gameObject.SetActive(false);
             this.TryAutoWireOperatorAmmoLabels();
+            this.TryAutoWireOperatorHealthIcons();
             this.ApplyPendingAmmoLabels();
+            this.ApplyPendingHealthIcons();
         }
 
         private void OnEnable()
@@ -54,6 +64,7 @@ namespace CrimsonDraft.Combat
             this.submitHandlers   = new Action[this.operators.Length];
             this.selectedHandlers = new Action[this.operators.Length];
             this.ApplyPendingAmmoLabels();
+            this.ApplyPendingHealthIcons();
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -131,6 +142,47 @@ namespace CrimsonDraft.Combat
                     continue;
 
                 this.operatorAmmoLabels[i] = ammoNode.GetComponent<TMP_Text>();
+            }
+        }
+
+        private void TryAutoWireOperatorHealthIcons()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorHealthIcons != null && this.operatorHealthIcons.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorHealthIcons[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorHealthIcons = new Image[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var ecgNode = overview.Find("ECG");
+                if (ecgNode == null)
+                    continue;
+
+                this.operatorHealthIcons[i] = ecgNode.GetComponent<Image>();
             }
         }
 
@@ -261,6 +313,53 @@ namespace CrimsonDraft.Combat
             }
 
             label.text = $"{current}/{max}";
+        }
+
+        public void SetOperatorHealth(int index, float hpRatio)
+        {
+            this.pendingHealthByOperator[index] = hpRatio;
+
+            if (index < 0 || index >= this.operatorHealthIcons.Length)
+                return;
+
+            var icon = this.operatorHealthIcons[index];
+            if (icon == null)
+                return;
+
+            ApplyHealthIcon(icon, hpRatio);
+        }
+
+        private void ApplyPendingHealthIcons()
+        {
+            foreach (var kvp in this.pendingHealthByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorHealthIcons.Length)
+                    continue;
+
+                var icon = this.operatorHealthIcons[index];
+                if (icon == null)
+                    continue;
+
+                ApplyHealthIcon(icon, kvp.Value);
+            }
+        }
+
+        private void ApplyHealthIcon(Image icon, float hpRatio)
+        {
+            var sprite = ResolveHealthSprite(hpRatio);
+#if UNITY_EDITOR
+            Debug.Log($"[HealthIconDebug] {icon.gameObject.name} hpRatio={hpRatio:F2} -> {(sprite == null ? "NULL" : sprite.name)}");
+#endif
+            icon.sprite = sprite;
+        }
+
+        private Sprite? ResolveHealthSprite(float hpRatio)
+        {
+            if (hpRatio <= 0.25f) return this.healthSpriteCritic;
+            if (hpRatio <= 0.50f) return this.healthSpriteLow;
+            if (hpRatio <= 0.75f) return this.healthSpriteMid;
+            return this.healthSpriteNormal;
         }
 
         public void MoveSelectorTo(RectTransform anchor)

@@ -133,7 +133,7 @@ namespace CrimsonDraft.Combat
         {
             this.OperatorSelState     = new OperatorSelectionState(this, this.menuView, this.commandPanel, this.battlefieldView, this.combatEndedPublisher, this.roster, this.sfx);
             this.CommandPanelState    = new CommandPanelState(this, this.menuView, this.commandPanel, this.battlefieldView, this.roster, this.sfx);
-            this.CombatInventoryState = new CombatInventoryState(this, this.combatInventoryView);
+            this.CombatInventoryState = new CombatInventoryState(this, this.combatInventoryView, this.menuView);
             this.ShotCountState       = new ShotCountSelectionState(this, this.commandPanel, this.shotCountView, this.battlefieldView, this.aimView, this.roster, this.sfx);
             this.TargetSelState       = new TargetSelectionState(this, this.commandPanel, this.battlefieldView, this.aimView, this.roster, this.sfx);
             this.AimingState          = new AimingState(this, this.menuView, this.commandPanel, this.battlefieldView, this.aimView, this.roster, this.sfx);
