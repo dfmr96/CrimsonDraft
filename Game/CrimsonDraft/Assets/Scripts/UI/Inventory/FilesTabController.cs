@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using Yarn.Unity;
@@ -46,6 +47,7 @@ namespace CrimsonDraft.UI
         [Inject] private InventoryOpenCloseController     openCloseController  = null!;
         [Inject] private ISubscriber<NoteCollectedEvent>   noteCollectedSub     = null!;
         [Inject] private InventorySfxData                 sfx                  = null!;
+        [Inject] private NoteRegistry                      noteRegistry         = null!;
 
         private IDisposable? noteSubscription;
 
@@ -404,7 +406,7 @@ namespace CrimsonDraft.UI
             this.nextArrow?.SetActive(true);
 
             this.filteredNotes = this.database.Notes
-                .Where(n => n != null && n.Category == cat)
+                .Where(n => n != null && n.Category == cat && this.noteRegistry.IsCollected(n.NoteId))
                 .ToArray();
 
             RebuildGrid();

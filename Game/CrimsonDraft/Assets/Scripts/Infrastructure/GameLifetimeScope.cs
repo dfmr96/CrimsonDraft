@@ -46,6 +46,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<RoomStateRegistry>(Lifetime.Singleton);
             builder.Register<KnownMapsRegistry>(Lifetime.Singleton);
             builder.Register<PickupRegistry>(Lifetime.Singleton);
+            builder.Register<NoteRegistry>(Lifetime.Singleton);
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);
