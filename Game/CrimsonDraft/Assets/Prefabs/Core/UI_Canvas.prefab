@@ -602,7 +602,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3979763537874146228}
-  - {fileID: 8910378806772512234}
   m_Father: {fileID: 647173318354081509}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1547614240651588853
@@ -621,6 +620,7 @@ MonoBehaviour:
     TypeName: CrimsonDraft.Navigation.NavigationScope
   autoRun: 1
   autoInjectGameObjects: []
+  inventorySfxData: {fileID: 0}
 --- !u!114 &3117559455761117372
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -634,7 +634,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.InventoryOpenCloseController
   canvasRoot: {fileID: 114369504350565682}
-  inventoryVolume: {fileID: 0}
+  inventoryVolume: {fileID: 17561652120971159}
   volumeFadeDuration: 0.3
 --- !u!1 &3184076207487827155
 GameObject:
@@ -1562,110 +1562,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8645028974757519435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7182485040030855850
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8910378806772512234}
-  - component: {fileID: 5691671315804788336}
-  m_Layer: 0
-  m_Name: InventorySoundManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8910378806772512234
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7182485040030855850}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -960, y: -540, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4146319128568550903}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5691671315804788336
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7182485040030855850}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5fc110fad047e743ab0a876e68bafd7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.UI.Prototype::CrimsonDraft.UI.InventorySoundManager
-  cursorMoveEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 0baae7d188581f84fa185768f79e0641, type: 2}
-  cursorOnItemEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: b192dc409c4247d4c9b993418242aee9, type: 2}
-  itemPickupEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 3ff013dc63588ab4f9ea8653bc9a76a2, type: 2}
-  itemMoveEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: ae65469c9db971847986136840c40cd3, type: 2}
-  itemPlaceEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 349ca80b0bbdee0449fc1c530a062d62, type: 2}
-  itemPlaceInvalidEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: a28b15ed04f410f4ebb07fb81c395d5f, type: 2}
-  itemRotateEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 0e55e954447282c429ad60e88c105c0c, type: 2}
-  itemSwapEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: e720a407966e9f8458d4effd2da9f296, type: 2}
-  menuOpenEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 034706a4d9f930c48bb763f66b69e5c9, type: 2}
-  menuNavigateEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 49007d3831341a747a1f55b610908589, type: 2}
-  menuConfirmEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: ad8c3bdd2f800664cbfbfc483548fd16, type: 2}
-  menuCancelEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: cbde1dd14c3b57e4bb4a4361289304d4, type: 2}
-  inspectOpenEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: aa1ff62201fb57446aafed58c627a2fd, type: 2}
-  inspectCloseEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: c04b8a7b871fbdb48854b84947459b3d, type: 2}
-  tabSwitchEvent:
-    idInternal: 0
-    valueGuidInternal: 
-    WwiseObjectReference: {fileID: 11400000, guid: 926f36b1b06c6fc4c9636911406279cf, type: 2}
 --- !u!1 &7315379930767582697
 GameObject:
   m_ObjectHideFlags: 0
@@ -2185,14 +2081,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -7.96
       objectReference: {fileID: 0}
-    - target: {fileID: 3840920190659761256, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
-      propertyPath: sfx
-      value: 
-      objectReference: {fileID: 5691671315804788336}
-    - target: {fileID: 3884753565989509106, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
-      propertyPath: sfx
-      value: 
-      objectReference: {fileID: 5691671315804788336}
     - target: {fileID: 4136997190618207476, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
@@ -2217,10 +2105,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -163.5
       objectReference: {fileID: 0}
-    - target: {fileID: 4648890411199306168, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
-      propertyPath: sfx
-      value: 
-      objectReference: {fileID: 5691671315804788336}
     - target: {fileID: 5839189989415003032, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
@@ -2322,6 +2206,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
+--- !u!114 &17561652120971159 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1938246262791053533, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}
+  m_PrefabInstance: {fileID: 1934415397779752778}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
 --- !u!1 &114369504350565682 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1967579336697885304, guid: e34dba04cf3dfe74c90f50abbc36a725, type: 3}

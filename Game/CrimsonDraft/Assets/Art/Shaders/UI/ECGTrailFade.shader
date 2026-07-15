@@ -7,6 +7,7 @@ Shader "CrimsonDraft/UI/ECGTrailFade"
         _Head("Head", Range(0,1)) = 1
         _TrailLength("Trail Length", Range(0.001,1)) = 0.18
         _FadeExponent("Fade Exponent", Range(0.1,4)) = 1
+        _SpriteRect("Sprite UV Rect (uMin,vMin,uMax,vMax)", Vector) = (0,0,1,1)
     }
 
     SubShader
@@ -64,6 +65,7 @@ Shader "CrimsonDraft/UI/ECGTrailFade"
             float _Head;
             float _TrailLength;
             float _FadeExponent;
+            float4 _SpriteRect;
 
             v2f vert(appdata_t v)
             {
@@ -79,8 +81,14 @@ Shader "CrimsonDraft/UI/ECGTrailFade"
             {
                 fixed4 col = (tex2D(_MainTex, i.texcoord) + _TextureSampleAdd) * i.color;
 
+                // i.texcoord is in atlas space, not 0..1 local space, when the sprite is
+                // packed alongside others in a shared texture. Remap to the sprite's own
+                // 0..1 range so the sweep always travels the full visible width.
+                float localWidth = max(_SpriteRect.z - _SpriteRect.x, 0.0001);
+                float localX = saturate((i.texcoord.x - _SpriteRect.x) / localWidth);
+
                 float trail = max(_TrailLength, 0.0001);
-                float behind = _Head - i.texcoord.x;
+                float behind = _Head - localX;
                 behind = behind < 0.0 ? behind + 1.0 : behind; // wrap around so the trail never has to regrow from empty
                 float fade = saturate(1.0 - (behind / trail));
                 fade = pow(fade, max(_FadeExponent, 0.0001));

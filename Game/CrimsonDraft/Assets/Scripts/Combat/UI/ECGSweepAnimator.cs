@@ -13,6 +13,7 @@ namespace CrimsonDraft.Combat
         private static readonly int HeadId = Shader.PropertyToID("_Head");
         private static readonly int TrailLengthId = Shader.PropertyToID("_TrailLength");
         private static readonly int FadeExponentId = Shader.PropertyToID("_FadeExponent");
+        private static readonly int SpriteRectId = Shader.PropertyToID("_SpriteRect");
 
         [SerializeField] private Image traceImage = null!;
         [SerializeField] private float sweepDuration = 2f;
@@ -52,7 +53,7 @@ namespace CrimsonDraft.Combat
         {
             if (this.isResting)
             {
-                this.restTimer += Time.deltaTime;
+                this.restTimer += Time.unscaledDeltaTime;
                 if (this.restTimer < this.restDuration)
                 {
                     return;
@@ -63,7 +64,7 @@ namespace CrimsonDraft.Combat
             }
             else
             {
-                this.t += Time.deltaTime / this.sweepDuration;
+                this.t += Time.unscaledDeltaTime / this.sweepDuration;
                 if (this.t >= 1f)
                 {
                     this.t = 1f;
@@ -114,6 +115,28 @@ namespace CrimsonDraft.Combat
             material.SetFloat(HeadId, this.t);
             material.SetFloat(TrailLengthId, this.trailFraction);
             material.SetFloat(FadeExponentId, this.fadeExponent);
+            material.SetVector(SpriteRectId, GetSpriteUvRect(this.traceImage.sprite));
+        }
+
+        // Image UVs are in atlas space, not 0..1 local space, whenever the sprite shares
+        // a texture with others (e.g. a sprite sheet). The shader needs the sprite's own
+        // UV bounds to remap the sweep so it travels the full visible width.
+        private static Vector4 GetSpriteUvRect(Sprite? sprite)
+        {
+            if (sprite == null || sprite.texture == null)
+                return new Vector4(0f, 0f, 1f, 1f);
+
+            var rect = sprite.textureRect;
+            var texWidth = sprite.texture.width;
+            var texHeight = sprite.texture.height;
+            if (texWidth <= 0 || texHeight <= 0)
+                return new Vector4(0f, 0f, 1f, 1f);
+
+            return new Vector4(
+                rect.xMin / texWidth,
+                rect.yMin / texHeight,
+                rect.xMax / texWidth,
+                rect.yMax / texHeight);
         }
 
         private Material GetRuntimeMaterial()
