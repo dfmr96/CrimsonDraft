@@ -3,6 +3,7 @@
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -26,6 +27,7 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<InspectPanel>();
             builder.RegisterComponentInHierarchy<InventoryGridGroup>();
             builder.RegisterComponentInHierarchy<InventoryOpenCloseController>().AsSelf().AsImplementedInterfaces();
+            builder.RegisterComponentInHierarchy<CanvasCameraBinder>().AsImplementedInterfaces();
 
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<FilesTabController>().AsSelf().AsImplementedInterfaces();
