@@ -44,7 +44,7 @@ namespace CrimsonDraft.UI
         public void SetEquippedTint(bool equipped)
         {
             if (this.icon == null) this.icon = GetComponent<Image>();
-            this.icon.color = equipped ? new Color(0.85f, 0.65f, 0f, 1f) : Color.white;
+            this.icon.color = equipped ? new Color(0.6039216f, 0.62352943f, 0.36078432f, 1f) : Color.white;
         }
 
         public void Bind(Inventory.InventoryItem item)

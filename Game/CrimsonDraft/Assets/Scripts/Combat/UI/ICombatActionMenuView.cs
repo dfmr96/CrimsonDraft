@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using UnityEngine;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Combat
 {
@@ -15,6 +16,8 @@ namespace CrimsonDraft.Combat
         RectTransform GetOperatorOverviewRect(int index);
         void MoveSelectorTo(RectTransform anchor);
         void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo);
+        void SetOperatorHealth(int index, float hpRatio);
+        void SetOperatorWeapon(int index, WeaponItem? weapon);
         void SetDimmed(bool dimmed);
         void SetOperatorDimmed(int index, bool dimmed);
     }

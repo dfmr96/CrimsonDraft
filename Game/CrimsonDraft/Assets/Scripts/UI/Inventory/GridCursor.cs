@@ -28,16 +28,29 @@ namespace CrimsonDraft.UI
         [SerializeField] private float selectorPadding = 1f;
 
         [Header("Hold Colors")]
-        [SerializeField] private Color colorCanPlace    = new Color(0f, 1f, 0f, 0.7f);
-        [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
+        [SerializeField] private Color colorHoldTint    = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f); // #9A9F5C
+        [SerializeField] private float alphaCannotPlace = 100f / 255f;
         [SerializeField] private Color colorNormalItem  = Color.white;
+
+        [Header("Selector Sprites")]
+        [SerializeField] private Sprite? selectorSpriteNormal;
+        [SerializeField] private Sprite? selectorSpriteHold; // shown while moving/combining
 
         [Inject] private IInputService    inputService = null!;
         [Inject] private InventorySfxData sfx          = null!;
         private bool inputBound;
 
         // Combine mode — set by InventoryHUDController
-        public bool IsCombineMode { get; set; }
+        private bool isCombineMode;
+        public bool IsCombineMode
+        {
+            get => this.isCombineMode;
+            set
+            {
+                this.isCombineMode = value;
+                PlaceSelectorAt(this.currentCell);
+            }
+        }
 
         // Events consumed by InventoryHUDController
         public event System.Action<InventoryItemView>?               OnCellConfirmed;
@@ -347,11 +360,11 @@ namespace CrimsonDraft.UI
             }
 
             this.currentCell = item.GridOrigin;
-            PlaceSelectorAt(this.currentCell);
 
             this.sfx?.PlayDecide(gameObject);
             this.heldFromGrid = CurrentGrid;
             this.heldItem     = item;
+            PlaceSelectorAt(this.currentCell);
 
             CurrentGrid.RemoveItem(item);
             item.transform.SetAsLastSibling();
@@ -490,7 +503,9 @@ namespace CrimsonDraft.UI
                 }
             }
 
-            this.heldItem.GetComponent<Image>().color = canPlace ? this.colorCanPlace : this.colorCannotPlace;
+            Color tint = this.colorHoldTint;
+            if (!canPlace) tint.a = this.alphaCannotPlace;
+            this.heldItem.GetComponent<Image>().color = tint;
         }
 
         // ── Visual ───────────────────────────────────────────────────────────
@@ -506,9 +521,17 @@ namespace CrimsonDraft.UI
         void PlaceSelectorAt(Vector2Int cell)
         {
             InventoryItemView? item = CurrentGrid.GetItemAt(cell);
+            bool isHolding = this.heldItem != null || this.isCombineMode;
 
             if (this.selectorImage != null)
-                this.selectorImage.color = item != null ? ColorSelectorOnItem : ColorSelectorNormal;
+            {
+                this.selectorImage.color = isHolding ? Color.white
+                    : item != null ? ColorSelectorOnItem
+                    : ColorSelectorNormal;
+
+                if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
+                    this.selectorImage.sprite = isHolding ? this.selectorSpriteHold : this.selectorSpriteNormal;
+            }
 
             Vector2Int size   = this.heldItem != null ? this.heldItem.GridSize
                               : item          != null ? item.GridSize

@@ -3,6 +3,7 @@
 using MessagePipe;
 using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -50,6 +51,7 @@ namespace CrimsonDraft.Combat
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
             SyncAllOperatorAmmo();
+            SyncAllOperatorHealth();
 
             // Cancelling out of an operator's command panel (still ready — their turn wasn't
             // consumed) should return focus to that same operator rather than restarting the
@@ -85,6 +87,7 @@ namespace CrimsonDraft.Combat
             if (this.roster.Count == 0) return;
             var weapon = this.roster[index].ActiveWeapon;
             this.menuView.SetOperatorAmmo(index, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
+            this.menuView.SetOperatorWeapon(index, weapon as WeaponItem);
             this.battlefieldView.SetOperatorIndicator(index);
         }
 
@@ -115,7 +118,14 @@ namespace CrimsonDraft.Combat
             {
                 var weapon = this.roster[i].ActiveWeapon;
                 this.menuView.SetOperatorAmmo(i, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
+                this.menuView.SetOperatorWeapon(i, weapon as WeaponItem);
             }
+        }
+
+        private void SyncAllOperatorHealth()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio);
         }
     }
 }

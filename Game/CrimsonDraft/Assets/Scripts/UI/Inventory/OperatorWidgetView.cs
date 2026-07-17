@@ -3,6 +3,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using NaughtyAttributes;
+using CrimsonDraft.Combat;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
@@ -12,8 +14,11 @@ namespace CrimsonDraft.UI
     {
         [SerializeField] private Image       portrait    = null!;
         [SerializeField] private TMP_Text    nameLabel   = null!;
-        [SerializeField] private TMP_Text    hpLabel     = null!;
         [SerializeField] private GameObject  deadOverlay = null!;
+
+        [Header("HP ECG")]
+        [SerializeField] private ECGSweepAnimator?  ecgLine;
+        [SerializeField] private EcgHeartbeatPulse? ecgPulse;
 
         [Header("Weapon Slot 0 — Primary (4×1)")]
         [SerializeField] private GameObject weaponSlot0Root      = null!;
@@ -45,14 +50,29 @@ namespace CrimsonDraft.UI
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.DisplayName ?? string.Empty;
-            if (this.hpLabel     != null) this.hpLabel.text    = $"{op.Hp} / {op.MaxHp}";
             if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive);
+
+            this.ApplyHealthState(op.HpRatio);
 
             if (this.weaponSlot0Root != null)
                 RefreshWeaponSlot(op.PrimaryWeapon   as WeaponItem, this.weaponSlot0Root, this.weaponSlot0Icon, this.weaponSlot0AmmoLabel);
             if (this.weaponSlot1Root != null)
                 RefreshWeaponSlot(op.SecondaryWeapon as WeaponItem, this.weaponSlot1Root, this.weaponSlot1Icon, this.weaponSlot1AmmoLabel);
         }
+
+        private void ApplyHealthState(float hpRatio)
+        {
+            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio);
+            if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Test-only — previews the 4 ECG health bands from the Inspector without touching real HP.
+        [Button("100% — Stable")]   private void TestEcgStable()   => this.ApplyHealthState(1f);
+        [Button("60% — Caution")]   private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
+        [Button("35% — Warning")]   private void TestEcgWarning()  => this.ApplyHealthState(0.35f);
+        [Button("10% — Critical")]  private void TestEcgCritical() => this.ApplyHealthState(0.1f);
+#endif
 
         private static void RefreshWeaponSlot(WeaponItem? w, GameObject root, Image icon, TMP_Text? ammoLabel)
         {

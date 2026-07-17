@@ -14,8 +14,8 @@ namespace CrimsonDraft.UI
 
         [Header("Colors")]
         [SerializeField] private Color colorNormal   = new Color(1f, 1f, 1f, 0f);
-        [SerializeField] private Color colorSelected = new Color(1f, 1f, 0f, 1f);
-        [SerializeField] private Color colorDisabled = new Color(0.4f, 0.4f, 0.4f, 1f);
+        [SerializeField] private Color colorSelected = new Color(1f, 1f, 0f, 0.9f);
+        [SerializeField] private Color colorDisabled = new Color(0.4f, 0.4f, 0.4f, 0f);
 
         [Header("Config")]
         [SerializeField] private OptionType optionType;

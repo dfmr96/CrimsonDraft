@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -25,6 +26,16 @@ namespace CrimsonDraft.UI
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
 
+        [Header("Selector Sprites")]
+        [SerializeField] private Sprite? selectorSpriteNormal;
+        [SerializeField] private Sprite? selectorSpriteHold; // shown while selecting a combine target
+
+        // Plays on the selector when an item is used/combined. Its clip should end with an
+        // Animation Event calling SelectorAnimationRelay.OnUseAnimationComplete.
+        [Header("Use Feedback")]
+        [SerializeField] private Animator? selectorAnimator;
+        [SerializeField] private float     useAnimationTimeout = 1.5f; // safety net if the event never fires
+
         [Inject] private IInventoryService inventoryService = null!;
         [Inject] private IInputService     inputService     = null!;
         [Inject] private CombatSfxData     sfx              = null!;
@@ -38,19 +49,29 @@ namespace CrimsonDraft.UI
         private Vector2Int lastDir;
         private float      nextMoveTime;
         private int        pendingCombineSlot = -1; // ammo box slot awaiting a weapon target
+        private InventoryItemView? combineSourceView; // ammo box view being tinted while pending
         private CanvasGroup canvasGroup  = null!;
         private Image       selectorImage = null!;
+        private Action?     pendingUseCallback;
+        private bool        useAnimationCompleted = true;
 
         private readonly List<InventoryItemView> spawnedViews = new();
 
-        private static readonly Color ColorSelectorNormal  = Color.white;
-        private static readonly Color ColorSelectorOnItem  = Color.yellow;
-        private static readonly Color ColorSelectorCombine = new Color(0.4f, 0.9f, 1f, 1f);
+        private static readonly Color ColorSelectorNormal     = Color.white;
+        private static readonly Color ColorSelectorOnItem     = Color.yellow;
+        private static readonly Color ColorCombineSourceTint  = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f); // #9A9F5C
+        private static readonly int   UseTriggerHash          = Animator.StringToHash("Use");
 
         void Awake()
         {
             this.canvasGroup   = GetComponent<CanvasGroup>();
             this.selectorImage = this.selectorRect.GetComponentInChildren<Image>();
+            if (this.selectorAnimator != null)
+            {
+                var relay = this.selectorAnimator.GetComponent<SelectorAnimationRelay>();
+                if (relay == null) relay = this.selectorAnimator.gameObject.AddComponent<SelectorAnimationRelay>();
+                relay.Init(this);
+            }
             SetVisible(false);
         }
 
@@ -81,6 +102,8 @@ namespace CrimsonDraft.UI
 
         void OnDisable()
         {
+            this.pendingUseCallback    = null;
+            this.useAnimationCompleted = true;
             if (this.inputService == null) return;
             this.inputService.CombatConfirm.performed -= OnConfirmInput;
             this.inputService.CombatCancel.performed  -= OnCancelInput;
@@ -107,7 +130,7 @@ namespace CrimsonDraft.UI
 
         // ── ICombatInventoryView ─────────────────────────────────────────────
 
-        public void Show(int opSlot)
+        public void Show(int opSlot, RectTransform operatorOverviewRect)
         {
             this.operatorSlot      = opSlot;
             this.currentCell       = Vector2Int.zero;
@@ -115,15 +138,38 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineSlot = -1;
 
+            RepositionToOperator(operatorOverviewRect);
             PopulateGrid(opSlot);
             SetVisible(true);
             UpdateSelector();
         }
 
+        // Keeps the panel's configured Y, but centers it horizontally on the
+        // selected operator's overview panel.
+        private void RepositionToOperator(RectTransform operatorOverviewRect)
+        {
+            var panel   = (RectTransform)this.transform;
+            var hudRoot = (RectTransform)this.transform.parent;
+
+            var corners = new Vector3[4];
+            operatorOverviewRect.GetWorldCorners(corners);
+            var center   = (corners[0] + corners[2]) * 0.5f;
+            var localPos = hudRoot.InverseTransformPoint(center);
+
+            float pivotCorrX = (panel.pivot.x - 0.5f) * panel.rect.width;
+            panel.localPosition = new Vector3(
+                localPos.x + pivotCorrX,
+                panel.localPosition.y,
+                panel.localPosition.z);
+        }
+
         public void Hide()
         {
-            this.isActive          = false;
-            this.pendingCombineSlot = -1;
+            this.isActive              = false;
+            this.pendingCombineSlot    = -1;
+            this.combineSourceView     = null;
+            this.pendingUseCallback    = null;
+            this.useAnimationCompleted = true;
             if (this.contextMenu != null && this.contextMenu.IsOpen)
                 this.contextMenu.Close();
             ClearGrid();
@@ -293,15 +339,14 @@ namespace CrimsonDraft.UI
             Vector2Int         size   = item != null ? item.GridSize   : Vector2Int.one;
             Vector2Int         origin = item != null ? item.GridOrigin : this.currentCell;
 
-            Color selectorColor;
-            if (this.pendingCombineSlot >= 0)
-                selectorColor = ColorSelectorCombine;
-            else if (item != null)
-                selectorColor = ColorSelectorOnItem;
-            else
-                selectorColor = ColorSelectorNormal;
+            bool isCombining = this.pendingCombineSlot >= 0;
+            this.selectorImage.color = isCombining ? Color.white
+                : item != null ? ColorSelectorOnItem
+                : ColorSelectorNormal;
 
-            this.selectorImage.color           = selectorColor;
+            if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
+                this.selectorImage.sprite = isCombining ? this.selectorSpriteHold : this.selectorSpriteNormal;
+
             this.selectorRect.anchoredPosition = this.grid.CellToLocal(origin);
             this.selectorRect.sizeDelta        = new Vector2(
                 size.x * this.grid.CellSize,
@@ -364,6 +409,7 @@ namespace CrimsonDraft.UI
             {
                 this.sfx?.PlayCancel(gameObject);
                 this.pendingCombineSlot = -1;
+                RevertCombineSourceTint();
                 UpdateSelector();
                 return;
             }
@@ -374,8 +420,12 @@ namespace CrimsonDraft.UI
         private void HandleUse(InventoryItemView view)
         {
             int slotIndex = FindSlotIndex(view);
-            if (slotIndex >= 0) { OnItemUsed?.Invoke(slotIndex); return; }
-            Debug.LogWarning("[CombatInventory] Used item not found in operator's inventory slots");
+            if (slotIndex < 0)
+            {
+                Debug.LogWarning("[CombatInventory] Used item not found in operator's inventory slots");
+                return;
+            }
+            PlayUseFeedback(() => OnItemUsed?.Invoke(slotIndex));
         }
 
         private void HandleCombine(InventoryItemView view)
@@ -387,6 +437,8 @@ namespace CrimsonDraft.UI
                 return;
             }
             this.pendingCombineSlot = slotIndex;
+            this.combineSourceView  = view;
+            view.GetComponent<Image>().color = ColorCombineSourceTint;
             UpdateSelector();
         }
 
@@ -395,8 +447,58 @@ namespace CrimsonDraft.UI
         {
             this.inventoryService.ReloadOperator(ammoSlotIndex, this.operatorSlot);
             this.pendingCombineSlot = -1;
+            RevertCombineSourceTint();
             // -1 signals "turn consumed, but no item to remove" to the orchestrator
-            OnItemUsed?.Invoke(-1);
+            PlayUseFeedback(() => OnItemUsed?.Invoke(-1));
+        }
+
+        private void RevertCombineSourceTint()
+        {
+            if (this.combineSourceView != null)
+                this.combineSourceView.GetComponent<Image>().color = Color.white;
+            this.combineSourceView = null;
+        }
+
+        // Plays the selector's "use" animation and hands off to the caller (which closes
+        // the panel) once it finishes. Completion normally arrives via an Animation Event
+        // on the clip (SelectorAnimationRelay.OnUseAnimationComplete); the timeout below is
+        // just a safety net in case that event is missing or misconfigured.
+        private void PlayUseFeedback(Action onComplete)
+        {
+            this.isActive = false;
+
+            if (this.selectorAnimator == null)
+            {
+                onComplete();
+                return;
+            }
+
+            this.useAnimationCompleted = false;
+            this.pendingUseCallback    = onComplete;
+            this.selectorAnimator.ResetTrigger(UseTriggerHash);
+            this.selectorAnimator.SetTrigger(UseTriggerHash);
+            UseAnimationTimeoutFallback().Forget();
+        }
+
+        // Called by SelectorAnimationRelay when the use-animation clip's Animation Event fires.
+        internal void OnSelectorAnimationComplete()
+        {
+            if (this.useAnimationCompleted) return;
+            this.useAnimationCompleted = true;
+
+            var callback = this.pendingUseCallback;
+            this.pendingUseCallback = null;
+            callback?.Invoke();
+        }
+
+        private async UniTaskVoid UseAnimationTimeoutFallback()
+        {
+            await UniTask.WaitForSeconds(this.useAnimationTimeout, ignoreTimeScale: true);
+            if (!this.useAnimationCompleted)
+            {
+                Debug.LogWarning("[CombatInventory] Selector use animation timed out — forcing continue.");
+                OnSelectorAnimationComplete();
+            }
         }
 
         private int FindSlotIndex(InventoryItemView view)
