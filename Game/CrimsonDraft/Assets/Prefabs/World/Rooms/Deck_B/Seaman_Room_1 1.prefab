@@ -1600,6 +1600,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 9076849521152184534}
   m_Layer: 0
   m_Name: Seaman_Room_1 1
   m_TagString: Untagged
@@ -1643,6 +1644,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: SEAMAN_ROOM_1
+--- !u!114 &9076849521152184534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: 0.6000007, y: 2.0000002}
+  - {x: 6.1000004, y: 2.0000002}
+  - {x: 6.1000004, y: -6.500002}
+  - {x: 0.6000007, y: -6.500002}
+  mapOffset: {x: -16.190744, y: -11.900898}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &6185142019533834145
 GameObject:
   m_ObjectHideFlags: 0
@@ -2426,7 +2448,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3890
+  m_VersionIndex: 3989
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -3008,6 +3030,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_05
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 3.0189288
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 8.744486
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3.95
@@ -3068,11 +3102,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1552339300260238890, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_Name
-      value: IN_Green_Prefab
+      value: Pickup_CS_01
       objectReference: {fileID: 0}
     - target: {fileID: 2712994855872846620, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: pickupId
-      value: IN_Green_01
+      value: CS_01_pickup_01
       objectReference: {fileID: 0}
     - target: {fileID: 7167624885831785540, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_LocalPosition.x

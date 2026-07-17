@@ -1042,7 +1042,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4046
+  m_VersionIndex: 4055
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -1947,7 +1947,7 @@ Transform:
   m_GameObject: {fileID: 2376353654643934135}
   serializedVersion: 2
   m_LocalRotation: {x: 0.45451945, y: -0.54167527, z: 0.45451945, w: 0.54167527}
-  m_LocalPosition: {x: 10.407369, y: 3.65, z: -2.1160889}
+  m_LocalPosition: {x: 12.790001, y: 3.65, z: -3.1548023}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3846,6 +3846,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1902033011397083551}
   - component: {fileID: 3779788406535029049}
+  - component: {fileID: 7080808681424664413}
   m_Layer: 0
   m_Name: Balcony_A
   m_TagString: Untagged
@@ -3889,6 +3890,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: BALCONY_A
+--- !u!114 &7080808681424664413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5739285587459481182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: 13.595005, y: -4.4990044}
+  - {x: -8.900001, y: -4.4990044}
+  - {x: -8.900001, y: -1.0050049}
+  - {x: 13.595005, y: -1.0050049}
+  mapOffset: {x: 30.937206, y: -10.302138}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &6280442435021405989
 GameObject:
   m_ObjectHideFlags: 0
@@ -5922,6 +5944,18 @@ PrefabInstance:
     - target: {fileID: 4904873909406534455, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapOffset.x
+      value: 26.404524
+      objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapOffset.y
+      value: -3.3958569
+      objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 8427317644217276790, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
       propertyPath: m_Name

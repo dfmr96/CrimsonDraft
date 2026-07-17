@@ -2109,7 +2109,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 9900
+  m_VersionIndex: 9912
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2652,7 +2652,7 @@ Transform:
   m_GameObject: {fileID: 3117331001753759079}
   serializedVersion: 2
   m_LocalRotation: {x: 0.45451948, y: 0.54167527, z: -0.45451948, w: 0.54167527}
-  m_LocalPosition: {x: -14.92, y: 3.65, z: -4.5499935}
+  m_LocalPosition: {x: -25.730003, y: 3.65, z: -19.649996}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4303,7 +4303,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 8370
+  m_VersionIndex: 8382
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4762,6 +4762,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 5689989467815229814}
   m_Layer: 0
   m_Name: Balcony_B
   m_TagString: Untagged
@@ -4805,6 +4806,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: BALCONY_B
+--- !u!114 &5689989467815229814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -21.96232, y: -2.5100002}
+  - {x: 8.083221, y: -2.5100002}
+  - {x: 8.083221, y: -6.79957}
+  - {x: -21.96232, y: -6.79957}
+  mapOffset: {x: -57.262417, y: -16.879591}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &5985483672066445374
 GameObject:
   m_ObjectHideFlags: 0
@@ -6195,7 +6217,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 5620
+  m_VersionIndex: 5632
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -7452,6 +7474,18 @@ PrefabInstance:
       propertyPath: doorId
       value: DR_19
       objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapOffset.x
+      value: 0.72871804
+      objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapOffset.y
+      value: 12.492124
+      objectReference: {fileID: 0}
+    - target: {fileID: 8143948403963636888, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 8427317644217276790, guid: 42d29f7fc2effff489eef25a088cafbf, type: 3}
       propertyPath: m_Name
       value: DR_19
@@ -7528,7 +7562,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8180153905547617119, guid: fed3a4922f1f7324abd760c9f72103d2, type: 3}
       propertyPath: targetSceneName
-      value: Deck_C_Development
+      value: Deck_B_Development
       objectReference: {fileID: 0}
     - target: {fileID: 8180153905547617119, guid: fed3a4922f1f7324abd760c9f72103d2, type: 3}
       propertyPath: targetEntryPointId

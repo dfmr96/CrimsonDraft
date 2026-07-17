@@ -745,14 +745,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2413010536588358571}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95e4e2463efd72040b2b781303e44d76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkGameObj
   m_listeners:
-    initialListenerList:
-    - {fileID: 0}
+    initialListenerList: []
     useDefaultListeners: 1
   isEnvironmentAware: 0
   isStaticObject: 0
@@ -1513,6 +1512,9 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 3618683268365330886}
+  - component: {fileID: 4329157364450370181}
+  - component: {fileID: 6284088732536790225}
   m_Layer: 0
   m_Name: Save_Room
   m_TagString: Untagged
@@ -1558,6 +1560,57 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: SAVE_ROOM
+--- !u!114 &3618683268365330886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: 1.5999987, y: -0.00999856}
+  - {x: 6.0999985, y: -0.00999856}
+  - {x: 6.0999985, y: -6.5000057}
+  - {x: 1.5999987, y: -6.5000057}
+  mapOffset: {x: -26.078228, y: 4.9929686}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
+--- !u!114 &4329157364450370181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb313ebb21b8b9d4b840709f068036b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.SaveRoomMarker
+--- !u!114 &6284088732536790225
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 604184265ede39149b43ca338b7b5ce9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomSectorProfile
+  marineraSector:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 5e4b8a9e6099a124c925c332433f5440, type: 2}
 --- !u!1 &6015776954824644488
 GameObject:
   m_ObjectHideFlags: 0
@@ -2389,7 +2442,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3919
+  m_VersionIndex: 3940
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2774,11 +2827,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1552339300260238890, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_Name
-      value: IN_Green_Prefab
+      value: Pickup_CS_01
       objectReference: {fileID: 0}
     - target: {fileID: 2712994855872846620, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: pickupId
-      value: IN_Green_03
+      value: CS_01_pickup_03
       objectReference: {fileID: 0}
     - target: {fileID: 7167624885831785540, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_LocalScale.x
@@ -2985,6 +3038,18 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_07
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 10.017964
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -3.852585
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x

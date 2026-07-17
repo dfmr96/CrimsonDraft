@@ -4407,6 +4407,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6798860532430385048}
   - component: {fileID: 5568257161740303831}
+  - component: {fileID: 2066337245824059370}
   m_Layer: 0
   m_Name: Hallway_A
   m_TagString: Untagged
@@ -4458,6 +4459,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: HALLWAY_A
+--- !u!114 &2066337245824059370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4962187497286916671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -5.3156476, y: -22.364271}
+  - {x: -8.900001, y: -22.364271}
+  - {x: -8.900001, y: -1.005002}
+  - {x: -5.2482743, y: -1.005002}
+  - {x: -5.2482743, y: -9.157158}
+  - {x: -1.2944537, y: -9.157158}
+  - {x: -1.2944537, y: -12.256325}
+  - {x: 11.283137, y: -12.256325}
+  - {x: 11.283137, y: -15.4902315}
+  - {x: -5.3118443, y: -15.4902315}
+  mapOffset: {x: 27.351358, y: -10.317602}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &5001503585161783379
 GameObject:
   m_ObjectHideFlags: 0
@@ -6388,7 +6416,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3912
+  m_VersionIndex: 3918
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -6915,7 +6943,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3952
+  m_VersionIndex: 3958
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -8027,7 +8055,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3982
+  m_VersionIndex: 3988
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -9000,7 +9028,7 @@ Transform:
   m_GameObject: {fileID: 8242760397932386387}
   serializedVersion: 2
   m_LocalRotation: {x: 0.45451945, y: -0.54167527, z: 0.45451945, w: 0.54167527}
-  m_LocalPosition: {x: 10.407369, y: 3.65, z: 1.8839102}
+  m_LocalPosition: {x: 12.790001, y: 3.65, z: 0.8451977}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9536,6 +9564,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_11
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 16.636482
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -1.4553658
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
       value: -8.731
@@ -9806,11 +9842,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1552339300260238890, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_Name
-      value: IN_Green_Prefab
+      value: Pickup_CS_01
       objectReference: {fileID: 0}
     - target: {fileID: 2712994855872846620, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: pickupId
-      value: IN_Green_06
+      value: CS_01_pickup_08
       objectReference: {fileID: 0}
     - target: {fileID: 7167624885831785540, guid: 40cb026bec9efb74babe64de7e39647c, type: 3}
       propertyPath: m_LocalScale.x
@@ -9951,6 +9987,22 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 26.612421
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -3.3958569
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: excludeFromMap
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x

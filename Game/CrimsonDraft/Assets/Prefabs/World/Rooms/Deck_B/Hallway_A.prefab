@@ -2382,7 +2382,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4217
+  m_VersionIndex: 4310
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5129,7 +5129,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4197
+  m_VersionIndex: 4290
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -6199,6 +6199,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 8479974758617291260}
+  - component: {fileID: 7447200407527966414}
   m_Layer: 0
   m_Name: Hallway_A
   m_TagString: Untagged
@@ -6256,6 +6258,53 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: HALLWAY_A
+--- !u!114 &8479974758617291260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -1.880111, y: -9.094705}
+  - {x: -1.880111, y: -0.59352136}
+  - {x: 1.8468726, y: -0.59352136}
+  - {x: 1.8468726, y: -9.121186}
+  - {x: 14.704486, y: -9.121186}
+  - {x: 14.704486, y: -12.4433155}
+  - {x: -1.4112264, y: -12.4433155}
+  - {x: -1.4112264, y: -18.895374}
+  - {x: -4.9589868, y: -18.895374}
+  - {x: -4.9589868, y: -12.434755}
+  - {x: -14.986603, y: -12.434755}
+  - {x: -14.986603, y: -9.118703}
+  mapOffset: {x: -13.658227, y: -10.644477}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
+--- !u!114 &7447200407527966414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 604184265ede39149b43ca338b7b5ce9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomSectorProfile
+  marineraSector:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 9bdf2aafcb4e2cf45928e13d0a269b37, type: 2}
 --- !u!1 &6039045696062596013
 GameObject:
   m_ObjectHideFlags: 0
@@ -9082,7 +9131,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4187
+  m_VersionIndex: 4280
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -9832,6 +9881,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_08
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 4.6845446
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 1.4574137
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.499999
@@ -9929,6 +9990,18 @@ PrefabInstance:
     - target: {fileID: 5644205763183238322, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.x
+      value: -22.70022
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.y
+      value: -14.947214
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 9130620908116774643, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_Name
@@ -10144,6 +10217,18 @@ PrefabInstance:
       propertyPath: doorId
       value: DR_28
       objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.x
+      value: 2.7066267
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.y
+      value: 12.7003145
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 9130620908116774643, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_Name
       value: DR_28
@@ -10177,6 +10262,18 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_07
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -26.065098
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 1.4312296
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
@@ -10392,6 +10489,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_06
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -22.695894
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -22.694021
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 10.500006
@@ -10461,6 +10570,18 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -14.157518
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -10.243124
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x

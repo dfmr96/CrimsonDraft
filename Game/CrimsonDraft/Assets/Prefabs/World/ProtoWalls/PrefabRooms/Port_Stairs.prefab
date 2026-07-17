@@ -462,6 +462,9 @@ GameObject:
   m_Component:
   - component: {fileID: 992124314298212665}
   - component: {fileID: 2924993658861290880}
+  - component: {fileID: 3191237523267281640}
+  - component: {fileID: 4635909151710428460}
+  - component: {fileID: 6263367002965533197}
   m_Layer: 0
   m_Name: Port_Stairs
   m_TagString: Untagged
@@ -502,6 +505,65 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: PORT_STAIRS
+--- !u!114 &3191237523267281640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423897072557427039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -6.4000025, y: 1.9999971}
+  - {x: 6.1000023, y: 1.9999971}
+  - {x: 6.1000023, y: -4.5000052}
+  - {x: -6.4000025, y: -4.5000052}
+  mapOffset: {x: -46.970673, y: -35.757244}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
+--- !u!114 &4635909151710428460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423897072557427039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a70bc68e2796faf4f97b07481bcfec11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomWeatherProfile
+  ambientState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: d3111b89d246b784ea292eea63588f98, type: 2}
+  insideStormForce: 50
+  outsideStormForce: 50
+--- !u!114 &6263367002965533197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423897072557427039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 604184265ede39149b43ca338b7b5ce9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomSectorProfile
+  marineraSector:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 9bdf2aafcb4e2cf45928e13d0a269b37, type: 2}
 --- !u!1 &1570315955180364401
 GameObject:
   m_ObjectHideFlags: 0
@@ -3530,7 +3592,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3947681910963787577, guid: 806a616a75278c44394efd482424e7df, type: 3}
       propertyPath: m_VersionIndex
-      value: 3905
+      value: 3917
       objectReference: {fileID: 0}
     - target: {fileID: 3947681910963787577, guid: 806a616a75278c44394efd482424e7df, type: 3}
       propertyPath: m_Positions.Array.data[0].x
@@ -3856,6 +3918,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ProBuilder_ProtoFloor
       objectReference: {fileID: 0}
+    - target: {fileID: 4961642830591577467, guid: 806a616a75278c44394efd482424e7df, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 8713382985043045152, guid: 806a616a75278c44394efd482424e7df, type: 3}
       propertyPath: m_Size.x
       value: 12
@@ -3875,13 +3941,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4961642830591577467, guid: 806a616a75278c44394efd482424e7df, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5618701235054780495}
   m_SourcePrefab: {fileID: 100100000, guid: 806a616a75278c44394efd482424e7df, type: 3}
 --- !u!4 &1582442699088015097 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 654497966060608264, guid: 806a616a75278c44394efd482424e7df, type: 3}
   m_PrefabInstance: {fileID: 2080884229831341553}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6357819280394385546 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4961642830591577467, guid: 806a616a75278c44394efd482424e7df, type: 3}
+  m_PrefabInstance: {fileID: 2080884229831341553}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5618701235054780495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6357819280394385546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85673e0b906c3f24fa992dd6349fd38e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Audio::CrimsonDraft.Audio.Surface
+  Type: {fileID: 11400000, guid: 52c50c499eb80d24d88f4ab63a558a62, type: 2}
 --- !u!1001 &2788476973628882634
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4091,6 +4178,14 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -46.435707
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: -29.366444
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
