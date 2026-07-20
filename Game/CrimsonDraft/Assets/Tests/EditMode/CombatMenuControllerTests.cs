@@ -467,6 +467,30 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ComputePoiseDamage_torso_returnsWeaponValueUnchanged()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputePoiseDamage(ShotZone.Torso, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_head_returnsWeaponValueUnchanged()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputePoiseDamage(ShotZone.Head, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_legs_doublesWeaponValue()
+        {
+            Assert.AreEqual(20, CombatMenuController.ComputePoiseDamage(ShotZone.Legs, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_zeroWeaponPoise_returnsZeroEvenOnLegs()
+        {
+            Assert.AreEqual(0, CombatMenuController.ComputePoiseDamage(ShotZone.Legs, 0));
+        }
+
+        [Test]
         public void ShotFired_appliesDamageToSelectedEnemy()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
@@ -827,11 +851,13 @@ namespace CrimsonDraft.Tests
                 public int     BaseDamage => 20;
                 public int     CurrentAmmo { get; private set; }
                 public int     MaxAmmo { get; }
+                public int     PoiseDamage { get; }
 
-                internal FakeWeaponSlot(int maxAmmo)
+                internal FakeWeaponSlot(int maxAmmo, int poiseDamage = 10)
                 {
                     this.MaxAmmo = Mathf.Max(1, maxAmmo);
                     this.CurrentAmmo = this.MaxAmmo;
+                    this.PoiseDamage = poiseDamage;
                 }
 
                 public void SetAmmo(int value) =>

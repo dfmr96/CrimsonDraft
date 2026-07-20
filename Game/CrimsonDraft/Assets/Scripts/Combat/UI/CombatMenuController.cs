@@ -218,6 +218,9 @@ namespace CrimsonDraft.Combat
             return Mathf.RoundToInt(baseDamage * zoneMult * precisionMultiplier);
         }
 
+        internal static int ComputePoiseDamage(ShotZone zone, int weaponPoiseDamage) =>
+            zone == ShotZone.Legs ? weaponPoiseDamage * 2 : weaponPoiseDamage;
+
         #endregion
 
         #region Event handlers (forward to current state)

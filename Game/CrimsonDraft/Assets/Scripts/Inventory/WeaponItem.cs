@@ -10,6 +10,7 @@ namespace CrimsonDraft.Inventory
         public Caliber Caliber       => this.Data.Caliber;
         public GunType GunType       => this.Data.GunType;
         public int     BaseDamage    => this.Data.Damage;
+        public int     PoiseDamage   => this.Data.PoiseDamage;
         public int     MaxAmmo       => this.Data.MagazineCapacity;
         public int     CurrentAmmo   { get; private set; }
 
