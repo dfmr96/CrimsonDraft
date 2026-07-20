@@ -25,7 +25,7 @@ namespace CrimsonDraft.Combat.Commands
             if (weapon != null)
                 weapon.SetAmmo(weapon.CurrentAmmo - this.shotCount);
             int baseDamage = this.op.ActiveWeapon?.BaseDamage ?? CombatMenuController.BaseDamage;
-            this.battlefield.ApplyDamageToEnemy(this.targetSlot, this.shotCount * baseDamage);
+            this.battlefield.ApplyDamageToEnemy(this.targetSlot, this.shotCount * baseDamage, 0);
         }
     }
 }

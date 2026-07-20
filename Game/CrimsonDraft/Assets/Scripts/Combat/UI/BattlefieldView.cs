@@ -20,6 +20,10 @@ namespace CrimsonDraft.Combat
             public int CurrentHp;
             public int MaxHp;
             public bool IsDead;
+            public int CurrentPoise;
+            public int InitialPoise; // the roll this enemy resets to on a silent Poise reset
+            public bool IsStaggered;
+            public float StaggerEndsAt;
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
@@ -48,6 +52,8 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+        private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
+        private readonly IRandomSource poiseRandom = new UnityRandomSource();
 
         private IOperatorRoster? roster;
 
@@ -101,11 +107,16 @@ namespace CrimsonDraft.Combat
                 if (mr != null) this.enemyRendererBySlot[i] = mr;
                 var enemyAnimator = go.GetComponentInChildren<Animator>();
                 if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
+                int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
-                    CurrentHp = Mathf.Max(1, enemy.MaxHp),
-                    MaxHp = Mathf.Max(1, enemy.MaxHp),
-                    IsDead = false
+                    CurrentHp     = Mathf.Max(1, enemy.MaxHp),
+                    MaxHp         = Mathf.Max(1, enemy.MaxHp),
+                    IsDead        = false,
+                    CurrentPoise  = rolledPoise,
+                    InitialPoise  = rolledPoise,
+                    IsStaggered   = false,
+                    StaggerEndsAt = 0f
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -149,36 +160,83 @@ namespace CrimsonDraft.Combat
             return this.currentEnemySlots[slotIndex]?.HitMaskProfile;
         }
 
-        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
         {
             if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
-                return new EnemyDamageResult(slotIndex, 0, 0, false);
+                return new EnemyDamageResult(slotIndex, 0, 0, false, false);
 
             if (state.IsDead)
-                return new EnemyDamageResult(slotIndex, 0, 0, true);
+                return new EnemyDamageResult(slotIndex, 0, 0, true, false);
 
-            int appliedDamage = Mathf.Max(0, damage);
+            int appliedDamage = Mathf.Max(0, hpDamage);
             state.CurrentHp = Mathf.Max(0, state.CurrentHp - appliedDamage);
             bool isDead = state.CurrentHp <= 0;
-            if (!isDead)
-                return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false);
-
-            state.IsDead = true;
-            if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                StartCoroutine(this.FadeOutAndHideEnemy(go));
-
-            var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
-            foreach (int slot in this.occupiedEnemySlots)
+            if (isDead)
             {
-                if (slot != slotIndex)
-                    nextOccupied.Add(slot);
-            }
-            this.occupiedEnemySlots = nextOccupied.ToArray();
+                state.IsDead = true;
+                if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
+                    StartCoroutine(this.FadeOutAndHideEnemy(go));
 
-            return new EnemyDamageResult(slotIndex, appliedDamage, 0, true);
+                var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
+                foreach (int slot in this.occupiedEnemySlots)
+                {
+                    if (slot != slotIndex)
+                        nextOccupied.Add(slot);
+                }
+                this.occupiedEnemySlots = nextOccupied.ToArray();
+
+                return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false);
+            }
+
+            bool justStaggered = false;
+            // Poise doesn't drain further while the enemy is already down — it only
+            // matters again once it recovers (Update() below clears IsStaggered).
+            if (!state.IsStaggered)
+            {
+                state.CurrentPoise -= Mathf.Max(0, poiseDamage);
+
+                EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
+                    ? this.currentEnemySlots[slotIndex]
+                    : null;
+
+                if (enemyData != null && state.CurrentPoise <= 0)
+                {
+                    if (CombatMenuController.ShouldStagger(state.CurrentPoise, state.CurrentHp, state.MaxHp, enemyData.StaggerHpThresholdPct))
+                    {
+                        state.IsStaggered   = true;
+                        state.StaggerEndsAt = Time.time + enemyData.StaggerDurationSec;
+                        justStaggered       = true;
+                        if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+                            anim.SetBool(IsStaggeredHash, true);
+                    }
+                    else
+                    {
+                        state.CurrentPoise = state.InitialPoise; // silent reset — enemy too healthy to stagger yet
+                    }
+                }
+            }
+
+            return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false, justStaggered);
         }
 
+        public bool IsEnemyStaggered(int slotIndex) =>
+            this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsStaggered;
+
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        private void Update()
+        {
+            float now = Time.time;
+            foreach (var kvp in this.enemyStateBySlot)
+            {
+                var state = kvp.Value;
+                if (!state.IsStaggered || now < state.StaggerEndsAt) continue;
+
+                state.IsStaggered = false;
+                if (this.enemyAnimatorBySlot.TryGetValue(kvp.Key, out var anim) && anim != null)
+                    anim.SetBool(IsStaggeredHash, false);
+            }
+        }
 
         public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
         {
@@ -223,11 +281,11 @@ namespace CrimsonDraft.Combat
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT
-        public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+        public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex)
         {
             if (this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
-                return (state.CurrentHp, state.MaxHp, state.IsDead);
-            return (0, 0, true);
+                return (state.CurrentHp, state.MaxHp, state.IsDead, state.CurrentPoise, state.IsStaggered);
+            return (0, 0, true, 0, false);
         }
 #endif
 

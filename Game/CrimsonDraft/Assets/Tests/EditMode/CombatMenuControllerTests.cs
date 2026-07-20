@@ -491,6 +491,36 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ShouldStagger_positivePoise_returnsFalseRegardlessOfHp()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 5, currentHp: 1, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_zeroPoise_hpAboveThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 50, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_zeroPoise_hpBelowThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 30, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_negativePoise_hpBelowThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldStagger(poiseAfterDamage: -8, currentHp: 30, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_hpExactlyAtThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 40, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
         public void ShotFired_appliesDamageToSelectedEnemy()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
@@ -725,6 +755,8 @@ namespace CrimsonDraft.Tests
             public int LastBurstEnemySlotIndex     { get; private set; } = -1;
             public ResolvedShot[] LastBurstShots   { get; private set; } = Array.Empty<ResolvedShot>();
             private UniTaskCompletionSource? pendingBurstSource;
+            private bool forceNextResultStaggered;
+            public int LastPoiseDamageApplied { get; private set; }
 
             public void SetOccupiedSlots(int[] slots)
             {
@@ -740,6 +772,7 @@ namespace CrimsonDraft.Tests
 
             public void HoldNextBurst()        => this.pendingBurstSource = new UniTaskCompletionSource();
             public void CompletePendingBurst() => this.pendingBurstSource?.TrySetResult();
+            public void ForceNextDamageResultStaggered() => this.forceNextResultStaggered = true;
 
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
@@ -751,15 +784,21 @@ namespace CrimsonDraft.Tests
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
                 this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+            public bool IsEnemyStaggered(int slotIndex) => false;
+
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
             {
+                this.LastPoiseDamageApplied = poiseDamage;
+                bool staggeredThisHit = this.forceNextResultStaggered;
+                this.forceNextResultStaggered = false;
+
                 if (!this.hpBySlot.TryGetValue(slotIndex, out int hp))
                 {
-                    this.LastDamageResult = new EnemyDamageResult(slotIndex, 0, 0, false);
+                    this.LastDamageResult = new EnemyDamageResult(slotIndex, 0, 0, false, staggeredThisHit);
                     return this.LastDamageResult;
                 }
 
-                int applied = Mathf.Max(0, damage);
+                int applied = Mathf.Max(0, hpDamage);
                 int nextHp = Mathf.Max(0, hp - applied);
                 this.hpBySlot[slotIndex] = nextHp;
                 bool dead = nextHp <= 0;
@@ -774,7 +813,7 @@ namespace CrimsonDraft.Tests
                     this.occupiedSlots = next.ToArray();
                 }
 
-                this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead);
+                this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead, staggeredThisHit);
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
@@ -787,11 +826,11 @@ namespace CrimsonDraft.Tests
                 return this.pendingBurstSource != null ? this.pendingBurstSource.Task : UniTask.CompletedTask;
             }
 #if UNITY_EDITOR || DEBUG_COMBAT
-            public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+            public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex)
             {
                 bool alive = System.Array.IndexOf(this.occupiedSlots, slotIndex) >= 0;
                 int  hp    = this.hpBySlot.TryGetValue(slotIndex, out int v) ? v : 0;
-                return (hp, 100, !alive);
+                return (hp, 100, !alive, 0, false);
             }
 #endif
         }

@@ -221,6 +221,13 @@ namespace CrimsonDraft.Combat
         internal static int ComputePoiseDamage(ShotZone zone, int weaponPoiseDamage) =>
             zone == ShotZone.Legs ? weaponPoiseDamage * 2 : weaponPoiseDamage;
 
+        internal static bool ShouldStagger(int poiseAfterDamage, int currentHp, int maxHp, float staggerHpThresholdPct)
+        {
+            if (poiseAfterDamage > 0) return false;
+            float hpPct = maxHp > 0 ? (float)currentHp / maxHp * 100f : 0f;
+            return hpPct < staggerHpThresholdPct;
+        }
+
         #endregion
 
         #region Event handlers (forward to current state)

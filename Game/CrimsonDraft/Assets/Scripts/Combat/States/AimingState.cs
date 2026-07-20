@@ -82,7 +82,7 @@ namespace CrimsonDraft.Combat
 
             if (this.context.CurrentTargetSlot >= 0)
             {
-                var result = this.battlefieldView.ApplyDamageToEnemy(this.context.CurrentTargetSlot, totalDamage);
+                var result = this.battlefieldView.ApplyDamageToEnemy(this.context.CurrentTargetSlot, totalDamage, 0);
 #if UNITY_EDITOR
                 Debug.Log(
                     $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
