@@ -32,6 +32,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
         [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
+        [SerializeField, Min(0.1f)] private float enemyDeathAnimTimeoutSec = 3f;
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
@@ -54,6 +55,8 @@ namespace CrimsonDraft.Combat
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
+        private static readonly int DeathHash = Animator.StringToHash("Death");
+        private const string DeathStateName = "Armature|Death";
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
 
         private IOperatorRoster? roster;
@@ -266,13 +269,32 @@ namespace CrimsonDraft.Combat
             if (!this.enemyStateBySlot.ContainsKey(slotIndex)) return;
 
             if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                StartCoroutine(this.FadeOutAndFinalizeDeath(slotIndex, go));
+                StartCoroutine(this.PlayDeathAnimThenFadeAndFinalize(slotIndex, go));
             else
                 RemoveFromOccupiedSlots(slotIndex);
         }
 
-        private IEnumerator FadeOutAndFinalizeDeath(int slotIndex, GameObject enemyGo)
+        private IEnumerator PlayDeathAnimThenFadeAndFinalize(int slotIndex, GameObject enemyGo)
         {
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            {
+                anim.SetTrigger(DeathHash);
+
+                // Safety timeout: if the trigger isn't wired to a reachable "Armature|Death"
+                // state (or the name ever drifts), don't hang combat forever waiting for it.
+                float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+                while (!anim.GetCurrentAnimatorStateInfo(0).IsName(DeathStateName) && Time.time < giveUpAt)
+                    yield return null;
+
+                if (anim.GetCurrentAnimatorStateInfo(0).IsName(DeathStateName))
+                {
+                    var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
+                    float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
+                    if (duration > 0f)
+                        yield return new WaitForSeconds(duration);
+                }
+            }
+
             yield return this.FadeOutAndHideEnemy(enemyGo);
             RemoveFromOccupiedSlots(slotIndex);
         }
