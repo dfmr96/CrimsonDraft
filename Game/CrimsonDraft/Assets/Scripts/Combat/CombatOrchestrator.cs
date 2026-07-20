@@ -176,6 +176,7 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = this.encounter.EnemySlots[i];
                 if (data == null) continue;
+                if (this.battlefieldView.IsEnemyStaggered(i)) continue;
 
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
@@ -224,6 +225,7 @@ namespace CrimsonDraft.Combat
                 if (!this.enemyAttackInProgress)
                 {
                     if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+                    if (this.battlefieldView.IsEnemyStaggered(head.SlotIndex)) { this.actionQueue.Dequeue(); return; }
                     if (Time.time < this.animationLockUntil) return;
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
