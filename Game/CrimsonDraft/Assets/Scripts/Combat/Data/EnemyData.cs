@@ -20,7 +20,7 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0)] private int   minPoise               = 15;
         [SerializeField, Min(0)] private int   maxPoise               = 30;
         [SerializeField, Range(0f, 100f)] private float staggerHpThresholdPct = 40f;
-        [SerializeField, Min(0f)] private float staggerDurationSec    = 2.5f;
+        [SerializeField, Min(0)] private int   staggerRecoveryActionCount = 2;
 
         public string EnemyId                    => this.enemyId;
         public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
@@ -35,6 +35,6 @@ namespace CrimsonDraft.Combat
         public int   MinPoise                    => this.minPoise;
         public int   MaxPoise                    => this.maxPoise;
         public float StaggerHpThresholdPct       => this.staggerHpThresholdPct;
-        public float StaggerDurationSec          => this.staggerDurationSec;
+        public int   StaggerRecoveryActionCount  => this.staggerRecoveryActionCount;
     }
 }

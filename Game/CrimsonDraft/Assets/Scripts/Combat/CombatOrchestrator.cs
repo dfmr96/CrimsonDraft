@@ -136,11 +136,22 @@ namespace CrimsonDraft.Combat
             if (!this.actionQueue.HasPending) return;
             if (this.actionQueue.Peek().Type != PendingActionType.Shoot) return;
             int slotIndex = this.actionQueue.Peek().SlotIndex;
-            this.actionQueue.Dequeue();
+            this.DequeueAction();
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.UnfreezeActor(slotIndex, ATBActorKind.Operator);
             this.shootConfigurationInProgress = false;
             SetAnimationLock(this.operatorActionDurationSec);
+        }
+
+        // The single place actions leave the queue, so every dequeue can count toward
+        // staggered enemies' action-based recovery (see NotifyActionDequeued on
+        // IBattlefieldView) without duplicating that bookkeeping at each call site.
+        private void DequeueAction()
+        {
+            this.actionQueue.Dequeue();
+            int[] readySlots = this.battlefieldView.NotifyActionDequeued();
+            for (int i = 0; i < readySlots.Length; i++)
+                this.actionQueue.Enqueue(PendingAction.EnemyRecover(readySlots[i]));
         }
 
         internal float AnimationLockRemaining => UnityEngine.Mathf.Max(0f, this.animationLockUntil - Time.time);
@@ -195,7 +206,7 @@ namespace CrimsonDraft.Combat
 
         private bool IsActorDead(PendingAction action)
         {
-            if (action.Type == PendingActionType.EnemyAttack)
+            if (action.Type == PendingActionType.EnemyAttack || action.Type == PendingActionType.EnemyRecover)
             {
                 ATBActorState? actor = this.atbSystem.GetActor(action.SlotIndex, ATBActorKind.Enemy);
                 return actor == null || actor.IsDead;
@@ -213,7 +224,7 @@ namespace CrimsonDraft.Combat
             {
                 if (!this.shootConfigurationInProgress)
                 {
-                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
                     this.shootConfigurationInProgress = true;
                     this.shootPublisher.Publish(new ShootConfigurationRequestedEvent(head.SlotIndex));
                 }
@@ -224,8 +235,8 @@ namespace CrimsonDraft.Combat
             {
                 if (!this.enemyAttackInProgress)
                 {
-                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
-                    if (this.battlefieldView.IsEnemyStaggered(head.SlotIndex)) { this.actionQueue.Dequeue(); return; }
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
+                    if (this.battlefieldView.IsEnemyStaggered(head.SlotIndex)) { this.DequeueAction(); return; }
                     if (Time.time < this.animationLockUntil) return;
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
@@ -233,21 +244,30 @@ namespace CrimsonDraft.Combat
                 else if (Time.time >= this.animationLockUntil)
                 {
                     this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
-                    this.actionQueue.Dequeue();
+                    this.DequeueAction();
                     this.enemyAttackInProgress = false;
                 }
                 return;
             }
 
+            if (head.Type == PendingActionType.EnemyRecover)
+            {
+                if (IsActorDead(head)) { this.DequeueAction(); return; }
+                if (Time.time < this.animationLockUntil) return;
+                this.battlefieldView.RecoverEnemyStagger(head.SlotIndex);
+                this.DequeueAction();
+                return;
+            }
+
             if (IsActorDead(head))
             {
-                this.actionQueue.Dequeue();
+                this.DequeueAction();
                 if (this.freezeOperatorWhenActionQueued)
                     this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
                 return;
             }
             if (Time.time < this.animationLockUntil) return;
-            this.actionQueue.Dequeue();
+            this.DequeueAction();
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
 

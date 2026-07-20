@@ -23,7 +23,8 @@ namespace CrimsonDraft.Combat
             public int CurrentPoise;
             public int InitialPoise; // the roll this enemy resets to on a silent Poise reset
             public bool IsStaggered;
-            public float StaggerEndsAt;
+            public int StaggerActionsRemaining;
+            public bool RecoveryQueued; // true once its EnemyRecover action has been enqueued
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
@@ -110,13 +111,14 @@ namespace CrimsonDraft.Combat
                 int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
-                    CurrentHp     = Mathf.Max(1, enemy.MaxHp),
-                    MaxHp         = Mathf.Max(1, enemy.MaxHp),
-                    IsDead        = false,
-                    CurrentPoise  = rolledPoise,
-                    InitialPoise  = rolledPoise,
-                    IsStaggered   = false,
-                    StaggerEndsAt = 0f
+                    CurrentHp               = Mathf.Max(1, enemy.MaxHp),
+                    MaxHp                   = Mathf.Max(1, enemy.MaxHp),
+                    IsDead                  = false,
+                    CurrentPoise            = rolledPoise,
+                    InitialPoise            = rolledPoise,
+                    IsStaggered             = false,
+                    StaggerActionsRemaining = 0,
+                    RecoveryQueued          = false
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -224,31 +226,47 @@ namespace CrimsonDraft.Combat
                 : null;
             if (enemyData == null) return;
 
-            state.IsStaggered   = true;
-            state.StaggerEndsAt = Time.time + enemyData.StaggerDurationSec;
+            state.IsStaggered             = true;
+            state.StaggerActionsRemaining = Mathf.Max(0, enemyData.StaggerRecoveryActionCount);
+            state.RecoveryQueued          = false;
             if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
                 anim.SetBool(IsStaggeredHash, true);
+        }
+
+        public void RecoverEnemyStagger(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
+
+            state.IsStaggered    = false;
+            state.CurrentPoise   = state.InitialPoise; // fresh Poise for the next round of combat
+            state.RecoveryQueued = false;
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+                anim.SetBool(IsStaggeredHash, false);
+        }
+
+        private readonly List<int> readyToRecoverSlotsBuf = new();
+
+        public int[] NotifyActionDequeued()
+        {
+            this.readyToRecoverSlotsBuf.Clear();
+            foreach (var kvp in this.enemyStateBySlot)
+            {
+                var state = kvp.Value;
+                if (!state.IsStaggered || state.RecoveryQueued) continue;
+
+                state.StaggerActionsRemaining--;
+                if (state.StaggerActionsRemaining > 0) continue;
+
+                state.RecoveryQueued = true;
+                this.readyToRecoverSlotsBuf.Add(kvp.Key);
+            }
+            return this.readyToRecoverSlotsBuf.ToArray();
         }
 
         public bool IsEnemyStaggered(int slotIndex) =>
             this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsStaggered;
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
-
-        private void Update()
-        {
-            float now = Time.time;
-            foreach (var kvp in this.enemyStateBySlot)
-            {
-                var state = kvp.Value;
-                if (!state.IsStaggered || now < state.StaggerEndsAt) continue;
-
-                state.IsStaggered  = false;
-                state.CurrentPoise = state.InitialPoise; // fresh Poise for the next round of combat
-                if (this.enemyAnimatorBySlot.TryGetValue(kvp.Key, out var anim) && anim != null)
-                    anim.SetBool(IsStaggeredHash, false);
-            }
-        }
 
         public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
         {

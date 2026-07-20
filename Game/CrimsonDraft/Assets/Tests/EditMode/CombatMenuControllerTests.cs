@@ -891,6 +891,10 @@ namespace CrimsonDraft.Tests
                 this.LastTriggerStaggerSlot = slotIndex;
             }
 
+            public int RecoverEnemyStaggerCallCount { get; private set; }
+            public void RecoverEnemyStagger(int slotIndex) => this.RecoverEnemyStaggerCallCount++;
+            public int[] NotifyActionDequeued() => Array.Empty<int>();
+
             public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
             {
                 this.LastPoiseDamageApplied = poiseDamage;

@@ -2,7 +2,7 @@
 
 namespace CrimsonDraft.Combat
 {
-    public enum PendingActionType { Shoot, UseItem, EnemyAttack }
+    public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover }
 
     public readonly struct PendingAction
     {
@@ -35,5 +35,8 @@ namespace CrimsonDraft.Combat
         public static PendingAction EnemyAttack(int enemySlot, int targetOperatorSlot, int damage) =>
             new PendingAction(PendingActionType.EnemyAttack, enemySlot,
                 targetOperatorSlot: targetOperatorSlot, damage: damage);
+
+        public static PendingAction EnemyRecover(int enemySlot) =>
+            new PendingAction(PendingActionType.EnemyRecover, enemySlot);
     }
 }
