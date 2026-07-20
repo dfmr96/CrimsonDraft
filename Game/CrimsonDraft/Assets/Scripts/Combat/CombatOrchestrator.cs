@@ -128,8 +128,15 @@ namespace CrimsonDraft.Combat
             return actor != null && actor.IsReady && actor.IsAwaitingCommand;
         }
 
-        public void NotifyEnemyStaggered(int enemySlot) =>
+        public void NotifyEnemyStaggered(int enemySlot)
+        {
+            // Reset alone isn't enough — the gauge would keep ticking while staggered
+            // and be fully charged (or overcharged) the instant it recovers, letting it
+            // attack immediately. Freeze it at 0 for the whole knockdown; ProcessQueueHead
+            // unfreezes it only once the EnemyRecover action actually resolves.
             this.atbSystem.ResetActor(enemySlot, ATBActorKind.Enemy);
+            this.atbSystem.FreezeActor(enemySlot, ATBActorKind.Enemy);
+        }
 
         public void NotifyShootCompleted()
         {
@@ -255,6 +262,7 @@ namespace CrimsonDraft.Combat
                 if (IsActorDead(head)) { this.DequeueAction(); return; }
                 if (Time.time < this.animationLockUntil) return;
                 this.battlefieldView.RecoverEnemyStagger(head.SlotIndex);
+                this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
                 this.DequeueAction();
                 return;
             }
