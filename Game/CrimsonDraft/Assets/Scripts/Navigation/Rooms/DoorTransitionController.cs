@@ -77,8 +77,8 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private async UniTaskVoid RunTransition(Animator? animator)
         {
-            this.canSkip = true;
             await Fade(0f, this.fadeInDuration, this.fadeInEase);
+            this.canSkip = true;
 
             if (animator == null)
             {

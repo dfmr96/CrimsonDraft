@@ -18,6 +18,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private readonly IInputService                          inputService;
         private readonly PlayerController                       player;
+        private readonly PlayerInteractionCaster                interactionCaster;
         private readonly RoomTransitionContext                  context;
         private readonly SceneEntryContext                      sceneEntryContext;
         private readonly IPublisher<RoomTransitionStartedEvent> startedPublisher;
@@ -30,6 +31,7 @@ namespace CrimsonDraft.Navigation.Rooms
         public RoomOrchestrator(
             IInputService                          inputService,
             PlayerController                       player,
+            PlayerInteractionCaster                interactionCaster,
             RoomTransitionContext                  context,
             SceneEntryContext                      sceneEntryContext,
             IPublisher<RoomTransitionStartedEvent> startedPublisher,
@@ -37,6 +39,7 @@ namespace CrimsonDraft.Navigation.Rooms
         {
             this.inputService      = inputService;
             this.player            = player;
+            this.interactionCaster = interactionCaster;
             this.context           = context;
             this.sceneEntryContext  = sceneEntryContext;
             this.startedPublisher  = startedPublisher;
@@ -97,6 +100,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
             this.startedPublisher.Publish(new RoomTransitionStartedEvent(this.currentRoom!, destination));
             this.inputService.SwitchToDoorTransition();
+            this.interactionCaster.CancelInteracting();
             AudioListener.pause = true;
 
             var tcs = new UniTaskCompletionSource();

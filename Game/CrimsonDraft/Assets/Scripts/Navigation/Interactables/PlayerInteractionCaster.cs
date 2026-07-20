@@ -92,6 +92,17 @@ namespace CrimsonDraft.Navigation.Interactables
             this.interactingRoutine = null;
         }
 
+        public void CancelInteracting()
+        {
+            if (this.interactingRoutine != null)
+            {
+                StopCoroutine(this.interactingRoutine);
+                this.interactingRoutine = null;
+            }
+
+            this.animator.SetBool(InteractingHash, false);
+        }
+
         public bool CanUseItem(ItemData item)
         {
             if (!Physics.Raycast(transform.position, transform.forward, out var hit, this.rayDistance, this.interactableLayer))
