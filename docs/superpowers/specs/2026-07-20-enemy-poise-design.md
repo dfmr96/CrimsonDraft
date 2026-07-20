@@ -27,6 +27,30 @@ public int PoiseDamage => this.poiseDamage;
 
 Set by hand per weapon, independent of HP damage — same principle as RE2's fixed per-weapon Poise values (knife 9, pistol 15, Colt 20, Burst 35).
 
+### `IWeaponSlot` / `WeaponItem`
+
+`AimingState` reads the active weapon through `OperatorRuntime.ActiveWeapon`, typed `IWeaponSlot?` — not `WeaponItem` directly — so the interface needs the new property too:
+
+```csharp
+// IWeaponSlot.cs
+public interface IWeaponSlot
+{
+    Caliber Caliber    { get; }
+    GunType GunType    { get; }
+    int     BaseDamage { get; }
+    int     CurrentAmmo { get; }
+    int     MaxAmmo     { get; }
+    int     PoiseDamage { get; } // new
+    void    SetAmmo(int value);
+}
+```
+
+`WeaponItem` implements it by delegating to `Data`:
+
+```csharp
+public int PoiseDamage => this.Data.PoiseDamage;
+```
+
 ### `EnemyData`
 
 ```csharp
@@ -226,6 +250,7 @@ private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered
 - **New pure test**: `CombatMenuController.ComputePoiseDamage` — legs zone doubles, all other zones (including `Miss`, which the caller already filters out before calling it) pass through unchanged.
 - **`FakeBattlefieldView`** (`CombatMenuControllerTests.cs`): `ApplyDamageToEnemy` signature updated to take `poiseDamage`; add `IsEnemyStaggered(int)` returning a settable per-slot bool so tests can force a staggered state; `ApplyDamageToEnemy` gains a settable "next result is staggered" flag so tests can simulate the transition without modeling the full Poise math in the fake.
 - **`FakeOrchestrator`**: add `NotifyEnemyStaggeredCallCount` / `LastStaggeredSlot`, mirroring the existing `NotifyShootCompletedCallCount` pattern.
+- **`FakeOperatorRoster.FakeWeaponSlot`** (same test file): gains `PoiseDamage` to satisfy the extended `IWeaponSlot`, defaulted to a value the new tests can assert against (e.g. `10`).
 - **New test** in `CombatMenuControllerTests.cs`: firing a shot where `FakeBattlefieldView.ApplyDamageToEnemy` is set to return `IsStaggered = true` asserts `FakeOrchestrator.NotifyEnemyStaggeredCallCount == 1` and `LastStaggeredSlot` matches the target.
 - `CombatOrchestrator` itself has no dedicated test file today (MonoBehaviour, `Update()`-coupled to `ATBSystem`/`BattlefieldView`) — consistent with the existing project pattern, no new tests are added directly against it. The `EnqueueReadyEnemyAttacks`/`ProcessQueueHead` staggered-skip logic is exercised only indirectly (manually, in Play Mode) for this pass.
 
