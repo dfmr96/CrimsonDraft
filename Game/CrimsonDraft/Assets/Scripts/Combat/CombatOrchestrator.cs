@@ -128,6 +128,9 @@ namespace CrimsonDraft.Combat
             return actor != null && actor.IsReady && actor.IsAwaitingCommand;
         }
 
+        public void NotifyEnemyStaggered(int enemySlot) =>
+            this.atbSystem.ResetActor(enemySlot, ATBActorKind.Enemy);
+
         public void NotifyShootCompleted()
         {
             if (!this.actionQueue.HasPending) return;

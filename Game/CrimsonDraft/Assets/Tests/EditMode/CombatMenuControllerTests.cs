@@ -354,6 +354,77 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ShotsResolved_legsHit_sendsDoublePoiseDamage()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Legs, ShotPrecision.Normal, 16) });
+
+            // FakeWeaponSlot's default PoiseDamage is 10 (Task 1) -> legs doubles it to 20.
+            Assert.AreEqual(20, this.battlefieldView.LastPoiseDamageApplied);
+        }
+
+        [Test]
+        public void ShotsResolved_missShot_contributesNoPoiseDamage()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+
+            Assert.AreEqual(0, this.battlefieldView.LastPoiseDamageApplied);
+        }
+
+        [Test]
+        public void ShotsResolved_resultStaggered_notifiesOrchestrator()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            this.battlefieldView.ForceNextDamageResultStaggered();
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            Assert.AreEqual(1, this.orchestrator.NotifyEnemyStaggeredCallCount);
+            Assert.AreEqual(1, this.orchestrator.LastStaggeredSlot);
+        }
+
+        [Test]
+        public void ShotsResolved_resultNotStaggered_doesNotNotifyOrchestrator()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
+        }
+
+        [Test]
         public void ShotsResolved_miss_appliesZeroDamage()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
@@ -848,6 +919,13 @@ namespace CrimsonDraft.Tests
             public void SetWaitMode(bool paused)       { }
             public bool IsOperatorReady(int slotIndex) => true;
             public void NotifyShootCompleted()         => this.NotifyShootCompletedCallCount++;
+            public int NotifyEnemyStaggeredCallCount { get; private set; }
+            public int LastStaggeredSlot             { get; private set; } = -1;
+            public void NotifyEnemyStaggered(int enemySlot)
+            {
+                this.NotifyEnemyStaggeredCallCount++;
+                this.LastStaggeredSlot = enemySlot;
+            }
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster

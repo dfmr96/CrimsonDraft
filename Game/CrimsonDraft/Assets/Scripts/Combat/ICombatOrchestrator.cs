@@ -8,5 +8,6 @@ namespace CrimsonDraft.Combat
         void SetWaitMode(bool paused);
         bool IsOperatorReady(int slotIndex);
         void NotifyShootCompleted();
+        void NotifyEnemyStaggered(int enemySlot);
     }
 }

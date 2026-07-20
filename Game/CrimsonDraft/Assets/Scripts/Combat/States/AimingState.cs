@@ -73,29 +73,33 @@ namespace CrimsonDraft.Combat
         {
             this.pendingShots = shots ?? Array.Empty<ResolvedShot>();
 
+            int op = this.context.SelectedOperator;
+            var weapon = this.roster.Count > op ? this.roster[op].ActiveWeapon : null;
+            int weaponPoiseDamage = weapon?.PoiseDamage ?? 0;
+
             int totalDamage = 0;
-            if (shots != null)
+            int totalPoiseDamage = 0;
+            foreach (var shot in this.pendingShots)
             {
-                foreach (var shot in shots)
-                    totalDamage += Mathf.Max(0, shot.Damage);
+                totalDamage += Mathf.Max(0, shot.Damage);
+                if (shot.Zone != ShotZone.Miss)
+                    totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
             }
 
             if (this.context.CurrentTargetSlot >= 0)
             {
-                var result = this.battlefieldView.ApplyDamageToEnemy(this.context.CurrentTargetSlot, totalDamage, 0);
+                var result = this.battlefieldView.ApplyDamageToEnemy(
+                    this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage);
 #if UNITY_EDITOR
                 Debug.Log(
                     $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
 #endif
+                if (result.IsStaggered)
+                    this.context.Orchestrator.NotifyEnemyStaggered(this.context.CurrentTargetSlot);
             }
 
-            int op = this.context.SelectedOperator;
-            if (this.roster.Count > op)
-            {
-                var weapon = this.roster[op].ActiveWeapon;
-                if (weapon != null)
-                    weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
-            }
+            if (weapon != null)
+                weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
 
             this.awaitingDismiss = true;
         }
