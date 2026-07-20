@@ -34,6 +34,7 @@ namespace CrimsonDraft.Combat
         int[] GetOccupiedEnemySlots();
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
         EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage);
+        void TriggerEnemyStagger(int slotIndex);
         bool IsEnemyStaggered(int slotIndex);
         bool HasAliveEnemies();
         UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots);

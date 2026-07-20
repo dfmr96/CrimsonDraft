@@ -188,7 +188,7 @@ namespace CrimsonDraft.Combat
                 return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false);
             }
 
-            bool justStaggered = false;
+            bool willStagger = false;
             // Poise doesn't drain further while the enemy is already down — it only
             // matters again once it recovers (Update() below clears IsStaggered).
             if (!state.IsStaggered)
@@ -201,22 +201,33 @@ namespace CrimsonDraft.Combat
 
                 if (enemyData != null && state.CurrentPoise <= 0)
                 {
-                    if (CombatMenuController.ShouldStagger(state.CurrentPoise, state.CurrentHp, state.MaxHp, enemyData.StaggerHpThresholdPct))
-                    {
-                        state.IsStaggered   = true;
-                        state.StaggerEndsAt = Time.time + enemyData.StaggerDurationSec;
-                        justStaggered       = true;
-                        if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
-                            anim.SetBool(IsStaggeredHash, true);
-                    }
-                    else
-                    {
+                    // Only the decision is made here — the actual knockdown (state flag,
+                    // timer, animation, ATB reset) is deferred to TriggerEnemyStagger(),
+                    // called once the operator's shoot animation finishes playing, so the
+                    // enemy never visually collapses mid-burst.
+                    willStagger = CombatMenuController.ShouldStagger(
+                        state.CurrentPoise, state.CurrentHp, state.MaxHp, enemyData.StaggerHpThresholdPct);
+                    if (!willStagger)
                         state.CurrentPoise = state.InitialPoise; // silent reset — enemy too healthy to stagger yet
-                    }
                 }
             }
 
-            return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false, justStaggered);
+            return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false, willStagger);
+        }
+
+        public void TriggerEnemyStagger(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state) || state.IsDead) return;
+
+            EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
+                ? this.currentEnemySlots[slotIndex]
+                : null;
+            if (enemyData == null) return;
+
+            state.IsStaggered   = true;
+            state.StaggerEndsAt = Time.time + enemyData.StaggerDurationSec;
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+                anim.SetBool(IsStaggeredHash, true);
         }
 
         public bool IsEnemyStaggered(int slotIndex) =>
@@ -232,7 +243,8 @@ namespace CrimsonDraft.Combat
                 var state = kvp.Value;
                 if (!state.IsStaggered || now < state.StaggerEndsAt) continue;
 
-                state.IsStaggered = false;
+                state.IsStaggered  = false;
+                state.CurrentPoise = state.InitialPoise; // fresh Poise for the next round of combat
                 if (this.enemyAnimatorBySlot.TryGetValue(kvp.Key, out var anim) && anim != null)
                     anim.SetBool(IsStaggeredHash, false);
             }

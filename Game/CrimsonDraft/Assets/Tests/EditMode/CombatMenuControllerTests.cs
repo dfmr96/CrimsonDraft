@@ -389,7 +389,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotsResolved_resultStaggered_notifiesOrchestrator()
+        public void ShotsResolved_resultStaggered_doesNotNotifyOrchestratorBeforeBurstPlays()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 100);
@@ -403,6 +403,30 @@ namespace CrimsonDraft.Tests
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
+            // The knockdown must not fire mid-QTE — only after the shoot burst animation plays.
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
+        }
+
+        [Test]
+        public void ShotsResolved_resultStaggered_triggersStaggerAfterBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            this.battlefieldView.ForceNextDamageResultStaggered();
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays the burst, then triggers the stagger
+
+            Assert.AreEqual(1, this.battlefieldView.TriggerEnemyStaggerCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastTriggerStaggerSlot);
             Assert.AreEqual(1, this.orchestrator.NotifyEnemyStaggeredCallCount);
             Assert.AreEqual(1, this.orchestrator.LastStaggeredSlot);
         }
@@ -421,6 +445,9 @@ namespace CrimsonDraft.Tests
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
+            InvokeConfirm(c); // dismiss aim window -> plays the burst
+
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
             Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
         }
 
@@ -856,6 +883,13 @@ namespace CrimsonDraft.Tests
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
                 this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
             public bool IsEnemyStaggered(int slotIndex) => false;
+            public int TriggerEnemyStaggerCallCount { get; private set; }
+            public int LastTriggerStaggerSlot       { get; private set; } = -1;
+            public void TriggerEnemyStagger(int slotIndex)
+            {
+                this.TriggerEnemyStaggerCallCount++;
+                this.LastTriggerStaggerSlot = slotIndex;
+            }
 
             public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
             {
