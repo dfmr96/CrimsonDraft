@@ -175,24 +175,17 @@ namespace CrimsonDraft.Combat
             bool isDead = state.CurrentHp <= 0;
             if (isDead)
             {
+                // Only the HP/flag state is set here — the fade-out and removal from
+                // occupiedEnemySlots (which is what SyncDeadEnemies/CombatEndedEvent key
+                // off) are deferred to FinalizeEnemyDeath(), called once the operator's
+                // shoot animation finishes playing, so combat can never end mid-burst.
                 state.IsDead = true;
-                if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                    StartCoroutine(this.FadeOutAndHideEnemy(go));
-
-                var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
-                foreach (int slot in this.occupiedEnemySlots)
-                {
-                    if (slot != slotIndex)
-                        nextOccupied.Add(slot);
-                }
-                this.occupiedEnemySlots = nextOccupied.ToArray();
-
                 return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false);
             }
 
             bool willStagger = false;
             // Poise doesn't drain further while the enemy is already down — it only
-            // matters again once it recovers (Update() below clears IsStaggered).
+            // matters again once it recovers (see RecoverEnemyStagger).
             if (!state.IsStaggered)
             {
                 state.CurrentPoise -= Mathf.Max(0, poiseDamage);
@@ -267,6 +260,33 @@ namespace CrimsonDraft.Combat
             this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsStaggered;
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        public void FinalizeEnemyDeath(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.ContainsKey(slotIndex)) return;
+
+            if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
+                StartCoroutine(this.FadeOutAndFinalizeDeath(slotIndex, go));
+            else
+                RemoveFromOccupiedSlots(slotIndex);
+        }
+
+        private IEnumerator FadeOutAndFinalizeDeath(int slotIndex, GameObject enemyGo)
+        {
+            yield return this.FadeOutAndHideEnemy(enemyGo);
+            RemoveFromOccupiedSlots(slotIndex);
+        }
+
+        private void RemoveFromOccupiedSlots(int slotIndex)
+        {
+            var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
+            foreach (int slot in this.occupiedEnemySlots)
+            {
+                if (slot != slotIndex)
+                    nextOccupied.Add(slot);
+            }
+            this.occupiedEnemySlots = nextOccupied.ToArray();
+        }
 
         public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
         {

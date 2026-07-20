@@ -36,6 +36,7 @@ namespace CrimsonDraft.Combat
         EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage);
         void TriggerEnemyStagger(int slotIndex);
         void RecoverEnemyStagger(int slotIndex);
+        void FinalizeEnemyDeath(int slotIndex);
         int[] NotifyActionDequeued();
         bool IsEnemyStaggered(int slotIndex);
         bool HasAliveEnemies();

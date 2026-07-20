@@ -21,6 +21,7 @@ namespace CrimsonDraft.Combat
         private bool awaitingDismiss;
         private bool isPlayingBurst;
         private bool pendingStagger;
+        private bool pendingDeath;
         private ResolvedShot[] pendingShots = Array.Empty<ResolvedShot>();
 
         internal AimingState(
@@ -74,6 +75,7 @@ namespace CrimsonDraft.Combat
         {
             this.pendingShots   = shots ?? Array.Empty<ResolvedShot>();
             this.pendingStagger = false;
+            this.pendingDeath   = false;
 
             int op = this.context.SelectedOperator;
             var weapon = this.roster.Count > op ? this.roster[op].ActiveWeapon : null;
@@ -97,6 +99,7 @@ namespace CrimsonDraft.Combat
                     $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
 #endif
                 this.pendingStagger = result.IsStaggered;
+                this.pendingDeath   = result.IsDead;
             }
 
             if (weapon != null)
@@ -118,7 +121,12 @@ namespace CrimsonDraft.Combat
                 this.pendingShots);
             this.isPlayingBurst = false;
 
-            if (this.pendingStagger)
+            if (this.pendingDeath)
+            {
+                this.battlefieldView.FinalizeEnemyDeath(this.context.CurrentTargetSlot);
+                this.pendingDeath = false;
+            }
+            else if (this.pendingStagger)
             {
                 this.battlefieldView.TriggerEnemyStagger(this.context.CurrentTargetSlot);
                 this.context.Orchestrator.NotifyEnemyStaggered(this.context.CurrentTargetSlot);

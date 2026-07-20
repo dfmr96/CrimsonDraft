@@ -654,11 +654,52 @@ namespace CrimsonDraft.Tests
 
             Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
+        }
+
+        [Test]
+        public void ShotFired_killingShot_doesNotFinalizeDeathBeforeBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            // Combat-end (SyncDeadEnemies -> CombatEndedEvent) keys off HasAliveEnemies /
+            // GetOccupiedEnemySlots. Neither must flip before the shoot burst has played,
+            // or combat ends mid-animation.
+            Assert.IsTrue(this.battlefieldView.HasAliveEnemies());
+            Assert.AreEqual(0, this.battlefieldView.FinalizeEnemyDeathCallCount);
+        }
+
+        [Test]
+        public void ShotFired_killingShot_finalizesDeathAfterBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays the burst, then finalizes the death
+
+            Assert.AreEqual(1, this.battlefieldView.FinalizeEnemyDeathCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastFinalizedDeathSlot);
             Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
         }
 
         [Test]
-        public void ShotFired_whenAllEnemiesDead_enemyHpReachesZero()
+        public void ShotFired_killingShot_doesNotAlsoTriggerStagger()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 10);
@@ -671,9 +712,10 @@ namespace CrimsonDraft.Tests
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
-            Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
-            Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
-            Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
+            InvokeConfirm(c); // dismiss aim window -> plays the burst
+
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
@@ -895,6 +937,22 @@ namespace CrimsonDraft.Tests
             public void RecoverEnemyStagger(int slotIndex) => this.RecoverEnemyStaggerCallCount++;
             public int[] NotifyActionDequeued() => Array.Empty<int>();
 
+            public int FinalizeEnemyDeathCallCount { get; private set; }
+            public int LastFinalizedDeathSlot      { get; private set; } = -1;
+            public void FinalizeEnemyDeath(int slotIndex)
+            {
+                this.FinalizeEnemyDeathCallCount++;
+                this.LastFinalizedDeathSlot = slotIndex;
+
+                var next = new System.Collections.Generic.List<int>(this.occupiedSlots.Length);
+                foreach (int slot in this.occupiedSlots)
+                {
+                    if (slot != slotIndex)
+                        next.Add(slot);
+                }
+                this.occupiedSlots = next.ToArray();
+            }
+
             public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
             {
                 this.LastPoiseDamageApplied = poiseDamage;
@@ -911,16 +969,9 @@ namespace CrimsonDraft.Tests
                 int nextHp = Mathf.Max(0, hp - applied);
                 this.hpBySlot[slotIndex] = nextHp;
                 bool dead = nextHp <= 0;
-                if (dead)
-                {
-                    var next = new System.Collections.Generic.List<int>(this.occupiedSlots.Length);
-                    foreach (int slot in this.occupiedSlots)
-                    {
-                        if (slot != slotIndex)
-                            next.Add(slot);
-                    }
-                    this.occupiedSlots = next.ToArray();
-                }
+                // Deliberately NOT removed from occupiedSlots here — matches real
+                // BattlefieldView, which defers that to FinalizeEnemyDeath() so combat
+                // can't end mid shoot-burst.
 
                 this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead, staggeredThisHit);
                 return this.LastDamageResult;
