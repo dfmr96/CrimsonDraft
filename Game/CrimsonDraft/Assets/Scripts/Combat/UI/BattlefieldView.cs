@@ -179,7 +179,13 @@ namespace CrimsonDraft.Combat
             if (slotIndex < 0 || slotIndex >= this.currentEnemySlots.Length)
                 return null;
 
-            return this.currentEnemySlots[slotIndex]?.HitMaskProfile;
+            EnemyData? enemy = this.currentEnemySlots[slotIndex];
+            if (enemy == null) return null;
+
+            if (IsEnemyStaggered(slotIndex) && enemy.StaggeredHitMaskProfile != null)
+                return enemy.StaggeredHitMaskProfile;
+
+            return enemy.HitMaskProfile;
         }
 
         public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)

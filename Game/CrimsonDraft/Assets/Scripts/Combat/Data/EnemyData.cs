@@ -11,6 +11,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject?        battlefieldPrefab = null;
         [SerializeField] private Sprite             sprite            = null!;
         [SerializeField] private AimHitMaskProfile? hitMaskProfile    = null;
+        [SerializeField] private AimHitMaskProfile? staggeredHitMaskProfile = null;
         [SerializeField] private int[]              maxHpPool          = System.Array.Empty<int>();
         [SerializeField] private float[]             attackBaseSecPool = System.Array.Empty<float>();
         [SerializeField, Min(0f)] private float     attackJitterSec = 1.25f;
@@ -26,6 +27,7 @@ namespace CrimsonDraft.Combat
         public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
         public Sprite Sprite                     => this.sprite;
         public AimHitMaskProfile? HitMaskProfile => this.hitMaskProfile;
+        public AimHitMaskProfile? StaggeredHitMaskProfile => this.staggeredHitMaskProfile;
         public int[] MaxHpPool                   => this.maxHpPool;
         public float[] AttackBaseSecPool         => this.attackBaseSecPool;
         public float AttackJitterSec             => this.attackJitterSec;
