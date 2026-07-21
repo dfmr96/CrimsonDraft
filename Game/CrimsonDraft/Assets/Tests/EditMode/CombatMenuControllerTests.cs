@@ -354,6 +354,104 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ShotsResolved_legsHit_sendsDoublePoiseDamage()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Legs, ShotPrecision.Normal, 16) });
+
+            // FakeWeaponSlot's default PoiseDamage is 10 (Task 1) -> legs doubles it to 20.
+            Assert.AreEqual(20, this.battlefieldView.LastPoiseDamageApplied);
+        }
+
+        [Test]
+        public void ShotsResolved_missShot_contributesNoPoiseDamage()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+
+            Assert.AreEqual(0, this.battlefieldView.LastPoiseDamageApplied);
+        }
+
+        [Test]
+        public void ShotsResolved_resultStaggered_doesNotNotifyOrchestratorBeforeBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            this.battlefieldView.ForceNextDamageResultStaggered();
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            // The knockdown must not fire mid-QTE — only after the shoot burst animation plays.
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
+        }
+
+        [Test]
+        public void ShotsResolved_resultStaggered_triggersStaggerAfterBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            this.battlefieldView.ForceNextDamageResultStaggered();
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays the burst, then triggers the stagger
+
+            Assert.AreEqual(1, this.battlefieldView.TriggerEnemyStaggerCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastTriggerStaggerSlot);
+            Assert.AreEqual(1, this.orchestrator.NotifyEnemyStaggeredCallCount);
+            Assert.AreEqual(1, this.orchestrator.LastStaggeredSlot);
+        }
+
+        [Test]
+        public void ShotsResolved_resultNotStaggered_doesNotNotifyOrchestrator()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 100);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays the burst
+
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
+        }
+
+        [Test]
         public void ShotsResolved_miss_appliesZeroDamage()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
@@ -467,6 +565,60 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ComputePoiseDamage_torso_returnsWeaponValueUnchanged()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputePoiseDamage(ShotZone.Torso, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_head_returnsWeaponValueUnchanged()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputePoiseDamage(ShotZone.Head, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_legs_doublesWeaponValue()
+        {
+            Assert.AreEqual(20, CombatMenuController.ComputePoiseDamage(ShotZone.Legs, 10));
+        }
+
+        [Test]
+        public void ComputePoiseDamage_zeroWeaponPoise_returnsZeroEvenOnLegs()
+        {
+            Assert.AreEqual(0, CombatMenuController.ComputePoiseDamage(ShotZone.Legs, 0));
+        }
+
+        [Test]
+        public void ShouldStagger_positivePoise_returnsFalseRegardlessOfHp()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 5, currentHp: 1, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_zeroPoise_hpAboveThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 50, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_zeroPoise_hpBelowThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 30, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_negativePoise_hpBelowThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldStagger(poiseAfterDamage: -8, currentHp: 30, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldStagger_hpExactlyAtThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 40, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
         public void ShotFired_appliesDamageToSelectedEnemy()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
@@ -502,11 +654,52 @@ namespace CrimsonDraft.Tests
 
             Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
+        }
+
+        [Test]
+        public void ShotFired_killingShot_doesNotFinalizeDeathBeforeBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            // Combat-end (SyncDeadEnemies -> CombatEndedEvent) keys off HasAliveEnemies /
+            // GetOccupiedEnemySlots. Neither must flip before the shoot burst has played,
+            // or combat ends mid-animation.
+            Assert.IsTrue(this.battlefieldView.HasAliveEnemies());
+            Assert.AreEqual(0, this.battlefieldView.FinalizeEnemyDeathCallCount);
+        }
+
+        [Test]
+        public void ShotFired_killingShot_finalizesDeathAfterBurstPlays()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 10);
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays the burst, then finalizes the death
+
+            Assert.AreEqual(1, this.battlefieldView.FinalizeEnemyDeathCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastFinalizedDeathSlot);
             Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
         }
 
         [Test]
-        public void ShotFired_whenAllEnemiesDead_enemyHpReachesZero()
+        public void ShotFired_killingShot_doesNotAlsoTriggerStagger()
         {
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 10);
@@ -519,9 +712,185 @@ namespace CrimsonDraft.Tests
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
-            Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
-            Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
-            Assert.IsFalse(this.battlefieldView.HasAliveEnemies());
+            InvokeConfirm(c); // dismiss aim window -> plays the burst
+
+            Assert.AreEqual(0, this.battlefieldView.TriggerEnemyStaggerCallCount);
+            Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
+        }
+
+        [Test]
+        public void CommandPanel_focusFire_marksOperatorAndFreezesAtb()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire);
+
+            CollectionAssert.Contains(c.FocusFireMarked, 0);
+            Assert.AreEqual(1, this.orchestrator.MarkOperatorForFocusFireCallCount);
+            Assert.AreEqual(0, this.orchestrator.LastMarkedFocusFireSlot);
+            Assert.AreEqual(1, this.menuView.FocusFireMarkedCallCount);
+            Assert.IsTrue(this.menuView.LastFocusFireMarkedValue);
+            Assert.IsFalse(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.menuView.OperatorDimmedByIndex[0]); // marked operator visually dimmed + non-selectable
+        }
+
+        [Test]
+        public void OperatorSelected_withNoneMarked_enablesFocusFire()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+
+            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void OperatorSelected_withOneOfThreeMarked_stillEnablesFocusFireForAnother()
+        {
+            var c = BuildAndInit(); // default FakeOperatorRoster has 3 slots, all alive
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+
+            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void OperatorSelected_withAllOthersMarked_disablesFocusFireForTheLastOne()
+        {
+            var c = BuildAndInit(); // 3 slots
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 1
+
+            this.menuView.RaiseOnOperatorSelected(2); // only unmarked operator left
+
+            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void CommandPanel_shoot_withMarkedOperators_enqueuesFocusFireAction()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot); // triggers, 1 is the trigger
+
+            Assert.IsNotNull(this.orchestrator.LastEnqueuedAction);
+            var action = this.orchestrator.LastEnqueuedAction!.Value;
+            Assert.AreEqual(PendingActionType.FocusFire, action.Type);
+            Assert.AreEqual(1, action.SlotIndex);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, action.FocusFireParticipants);
+        }
+
+        [Test]
+        public void CommandPanel_shoot_withMarkedOperators_clearsMarksAndUnmarksView()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            Assert.AreEqual(0, c.FocusFireMarked.Count);
+            Assert.AreEqual(2, this.menuView.FocusFireMarkedCallCount); // marked(0,true) then unmarked(0,false)
+            Assert.IsFalse(this.menuView.LastFocusFireMarkedValue);
+            Assert.AreEqual(0, this.menuView.LastFocusFireMarkedSlot);
+        }
+
+        [Test]
+        public void CommandPanel_shoot_withNoMarkedOperators_enqueuesNormalShoot()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            Assert.IsNotNull(this.orchestrator.LastEnqueuedAction);
+            var action = this.orchestrator.LastEnqueuedAction!.Value;
+            Assert.AreEqual(PendingActionType.Shoot, action.Type);
+            Assert.AreEqual(0, action.SlotIndex);
+        }
+
+        [Test]
+        public void BeginFocusFireConfiguration_seedsGroupStateAndEntersShotCountForFirstParticipant()
+        {
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            Assert.AreEqual(0, c.SelectedOperator);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, c.FocusFireParticipants);
+            Assert.IsTrue(this.shotCountView.IsVisible);
+        }
+
+        [Test]
+        public void ShotCountConfirm_groupFlow_loopsThroughParticipantsThenReachesTargetSelection()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c); // confirms participant 0's shot count
+
+            Assert.AreEqual(1, c.SelectedOperator);
+            Assert.AreEqual(1, c.FocusFireShotCounts[0]);
+            Assert.IsTrue(this.shotCountView.IsVisible); // re-entered for participant 1
+
+            InvokeConfirm(c); // confirms participant 1's (trigger) shot count -> TargetSelState
+
+            Assert.AreEqual(1, c.FocusFireShotCounts[1]);
+            Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
+        }
+
+        [Test]
+        public void FocusFireResolution_appliesDamagePerParticipantAndPlaysSequentialBursts()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 1000);
+            this.aimView.ResolveShotsForWeaponHandler = (data, count) =>
+                new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 15) };
+
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c); // participant 0's shot count
+            InvokeConfirm(c); // participant 1's (trigger) shot count -> TargetSelState
+
+            InvokeConfirm(c); // TargetSelState -> AimingState (only slot 1 is occupied)
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays both bursts, finalizes
+
+            Assert.AreEqual(2, this.battlefieldView.BurstCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastBurstOperatorSlotIndex); // trigger (participant 1) fires last
+            Assert.AreEqual(945, this.battlefieldView.LastDamageResult.RemainingHp); // 1000 - 15 (marked) - 40 (trigger)
+            Assert.AreEqual(1, this.orchestrator.NotifyFocusFireCompletedCallCount);
+            Assert.AreEqual(0, c.FocusFireParticipants.Length);
+        }
+
+        [Test]
+        public void FocusFireResolution_resolvesMarkedParticipantsFromAimView()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 1000);
+
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+            InvokeConfirm(c);
+
+            Assert.AreEqual(1, this.aimView.ResolveShotsForWeaponCallCount); // once for the one marked participant
+            Assert.AreEqual(1, this.aimView.LastResolvedShotCount);
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
@@ -583,7 +952,17 @@ namespace CrimsonDraft.Tests
                 this.healthByOperator.TryGetValue(index, out hpRatio);
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
             public void SetDimmed(bool dimmed) { }
-            public void SetOperatorDimmed(int index, bool dimmed) { }
+            public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
+            public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
+            public int  FocusFireMarkedCallCount  { get; private set; }
+            public bool LastFocusFireMarkedValue  { get; private set; }
+            public int  LastFocusFireMarkedSlot   { get; private set; } = -1;
+            public void SetOperatorFocusFireMarked(int index, bool marked)
+            {
+                this.FocusFireMarkedCallCount++;
+                this.LastFocusFireMarkedValue = marked;
+                this.LastFocusFireMarkedSlot  = index;
+            }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
@@ -687,6 +1066,26 @@ namespace CrimsonDraft.Tests
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
             public void FireResolvedShots(ResolvedShot[] shots) => this.OnShotsResolved?.Invoke(shots);
+
+            public int ResolveShotsForWeaponCallCount { get; private set; }
+            public CrimsonDraft.Inventory.WeaponData? LastResolvedWeaponData { get; private set; }
+            public int LastResolvedShotCount { get; private set; }
+            public Func<CrimsonDraft.Inventory.WeaponData?, int, ResolvedShot[]>? ResolveShotsForWeaponHandler;
+
+            public ResolvedShot[] ResolveShotsForWeapon(CrimsonDraft.Inventory.WeaponData? weaponData, int shotCount)
+            {
+                this.ResolveShotsForWeaponCallCount++;
+                this.LastResolvedWeaponData = weaponData;
+                this.LastResolvedShotCount  = shotCount;
+
+                if (this.ResolveShotsForWeaponHandler != null)
+                    return this.ResolveShotsForWeaponHandler(weaponData, shotCount);
+
+                var shots = new ResolvedShot[Mathf.Max(1, shotCount)];
+                for (int i = 0; i < shots.Length; i++)
+                    shots[i] = new ResolvedShot(i, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
+                return shots;
+            }
         }
 
         private sealed class FakeBattlefieldView : IBattlefieldView
@@ -701,6 +1100,8 @@ namespace CrimsonDraft.Tests
             public int LastBurstEnemySlotIndex     { get; private set; } = -1;
             public ResolvedShot[] LastBurstShots   { get; private set; } = Array.Empty<ResolvedShot>();
             private UniTaskCompletionSource? pendingBurstSource;
+            private bool forceNextResultStaggered;
+            public int LastPoiseDamageApplied { get; private set; }
 
             public void SetOccupiedSlots(int[] slots)
             {
@@ -716,6 +1117,7 @@ namespace CrimsonDraft.Tests
 
             public void HoldNextBurst()        => this.pendingBurstSource = new UniTaskCompletionSource();
             public void CompletePendingBurst() => this.pendingBurstSource?.TrySetResult();
+            public void ForceNextDamageResultStaggered() => this.forceNextResultStaggered = true;
 
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
@@ -727,30 +1129,58 @@ namespace CrimsonDraft.Tests
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
                 this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+            public bool IsEnemyStaggered(int slotIndex) => false;
+            public bool IsEnemyDead(int slotIndex) =>
+                this.hpBySlot.TryGetValue(slotIndex, out int hp) && hp <= 0;
+            public int TriggerEnemyStaggerCallCount { get; private set; }
+            public int LastTriggerStaggerSlot       { get; private set; } = -1;
+            public void TriggerEnemyStagger(int slotIndex)
             {
+                this.TriggerEnemyStaggerCallCount++;
+                this.LastTriggerStaggerSlot = slotIndex;
+            }
+
+            public int RecoverEnemyStaggerCallCount { get; private set; }
+            public void RecoverEnemyStagger(int slotIndex) => this.RecoverEnemyStaggerCallCount++;
+            public int[] NotifyActionDequeued() => Array.Empty<int>();
+
+            public int FinalizeEnemyDeathCallCount { get; private set; }
+            public int LastFinalizedDeathSlot      { get; private set; } = -1;
+            public void FinalizeEnemyDeath(int slotIndex)
+            {
+                this.FinalizeEnemyDeathCallCount++;
+                this.LastFinalizedDeathSlot = slotIndex;
+
+                var next = new System.Collections.Generic.List<int>(this.occupiedSlots.Length);
+                foreach (int slot in this.occupiedSlots)
+                {
+                    if (slot != slotIndex)
+                        next.Add(slot);
+                }
+                this.occupiedSlots = next.ToArray();
+            }
+
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
+            {
+                this.LastPoiseDamageApplied = poiseDamage;
+                bool staggeredThisHit = this.forceNextResultStaggered;
+                this.forceNextResultStaggered = false;
+
                 if (!this.hpBySlot.TryGetValue(slotIndex, out int hp))
                 {
-                    this.LastDamageResult = new EnemyDamageResult(slotIndex, 0, 0, false);
+                    this.LastDamageResult = new EnemyDamageResult(slotIndex, 0, 0, false, staggeredThisHit);
                     return this.LastDamageResult;
                 }
 
-                int applied = Mathf.Max(0, damage);
+                int applied = Mathf.Max(0, hpDamage);
                 int nextHp = Mathf.Max(0, hp - applied);
                 this.hpBySlot[slotIndex] = nextHp;
                 bool dead = nextHp <= 0;
-                if (dead)
-                {
-                    var next = new System.Collections.Generic.List<int>(this.occupiedSlots.Length);
-                    foreach (int slot in this.occupiedSlots)
-                    {
-                        if (slot != slotIndex)
-                            next.Add(slot);
-                    }
-                    this.occupiedSlots = next.ToArray();
-                }
+                // Deliberately NOT removed from occupiedSlots here — matches real
+                // BattlefieldView, which defers that to FinalizeEnemyDeath() so combat
+                // can't end mid shoot-burst.
 
-                this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead);
+                this.LastDamageResult = new EnemyDamageResult(slotIndex, applied, nextHp, dead, staggeredThisHit);
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
@@ -763,11 +1193,11 @@ namespace CrimsonDraft.Tests
                 return this.pendingBurstSource != null ? this.pendingBurstSource.Task : UniTask.CompletedTask;
             }
 #if UNITY_EDITOR || DEBUG_COMBAT
-            public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+            public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex)
             {
                 bool alive = System.Array.IndexOf(this.occupiedSlots, slotIndex) >= 0;
                 int  hp    = this.hpBySlot.TryGetValue(slotIndex, out int v) ? v : 0;
-                return (hp, 100, !alive);
+                return (hp, 100, !alive, 0, false);
             }
 #endif
         }
@@ -785,6 +1215,22 @@ namespace CrimsonDraft.Tests
             public void SetWaitMode(bool paused)       { }
             public bool IsOperatorReady(int slotIndex) => true;
             public void NotifyShootCompleted()         => this.NotifyShootCompletedCallCount++;
+            public int NotifyEnemyStaggeredCallCount { get; private set; }
+            public int LastStaggeredSlot             { get; private set; } = -1;
+            public void NotifyEnemyStaggered(int enemySlot)
+            {
+                this.NotifyEnemyStaggeredCallCount++;
+                this.LastStaggeredSlot = enemySlot;
+            }
+            public int MarkOperatorForFocusFireCallCount { get; private set; }
+            public int LastMarkedFocusFireSlot           { get; private set; } = -1;
+            public void MarkOperatorForFocusFire(int operatorSlot)
+            {
+                this.MarkOperatorForFocusFireCallCount++;
+                this.LastMarkedFocusFireSlot = operatorSlot;
+            }
+            public int NotifyFocusFireCompletedCallCount { get; private set; }
+            public void NotifyFocusFireCompleted()        => this.NotifyFocusFireCompletedCallCount++;
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster
@@ -827,11 +1273,13 @@ namespace CrimsonDraft.Tests
                 public int     BaseDamage => 20;
                 public int     CurrentAmmo { get; private set; }
                 public int     MaxAmmo { get; }
+                public int     PoiseDamage { get; }
 
-                internal FakeWeaponSlot(int maxAmmo)
+                internal FakeWeaponSlot(int maxAmmo, int poiseDamage = 10)
                 {
                     this.MaxAmmo = Mathf.Max(1, maxAmmo);
                     this.CurrentAmmo = this.MaxAmmo;
+                    this.PoiseDamage = poiseDamage;
                 }
 
                 public void SetAmmo(int value) =>

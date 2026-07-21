@@ -20,28 +20,20 @@ MonoBehaviour:
   cellSize: 3
   center: {x: 5.740162, y: -13.930471}
   rooms:
-  - RoomId: HALLWAY_A
+  - RoomId: BALCONY_B
     Polygon:
-    - {x: -5.3156476, y: -22.364271}
-    - {x: -8.900001, y: -22.364271}
-    - {x: -8.900001, y: -1.005002}
-    - {x: -5.2482743, y: -1.005002}
-    - {x: -5.2482743, y: -9.157158}
-    - {x: -1.2944537, y: -9.157158}
-    - {x: -1.2944537, y: -12.256325}
-    - {x: 11.283137, y: -12.256325}
-    - {x: 11.283137, y: -15.4902315}
-    - {x: -5.3118443, y: -15.4902315}
+    - {x: 13.595011, y: -4.4990063}
+    - {x: -8.9000025, y: -4.4990063}
+    - {x: -8.9000025, y: -1.0050058}
+    - {x: 13.595011, y: -1.0050058}
     Transform:
-      Offset: {x: 27.351358, y: -10.317602}
+      Offset: {x: -15.317189, y: -10.345981}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
-    DoorIds:
-    - DR_0
+    DoorIds: []
     PickupIds:
-    - IN_Green_06
-    - AM_9mm_07
+    - IN_Green_07
   - RoomId: HALLWAY_B
     Polygon:
     - {x: -5.5177655, y: -22.162153}
@@ -60,8 +52,8 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     DoorIds:
-    - DR_18
     - DR_17
+    - DR_18
     PickupIds:
     - AM_9mm_08
   - RoomId: LAB_HALLWAY
@@ -86,20 +78,6 @@ MonoBehaviour:
     DoorIds:
     - DR_16
     PickupIds: []
-  - RoomId: BALCONY_B
-    Polygon:
-    - {x: 13.595011, y: -4.4990063}
-    - {x: -8.9000025, y: -4.4990063}
-    - {x: -8.9000025, y: -1.0050058}
-    - {x: 13.595011, y: -1.0050058}
-    Transform:
-      Offset: {x: -15.317189, y: -10.345981}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    DoorIds: []
-    PickupIds:
-    - IN_Green_07
   - RoomId: ENERGY_ROOM
     Polygon:
     - {x: -6.8436656, y: -4.4371886}
@@ -118,6 +96,28 @@ MonoBehaviour:
     DoorIds: []
     PickupIds:
     - AM_9mm_09
+  - RoomId: HALLWAY_A
+    Polygon:
+    - {x: -5.3156476, y: -22.364271}
+    - {x: -8.900001, y: -22.364271}
+    - {x: -8.900001, y: -1.005002}
+    - {x: -5.2482743, y: -1.005002}
+    - {x: -5.2482743, y: -9.157158}
+    - {x: -1.2944537, y: -9.157158}
+    - {x: -1.2944537, y: -12.256325}
+    - {x: 11.283137, y: -12.256325}
+    - {x: 11.283137, y: -15.4902315}
+    - {x: -5.3118443, y: -15.4902315}
+    Transform:
+      Offset: {x: 27.351358, y: -10.317602}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    DoorIds:
+    - DR_0
+    PickupIds:
+    - AM_9mm_07
+    - IN_Green_06
   - RoomId: BALCONY_A
     Polygon:
     - {x: 13.595005, y: -4.4990044}
@@ -134,24 +134,10 @@ MonoBehaviour:
     PickupIds:
     - KI_01
   doors:
-  - DoorId: DR_0
+  - DoorId: DR_16
     Transform:
-      Offset: {x: 16.636482, y: -1.4553658}
+      Offset: {x: -6.876614, y: -1.3985504}
       Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_18
-    Transform:
-      Offset: {x: -16.216951, y: -3.1879468}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_12
-    Transform:
-      Offset: {x: 26.404524, y: -3.3958569}
-      Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
@@ -162,9 +148,23 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
-  - DoorId: DR_16
+  - DoorId: DR_12
     Transform:
-      Offset: {x: -6.876614, y: -1.3985504}
+      Offset: {x: 26.404524, y: -3.3958569}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_18
+    Transform:
+      Offset: {x: -16.216951, y: -3.1879468}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_0
+    Transform:
+      Offset: {x: 16.636482, y: -1.4553658}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
