@@ -66,8 +66,12 @@ namespace CrimsonDraft.UI
         private bool       wasTabBarActive;
 
         private string[] currentPages = Array.Empty<string>();
+        private Sprite?  currentImage;
         private int      pageIndex;
         private string   currentTitle = string.Empty;
+
+        // Image + title-only pages come before the text pages when the doc has a PageImage.
+        private int TotalPages => this.currentPages.Length + (this.currentImage != null ? 2 : 0);
 
         private enum Focus { Carousel, Grid }
         private Focus focus;
@@ -353,23 +357,48 @@ namespace CrimsonDraft.UI
             if (current.Length > 0)
                 pages.Add(current.ToString());
 
-            if (pages.Count == 0) return;
+            this.currentImage = doc.PageImage;
+            if (pages.Count == 0 && this.currentImage == null) return;
 
             this.currentPages = pages.ToArray();
             this.pageIndex    = 0;
             this.currentTitle = doc.Title;
-            this.detailView.Show(this.currentTitle, this.currentPages[0], 1, this.currentPages.Length);
+            ShowCurrentPage();
+        }
+
+        void ShowCurrentPage()
+        {
+            int total = TotalPages;
+
+            if (this.currentImage != null)
+            {
+                if (this.pageIndex == 0)
+                {
+                    this.detailView.ShowImage(this.currentImage, this.pageIndex + 1, total);
+                    return;
+                }
+                if (this.pageIndex == 1)
+                {
+                    this.detailView.ShowTitleOnly(this.currentTitle, this.pageIndex + 1, total);
+                    return;
+                }
+
+                this.detailView.ShowBodyOnly(this.currentPages[this.pageIndex - 2], this.pageIndex + 1, total);
+                return;
+            }
+
+            this.detailView.Show(this.currentTitle, this.currentPages[this.pageIndex], this.pageIndex + 1, total);
         }
 
         void AdvancePage()
         {
             this.pageIndex++;
-            if (this.pageIndex >= this.currentPages.Length)
+            if (this.pageIndex >= TotalPages)
             {
                 this.detailView.Hide();
                 return;
             }
-            this.detailView.Show(this.currentTitle, this.currentPages[this.pageIndex], this.pageIndex + 1, this.currentPages.Length);
+            ShowCurrentPage();
         }
 
         // ── Focus / Highlights ────────────────────────────────────────────────
@@ -422,6 +451,7 @@ namespace CrimsonDraft.UI
         {
             DocumentCategory.Notes      => "Notas",
             DocumentCategory.VoiceNotes => "Notas de Voz",
+            DocumentCategory.Posters    => "Carteles",
             _                           => cat.ToString()
         };
 

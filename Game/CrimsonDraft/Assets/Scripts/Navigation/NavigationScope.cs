@@ -114,7 +114,12 @@ namespace CrimsonDraft.Navigation
             builder.Register<MapStateTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<WeatherAmbienceController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MusicManagerController>().AsImplementedInterfaces();
-            builder.RegisterComponentInHierarchy<RadioInteractable>();
+
+            // Optional room prop — not every scene has a physical radio placed yet,
+            // so only register it if present, same as InventoryDebugPrinter above.
+            var radio = FindObjectOfType<RadioInteractable>(true);
+            if (radio != null)
+                builder.RegisterComponent(radio);
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
