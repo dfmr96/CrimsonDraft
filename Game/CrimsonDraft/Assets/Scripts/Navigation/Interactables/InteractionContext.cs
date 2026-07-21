@@ -1,6 +1,7 @@
 #nullable enable
 
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 
@@ -15,6 +16,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly ContainerController    ContainerController;
         public readonly IPickupDialogueService PickupDialogueService;
         public readonly PuzzleViewController    PuzzleViewController;
+        public readonly ScreenFader            ScreenFader;
 
         public InteractionContext(
             IInventoryService      inventoryService,
@@ -23,7 +25,8 @@ namespace CrimsonDraft.Navigation.Interactables
             DocumentController     documentController,
             ContainerController    containerController,
             IPickupDialogueService pickupDialogueService,
-            PuzzleViewController    puzzleViewController)
+            PuzzleViewController    puzzleViewController,
+            ScreenFader             screenFader)
         {
             InventoryService      = inventoryService;
             InputService          = inputService;
@@ -32,6 +35,7 @@ namespace CrimsonDraft.Navigation.Interactables
             ContainerController   = containerController;
             PickupDialogueService = pickupDialogueService;
             PuzzleViewController   = puzzleViewController;
+            ScreenFader            = screenFader;
         }
     }
 }

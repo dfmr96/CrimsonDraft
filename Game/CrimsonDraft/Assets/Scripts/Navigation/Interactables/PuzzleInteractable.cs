@@ -1,5 +1,6 @@
 #nullable enable
 
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -8,6 +9,8 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         [SerializeField] private GameObject              canvasPrefab = null!;
         [SerializeField] private ItemSocketInteractable? requiredSocket;
+        [SerializeField] private bool                    triggersDemoEnd;
+        [SerializeField, TextArea] private string         demoEndMessage = "Hasta aquí llega la demo.\nGracias por jugar.";
 
         private bool isSolved;
 
@@ -21,7 +24,12 @@ namespace CrimsonDraft.Navigation.Interactables
                 return;
             }
 
-            context.PuzzleViewController.Open(this.canvasPrefab, onSolved: () => this.isSolved = true);
+            context.PuzzleViewController.Open(this.canvasPrefab, onSolved: () =>
+            {
+                this.isSolved = true;
+                if (this.triggersDemoEnd)
+                    context.ScreenFader.ShowEndScreenAsync(this.demoEndMessage).Forget();
+            });
         }
     }
 }

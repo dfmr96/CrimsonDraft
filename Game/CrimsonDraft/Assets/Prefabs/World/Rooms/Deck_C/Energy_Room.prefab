@@ -1524,7 +1524,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 7725
+  m_VersionIndex: 7728
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2389,7 +2389,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4835
+  m_VersionIndex: 4838
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2849,7 +2849,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3925
+  m_VersionIndex: 3928
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -3150,7 +3150,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3915
+  m_VersionIndex: 3918
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4296,7 +4296,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 7075
+  m_VersionIndex: 7078
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5809,7 +5809,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 7125
+  m_VersionIndex: 7128
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -6741,6 +6741,7 @@ GameObject:
   - component: {fileID: 7526721101928879977}
   - component: {fileID: 4759610555956370973}
   - component: {fileID: 968918384463853269}
+  - component: {fileID: 3881939253173398248}
   m_Layer: 0
   m_Name: Energy_Room
   m_TagString: Untagged
@@ -6833,6 +6834,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: ENERGY_ROOM
 --- !u!114 &968918384463853269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7853630284609401642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -6.8436656, y: -4.4371886}
+  - {x: -8.900005, y: -4.4371886}
+  - {x: -8.900005, y: -1.005002}
+  - {x: -2.5503235, y: -1.005002}
+  - {x: -2.5503235, y: -7.0890207}
+  - {x: 6.6007433, y: -7.0890207}
+  - {x: 6.6007433, y: -14.408033}
+  - {x: -6.8376675, y: -14.408033}
+  mapOffset: {x: -2.0907514, y: -30.882095}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
+--- !u!114 &3881939253173398248
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8054,6 +8080,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 6476350012019196314, guid: 5fd27da5562ffa945bb39ce0383c1944, type: 3}
+    - target: {fileID: 5798957728850223376, guid: 72db2acba155ac74dace8d4524ec5681, type: 3}
+      propertyPath: triggersDemoEnd
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6214493457831864773, guid: 72db2acba155ac74dace8d4524ec5681, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.597
