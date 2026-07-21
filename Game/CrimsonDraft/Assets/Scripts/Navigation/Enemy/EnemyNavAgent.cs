@@ -16,6 +16,8 @@ namespace CrimsonDraft.Navigation.Enemy
 {
     public sealed class EnemyNavAgent : MonoBehaviour
     {
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+
         [SerializeField] private NavigationEnemyData  data          = null!;
         [SerializeField] private EncounterData        encounterData = null!;
         [SerializeField] private string               encounterId   = string.Empty;
@@ -32,6 +34,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
         [Header("Attack")]
         [SerializeField] private Animator?  animator;
+        [Tooltip("Velocidad de movimiento para la que está animado el clip de Walk. El playback del Animator se escala respecto a esta referencia para que las piernas no patinen al perseguir más rápido.")]
+        [SerializeField] private float      walkAnimationReferenceSpeed = 2f;
         [Tooltip("Nombres de estado del Animator (Base Layer) reproducidos al alcanzar al jugador; se elige uno al azar.")]
         [SerializeField] private string[]   attackStateNames     = { "Armature|Attack_1 0", "Armature|Attack_2", "Armature|Attack_3" };
         [Tooltip("Tope de seguridad por si la animación de ataque no reporta normalizedTime >= 1 (p. ej. clip en loop).")]
@@ -108,6 +112,18 @@ namespace CrimsonDraft.Navigation.Enemy
         private void Update()
         {
             if (playerController == null) return;
+
+            if (animator != null && !isAttacking)
+            {
+                float velocityMagnitude = navAgent.velocity.magnitude;
+                animator.SetFloat(SpeedHash, velocityMagnitude);
+
+                float reference = walkAnimationReferenceSpeed > 0.01f ? walkAnimationReferenceSpeed : 1f;
+                animator.speed = velocityMagnitude > 0.15f
+                    ? Mathf.Clamp(velocityMagnitude / reference, 0.6f, 2.5f)
+                    : 1f;
+            }
+
             if (dialoguePaused) return;
 
             switch (state)
@@ -246,6 +262,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
             if (animator != null && attackStateNames.Length > 0)
             {
+                animator.speed = 1f;
                 var stateName = attackStateNames[UnityEngine.Random.Range(0, attackStateNames.Length)];
                 animator.Play(stateName, 0, 0f);
 
