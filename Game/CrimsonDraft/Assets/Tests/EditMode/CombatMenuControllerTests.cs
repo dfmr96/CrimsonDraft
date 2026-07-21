@@ -845,6 +845,53 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
         }
 
+        [Test]
+        public void FocusFireResolution_appliesDamagePerParticipantAndPlaysSequentialBursts()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 1000);
+            this.aimView.ResolveShotsForWeaponHandler = (data, count) =>
+                new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 15) };
+
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c); // participant 0's shot count
+            InvokeConfirm(c); // participant 1's (trigger) shot count -> TargetSelState
+
+            InvokeConfirm(c); // TargetSelState -> AimingState (only slot 1 is occupied)
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+
+            InvokeConfirm(c); // dismiss aim window -> plays both bursts, finalizes
+
+            Assert.AreEqual(2, this.battlefieldView.BurstCallCount);
+            Assert.AreEqual(1, this.battlefieldView.LastBurstOperatorSlotIndex); // trigger (participant 1) fires last
+            Assert.AreEqual(945, this.battlefieldView.LastDamageResult.RemainingHp); // 1000 - 15 (marked) - 40 (trigger)
+            Assert.AreEqual(1, this.orchestrator.NotifyFocusFireCompletedCallCount);
+            Assert.AreEqual(0, c.FocusFireParticipants.Length);
+        }
+
+        [Test]
+        public void FocusFireResolution_resolvesMarkedParticipantsFromAimView()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            this.battlefieldView.SetEnemyHp(1, 1000);
+
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+            InvokeConfirm(c);
+
+            Assert.AreEqual(1, this.aimView.ResolveShotsForWeaponCallCount); // once for the one marked participant
+            Assert.AreEqual(1, this.aimView.LastResolvedShotCount);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeInventoryService : IInventoryService

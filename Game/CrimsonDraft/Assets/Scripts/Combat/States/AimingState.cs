@@ -1,9 +1,11 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using CrimsonDraft.Audio;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -71,11 +73,20 @@ namespace CrimsonDraft.Combat
             this.aimView.Confirm();
         }
 
+        private readonly List<(int Slot, ResolvedShot[] Shots)> pendingGroupShots = new();
+
         private void HandleShotsResolved(ResolvedShot[] shots)
         {
             this.pendingShots   = shots ?? Array.Empty<ResolvedShot>();
             this.pendingStagger = false;
             this.pendingDeath   = false;
+
+            if (this.context.FocusFireParticipants.Length > 0)
+            {
+                HandleGroupShotsResolved();
+                this.awaitingDismiss = true;
+                return;
+            }
 
             int op = this.context.SelectedOperator;
             var weapon = this.roster.Count > op ? this.roster[op].ActiveWeapon : null;
@@ -108,17 +119,71 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = true;
         }
 
+        private void HandleGroupShotsResolved()
+        {
+            this.pendingGroupShots.Clear();
+            int[] participants = this.context.FocusFireParticipants;
+
+            for (int i = 0; i < participants.Length; i++)
+            {
+                int slot = participants[i];
+                var weapon = this.roster.Count > slot ? this.roster[slot].ActiveWeapon : null;
+                int weaponPoiseDamage = weapon?.PoiseDamage ?? 0;
+                bool isTrigger = i == participants.Length - 1;
+                int shotCount = this.context.FocusFireShotCounts.TryGetValue(slot, out int sc) ? sc : 1;
+
+                ResolvedShot[] participantShots = isTrigger
+                    ? this.pendingShots
+                    : this.aimView.ResolveShotsForWeapon((weapon as WeaponItem)?.Data, shotCount);
+
+                int totalDamage = 0;
+                int totalPoiseDamage = 0;
+                foreach (var shot in participantShots)
+                {
+                    totalDamage += Mathf.Max(0, shot.Damage);
+                    if (shot.Zone != ShotZone.Miss)
+                        totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                }
+
+                if (this.context.CurrentTargetSlot >= 0)
+                {
+                    var result = this.battlefieldView.ApplyDamageToEnemy(
+                        this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage);
+                    this.pendingStagger = result.IsStaggered;
+                    this.pendingDeath   = result.IsDead;
+                }
+
+                if (weapon != null)
+                    weapon.SetAmmo(weapon.CurrentAmmo - shotCount);
+
+                this.pendingGroupShots.Add((slot, participantShots));
+            }
+        }
+
         private async UniTaskVoid CloseAimAndReturnToOperatorSelectionAsync()
         {
             this.awaitingDismiss = false;
             this.aimView.Hide();
             this.commandPanel.Hide();
 
+            bool isGroup = this.context.FocusFireParticipants.Length > 0;
+
             this.isPlayingBurst = true;
-            await this.battlefieldView.PlayOperatorShootBurstAsync(
-                this.context.SelectedOperator,
-                this.context.CurrentTargetSlot,
-                this.pendingShots);
+            if (isGroup)
+            {
+                foreach (var participant in this.pendingGroupShots)
+                {
+                    await this.battlefieldView.PlayOperatorShootBurstAsync(
+                        participant.Slot, this.context.CurrentTargetSlot, participant.Shots);
+                }
+            }
+            else
+            {
+                await this.battlefieldView.PlayOperatorShootBurstAsync(
+                    this.context.SelectedOperator,
+                    this.context.CurrentTargetSlot,
+                    this.pendingShots);
+            }
             this.isPlayingBurst = false;
 
             if (this.pendingDeath)
@@ -133,7 +198,17 @@ namespace CrimsonDraft.Combat
                 this.pendingStagger = false;
             }
 
-            this.context.Orchestrator.NotifyShootCompleted();
+            if (isGroup)
+            {
+                this.context.Orchestrator.NotifyFocusFireCompleted();
+                this.context.FocusFireParticipants = Array.Empty<int>();
+                this.context.FocusFireShotCounts.Clear();
+            }
+            else
+            {
+                this.context.Orchestrator.NotifyShootCompleted();
+            }
+
             this.context.CurrentTargetSlot = -1;
             this.context.SelectedShotCount = 1;
             this.context.TransitionTo(this.context.OperatorSelState);
