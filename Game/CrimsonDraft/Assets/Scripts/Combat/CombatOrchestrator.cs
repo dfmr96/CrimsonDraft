@@ -34,6 +34,9 @@ namespace CrimsonDraft.Combat
         private readonly HashSet<int>   knownAliveEnemySlots = new();
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
+        private readonly Dictionary<int, float> rolledEnemyAttackBaseSec = new();
+
+        private const float DefaultAttackBaseSec = 7f;
 
         private float          animationLockUntil;
         private float          animationLockDuration;
@@ -226,7 +229,7 @@ namespace CrimsonDraft.Combat
 
                 this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, targetSlot, data.AttackDamage));
 
-                float nextSec = Mathf.Max(0.1f, data.AttackBaseSec);
+                float nextSec = Mathf.Max(0.1f, GetOrRollAttackBaseSec(i, data));
                 this.atbSystem.ResetActor(i, ATBActorKind.Enemy);
                 this.atbSystem.FreezeActor(i, ATBActorKind.Enemy);
                 this.atbSystem.UpdateActorGaugeRate(i, ATBActorKind.Enemy, 1f / nextSec);
@@ -396,7 +399,28 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        private static List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster, float divisor)
+        private float GetOrRollAttackBaseSec(int slotIndex, EnemyData data)
+        {
+            if (this.rolledEnemyAttackBaseSec.TryGetValue(slotIndex, out float cached))
+                return cached;
+
+            float[] pool = data.AttackBaseSecPool;
+            float rolled;
+            if (pool == null || pool.Length == 0)
+            {
+                Debug.LogWarning($"[CombatOrchestrator] {data.name} has no AttackBaseSecPool configured; using default {DefaultAttackBaseSec}.", data);
+                rolled = DefaultAttackBaseSec;
+            }
+            else
+            {
+                rolled = pool[this.random.NextInt(0, pool.Length)];
+            }
+
+            this.rolledEnemyAttackBaseSec[slotIndex] = rolled;
+            return rolled;
+        }
+
+        private List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster, float divisor)
         {
             var configs = new List<ATBActorConfig>();
 
@@ -410,7 +434,8 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = encounter.EnemySlots[i];
                 if (data == null) continue;
-                float gps          = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
+                float attackBaseSec = GetOrRollAttackBaseSec(i, data);
+                float gps          = attackBaseSec > 0f ? 1f / attackBaseSec : 1f;
                 float initialGauge = data.InitialGaugePct / 100f;
                 configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps, initialGauge));
             }

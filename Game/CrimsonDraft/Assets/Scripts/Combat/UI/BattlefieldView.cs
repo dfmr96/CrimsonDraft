@@ -57,6 +57,8 @@ namespace CrimsonDraft.Combat
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
+        private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
+        private const int DefaultMaxHp = 100;
 
         private IOperatorRoster? roster;
 
@@ -114,10 +116,11 @@ namespace CrimsonDraft.Combat
                 var deathMarker = go.GetComponentInChildren<EnemyDeathMarker>();
                 if (deathMarker != null) this.enemyDeathMarkerBySlot[i] = deathMarker;
                 int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
+                int rolledMaxHp = RollMaxHp(enemy);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
-                    CurrentHp               = Mathf.Max(1, enemy.MaxHp),
-                    MaxHp                   = Mathf.Max(1, enemy.MaxHp),
+                    CurrentHp               = Mathf.Max(1, rolledMaxHp),
+                    MaxHp                   = Mathf.Max(1, rolledMaxHp),
                     IsDead                  = false,
                     CurrentPoise            = rolledPoise,
                     InitialPoise            = rolledPoise,
@@ -155,6 +158,18 @@ namespace CrimsonDraft.Combat
                 if (operatorAudio != null && this.roster != null)
                     operatorAudio.Bind(this.roster, i);
             }
+        }
+
+        private int RollMaxHp(EnemyData enemy)
+        {
+            int[] pool = enemy.MaxHpPool;
+            if (pool == null || pool.Length == 0)
+            {
+                Debug.LogWarning($"[BattlefieldView] {enemy.name} has no MaxHpPool configured; using default {DefaultMaxHp}.", enemy);
+                return DefaultMaxHp;
+            }
+
+            return pool[this.enemyStatRandom.NextInt(0, pool.Length)];
         }
 
         public int[] GetOccupiedEnemySlots() => this.occupiedEnemySlots;
