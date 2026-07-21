@@ -16,6 +16,7 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0f)] private float     attackJitterSec = 1.25f;
         [SerializeField, Min(0f)] private float     attackDurationSec = 1.2f;
         [SerializeField, Min(0)] private int        attackDamage = 10;
+        [SerializeField, Range(0f, 100f)] private float initialGaugePct = 0f;
 
         public string EnemyId                    => this.enemyId;
         public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
@@ -26,5 +27,6 @@ namespace CrimsonDraft.Combat
         public float AttackJitterSec             => this.attackJitterSec;
         public float AttackDurationSec           => this.attackDurationSec;
         public int AttackDamage                  => this.attackDamage;
+        public float InitialGaugePct             => this.initialGaugePct;
     }
 }

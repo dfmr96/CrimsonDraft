@@ -25,13 +25,20 @@ namespace CrimsonDraft.UI
 
         public int Columns => columns;
         public int Rows => rows;
-        public float CellSize => cellSize;
+        public float CellSize
+        {
+            get
+            {
+                if (this.cellSize <= 0f && this.rectTransform != null)
+                    this.cellSize = this.rectTransform.rect.width / this.columns;
+                return this.cellSize;
+            }
+        }
 
         void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
             itemGrid = new InventoryItemView[columns, rows];
-            // Derive cellSize from the RectTransform size the designer set in editor
             cellSize = rectTransform.rect.width / columns;
 
             if (gridBackground != null)

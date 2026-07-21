@@ -1,5 +1,8 @@
 # Sistema de Salud
 
+> [!WARNING]
+> **DEPRECADO** — Este documento describe el sistema de salud anterior y ya no refleja la dirección del proyecto. No usar como referencia de implementación. Será reemplazado por un nuevo documento de diseño.
+
 ## Filosofia
 
 No hay barra de vida. No hay numeros visibles de HP. El jugador lee el estado de sus operadores a traves de **signos vitales** — el mismo ECG, BPM y presion arterial que ya existen en el prototipo. La salud se siente, no se lee.

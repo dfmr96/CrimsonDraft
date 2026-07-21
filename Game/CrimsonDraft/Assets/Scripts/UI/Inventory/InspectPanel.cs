@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using VContainer;
 
 namespace CrimsonDraft.UI
 {
@@ -14,8 +15,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private TMP_Text    itemName      = null!;
         [SerializeField] private TMP_Text    itemDescription = null!;
 
-        [Header("Audio")]
-        [SerializeField] private InventorySoundManager sfx = null!;
+        [Inject] private InventorySfxData sfx = null!;
 
         private InventoryItemView? currentItem;
 
@@ -45,7 +45,7 @@ namespace CrimsonDraft.UI
 
             IsOpen = true;
             Show();
-            this.sfx?.PlayInspectOpen();
+            this.sfx?.PlayDecide(gameObject);
         }
 
         public void Close()
@@ -53,7 +53,7 @@ namespace CrimsonDraft.UI
             if (!IsOpen) return;
             IsOpen = false;
             Hide();
-            this.sfx?.PlayInspectClose();
+            this.sfx?.PlayCancel(gameObject);
             OnClose?.Invoke();
         }
 

@@ -8,6 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Combat
 {
@@ -22,18 +23,25 @@ namespace CrimsonDraft.Combat
 
         #region Fields
 
-        [SerializeField] private ActionMenuItem[] operators       = Array.Empty<ActionMenuItem>();
-        [SerializeField] private TMP_Text[]       operatorAmmoLabels = Array.Empty<TMP_Text>();
+        [SerializeField] private ActionMenuItem[]    operators       = Array.Empty<ActionMenuItem>();
+        [SerializeField] private TMP_Text[]          operatorAmmoLabels = Array.Empty<TMP_Text>();
+        [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
+        [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
         [SerializeField] private float bobAmplitude = 4f;
         [SerializeField] private float bobDuration  = 0.4f;
 
+        [Header("Weapon Icon")]
+        [SerializeField] private float weaponIconCellSize = 32f; // px per GridSize unit (1×1 = 32px)
+
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
-        private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator = new();
+        private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
+        private readonly Dictionary<int, float>                  pendingHealthByOperator = new();
+        private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
 
         #endregion
 
@@ -46,7 +54,11 @@ namespace CrimsonDraft.Combat
             le.ignoreLayout = true;
             this.selectorMark.gameObject.SetActive(false);
             this.TryAutoWireOperatorAmmoLabels();
+            this.TryAutoWireOperatorEcgAnimators();
+            this.TryAutoWireOperatorWeaponIcons();
             this.ApplyPendingAmmoLabels();
+            this.ApplyPendingHealthIcons();
+            this.ApplyPendingWeaponIcons();
         }
 
         private void OnEnable()
@@ -54,6 +66,8 @@ namespace CrimsonDraft.Combat
             this.submitHandlers   = new Action[this.operators.Length];
             this.selectedHandlers = new Action[this.operators.Length];
             this.ApplyPendingAmmoLabels();
+            this.ApplyPendingHealthIcons();
+            this.ApplyPendingWeaponIcons();
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -134,6 +148,88 @@ namespace CrimsonDraft.Combat
             }
         }
 
+        private void TryAutoWireOperatorEcgAnimators()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorEcgAnimators != null && this.operatorEcgAnimators.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorEcgAnimators[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorEcgAnimators = new ECGSweepAnimator[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var ecgNode = overview.Find("ECG_BG");
+                if (ecgNode == null)
+                    continue;
+
+                this.operatorEcgAnimators[i] = ecgNode.GetComponent<ECGSweepAnimator>();
+            }
+        }
+
+        private void TryAutoWireOperatorWeaponIcons()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorWeaponIcons != null && this.operatorWeaponIcons.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorWeaponIcons[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorWeaponIcons = new Image[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var weaponNode = overview.Find("Weapon");
+                if (weaponNode == null)
+                    continue;
+
+                this.operatorWeaponIcons[i] = weaponNode.GetComponent<Image>();
+            }
+        }
+
         #endregion
 
         #region ICombatActionMenuView
@@ -144,9 +240,17 @@ namespace CrimsonDraft.Combat
                 FocusNextFrame(index).Forget();
         }
 
+        // Guards against multiple operators becoming ready in the same ATB tick each
+        // scheduling their own deferred focus (SetOperatorDimmed's needsFocus check sees a
+        // stale null selection for all of them since none of the deferred calls has run yet)
+        // — without this, whichever one resolves last silently steals focus from the first.
+        private bool focusRequestPending;
+
         private async UniTaskVoid FocusNextFrame(int index)
         {
+            this.focusRequestPending = true;
             await UniTask.DelayFrame(2);
+            this.focusRequestPending = false;
             EventSystem.current.SetSelectedGameObject(this.operators[index].gameObject);
         }
 
@@ -199,8 +303,8 @@ namespace CrimsonDraft.Combat
             if (!dimmed && EventSystem.current != null)
             {
                 var selected = EventSystem.current.currentSelectedGameObject;
-                bool needsFocus = selected == null ||
-                    (selected.TryGetComponent<UnityEngine.UI.Selectable>(out var sel) && !sel.IsInteractable());
+                bool needsFocus = !this.focusRequestPending && (selected == null ||
+                    (selected.TryGetComponent<UnityEngine.UI.Selectable>(out var sel) && !sel.IsInteractable()));
                 if (needsFocus)
                     FocusNextFrame(index).Forget();
             }
@@ -253,6 +357,81 @@ namespace CrimsonDraft.Combat
             }
 
             label.text = $"{current}/{max}";
+        }
+
+        public void SetOperatorHealth(int index, float hpRatio)
+        {
+            this.pendingHealthByOperator[index] = hpRatio;
+
+            if (index < 0 || index >= this.operatorEcgAnimators.Length)
+                return;
+
+            var animator = this.operatorEcgAnimators[index];
+            if (animator == null)
+                return;
+
+            animator.SetHealthState(hpRatio);
+        }
+
+        private void ApplyPendingHealthIcons()
+        {
+            foreach (var kvp in this.pendingHealthByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorEcgAnimators.Length)
+                    continue;
+
+                var animator = this.operatorEcgAnimators[index];
+                if (animator == null)
+                    continue;
+
+                animator.SetHealthState(kvp.Value);
+            }
+        }
+
+        // weapon is the operator's ActiveWeapon (PrimaryWeapon ?? SecondaryWeapon) —
+        // primary is always preferred when both slots are equipped.
+        public void SetOperatorWeapon(int index, WeaponItem? weapon)
+        {
+            this.pendingWeaponByOperator[index] = weapon;
+
+            if (index < 0 || index >= this.operatorWeaponIcons.Length)
+                return;
+
+            var icon = this.operatorWeaponIcons[index];
+            if (icon == null)
+                return;
+
+            ApplyWeaponIcon(icon, weapon);
+        }
+
+        private void ApplyPendingWeaponIcons()
+        {
+            foreach (var kvp in this.pendingWeaponByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorWeaponIcons.Length)
+                    continue;
+
+                var icon = this.operatorWeaponIcons[index];
+                if (icon == null)
+                    continue;
+
+                ApplyWeaponIcon(icon, kvp.Value);
+            }
+        }
+
+        private void ApplyWeaponIcon(Image icon, WeaponItem? weapon)
+        {
+            icon.enabled = weapon != null;
+            if (weapon == null) return;
+
+            icon.sprite         = weapon.Data.Icon;
+            icon.preserveAspect = true;
+
+            icon.rectTransform.sizeDelta = new Vector2(
+                weapon.Data.GridSize.x * this.weaponIconCellSize,
+                weapon.Data.GridSize.y * this.weaponIconCellSize);
         }
 
         public void MoveSelectorTo(RectTransform anchor)

@@ -76,7 +76,7 @@ GameObject:
   - component: {fileID: 7586606001846501166}
   - component: {fileID: 4605596643116429747}
   - component: {fileID: 7067996463242752613}
-  - component: {fileID: 3571346723278353624}
+  - component: {fileID: 765452057391134389}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -114,8 +114,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerController
   rb: {fileID: 7586606001846501166}
   animator: {fileID: 1453901650854825600}
-  walkSpeed: 2
-  runSpeed: 5
+  walkSpeed: 2.3
+  runSpeed: 7
+  yellowCautionThreshold: 0.75
+  orangeCautionThreshold: 0.5
+  dangerThreshold: 0.25
+  yellowCautionSpeedRatio: 1
+  orangeCautionSpeedRatio: 0.86
+  dangerSpeedRatio: 0.72
 --- !u!54 &7586606001846501166
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -183,6 +189,26 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   animator: {fileID: 1453901650854825600}
+--- !u!114 &765452057391134389
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352273028549918950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08249178232f68046b7b16643fca8184, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerAimController
+  aimTurnSpeed: 180
+  aimRange: 20
+  obstaclesMask:
+    serializedVersion: 2
+    m_Bits: 1
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &1424532983796303590
 GameObject:
   m_ObjectHideFlags: 0

@@ -43,8 +43,12 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<DoorStateRegistry>(Lifetime.Singleton);
+            builder.Register<RoomStateRegistry>(Lifetime.Singleton);
+            builder.Register<KnownMapsRegistry>(Lifetime.Singleton);
             builder.Register<PickupRegistry>(Lifetime.Singleton);
+            builder.Register<NoteRegistry>(Lifetime.Singleton);
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
+            builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);
         }
     }

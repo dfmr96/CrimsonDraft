@@ -10,17 +10,31 @@ namespace CrimsonDraft.UI
 {
     public sealed class OperatorTestWidget : MonoBehaviour
     {
-        [SerializeField] private int operatorIndex;
-        [SerializeField] private int damageAmount = 10;
-        [SerializeField] private int healAmount   = 10;
+        [SerializeField] private int            operatorIndex;
+        [SerializeField] private int            damageAmount  = 10;
+        [SerializeField] private int            healAmount    = 10;
+        [SerializeField] private PartyPanelView inventoryPanel = null!;
 
-        private OperatorRoster? liveRoster;
+        private IOperatorRoster? Roster => this.inventoryPanel?.Roster;
 
-        public void RegisterRoster(OperatorRoster roster) => this.liveRoster = roster;
+        [Button] public void Damage()
+        {
+            this.Roster?[this.operatorIndex].ApplyDamage(this.damageAmount);
+            this.inventoryPanel?.Refresh();
+        }
 
-        [Button] public void Damage() => this.liveRoster?[this.operatorIndex].ApplyDamage(this.damageAmount);
-        [Button] public void Kill()   { var op = this.liveRoster?[this.operatorIndex]; if (op != null) op.ApplyDamage(op.Hp); }
-        [Button] public void Heal()   => this.liveRoster?[this.operatorIndex].Heal(this.healAmount);
+        [Button] public void Kill()
+        {
+            var op = this.Roster?[this.operatorIndex];
+            if (op != null) op.ApplyDamage(op.Hp);
+            this.inventoryPanel?.Refresh();
+        }
+
+        [Button] public void Heal()
+        {
+            this.Roster?[this.operatorIndex].Heal(this.healAmount);
+            this.inventoryPanel?.Refresh();
+        }
     }
 }
 

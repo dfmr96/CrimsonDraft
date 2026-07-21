@@ -25,7 +25,6 @@ namespace CrimsonDraft.Combat
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
-        [SerializeField] private float defendDurationSec              = 0.3f;
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
@@ -249,21 +248,26 @@ namespace CrimsonDraft.Combat
 
             switch (head.Type)
             {
-                case PendingActionType.Reload:
-                    this.inventory.ReloadOperator(head.AmmoBoxIndex, head.SlotIndex);
-                    var weapon = this.roster.Count > head.SlotIndex ? this.roster[head.SlotIndex].ActiveWeapon : null;
-                    this.menuView.SetOperatorAmmo(head.SlotIndex, weapon?.CurrentAmmo ?? 0, weapon?.MaxAmmo ?? 0);
-                    SetAnimationLock(this.operatorActionDurationSec);
-                    break;
-
                 case PendingActionType.UseItem:
+                    ApplyUseItem(head);
                     SetAnimationLock(this.operatorActionDurationSec);
-                    break;
-
-                case PendingActionType.Defend:
-                    SetAnimationLock(this.defendDurationSec);
                     break;
             }
+        }
+
+        private void ApplyUseItem(PendingAction action)
+        {
+            if (action.ItemIndex < 0 || action.ItemIndex >= this.inventory.Slots.Count) return;
+            InventorySlot slot = this.inventory.Slots[action.ItemIndex];
+            if (slot.IsEmpty || slot.Item?.Data is not ConsumableData consumable) return;
+
+            int targetSlot = action.TargetOperatorSlot >= 0 ? action.TargetOperatorSlot : action.SlotIndex;
+            if (targetSlot < this.roster.Count && this.roster[targetSlot].IsAlive)
+                this.roster[targetSlot].Heal(consumable.HealAmount);
+
+            slot.Quantity--;
+            if (slot.Quantity <= 0)
+                this.inventory.RemoveItem(action.ItemIndex);
         }
 
         private void ApplyEnemyAttack(PendingAction action)
@@ -324,8 +328,9 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = encounter.EnemySlots[i];
                 if (data == null) continue;
-                float gps = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
-                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps));
+                float gps          = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
+                float initialGauge = data.InitialGaugePct / 100f;
+                configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps, initialGauge));
             }
 
             return configs;
@@ -344,14 +349,14 @@ namespace CrimsonDraft.Combat
 
         private void SyncAllEcgStates()
         {
-            if (this.ecgFeedback == null) return;
             for (int i = 0; i < this.roster.Count; i++)
             {
-                bool isPresent = this.roster[i].IsPresent;
-                this.ecgFeedback.SetOperatorHealthState(
-                    i,
-                    isPresent ? this.roster[i].HpRatio : 0f,
-                    isPresent && this.roster[i].IsAlive);
+                bool  isPresent = this.roster[i].IsPresent;
+                float hpRatio   = isPresent ? this.roster[i].HpRatio : 0f;
+                bool  isAlive   = isPresent && this.roster[i].IsAlive;
+
+                this.ecgFeedback?.SetOperatorHealthState(i, hpRatio, isAlive);
+                this.menuView.SetOperatorHealth(i, hpRatio);
             }
         }
     }

@@ -30,6 +30,9 @@ namespace CrimsonDraft.Operators
         public void Heal(int amount)
             => this.Hp = UnityEngine.Mathf.Clamp(this.Hp + UnityEngine.Mathf.Max(0, amount), 0, this.MaxHp);
 
+        internal void RestoreHp(int hp)
+            => this.Hp = UnityEngine.Mathf.Clamp(hp, 0, this.MaxHp);
+
         public OperatorDamageResult ApplyDamage(int damage)
         {
             if (!this.IsAlive)

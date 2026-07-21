@@ -1,5 +1,8 @@
 # Brainstorming — Enemy Health Feature
 
+> [!WARNING]
+> **DEPRECADO** — Este documento pertenece al sistema de salud anterior. No usar como referencia de implementación.
+
 **Date:** 2026-03-04  
 **Scope:** combat systems (`CombatMenuController`, `BattlefieldView`, enemy data/model)
 

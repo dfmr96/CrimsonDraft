@@ -20,9 +20,6 @@ namespace CrimsonDraft.UI
         [SerializeField] private InspectPanel        inspectPanel = null!;
         [SerializeField] private TabManager?         tabManager;
 
-        [Header("Audio")]
-        [SerializeField] private InventorySoundManager sfx = null!;
-
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
@@ -31,15 +28,29 @@ namespace CrimsonDraft.UI
         [SerializeField] private float selectorPadding = 1f;
 
         [Header("Hold Colors")]
-        [SerializeField] private Color colorCanPlace    = new Color(0f, 1f, 0f, 0.7f);
-        [SerializeField] private Color colorCannotPlace = new Color(1f, 0f, 0f, 0.7f);
+        [SerializeField] private Color colorHoldTint    = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f); // #9A9F5C
+        [SerializeField] private float alphaCannotPlace = 100f / 255f;
         [SerializeField] private Color colorNormalItem  = Color.white;
 
-        [Inject] private IInputService inputService = null!;
+        [Header("Selector Sprites")]
+        [SerializeField] private Sprite? selectorSpriteNormal;
+        [SerializeField] private Sprite? selectorSpriteHold; // shown while moving/combining
+
+        [Inject] private IInputService    inputService = null!;
+        [Inject] private InventorySfxData sfx          = null!;
         private bool inputBound;
 
         // Combine mode — set by InventoryHUDController
-        public bool IsCombineMode { get; set; }
+        private bool isCombineMode;
+        public bool IsCombineMode
+        {
+            get => this.isCombineMode;
+            set
+            {
+                this.isCombineMode = value;
+                PlaceSelectorAt(this.currentCell);
+            }
+        }
 
         // Events consumed by InventoryHUDController
         public event System.Action<InventoryItemView>?               OnCellConfirmed;
@@ -169,7 +180,7 @@ namespace CrimsonDraft.UI
             if (dir.y != 0 && dir != this.lastDir)
             {
                 this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayMenuNavigate();
+                this.sfx?.PlayCursor(gameObject);
                 this.lastDir      = dir;
                 this.holding      = true;
                 this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
@@ -177,7 +188,7 @@ namespace CrimsonDraft.UI
             else if (dir.y != 0 && this.holding && Time.unscaledTime >= this.nextMoveTime)
             {
                 this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayMenuNavigate();
+                this.sfx?.PlayCursor(gameObject);
                 this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
@@ -223,12 +234,7 @@ namespace CrimsonDraft.UI
             this.currentCell = next;
             PlaceSelectorAt(this.currentCell);
 
-            if (this.heldItem != null)
-                this.sfx?.PlayItemMove();
-            else if (CurrentGrid.GetItemAt(this.currentCell) != null)
-                this.sfx?.PlayCursorOnItem();
-            else
-                this.sfx?.PlayCursorMove();
+            this.sfx?.PlayCursor(gameObject);
         }
 
         // ── Input Callbacks ──────────────────────────────────────────────────
@@ -248,7 +254,7 @@ namespace CrimsonDraft.UI
             if (this.heldItem != null)
             {
                 this.heldItem.Rotate();
-                this.sfx?.PlayItemRotate();
+                this.sfx?.PlayCursor(gameObject);
                 UpdateHeldItemVisual();
                 PlaceSelectorAt(this.currentCell);
                 return;
@@ -258,7 +264,7 @@ namespace CrimsonDraft.UI
 
             if (this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayMenuConfirm();
+                this.sfx?.PlayDecide(gameObject);
                 this.contextMenu.ConfirmSelection();
                 return;
             }
@@ -266,10 +272,14 @@ namespace CrimsonDraft.UI
             InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item != null)
             {
-                this.sfx?.PlayMenuOpen();
+                this.sfx?.PlayDecide(gameObject);
                 OnCellConfirmed?.Invoke(item);
                 if (this.tooltip != null)
                     this.tooltip.ShowAboveSelector(this.selectorRect);
+            }
+            else
+            {
+                this.sfx?.PlayInvalidAction(gameObject);
             }
         }
 
@@ -281,13 +291,13 @@ namespace CrimsonDraft.UI
             {
                 this.IsCombineMode = false;
                 OnCombineCancelled?.Invoke();
-                this.sfx?.PlayMenuCancel();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayMenuCancel();
+                this.sfx?.PlayCancel(gameObject);
                 this.contextMenu.Close();
                 return;
             }
@@ -345,16 +355,16 @@ namespace CrimsonDraft.UI
 
             if (item.BoundItem.IsEquipped)
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             this.currentCell = item.GridOrigin;
-            PlaceSelectorAt(this.currentCell);
 
-            this.sfx?.PlayItemPickup();
+            this.sfx?.PlayDecide(gameObject);
             this.heldFromGrid = CurrentGrid;
             this.heldItem     = item;
+            PlaceSelectorAt(this.currentCell);
 
             CurrentGrid.RemoveItem(item);
             item.transform.SetAsLastSibling();
@@ -367,7 +377,7 @@ namespace CrimsonDraft.UI
 
             if (!targetGrid.IsWithinBounds(this.currentCell, this.heldItem!.GridSize))
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
@@ -380,13 +390,13 @@ namespace CrimsonDraft.UI
 
             if (overlapping != null && overlapping.BoundItem.IsEquipped)
             {
-                this.sfx?.PlayItemPlaceInvalid();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
             if (overlapping == null)
             {
-                this.sfx?.PlayItemPlace();
+                this.sfx?.PlayDecide(gameObject);
                 PlaceHeldItem(targetGrid, this.currentCell);
             }
             else
@@ -395,7 +405,7 @@ namespace CrimsonDraft.UI
 
                 if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
                 {
-                    this.sfx?.PlayItemSwap();
+                    this.sfx?.PlayDecide(gameObject);
                     Vector2Int    originBeforeSwap   = this.heldItem!.GridOrigin;
                     InventoryGrid fromGridBeforeSwap = this.heldFromGrid!;
                     PlaceHeldItem(targetGrid, this.currentCell);
@@ -408,7 +418,7 @@ namespace CrimsonDraft.UI
                 }
                 else
                 {
-                    this.sfx?.PlayItemPlaceInvalid();
+                    this.sfx?.PlayCancel(gameObject);
                     targetGrid.PlaceItem(overlapping);
                 }
             }
@@ -493,7 +503,9 @@ namespace CrimsonDraft.UI
                 }
             }
 
-            this.heldItem.GetComponent<Image>().color = canPlace ? this.colorCanPlace : this.colorCannotPlace;
+            Color tint = this.colorHoldTint;
+            if (!canPlace) tint.a = this.alphaCannotPlace;
+            this.heldItem.GetComponent<Image>().color = tint;
         }
 
         // ── Visual ───────────────────────────────────────────────────────────
@@ -509,9 +521,17 @@ namespace CrimsonDraft.UI
         void PlaceSelectorAt(Vector2Int cell)
         {
             InventoryItemView? item = CurrentGrid.GetItemAt(cell);
+            bool isHolding = this.heldItem != null || this.isCombineMode;
 
             if (this.selectorImage != null)
-                this.selectorImage.color = item != null ? ColorSelectorOnItem : ColorSelectorNormal;
+            {
+                this.selectorImage.color = isHolding ? Color.white
+                    : item != null ? ColorSelectorOnItem
+                    : ColorSelectorNormal;
+
+                if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
+                    this.selectorImage.sprite = isHolding ? this.selectorSpriteHold : this.selectorSpriteNormal;
+            }
 
             Vector2Int size   = this.heldItem != null ? this.heldItem.GridSize
                               : item          != null ? item.GridSize

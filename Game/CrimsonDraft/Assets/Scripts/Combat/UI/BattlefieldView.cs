@@ -3,9 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using VContainer;
+using CrimsonDraft.Operators;
+using CrimsonDraft.Audio;
 
 namespace CrimsonDraft.Combat
 {
@@ -37,6 +41,21 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, MeshRenderer> enemyRendererBySlot = new();
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
+        private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
+        private static readonly int ShootHash = Animator.StringToHash("Shoot");
+        private static readonly int AimHash = Animator.StringToHash("Aim");
+        private readonly Dictionary<int, Animator> enemyAnimatorBySlot = new();
+        private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
+        private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
+        private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+
+        private IOperatorRoster? roster;
+
+        [Inject]
+        public void Construct(IOperatorRoster roster)
+        {
+            this.roster = roster;
+        }
 
         private void Awake()
         {
@@ -52,6 +71,9 @@ namespace CrimsonDraft.Combat
             this.enemyStateBySlot.Clear();
             this.enemyGoBySlot.Clear();
             this.enemyRendererBySlot.Clear();
+            this.operatorAnimatorBySlot.Clear();
+            this.enemyAnimatorBySlot.Clear();
+            this.enemyHitToggleBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -77,6 +99,8 @@ namespace CrimsonDraft.Combat
                 this.spawnedSprites.Add(go);
                 this.enemyGoBySlot[i] = go;
                 if (mr != null) this.enemyRendererBySlot[i] = mr;
+                var enemyAnimator = go.GetComponentInChildren<Animator>();
+                if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
                     CurrentHp = Mathf.Max(1, enemy.MaxHp),
@@ -104,6 +128,14 @@ namespace CrimsonDraft.Combat
                 }
                 go.name = $"Operator_{i}";
                 this.spawnedSprites.Add(go);
+
+                var operatorAnimator = go.GetComponentInChildren<Animator>();
+                if (operatorAnimator != null)
+                    this.operatorAnimatorBySlot[i] = operatorAnimator;
+
+                var operatorAudio = go.GetComponentInChildren<OperatorCombatAudio>();
+                if (operatorAudio != null && this.roster != null)
+                    operatorAudio.Bind(this.roster, i);
             }
         }
 
@@ -147,6 +179,57 @@ namespace CrimsonDraft.Combat
         }
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
+        {
+            if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
+                return;
+
+            // The "Shoot" trigger only has an outgoing transition defined from "AimingIdlePistol"
+            // (not the default "IdleUnarmed"), so Aim must be set and the transition into
+            // AimingIdlePistol must actually complete before triggering Shoot has any effect.
+            animator.SetBool(AimHash, true);
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName("AimingIdlePistol"))
+                await UniTask.NextFrame();
+
+            int count = Mathf.Max(1, shots.Length);
+            for (int i = 0; i < count; i++)
+            {
+                animator.SetTrigger(ShootHash);
+
+                if (i < shots.Length && shots[i].Zone != ShotZone.Miss)
+                    this.TriggerEnemyFlinch(enemySlotIndex);
+
+                while (!animator.GetCurrentAnimatorStateInfo(0).IsName("ShootPistolFlexed2"))
+                    await UniTask.NextFrame();
+
+                var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
+                float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
+                if (duration > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(duration));
+            }
+
+            animator.SetBool(AimHash, false);
+        }
+
+        private void TriggerEnemyFlinch(int enemySlotIndex)
+        {
+            if (enemySlotIndex < 0) return;
+            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
+
+            bool useHit2 = this.enemyHitToggleBySlot.TryGetValue(enemySlotIndex, out var toggle) && toggle;
+            animator.SetTrigger(useHit2 ? Hit2Hash : Hit1Hash);
+            this.enemyHitToggleBySlot[enemySlotIndex] = !useHit2;
+        }
+
+#if UNITY_EDITOR || DEBUG_COMBAT
+        public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+        {
+            if (this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
+                return (state.CurrentHp, state.MaxHp, state.IsDead);
+            return (0, 0, true);
+        }
+#endif
 
         private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo)
         {

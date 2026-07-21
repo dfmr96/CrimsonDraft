@@ -16,7 +16,7 @@ namespace CrimsonDraft.Tests
         public void Enqueue_increasesCount()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.Defend(0));
+            queue.Enqueue(PendingAction.Shoot(0));
             Assert.AreEqual(1, queue.Count);
         }
 
@@ -24,7 +24,7 @@ namespace CrimsonDraft.Tests
         public void Peek_doesNotRemove()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.Defend(0));
+            queue.Enqueue(PendingAction.Shoot(0));
             _ = queue.Peek();
             Assert.AreEqual(1, queue.Count);
         }
@@ -33,10 +33,10 @@ namespace CrimsonDraft.Tests
         public void Dequeue_removesFromFront()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.Defend(0));
+            queue.Enqueue(PendingAction.UseItem(0, 0));
             queue.Enqueue(PendingAction.EnemyAttack(0, 1, 10));
             PendingAction first = queue.Dequeue();
-            Assert.AreEqual(PendingActionType.Defend, first.Type);
+            Assert.AreEqual(PendingActionType.UseItem, first.Type);
             Assert.AreEqual(1, queue.Count);
         }
 
@@ -45,10 +45,10 @@ namespace CrimsonDraft.Tests
         {
             var queue = new CombatActionQueue();
             queue.Enqueue(PendingAction.Shoot(0));
-            queue.Enqueue(PendingAction.Reload(1, 2));
+            queue.Enqueue(PendingAction.UseItem(1, 2));
             queue.Enqueue(PendingAction.EnemyAttack(0, 0, 15));
             Assert.AreEqual(PendingActionType.Shoot,       queue.Dequeue().Type);
-            Assert.AreEqual(PendingActionType.Reload,      queue.Dequeue().Type);
+            Assert.AreEqual(PendingActionType.UseItem,     queue.Dequeue().Type);
             Assert.AreEqual(PendingActionType.EnemyAttack, queue.Dequeue().Type);
         }
 
@@ -56,20 +56,11 @@ namespace CrimsonDraft.Tests
         public void Clear_emptiesQueue()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.Defend(0));
+            queue.Enqueue(PendingAction.UseItem(0, 0));
             queue.Enqueue(PendingAction.Shoot(1));
             queue.Clear();
             Assert.AreEqual(0, queue.Count);
             Assert.IsFalse(queue.HasPending);
-        }
-
-        [Test]
-        public void PendingAction_Reload_storesPayload()
-        {
-            var action = PendingAction.Reload(operatorSlot: 2, ammoBoxIndex: 5);
-            Assert.AreEqual(PendingActionType.Reload, action.Type);
-            Assert.AreEqual(2, action.SlotIndex);
-            Assert.AreEqual(5, action.AmmoBoxIndex);
         }
 
         [Test]
@@ -97,14 +88,6 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(PendingActionType.UseItem, action.Type);
             Assert.AreEqual(1, action.SlotIndex);
             Assert.AreEqual(4, action.ItemIndex);
-        }
-
-        [Test]
-        public void PendingAction_Defend_storesSlotIndex()
-        {
-            var action = PendingAction.Defend(operatorSlot: 2);
-            Assert.AreEqual(PendingActionType.Defend, action.Type);
-            Assert.AreEqual(2, action.SlotIndex);
         }
     }
 }

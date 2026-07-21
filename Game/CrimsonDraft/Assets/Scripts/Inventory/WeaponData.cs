@@ -9,6 +9,7 @@ namespace CrimsonDraft.Inventory
     public sealed class WeaponData : ItemData
     {
         [SerializeField] private Caliber           caliber                = Caliber.None;
+        [SerializeField] private GunType           gunType                = GunType.Pistols;
         [SerializeField] private int               magazineCapacity       = 1;
         [SerializeField] private int               dispersionRadius       = 10;
         [SerializeField] private Sprite?           dispersionCircleSprite;
@@ -17,6 +18,7 @@ namespace CrimsonDraft.Inventory
         [SerializeField, Min(1)] private int       damage                 = 20;
 
         public Caliber           Caliber                => this.caliber;
+        public GunType           GunType                => this.gunType;
         public int               MagazineCapacity       => this.magazineCapacity;
         public int               DispersionRadius       => this.dispersionRadius;
         public Sprite?           DispersionCircleSprite => this.dispersionCircleSprite;

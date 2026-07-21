@@ -11,5 +11,7 @@ namespace CrimsonDraft.Operators
         OperatorRuntime this[int slotIndex] { get; }
         IReadOnlyList<int> GetAliveSlots();
         void EnsureInitialized();
+        int[] GetHpSnapshot();
+        void RestoreHp(int[] snapshot);
     }
 }

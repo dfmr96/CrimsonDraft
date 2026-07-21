@@ -19,8 +19,11 @@ namespace CrimsonDraft.UI
         private readonly ItemContextMenu   contextMenu;
         private readonly PartyPanelView    partyPanel;
         private readonly IInteractionCaster interactionCaster;
+        private readonly InventorySfxData  sfx;
 
         private InventoryItemView? combineSourceItem;
+
+        private static readonly Color ColorCombineSourceTint = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f); // #9A9F5C
 
         [Preserve]
         public InventoryHUDController(
@@ -31,7 +34,8 @@ namespace CrimsonDraft.UI
             GridCursor         cursor,
             ItemContextMenu    contextMenu,
             PartyPanelView     partyPanel,
-            IInteractionCaster interactionCaster)
+            IInteractionCaster interactionCaster,
+            InventorySfxData   sfx)
         {
             this.inventoryService  = inventoryService;
             this.combineService    = combineService;
@@ -41,6 +45,7 @@ namespace CrimsonDraft.UI
             this.contextMenu       = contextMenu;
             this.partyPanel        = partyPanel;
             this.interactionCaster = interactionCaster;
+            this.sfx               = sfx;
         }
 
         public void Initialize()
@@ -71,9 +76,10 @@ namespace CrimsonDraft.UI
             {
                 CanCombine = view.Data.Combinable,
                 CanEquip   = view.Data.ItemType == ItemType.Weapon,
-                CanUse     = view.Data.ItemType == ItemType.Consumable
+                CanUse     = (view.Data is ConsumableData cd && cd.HealAmount > 0)
                           || view.Data.ItemType == ItemType.KeyItem
                           || view.Data.ItemType == ItemType.SocketItem,
+                CanInspect = true,
             };
             this.contextMenu.Open(view, options);
         }
@@ -98,7 +104,35 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            if (view.Data.ItemType == ItemType.Consumable && view.Data is ConsumableData consumable)
+            {
+                HandleUseConsumable(view, consumable);
+                return;
+            }
+
             this.inventoryService.TryUseKey(view.Data.ItemId);
+        }
+
+        private void HandleUseConsumable(InventoryItemView view, ConsumableData consumable)
+        {
+            int operatorSlot = this.cursor.GetOperatorOf(view);
+            if (operatorSlot < 0) return;
+
+            if (this.roster[operatorSlot].IsAlive)
+                this.roster[operatorSlot].Heal(consumable.HealAmount);
+
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+            {
+                if (this.inventoryService.Slots[i].Item == view.BoundItem)
+                {
+                    this.inventoryService.RemoveItem(i);
+                    break;
+                }
+            }
+
+            view.OwnerGrid?.RemoveItem(view);
+            Object.Destroy(view.gameObject);
+            this.partyPanel.Refresh();
         }
 
         private void HandleEquipWeapon(InventoryItemView view)
@@ -143,7 +177,7 @@ namespace CrimsonDraft.UI
         {
             this.combineSourceItem   = source;
             this.cursor.IsCombineMode = true;
-            source.GetComponent<UnityEngine.UI.Image>().color = new Color(1f, 0.8f, 0f, 0.9f);
+            source.GetComponent<UnityEngine.UI.Image>().color = ColorCombineSourceTint;
         }
 
         private void ExitCombineMode()
@@ -199,6 +233,7 @@ namespace CrimsonDraft.UI
                 if (ammoItem.Data.Caliber != weaponItem.Data.Caliber ||
                     weaponItem.CurrentAmmo >= weaponItem.MaxAmmo)
                 {
+                    this.sfx.PlayInvalidAction(this.cursor.gameObject);
                     ExitCombineMode();
                     return;
                 }
@@ -230,7 +265,12 @@ namespace CrimsonDraft.UI
 
             // Recipe combine — visual layer only
             var resultData = this.combineService.TryGetResult(source.Data, target.Data);
-            if (resultData == null) { ExitCombineMode(); return; }
+            if (resultData == null)
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                ExitCombineMode();
+                return;
+            }
 
             // Free cells first so HasSpace sees the space A and B would release
             InventoryGrid? preferredGrid = source.OwnerGrid;
@@ -252,6 +292,7 @@ namespace CrimsonDraft.UI
             Object.Destroy(source.gameObject);
             Object.Destroy(target.gameObject);
             this.itemSpawner.Spawn(resultData, preferredGrid);
+            this.sfx.PlayDecide(this.cursor.gameObject);
             ExitCombineMode();
         }
 

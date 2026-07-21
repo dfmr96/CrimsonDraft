@@ -43,7 +43,8 @@ namespace CrimsonDraft.Operators
             for (int i = 0; i < seed.Operators.Length; i++)
             {
                 bool isPresent = seed.Operators[i] != null;
-                this.slots[i] = new OperatorRuntime(i, seed.Operators[i], isPresent, seed.DefaultHp);
+                int  maxHp    = seed.Operators[i]?.MaxHp ?? seed.DefaultHp;
+                this.slots[i] = new OperatorRuntime(i, seed.Operators[i], isPresent, maxHp);
             }
 
             this.IsInitialized = true;
@@ -59,6 +60,23 @@ namespace CrimsonDraft.Operators
                     this.scratchAlive.Add(i);
             }
             return this.scratchAlive;
+        }
+
+        public int[] GetHpSnapshot()
+        {
+            this.EnsureInitialized();
+            var snapshot = new int[this.slots.Length];
+            for (int i = 0; i < this.slots.Length; i++)
+                snapshot[i] = this.slots[i].Hp;
+            return snapshot;
+        }
+
+        public void RestoreHp(int[] snapshot)
+        {
+            this.EnsureInitialized();
+            int len = System.Math.Min(snapshot.Length, this.slots.Length);
+            for (int i = 0; i < len; i++)
+                this.slots[i].RestoreHp(snapshot[i]);
         }
     }
 }

@@ -18,6 +18,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
         private const string CombatSceneName = "Combat";
 
         private readonly IInputService inputService;
+        private readonly IPublisher<CombatStartedEvent> combatStartedPublisher;
         private readonly ISubscriber<CombatEndedEvent> combatEndedSubscriber;
         private readonly EncounterContext encounterContext;
         private readonly ICameraService cameraService;
@@ -31,12 +32,14 @@ namespace CrimsonDraft.Infrastructure.Scenes
         [Preserve]
         public SceneTransitionService(
             IInputService inputService,
+            IPublisher<CombatStartedEvent> combatStartedPublisher,
             ISubscriber<CombatEndedEvent> combatEndedSubscriber,
             EncounterContext encounterContext,
             ICameraService cameraService,
             ScreenFader screenFader)
         {
             this.inputService          = inputService;
+            this.combatStartedPublisher = combatStartedPublisher;
             this.combatEndedSubscriber = combatEndedSubscriber;
             this.encounterContext      = encounterContext;
             this.cameraService         = cameraService;
@@ -54,6 +57,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
                 return;
 
             this.isInCombat = true;
+            this.combatStartedPublisher.Publish(new CombatStartedEvent { EncounterId = encounterId });
             this.encounterContext.Set(encounterId, encounterAsset, operatorsStartFull);
             this.inputService.SwitchToCombat();
 

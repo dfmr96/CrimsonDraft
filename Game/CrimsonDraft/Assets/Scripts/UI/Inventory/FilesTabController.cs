@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using Yarn.Unity;
@@ -45,6 +46,8 @@ namespace CrimsonDraft.UI
         [Inject] private TabManager                       tabManager           = null!;
         [Inject] private InventoryOpenCloseController     openCloseController  = null!;
         [Inject] private ISubscriber<NoteCollectedEvent>   noteCollectedSub     = null!;
+        [Inject] private InventorySfxData                 sfx                  = null!;
+        [Inject] private NoteRegistry                      noteRegistry         = null!;
 
         private IDisposable? noteSubscription;
 
@@ -209,6 +212,8 @@ namespace CrimsonDraft.UI
                 MoveCarousel(dir);
             else
                 MoveGrid(dir);
+
+            this.sfx?.PlayCursor(gameObject);
         }
 
         void MoveCarousel(Vector2Int dir)
@@ -296,13 +301,17 @@ namespace CrimsonDraft.UI
 
             var doc = this.filteredNotes[this.selectedIndex];
             if (!string.IsNullOrEmpty(doc.NoteId))
+            {
+                this.sfx?.PlayFileOpen(gameObject);
                 OpenNote(doc);
+            }
         }
 
         void OnCancel(InputAction.CallbackContext _)
         {
             if (this.detailView.IsOpen)
             {
+                this.sfx?.PlayCancel(gameObject);
                 this.detailView.Hide();
                 return;
             }
@@ -397,7 +406,7 @@ namespace CrimsonDraft.UI
             this.nextArrow?.SetActive(true);
 
             this.filteredNotes = this.database.Notes
-                .Where(n => n != null && n.Category == cat)
+                .Where(n => n != null && n.Category == cat && this.noteRegistry.IsCollected(n.NoteId))
                 .ToArray();
 
             RebuildGrid();

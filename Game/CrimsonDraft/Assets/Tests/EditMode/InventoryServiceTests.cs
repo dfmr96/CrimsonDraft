@@ -59,6 +59,8 @@ namespace CrimsonDraft.Tests
             }
 
             public void EnsureInitialized() { }
+            public int[] GetHpSnapshot() => System.Array.Empty<int>();
+            public void RestoreHp(int[] snapshot) { }
         }
 
         private static OperatorRuntime MakeAlive(int slot) =>

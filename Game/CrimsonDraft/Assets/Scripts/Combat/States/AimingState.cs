@@ -1,6 +1,9 @@
 #nullable enable
 
+using System;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
@@ -13,8 +16,11 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView      battlefieldView;
         private readonly IAimView              aimView;
         private readonly IOperatorRoster       roster;
+        private readonly CombatSfxData?        sfx;
 
         private bool awaitingDismiss;
+        private bool isPlayingBurst;
+        private ResolvedShot[] pendingShots = Array.Empty<ResolvedShot>();
 
         internal AimingState(
             CombatMenuController  context,
@@ -22,7 +28,8 @@ namespace CrimsonDraft.Combat
             ICommandPanelView     commandPanel,
             IBattlefieldView      battlefieldView,
             IAimView              aimView,
-            IOperatorRoster       roster)
+            IOperatorRoster       roster,
+            CombatSfxData?        sfx = null)
         {
             this.context         = context;
             this.menuView        = menuView;
@@ -30,12 +37,14 @@ namespace CrimsonDraft.Combat
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.sfx             = sfx;
         }
 
         public void Enter()
         {
             this.context.Orchestrator.SetWaitMode(true);
             this.awaitingDismiss = false;
+            this.isPlayingBurst  = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
             this.aimView.Show();
         }
@@ -48,9 +57,13 @@ namespace CrimsonDraft.Combat
 
         public void OnConfirm()
         {
+            if (this.isPlayingBurst) return;
+
+            this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
+
             if (this.awaitingDismiss)
             {
-                CloseAimAndReturnToOperatorSelection();
+                CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }
             this.aimView.Confirm();
@@ -58,6 +71,8 @@ namespace CrimsonDraft.Combat
 
         private void HandleShotsResolved(ResolvedShot[] shots)
         {
+            this.pendingShots = shots ?? Array.Empty<ResolvedShot>();
+
             int totalDamage = 0;
             if (shots != null)
             {
@@ -85,14 +100,22 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = true;
         }
 
-        private void CloseAimAndReturnToOperatorSelection()
+        private async UniTaskVoid CloseAimAndReturnToOperatorSelectionAsync()
         {
-            this.context.Orchestrator.NotifyShootCompleted();
-            this.context.CurrentTargetSlot  = -1;
-            this.context.SelectedShotCount  = 1;
-            this.awaitingDismiss            = false;
+            this.awaitingDismiss = false;
             this.aimView.Hide();
             this.commandPanel.Hide();
+
+            this.isPlayingBurst = true;
+            await this.battlefieldView.PlayOperatorShootBurstAsync(
+                this.context.SelectedOperator,
+                this.context.CurrentTargetSlot,
+                this.pendingShots);
+            this.isPlayingBurst = false;
+
+            this.context.Orchestrator.NotifyShootCompleted();
+            this.context.CurrentTargetSlot = -1;
+            this.context.SelectedShotCount = 1;
             this.context.TransitionTo(this.context.OperatorSelState);
         }
     }

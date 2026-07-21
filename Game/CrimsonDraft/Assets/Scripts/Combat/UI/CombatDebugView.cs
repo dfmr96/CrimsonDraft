@@ -6,6 +6,8 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using VContainer;
+using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Combat
 {
@@ -16,15 +18,23 @@ namespace CrimsonDraft.Combat
         private ATBSystem?          atbSystem;
         private CombatActionQueue?  actionQueue;
         private CombatOrchestrator? orchestrator;
+        private IOperatorRoster?    roster;
+        private IBattlefieldView?   battlefieldView;
+        private IEncounterContext?  encounterContext;
         private bool                initialized;
 
         [Inject]
-        public void Construct(ATBSystem atbSystem, CombatActionQueue actionQueue, CombatOrchestrator orchestrator)
+        public void Construct(ATBSystem atbSystem, CombatActionQueue actionQueue,
+                              CombatOrchestrator orchestrator, IOperatorRoster roster,
+                              IBattlefieldView battlefieldView, IEncounterContext encounterContext)
         {
-            this.atbSystem    = atbSystem;
-            this.actionQueue  = actionQueue;
-            this.orchestrator = orchestrator;
-            this.initialized  = true;
+            this.atbSystem        = atbSystem;
+            this.actionQueue      = actionQueue;
+            this.orchestrator     = orchestrator;
+            this.roster           = roster;
+            this.battlefieldView  = battlefieldView;
+            this.encounterContext = encounterContext;
+            this.initialized      = true;
         }
 
         private void Update()
@@ -36,6 +46,20 @@ namespace CrimsonDraft.Combat
         private string BuildDebugText()
         {
             var sb = new StringBuilder();
+
+            sb.AppendLine("[OPERATORS HP]");
+            if (this.roster != null)
+            {
+                for (int i = 0; i < this.roster.Count; i++)
+                {
+                    OperatorRuntime op   = this.roster[i];
+                    if (!op.IsPresent) continue;
+                    string name = op.Data?.DisplayName ?? $"Slot {i}";
+                    string hp   = op.IsAlive ? $"{op.Hp} / {op.MaxHp}" : "<color=#FF4444>DEAD</color>";
+                    sb.AppendLine($"  OP[{i}] {name}  {hp}");
+                }
+            }
+            sb.AppendLine();
 
             PendingAction[] pending       = this.actionQueue?.ToArray() ?? System.Array.Empty<PendingAction>();
             int             activeEnemySlot = pending.Length > 0 && pending[0].Type == PendingActionType.EnemyAttack
@@ -90,6 +114,22 @@ namespace CrimsonDraft.Combat
                     sb.AppendLine();
                     sb.AppendLine($"[ANIM] {label}");
                     sb.AppendLine($"  {bar} {remaining:F2}s / {total:F2}s");
+                }
+            }
+
+            var encounter = this.encounterContext?.EncounterAsset as EncounterData;
+            if (encounter != null && this.battlefieldView != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine("[ENEMIES HP]");
+                for (int i = 0; i < encounter.EnemySlots.Length; i++)
+                {
+                    EnemyData? data = encounter.EnemySlots[i];
+                    if (data == null) continue;
+                    var (cur, max, dead) = this.battlefieldView.GetEnemyHpDebug(i);
+                    string name = data.EnemyId.Length > 0 ? data.EnemyId : $"Enemy {i}";
+                    string hp   = dead ? "<color=#FF4444>DEAD</color>" : $"{cur} / {max}";
+                    sb.AppendLine($"  EN[{i}] {name}  {hp}");
                 }
             }
 

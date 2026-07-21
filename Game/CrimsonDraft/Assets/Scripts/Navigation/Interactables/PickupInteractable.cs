@@ -26,6 +26,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 gameObject.SetActive(false);
         }
 
+        public string PickupId => this.pickupId;
+
         public void Interact(InteractionContext context)
         {
             bool pickupSucceeded = false;

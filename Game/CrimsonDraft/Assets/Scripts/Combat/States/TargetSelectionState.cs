@@ -1,5 +1,6 @@
 #nullable enable
 
+using CrimsonDraft.Audio;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView     battlefieldView;
         private readonly IAimView             aimView;
         private readonly IOperatorRoster      roster;
+        private readonly CombatSfxData?       sfx;
 
         private int[] occupiedSlots = System.Array.Empty<int>();
         private int   cursor        = 0;
@@ -22,13 +24,15 @@ namespace CrimsonDraft.Combat
             ICommandPanelView    commandPanel,
             IBattlefieldView     battlefieldView,
             IAimView             aimView,
-            IOperatorRoster      roster)
+            IOperatorRoster      roster,
+            CombatSfxData?       sfx = null)
         {
             this.context         = context;
             this.commandPanel    = commandPanel;
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.sfx             = sfx;
         }
 
         public void Enter()
@@ -47,12 +51,14 @@ namespace CrimsonDraft.Combat
 
         public void OnCancel()
         {
+            this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
             this.battlefieldView.HideEnemyTargetIndicator();
             this.context.TransitionTo(this.context.ShotCountState);
         }
 
         public void OnConfirm()
         {
+            this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
             this.battlefieldView.HideEnemyTargetIndicator();
             this.context.CurrentTargetSlot = this.occupiedSlots.Length > 0
                 ? this.occupiedSlots[this.cursor] : -1;
@@ -70,8 +76,13 @@ namespace CrimsonDraft.Combat
         public void OnNavigate(Vector2 dir)
         {
             if (this.occupiedSlots.Length == 0) return;
-            if      (dir.x > 0.5f)  this.cursor = (this.cursor + 1) % this.occupiedSlots.Length;
-            else if (dir.x < -0.5f) this.cursor = (this.cursor - 1 + this.occupiedSlots.Length) % this.occupiedSlots.Length;
+            if (dir.x > 0.5f)
+                this.cursor = (this.cursor + 1) % this.occupiedSlots.Length;
+            else if (dir.x < -0.5f)
+                this.cursor = (this.cursor - 1 + this.occupiedSlots.Length) % this.occupiedSlots.Length;
+            else
+                return;
+            this.sfx?.PlayCursor(this.commandPanel.PanelRect.gameObject);
             this.battlefieldView.SetEnemyTargetIndicator(this.occupiedSlots[this.cursor]);
         }
     }

@@ -120,6 +120,45 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Interact_whenNotLocked_marksDoorUnlockedInRegistry()
+        {
+            var registry     = new DoorStateRegistry();
+            var data         = MakeUnlockedDoor();
+            var destination  = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var door         = MakeDoor(data, destination, prefab, orchestrator, registry, "door-1");
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-1"),
+                "crossing an open door must mark it Unlocked on the map");
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void Interact_whenLockedNoKey_marksDoorLockedInRegistry()
+        {
+            var registry    = new DoorStateRegistry();
+            var data        = MakeLockedDoor("door_locked");
+            var destination = MakeRoom();
+            var prefab      = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var door        = MakeDoor(data, destination, prefab, orchestrator, registry, "door-1");
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-1"));
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
         public void Interact_whenLockedKeyNotFound_startsDialogue_doesNotTransition()
         {
             var keyData      = MakeKeyItem("key-1", "Key 1");
@@ -239,6 +278,7 @@ namespace CrimsonDraft.Tests
         {
             public RoomController? LastDestination { get; private set; }
             public GameObject?     LastDoorPrefab  { get; private set; }
+            public RoomController? CurrentRoom     => null;
 
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
             {

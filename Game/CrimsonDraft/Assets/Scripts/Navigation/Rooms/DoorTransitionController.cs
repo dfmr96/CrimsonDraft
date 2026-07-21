@@ -16,10 +16,14 @@ namespace CrimsonDraft.Navigation.Rooms
         [SerializeField] private Ease         fadeOutEase      = Ease.OutQuad;
         [SerializeField] private CanvasGroup? fadeOverlay;
         [SerializeField] private GameObject?  defaultDoorPrefab;
+        [SerializeField] private AK.Wwise.Event  doorEvent   = new();
+        [SerializeField] private AK.Wwise.Switch openSwitch  = new();
+        [SerializeField] private AK.Wwise.Switch closeSwitch = new();
 
         private RoomTransitionContext? context;
         private bool                   completed;
         private bool                   canSkip;
+        private bool                   hasDoor;
 
         private void Awake()
         {
@@ -72,6 +76,8 @@ namespace CrimsonDraft.Navigation.Rooms
                 Debug.LogWarning("[DoorTransitionController] No door prefab assigned — transition will fade without door.");
             }
 
+            this.hasDoor = animator != null;
+
             RunTransition(animator).Forget();
         }
 
@@ -89,10 +95,23 @@ namespace CrimsonDraft.Navigation.Rooms
             TimeoutFallback().Forget();
         }
 
+        internal void PlayDoorOpenSfx()
+        {
+            this.openSwitch.SetValue(gameObject);
+            this.doorEvent.Post(gameObject);
+        }
+
         internal void OnAnimationComplete()
         {
             if (this.completed) return;
             this.completed = true;
+
+            if (this.hasDoor)
+            {
+                this.closeSwitch.SetValue(gameObject);
+                this.doorEvent.Post(gameObject);
+            }
+
             FadeOutAndComplete().Forget();
         }
 

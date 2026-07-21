@@ -246,6 +246,16 @@ namespace CrimsonDraft.Navigation.UI
                 case ContextMenuAction.Use:
                 {
                     var item = this.inventoryService.Slots[this.cursorSlotIndex].Item;
+
+                    if (item?.Data is ConsumableData consumable)
+                    {
+                        if (ownerOp < this.roster.Count && this.roster[ownerOp].IsAlive)
+                            this.roster[ownerOp].Heal(consumable.HealAmount);
+                        this.inventoryService.RemoveItem(this.cursorSlotIndex);
+                        this.view.SetupCards(this.roster);
+                        break;
+                    }
+
                     if (item?.Data.ItemType == ItemType.SocketItem)
                     {
                         int slotIndex = this.cursorSlotIndex;

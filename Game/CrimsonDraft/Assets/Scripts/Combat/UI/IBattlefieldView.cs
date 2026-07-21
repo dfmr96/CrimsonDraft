@@ -1,5 +1,7 @@
 #nullable enable
 
+using Cysharp.Threading.Tasks;
+
 namespace CrimsonDraft.Combat
 {
     public readonly struct EnemyDamageResult
@@ -31,5 +33,9 @@ namespace CrimsonDraft.Combat
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
         EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage);
         bool HasAliveEnemies();
+        UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots);
+#if UNITY_EDITOR || DEBUG_COMBAT
+        (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex);
+#endif
     }
 }
