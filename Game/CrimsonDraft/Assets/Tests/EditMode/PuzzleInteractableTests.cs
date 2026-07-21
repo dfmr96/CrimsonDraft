@@ -106,7 +106,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogueService dialogue, PuzzleViewController puzzleView) =>
-            new InteractionContext(null!, null!, dialogue, null!, null!, null!, puzzleView);
+            new InteractionContext(null!, null!, dialogue, null!, null!, null!, puzzleView, null!);
 
         private PuzzleInteractable MakePuzzle(GameObject canvasPrefab, ItemSocketInteractable? socket = null)
         {

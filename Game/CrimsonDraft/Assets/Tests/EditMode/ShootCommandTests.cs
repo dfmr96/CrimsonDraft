@@ -19,6 +19,7 @@ namespace CrimsonDraft.Tests
             public int     BaseDamage  { get; set; } = 25;
             public int     CurrentAmmo { get; private set; }
             public int     MaxAmmo     => 30;
+            public int     PoiseDamage => 0;
 
             public FakeWeaponSlot(int currentAmmo) => this.CurrentAmmo = currentAmmo;
 
@@ -42,15 +43,21 @@ namespace CrimsonDraft.Tests
             public bool HasAliveEnemies()                              => true;
             public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots) =>
                 UniTask.CompletedTask;
+            public void TriggerEnemyStagger(int slotIndex)  { }
+            public void RecoverEnemyStagger(int slotIndex)  { }
+            public void FinalizeEnemyDeath(int slotIndex)   { }
+            public int[] NotifyActionDequeued()             => System.Array.Empty<int>();
+            public bool IsEnemyStaggered(int slotIndex)     => false;
+            public bool IsEnemyDead(int slotIndex)          => false;
 #if UNITY_EDITOR || DEBUG_COMBAT
-            public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex) => (100, 100, false);
+            public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex) => (100, 100, false, 0, false);
 #endif
 
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
             {
                 this.LastDamagedSlot = slotIndex;
-                this.LastDamage      = damage;
-                return new EnemyDamageResult(slotIndex, damage, 100 - damage, false);
+                this.LastDamage      = hpDamage;
+                return new EnemyDamageResult(slotIndex, hpDamage, 100 - hpDamage, false, false);
             }
         }
 
