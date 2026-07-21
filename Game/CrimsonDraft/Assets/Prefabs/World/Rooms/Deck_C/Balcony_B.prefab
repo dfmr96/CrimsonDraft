@@ -4461,6 +4461,7 @@ GameObject:
   - component: {fileID: 8397855872829276715}
   - component: {fileID: 1742787415427193358}
   - component: {fileID: 8061336466520755156}
+  - component: {fileID: 7080975323286027971}
   m_Layer: 0
   m_Name: Balcony_B
   m_TagString: Untagged
@@ -4534,7 +4535,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: BALCONY_B
+  enemySpawns: []
 --- !u!114 &8061336466520755156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7109665622146419169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: 13.595011, y: -4.4990063}
+  - {x: -8.9000025, y: -4.4990063}
+  - {x: -8.9000025, y: -1.0050058}
+  - {x: 13.595011, y: -1.0050058}
+  mapOffset: {x: -15.317189, y: -10.345981}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
+--- !u!114 &7080975323286027971
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
