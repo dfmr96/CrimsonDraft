@@ -71,12 +71,16 @@ namespace CrimsonDraft.Navigation.Interactables
             var animType = hit.collider.TryGetComponent<IAnimatedInteractable>(out var animated)
                 ? animated.AnimType
                 : InteractionAnimType.Stand;
-            this.animator.SetFloat(IntTypeHash, animType.ToBlendThreshold());
 
-            if (this.interactingRoutine != null)
-                StopCoroutine(this.interactingRoutine);
-            this.animator.SetBool(InteractingHash, true);
-            this.interactingRoutine = StartCoroutine(ClearInteractingAfterDelay());
+            if (animType != InteractionAnimType.None)
+            {
+                this.animator.SetFloat(IntTypeHash, animType.ToBlendThreshold());
+
+                if (this.interactingRoutine != null)
+                    StopCoroutine(this.interactingRoutine);
+                this.animator.SetBool(InteractingHash, true);
+                this.interactingRoutine = StartCoroutine(ClearInteractingAfterDelay());
+            }
 
             var context = new InteractionContext(
                 this.inventoryService,
