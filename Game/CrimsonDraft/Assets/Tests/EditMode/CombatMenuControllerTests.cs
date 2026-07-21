@@ -157,11 +157,13 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Cancel_inOperatorSelection_publishesCombatEndedEvent()
+        public void Cancel_inOperatorSelection_doesNotEndCombat()
         {
+            // Used to publish a defeat CombatEndedEvent as a debug shortcut — removed because
+            // it fired on any accidental Cancel press during real gameplay.
             var c = BuildAndInit();
             c.HandleCancelPressed();
-            Assert.IsTrue(this.publisher.Published);
+            Assert.IsFalse(this.publisher.Published);
         }
 
         // ── Aim minigame (no enemies → bypasses TargetSelection) ───────

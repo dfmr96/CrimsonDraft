@@ -76,11 +76,12 @@ namespace CrimsonDraft.Combat
             this.menuView.ClearFocus();
         }
 
-        public void OnCancel()
-        {
-            this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
-            this.publisher.Publish(new CombatEndedEvent { Victory = false });
-        }
+        // Debug-only shortcut for quickly bailing out of a test combat used to live here
+        // (publishing a defeat CombatEndedEvent on Cancel at the root operator-selection
+        // screen). Removed: it fired on any accidental Cancel press during real gameplay,
+        // ending combat as a loss with no confirmation. There's nothing to cancel out of at
+        // this top-level screen, so this is intentionally a no-op.
+        public void OnCancel() { }
 
         public void OnOperatorFocused(int index)
         {
