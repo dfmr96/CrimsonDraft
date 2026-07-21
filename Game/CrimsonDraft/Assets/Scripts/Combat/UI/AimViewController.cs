@@ -87,12 +87,13 @@ namespace CrimsonDraft.Combat
             this.activeZoneDefinitions = profile.ZoneDefinitions;
             this.activeColorTolerance  = profile.ColorTolerance;
 
-            // The visible silhouette was previously a single static sprite set only in the
-            // Inspector — this is what lets it actually change per enemy (and per stagger
-            // state via BattlefieldView.GetEnemyHitMaskProfile), matching the mask that
-            // hit-zone sampling now uses.
-            if (this.silhouetteImage != null)
-                this.silhouetteImage.sprite = profile.ZoneMaskSprite;
+            // The visible (black & white) silhouette was previously a single static sprite set
+            // only in the Inspector — SilhouetteSprite is the per-profile equivalent, separate
+            // from ZoneMaskSprite (the color-coded sprite sampled for zone/hit detection, never
+            // itself shown). Only overridden when the profile actually configured one, so
+            // profiles that haven't been updated yet keep the old static sprite.
+            if (this.silhouetteImage != null && profile.SilhouetteSprite != null)
+                this.silhouetteImage.sprite = profile.SilhouetteSprite;
         }
 
         public void ConfigureWeapon(WeaponData? weaponData)
