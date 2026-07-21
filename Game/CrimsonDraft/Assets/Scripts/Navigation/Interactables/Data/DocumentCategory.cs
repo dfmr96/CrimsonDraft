@@ -5,6 +5,7 @@ namespace CrimsonDraft.Navigation.Interactables
     public enum DocumentCategory
     {
         Notes,
-        VoiceNotes
+        VoiceNotes,
+        Posters
     }
 }
