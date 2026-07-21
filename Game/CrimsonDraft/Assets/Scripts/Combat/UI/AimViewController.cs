@@ -155,6 +155,18 @@ namespace CrimsonDraft.Combat
                 this.ResolvePendingShotsAsync().Forget();
         }
 
+        // Reuses the aim position already locked by the real interactive QTE (confirmedLocalPos)
+        // without re-running the vertical/horizontal oscillation — used for Focus Fire's marked
+        // participants, who share the trigger's aim point but apply their own weapon's burst
+        // pattern and dispersion.
+        public ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount)
+        {
+            this.ConfigureWeapon(weaponData);
+            this.shotCount = Mathf.Max(1, shotCount);
+            var firstShotLocal = this.ComputeRandomShotLocal();
+            return this.BuildResolvedShots(firstShotLocal, this.shotCount);
+        }
+
         public void Hide()
         {
             this.verticalSelector.DOKill();

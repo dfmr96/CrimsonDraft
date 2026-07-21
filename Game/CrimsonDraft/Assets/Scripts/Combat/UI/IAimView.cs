@@ -15,5 +15,6 @@ namespace CrimsonDraft.Combat
         void Show();
         void Confirm();
         void Hide();
+        ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount);
     }
 }

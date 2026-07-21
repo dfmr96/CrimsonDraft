@@ -987,6 +987,26 @@ namespace CrimsonDraft.Tests
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
             public void FireResolvedShots(ResolvedShot[] shots) => this.OnShotsResolved?.Invoke(shots);
+
+            public int ResolveShotsForWeaponCallCount { get; private set; }
+            public CrimsonDraft.Inventory.WeaponData? LastResolvedWeaponData { get; private set; }
+            public int LastResolvedShotCount { get; private set; }
+            public Func<CrimsonDraft.Inventory.WeaponData?, int, ResolvedShot[]>? ResolveShotsForWeaponHandler;
+
+            public ResolvedShot[] ResolveShotsForWeapon(CrimsonDraft.Inventory.WeaponData? weaponData, int shotCount)
+            {
+                this.ResolveShotsForWeaponCallCount++;
+                this.LastResolvedWeaponData = weaponData;
+                this.LastResolvedShotCount  = shotCount;
+
+                if (this.ResolveShotsForWeaponHandler != null)
+                    return this.ResolveShotsForWeaponHandler(weaponData, shotCount);
+
+                var shots = new ResolvedShot[Mathf.Max(1, shotCount)];
+                for (int i = 0; i < shots.Length; i++)
+                    shots[i] = new ResolvedShot(i, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
+                return shots;
+            }
         }
 
         private sealed class FakeBattlefieldView : IBattlefieldView
