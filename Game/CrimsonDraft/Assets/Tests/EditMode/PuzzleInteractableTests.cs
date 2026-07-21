@@ -64,6 +64,8 @@ namespace CrimsonDraft.Tests
             public InputAction InventoryCancel        => null!;
             public InputAction InventoryNextTab       => null!;
             public InputAction InventoryPrevTab       => null!;
+            public InputAction InventoryCloseMap      => null!;
+            public InputAction InventoryClose         => null!;
             public void SwitchToGameplay()       { }
             public void SwitchToCombat()         { }
             public void SwitchToUI()             { }

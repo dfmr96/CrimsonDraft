@@ -1,5 +1,6 @@
 #nullable enable
 
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Combat.Commands;
@@ -14,6 +15,7 @@ namespace CrimsonDraft.Tests
         private sealed class FakeWeaponSlot : IWeaponSlot
         {
             public Caliber Caliber     => Caliber._9mm;
+            public GunType GunType     => GunType.Pistols;
             public int     BaseDamage  { get; set; } = 25;
             public int     CurrentAmmo { get; private set; }
             public int     MaxAmmo     => 30;
@@ -38,6 +40,11 @@ namespace CrimsonDraft.Tests
             public int[] GetOccupiedEnemySlots()                       => System.Array.Empty<int>();
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) => null;
             public bool HasAliveEnemies()                              => true;
+            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots) =>
+                UniTask.CompletedTask;
+#if UNITY_EDITOR || DEBUG_COMBAT
+            public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex) => (100, 100, false);
+#endif
 
             public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
             {
