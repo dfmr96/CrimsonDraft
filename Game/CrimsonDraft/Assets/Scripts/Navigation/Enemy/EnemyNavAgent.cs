@@ -30,6 +30,13 @@ namespace CrimsonDraft.Navigation.Enemy
         [Tooltip("Velocidad de giro en grados/segundo durante el estado Suspicious.")]
         [SerializeField] private float                suspiciousTurnSpeed  = 120f;
 
+        [Header("Attack")]
+        [SerializeField] private Animator?  animator;
+        [Tooltip("Nombres de estado del Animator (Base Layer) reproducidos al alcanzar al jugador; se elige uno al azar.")]
+        [SerializeField] private string[]   attackStateNames     = { "Armature|Attack_1 0", "Armature|Attack_2", "Armature|Attack_3" };
+        [Tooltip("Tope de seguridad por si la animación de ataque no reporta normalizedTime >= 1 (p. ej. clip en loop).")]
+        [SerializeField] private float      attackAnimationTimeout = 2.5f;
+
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
         private ISubscriber<DialogueActiveChangedEvent>? dialogueSubscriber;
@@ -46,6 +53,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private IDisposable?     combatEndedSub;
         private IDisposable?     dialogueSub;
         private bool             combatTriggered;
+        private bool             isAttacking;
         private bool             dialoguePaused;
         private NavMeshPath navPathCache = null!;
 
@@ -81,6 +89,8 @@ namespace CrimsonDraft.Navigation.Enemy
                 return;
             }
             navAgent.speed = data.patrolSpeed;
+            if (animator == null)
+                animator = GetComponent<Animator>();
 
             if (patrolEnabled && path.HasWaypoints)
                 navAgent.SetDestination(path.Current.position);
@@ -152,6 +162,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void UpdateAlert()
         {
+            if (isAttacking) return;
+
             navAgent.SetDestination(playerController!.transform.position);
 
             var toPlayer = playerController.transform.position - transform.position;
@@ -220,9 +232,47 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
+            if (isAttacking) return;
+
+            isAttacking = true;
             this.combatTriggered = true;
+            PlayAttackThenStartCombatAsync().Forget();
+        }
+
+        private async UniTaskVoid PlayAttackThenStartCombatAsync()
+        {
+            navAgent.isStopped = true;
+            FacePlayer();
+
+            if (animator != null && attackStateNames.Length > 0)
+            {
+                var stateName = attackStateNames[UnityEngine.Random.Range(0, attackStateNames.Length)];
+                animator.Play(stateName, 0, 0f);
+
+                await UniTask.Yield(); // let the Animator enter the new state before reading its info
+                var elapsed = 0f;
+                while (elapsed < attackAnimationTimeout)
+                {
+                    var info = animator.GetCurrentAnimatorStateInfo(0);
+                    if (info.IsName(stateName) && info.normalizedTime >= 1f)
+                        break;
+                    elapsed += Time.deltaTime;
+                    await UniTask.Yield();
+                }
+            }
+
+            if (sceneTransitionService == null) return;
             sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
             gameObject.SetActive(false);
+        }
+
+        private void FacePlayer()
+        {
+            if (playerController == null) return;
+            var dir = playerController.transform.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+                transform.rotation = Quaternion.LookRotation(dir.normalized);
         }
 
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
