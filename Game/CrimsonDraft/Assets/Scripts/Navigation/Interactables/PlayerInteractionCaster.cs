@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 
@@ -29,6 +30,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private DocumentController     documentController    = null!;
         private ContainerController    containerController   = null!;
         private PuzzleViewController    puzzleViewController   = null!;
+        private ScreenFader             screenFader            = null!;
 
         [Inject]
         public void Construct(
@@ -38,7 +40,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IPickupDialogueService pickupDialogueService,
             DocumentController     documentController,
             ContainerController    containerController,
-            PuzzleViewController    puzzleViewController)
+            PuzzleViewController    puzzleViewController,
+            ScreenFader             screenFader)
         {
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
@@ -47,6 +50,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.documentController    = documentController;
             this.containerController   = containerController;
             this.puzzleViewController   = puzzleViewController;
+            this.screenFader            = screenFader;
             this.inputService.Interact.performed += OnInteract;
         }
 
@@ -81,7 +85,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.documentController,
                 this.containerController,
                 this.pickupDialogueService,
-                this.puzzleViewController);
+                this.puzzleViewController,
+                this.screenFader);
             interactable.Interact(context);
         }
 

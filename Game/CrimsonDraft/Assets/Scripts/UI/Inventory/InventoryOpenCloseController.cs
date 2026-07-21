@@ -66,6 +66,14 @@ namespace CrimsonDraft.UI
             Time.timeScale = 0f;
             this.inputService.SwitchToInventory();
             this.canvasRoot.SetActive(true);
+
+            // Must run before EnsureSynced(): it activates the starting tab's root, which is
+            // what makes GridCursor's Awake() fire (its GameObject can still be inactive right
+            // after canvasRoot.SetActive() if the starting tab isn't a direct always-active
+            // child). Without this, EnsureSynced()'s FindView() calls NRE on GridCursor's
+            // not-yet-initialized gridGroup reference the first time Open() ever runs.
+            this.tabManager.EnsureInitialized();
+
             this.sceneInit.EnsureSynced();
             this.partyPanel.Refresh();
             this.sfxData.PlayDecide(this.gameObject);
