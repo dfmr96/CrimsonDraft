@@ -39,6 +39,7 @@ namespace CrimsonDraft.Combat
         void FinalizeEnemyDeath(int slotIndex);
         int[] NotifyActionDequeued();
         bool IsEnemyStaggered(int slotIndex);
+        bool IsEnemyDead(int slotIndex);
         bool HasAliveEnemies();
         UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots);
 #if UNITY_EDITOR || DEBUG_COMBAT

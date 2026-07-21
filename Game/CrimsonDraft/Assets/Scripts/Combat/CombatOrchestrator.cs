@@ -195,6 +195,7 @@ namespace CrimsonDraft.Combat
                 EnemyData? data = this.encounter.EnemySlots[i];
                 if (data == null) continue;
                 if (this.battlefieldView.IsEnemyStaggered(i)) continue;
+                if (this.battlefieldView.IsEnemyDead(i)) continue;
 
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
@@ -215,6 +216,11 @@ namespace CrimsonDraft.Combat
         {
             if (action.Type == PendingActionType.EnemyAttack || action.Type == PendingActionType.EnemyRecover)
             {
+                // battlefieldView.IsEnemyDead is checked first because it reflects death the
+                // instant it happens; the ATB actor's own IsDead flag only catches up once
+                // SyncDeadEnemies notices the slot vanish from occupiedEnemySlots, which is
+                // deferred until the death animation/blood-pool sequence finishes.
+                if (this.battlefieldView.IsEnemyDead(action.SlotIndex)) return true;
                 ATBActorState? actor = this.atbSystem.GetActor(action.SlotIndex, ATBActorKind.Enemy);
                 return actor == null || actor.IsDead;
             }

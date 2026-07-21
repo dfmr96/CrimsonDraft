@@ -925,6 +925,8 @@ namespace CrimsonDraft.Tests
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) =>
                 this.maskBySlot.TryGetValue(slotIndex, out var profile) ? profile : null;
             public bool IsEnemyStaggered(int slotIndex) => false;
+            public bool IsEnemyDead(int slotIndex) =>
+                this.hpBySlot.TryGetValue(slotIndex, out int hp) && hp <= 0;
             public int TriggerEnemyStaggerCallCount { get; private set; }
             public int LastTriggerStaggerSlot       { get; private set; } = -1;
             public void TriggerEnemyStagger(int slotIndex)

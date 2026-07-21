@@ -31,8 +31,8 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Transform[] playerSlotTransforms = Array.Empty<Transform>();
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
-        [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
         [SerializeField, Min(0.1f)] private float enemyDeathAnimTimeoutSec = 3f;
+        [SerializeField, Min(0f)] private float bloodPoolRevealDurationSec = 0.5f;
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
@@ -55,8 +55,7 @@ namespace CrimsonDraft.Combat
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
-        private static readonly int DeathHash = Animator.StringToHash("Death");
-        private const string DeathStateName = "Armature|Death";
+        private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
 
         private IOperatorRoster? roster;
@@ -84,6 +83,7 @@ namespace CrimsonDraft.Combat
             this.operatorAnimatorBySlot.Clear();
             this.enemyAnimatorBySlot.Clear();
             this.enemyHitToggleBySlot.Clear();
+            this.enemyDeathMarkerBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -111,6 +111,8 @@ namespace CrimsonDraft.Combat
                 if (mr != null) this.enemyRendererBySlot[i] = mr;
                 var enemyAnimator = go.GetComponentInChildren<Animator>();
                 if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
+                var deathMarker = go.GetComponentInChildren<EnemyDeathMarker>();
+                if (deathMarker != null) this.enemyDeathMarkerBySlot[i] = deathMarker;
                 int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
@@ -262,41 +264,63 @@ namespace CrimsonDraft.Combat
         public bool IsEnemyStaggered(int slotIndex) =>
             this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsStaggered;
 
+        // Reflects EnemyRuntimeState.IsDead the instant HP crosses to 0 — unlike
+        // occupiedEnemySlots, which only drops the slot once FinalizeEnemyDeath's fall +
+        // blood-pool sequence finishes. CombatOrchestrator needs this immediate signal so a
+        // dying-but-still-mid-animation enemy can never queue or execute an attack.
+        public bool IsEnemyDead(int slotIndex) =>
+            this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsDead;
+
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
         public void FinalizeEnemyDeath(int slotIndex)
         {
-            if (!this.enemyStateBySlot.ContainsKey(slotIndex)) return;
-
-            if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                StartCoroutine(this.PlayDeathAnimThenFadeAndFinalize(slotIndex, go));
-            else
-                RemoveFromOccupiedSlots(slotIndex);
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
+            StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex, state.IsStaggered));
         }
 
-        private IEnumerator PlayDeathAnimThenFadeAndFinalize(int slotIndex, GameObject enemyGo)
+        // RE-style "definitely dead" marker: a blood pool (a child object referenced via
+        // EnemyDeathMarker) reveals under the corpse so the player can tell it won't get
+        // back up. If the enemy was still standing, it collapses first, reusing the same
+        // Fall clip the stagger knockdown uses (there's no separate "falls dead" clip); if
+        // it was already down from a stagger, the collapse is skipped since it's already
+        // on the ground. The corpse is never hidden or destroyed — once removed from
+        // occupiedEnemySlots it's untargetable and dead to the ATB system (SyncDeadEnemies
+        // picks it up from there), but stays visible in the scene as an inert prop.
+        private IEnumerator PlayDeathSequenceThenFinalize(int slotIndex, bool wasAlreadyDown)
         {
-            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            if (!wasAlreadyDown && this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
             {
-                anim.SetTrigger(DeathHash);
-
-                // Safety timeout: if the trigger isn't wired to a reachable "Armature|Death"
-                // state (or the name ever drifts), don't hang combat forever waiting for it.
-                float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
-                while (!anim.GetCurrentAnimatorStateInfo(0).IsName(DeathStateName) && Time.time < giveUpAt)
-                    yield return null;
-
-                if (anim.GetCurrentAnimatorStateInfo(0).IsName(DeathStateName))
-                {
-                    var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
-                    float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
-                    if (duration > 0f)
-                        yield return new WaitForSeconds(duration);
-                }
+                anim.SetBool(IsStaggeredHash, true);
+                yield return this.WaitForAnimatorStateChange(anim);
             }
 
-            yield return this.FadeOutAndHideEnemy(enemyGo);
+            if (this.enemyDeathMarkerBySlot.TryGetValue(slotIndex, out var marker) && marker != null && marker.BloodPool != null)
+            {
+                marker.BloodPool.SetActive(true);
+                yield return new WaitForSeconds(this.bloodPoolRevealDurationSec);
+            }
+
             RemoveFromOccupiedSlots(slotIndex);
+        }
+
+        // Doesn't assume a specific destination state name, just waits for whatever new
+        // state IsStaggered leads to and reads its real clip length. Safety-timeouts out
+        // rather than hanging combat forever if it isn't wired to a reachable transition.
+        private IEnumerator WaitForAnimatorStateChange(Animator anim)
+        {
+            int startStateHash = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+            while (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash && Time.time < giveUpAt)
+                yield return null;
+
+            if (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash)
+                yield break;
+
+            var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
+            float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
+            if (duration > 0f)
+                yield return new WaitForSeconds(duration);
         }
 
         private void RemoveFromOccupiedSlots(int slotIndex)
@@ -360,32 +384,6 @@ namespace CrimsonDraft.Combat
             return (0, 0, true, 0, false);
         }
 #endif
-
-        private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo)
-        {
-            if (enemyGo == null)
-                yield break;
-
-            var mr = enemyGo.GetComponent<MeshRenderer>();
-            if (mr == null)
-            {
-                enemyGo.SetActive(false);
-                yield break;
-            }
-
-            float elapsed = 0f;
-            float duration = Mathf.Max(0.01f, this.enemyDeathFadeDuration);
-            var startColor = mr.material.color;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float alpha = Mathf.Clamp01(1f - elapsed / duration);
-                mr.material.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
-                yield return null;
-            }
-
-            enemyGo.SetActive(false);
-        }
 
         public void SetOperatorIndicator(int slotIndex)
         {
