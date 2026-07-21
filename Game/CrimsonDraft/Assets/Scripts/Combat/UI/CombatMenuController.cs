@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,10 @@ namespace CrimsonDraft.Combat
         internal int   SelectedShotCount     { get; set; } = 1;
         internal int   CurrentTargetSlot     { get; set; } = -1;
         internal ICombatOrchestrator Orchestrator { get; private set; } = null!;
+        internal List<int> FocusFireMarked { get; } = new();
+        internal int[] FocusFireParticipants     { get; set; } = Array.Empty<int>();
+        internal int   FocusFireParticipantIndex { get; set; }
+        internal Dictionary<int, int> FocusFireShotCounts { get; } = new();
 
         internal const int BaseDamage   = 20;
         internal const int MaxShotCount = 6;
@@ -62,8 +67,10 @@ namespace CrimsonDraft.Combat
         private readonly IInventoryService             inventory;
         private readonly ICombatOrchestrator                           orchestrator;
         private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
+        private readonly ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber;
         private readonly CombatSfxData?                                sfx;
         private IDisposable? shootSubscription;
+        private IDisposable? focusFireSubscription;
 
         [UnityEngine.Scripting.Preserve]
         public CombatMenuController(
@@ -79,7 +86,8 @@ namespace CrimsonDraft.Combat
             IInputService                                  inputService,
             ICombatOrchestrator                            orchestrator,
             CombatSfxData                                  sfx,
-            ISubscriber<ShootConfigurationRequestedEvent>  shootSubscriber)
+            ISubscriber<ShootConfigurationRequestedEvent>  shootSubscriber,
+            ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
@@ -94,6 +102,7 @@ namespace CrimsonDraft.Combat
             this.orchestrator         = orchestrator;
             this.sfx                  = sfx;
             this.shootSubscriber      = shootSubscriber;
+            this.focusFireSubscriber  = focusFireSubscriber;
         }
 
         // Internal constructor for tests (no inputService)
@@ -109,6 +118,7 @@ namespace CrimsonDraft.Combat
             IInventoryService            inventory,
             ICombatOrchestrator?         orchestrator    = null,
             ISubscriber<ShootConfigurationRequestedEvent>? shootSubscriber = null,
+            ISubscriber<FocusFireConfigurationRequestedEvent>? focusFireSubscriber = null,
             CombatSfxData?               sfx             = null)
         {
             this.menuView             = menuView;
@@ -122,6 +132,7 @@ namespace CrimsonDraft.Combat
             this.inventory            = inventory;
             this.orchestrator         = orchestrator!;
             this.shootSubscriber      = shootSubscriber!;
+            this.focusFireSubscriber  = focusFireSubscriber!;
             this.sfx                  = sfx;
         }
 
@@ -151,7 +162,8 @@ namespace CrimsonDraft.Combat
             }
 
             this.Orchestrator      = this.orchestrator;
-            this.shootSubscription = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
+            this.shootSubscription     = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
+            this.focusFireSubscription = this.focusFireSubscriber?.Subscribe(e => BeginFocusFireConfiguration(e.ParticipantSlots));
 
             this.TransitionTo(this.OperatorSelState);
         }
@@ -175,6 +187,7 @@ namespace CrimsonDraft.Combat
             }
 
             this.shootSubscription?.Dispose();
+            this.focusFireSubscription?.Dispose();
         }
 
         #endregion
@@ -196,10 +209,24 @@ namespace CrimsonDraft.Combat
         internal void SuppressNextOperatorFocusSfx() => this.suppressNextOperatorFocusSfx = true;
         internal void SuppressNextCommandFocusSfx()  => this.suppressNextCommandFocusSfx  = true;
 
+        internal void RepositionCommandPanelToOperator(int slot) =>
+            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+
         internal void BeginShootConfiguration(int slot)
         {
             this.SelectedOperator = slot;
-            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+            RepositionCommandPanelToOperator(slot);
+            this.menuView.SetDimmed(true);
+            this.TransitionTo(this.ShotCountState);
+        }
+
+        internal void BeginFocusFireConfiguration(int[] participants)
+        {
+            this.FocusFireParticipants     = participants;
+            this.FocusFireParticipantIndex = 0;
+            this.FocusFireShotCounts.Clear();
+            this.SelectedOperator = participants[0];
+            RepositionCommandPanelToOperator(participants[0]);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
         }
@@ -216,6 +243,16 @@ namespace CrimsonDraft.Combat
                 _              => 0.0f,
             };
             return Mathf.RoundToInt(baseDamage * zoneMult * precisionMultiplier);
+        }
+
+        internal static int ComputePoiseDamage(ShotZone zone, int weaponPoiseDamage) =>
+            zone == ShotZone.Legs ? weaponPoiseDamage * 2 : weaponPoiseDamage;
+
+        internal static bool ShouldStagger(int poiseAfterDamage, int currentHp, int maxHp, float staggerHpThresholdPct)
+        {
+            if (poiseAfterDamage > 0) return false;
+            float hpPct = maxHp > 0 ? (float)currentHp / maxHp * 100f : 0f;
+            return hpPct < staggerHpThresholdPct;
         }
 
         #endregion

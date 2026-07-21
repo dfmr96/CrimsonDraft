@@ -1,6 +1,7 @@
 #nullable enable
 
 using NUnit.Framework;
+using UnityEngine;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Tests
@@ -22,6 +23,15 @@ namespace CrimsonDraft.Tests
 
         private static OperatorRuntime MakeAbsent(int slot) =>
             new OperatorRuntime(slot, null, isPresent: false, maxHp: 100);
+
+        private static OperatorData MakeOperatorData(int maxHp)
+        {
+            var d  = ScriptableObject.CreateInstance<OperatorData>();
+            var so = new UnityEditor.SerializedObject(d);
+            so.FindProperty("maxHp").intValue = maxHp;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return d;
+        }
 
         [Test]
         public void EnsureInitialized_setsHpFromSeed()
@@ -79,6 +89,70 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void GetHpSnapshot_returnsCurrentHpPerSlot()
+        {
+            var roster = new OperatorRoster(
+                new FakeSeedProvider(new OperatorData?[] { null, null }, defaultHp: 100));
+            roster.EnsureInitialized();
+            roster[0].ApplyDamage(30);
+
+            var snapshot = roster.GetHpSnapshot();
+
+            Assert.AreEqual(new[] { 0, 0 }, snapshot, "operators seeded with null data are not present, so Hp is 0");
+        }
+
+        [Test]
+        public void GetHpSnapshot_capturesPresentOperatorsDamage()
+        {
+            var data   = MakeOperatorData(maxHp: 100);
+            var roster = new OperatorRoster(new FakeSeedProvider(new OperatorData?[] { data }, defaultHp: 100));
+            roster.EnsureInitialized();
+            roster[0].ApplyDamage(40);
+
+            var snapshot = roster.GetHpSnapshot();
+
+            Assert.AreEqual(60, snapshot[0]);
+        }
+
+        [Test]
+        public void RestoreHp_appliesSnapshotValuesToSlots()
+        {
+            var roster = new OperatorRoster(
+                new FakeSeedProvider(new OperatorData?[] { null, null }, defaultHp: 100));
+            roster.EnsureInitialized();
+
+            roster.RestoreHp(new[] { 55, 10 });
+
+            Assert.AreEqual(55, roster[0].Hp);
+            Assert.AreEqual(10, roster[1].Hp);
+        }
+
+        [Test]
+        public void RestoreHp_clampsToSlotMaxHp()
+        {
+            var roster = new OperatorRoster(
+                new FakeSeedProvider(new OperatorData?[] { null }, defaultHp: 50));
+            roster.EnsureInitialized();
+
+            roster.RestoreHp(new[] { 999 });
+
+            Assert.AreEqual(50, roster[0].Hp);
+        }
+
+        [Test]
+        public void RestoreHp_snapshotShorterThanRoster_onlyUpdatesMatchingSlots()
+        {
+            var roster = new OperatorRoster(
+                new FakeSeedProvider(new OperatorData?[] { null, null, null }, defaultHp: 100));
+            roster.EnsureInitialized();
+
+            roster.RestoreHp(new[] { 20 });
+
+            Assert.AreEqual(20, roster[0].Hp);
+            Assert.AreEqual(0, roster[1].Hp, "operators seeded with null data are not present, unaffected by restore");
+        }
+
+        [Test]
         public void AbsentOperator_isNotAlive()
         {
             var op = MakeAbsent(0);
@@ -125,6 +199,7 @@ namespace CrimsonDraft.Tests
             public int     BaseDamage  => 20;
             public int     CurrentAmmo { get; private set; }
             public int     MaxAmmo     { get; }
+            public int     PoiseDamage => 10;
 
             internal FakeWeaponSlot(Caliber caliber, int currentAmmo, int maxAmmo)
             {

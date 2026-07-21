@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 
@@ -155,6 +156,7 @@ namespace CrimsonDraft.Tests
             => new RoomOrchestrator(
                 new FakeInputService(),
                 player,
+                player.gameObject.AddComponent<PlayerInteractionCaster>(),
                 context,
                 entry ?? ScriptableObject.CreateInstance<SceneEntryContext>(),
                 new FakePublisher<RoomTransitionStartedEvent>(),

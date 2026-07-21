@@ -155,6 +155,30 @@ namespace CrimsonDraft.Combat
                 this.ResolvePendingShotsAsync().Forget();
         }
 
+        // Reuses the aim position already locked by the real interactive QTE (confirmedLocalPos)
+        // without re-running the vertical/horizontal oscillation — used for Focus Fire's marked
+        // participants, who share the trigger's aim point but apply their own weapon's burst
+        // pattern and dispersion.
+        public ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount)
+        {
+            this.ConfigureWeapon(weaponData);
+            this.shotCount = Mathf.Max(1, shotCount);
+            var firstShotLocal = this.ComputeRandomShotLocal();
+            var shots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
+
+            // The interactive QTE spawns its markers/feedback from ResolvePendingShotsAsync,
+            // which this path bypasses — do it here so every participant's bullets show up
+            // positioned on the reticle, not just the trigger's.
+            foreach (var shot in shots)
+            {
+                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
+                this.SpawnMarker(local);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+            }
+
+            return shots;
+        }
+
         public void Hide()
         {
             this.verticalSelector.DOKill();

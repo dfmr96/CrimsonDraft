@@ -126,10 +126,11 @@ namespace CrimsonDraft.Combat
                 {
                     EnemyData? data = encounter.EnemySlots[i];
                     if (data == null) continue;
-                    var (cur, max, dead) = this.battlefieldView.GetEnemyHpDebug(i);
+                    var (cur, max, dead, poise, staggered) = this.battlefieldView.GetEnemyHpDebug(i);
                     string name = data.EnemyId.Length > 0 ? data.EnemyId : $"Enemy {i}";
                     string hp   = dead ? "<color=#FF4444>DEAD</color>" : $"{cur} / {max}";
-                    sb.AppendLine($"  EN[{i}] {name}  {hp}");
+                    string poiseText = dead ? "" : staggered ? " <color=#FFAA00>STAGGERED</color>" : $" poise={poise}";
+                    sb.AppendLine($"  EN[{i}] {name}  {hp}{poiseText}");
                 }
             }
 

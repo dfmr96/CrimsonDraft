@@ -17,6 +17,7 @@ namespace CrimsonDraft.Combat
         private ATBSystem                                    atbSystem          = null!;
         private CombatActionQueue                            actionQueue        = null!;
         private IPublisher<ShootConfigurationRequestedEvent> shootPublisher     = null!;
+        private IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher = null!;
         private IPublisher<CombatEndedEvent>                 combatEndPublisher = null!;
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
@@ -50,6 +51,7 @@ namespace CrimsonDraft.Combat
             ATBSystem                                    atbSystem,
             CombatActionQueue                            actionQueue,
             IPublisher<ShootConfigurationRequestedEvent> shootPublisher,
+            IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher,
             IPublisher<CombatEndedEvent>                 combatEndPublisher,
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
@@ -60,6 +62,7 @@ namespace CrimsonDraft.Combat
             this.atbSystem          = atbSystem;
             this.actionQueue        = actionQueue;
             this.shootPublisher     = shootPublisher;
+            this.focusFirePublisher = focusFirePublisher;
             this.combatEndPublisher = combatEndPublisher;
             this.battlefieldView    = battlefieldView;
             this.roster             = roster;
@@ -128,16 +131,55 @@ namespace CrimsonDraft.Combat
             return actor != null && actor.IsReady && actor.IsAwaitingCommand;
         }
 
+        public void NotifyEnemyStaggered(int enemySlot)
+        {
+            // Reset alone isn't enough — the gauge would keep ticking while staggered
+            // and be fully charged (or overcharged) the instant it recovers, letting it
+            // attack immediately. Freeze it at 0 for the whole knockdown; ProcessQueueHead
+            // unfreezes it only once the EnemyRecover action actually resolves.
+            this.atbSystem.ResetActor(enemySlot, ATBActorKind.Enemy);
+            this.atbSystem.FreezeActor(enemySlot, ATBActorKind.Enemy);
+        }
+
+        public void MarkOperatorForFocusFire(int operatorSlot)
+        {
+            // Same "reset then freeze" shape as NotifyEnemyStaggered — the marked
+            // operator's gauge must not tick back up to ready while it waits, or
+            // NotifyReadyOperators() would offer it a command panel again.
+            this.atbSystem.ResetActor(operatorSlot, ATBActorKind.Operator);
+            this.atbSystem.FreezeActor(operatorSlot, ATBActorKind.Operator);
+        }
+
         public void NotifyShootCompleted()
         {
             if (!this.actionQueue.HasPending) return;
             if (this.actionQueue.Peek().Type != PendingActionType.Shoot) return;
             int slotIndex = this.actionQueue.Peek().SlotIndex;
-            this.actionQueue.Dequeue();
+            this.DequeueAction();
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.UnfreezeActor(slotIndex, ATBActorKind.Operator);
             this.shootConfigurationInProgress = false;
             SetAnimationLock(this.operatorActionDurationSec);
+        }
+
+        public void NotifyFocusFireCompleted()
+        {
+            if (!this.actionQueue.HasPending) return;
+            if (this.actionQueue.Peek().Type != PendingActionType.FocusFire) return;
+            this.DequeueAction();
+            this.shootConfigurationInProgress = false;
+            SetAnimationLock(this.operatorActionDurationSec);
+        }
+
+        // The single place actions leave the queue, so every dequeue can count toward
+        // staggered enemies' action-based recovery (see NotifyActionDequeued on
+        // IBattlefieldView) without duplicating that bookkeeping at each call site.
+        private void DequeueAction()
+        {
+            this.actionQueue.Dequeue();
+            int[] readySlots = this.battlefieldView.NotifyActionDequeued();
+            for (int i = 0; i < readySlots.Length; i++)
+                this.actionQueue.Enqueue(PendingAction.EnemyRecover(readySlots[i]));
         }
 
         internal float AnimationLockRemaining => UnityEngine.Mathf.Max(0f, this.animationLockUntil - Time.time);
@@ -173,6 +215,8 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = this.encounter.EnemySlots[i];
                 if (data == null) continue;
+                if (this.battlefieldView.IsEnemyStaggered(i)) continue;
+                if (this.battlefieldView.IsEnemyDead(i)) continue;
 
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
@@ -191,10 +235,24 @@ namespace CrimsonDraft.Combat
 
         private bool IsActorDead(PendingAction action)
         {
-            if (action.Type == PendingActionType.EnemyAttack)
+            if (action.Type == PendingActionType.EnemyAttack || action.Type == PendingActionType.EnemyRecover)
             {
+                // battlefieldView.IsEnemyDead is checked first because it reflects death the
+                // instant it happens; the ATB actor's own IsDead flag only catches up once
+                // SyncDeadEnemies notices the slot vanish from occupiedEnemySlots, which is
+                // deferred until the death animation/blood-pool sequence finishes.
+                if (this.battlefieldView.IsEnemyDead(action.SlotIndex)) return true;
                 ATBActorState? actor = this.atbSystem.GetActor(action.SlotIndex, ATBActorKind.Enemy);
                 return actor == null || actor.IsDead;
+            }
+            if (action.Type == PendingActionType.FocusFire)
+            {
+                for (int i = 0; i < action.FocusFireParticipants.Length; i++)
+                {
+                    int s = action.FocusFireParticipants[i];
+                    if (s >= this.roster.Count || !this.roster[s].IsAlive) return true;
+                }
+                return false;
             }
             return action.SlotIndex >= this.roster.Count || !this.roster[action.SlotIndex].IsAlive;
         }
@@ -209,9 +267,22 @@ namespace CrimsonDraft.Combat
             {
                 if (!this.shootConfigurationInProgress)
                 {
-                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
                     this.shootConfigurationInProgress = true;
                     this.shootPublisher.Publish(new ShootConfigurationRequestedEvent(head.SlotIndex));
+                }
+                return;
+            }
+
+            if (head.Type == PendingActionType.FocusFire)
+            {
+                if (!this.shootConfigurationInProgress)
+                {
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
+                    this.shootConfigurationInProgress = true;
+                    for (int i = 0; i < head.FocusFireParticipants.Length; i++)
+                        this.atbSystem.UnfreezeActor(head.FocusFireParticipants[i], ATBActorKind.Operator);
+                    this.focusFirePublisher.Publish(new FocusFireConfigurationRequestedEvent(head.FocusFireParticipants));
                 }
                 return;
             }
@@ -220,7 +291,8 @@ namespace CrimsonDraft.Combat
             {
                 if (!this.enemyAttackInProgress)
                 {
-                    if (IsActorDead(head)) { this.actionQueue.Dequeue(); return; }
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
+                    if (this.battlefieldView.IsEnemyStaggered(head.SlotIndex)) { this.DequeueAction(); return; }
                     if (Time.time < this.animationLockUntil) return;
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
@@ -228,21 +300,31 @@ namespace CrimsonDraft.Combat
                 else if (Time.time >= this.animationLockUntil)
                 {
                     this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
-                    this.actionQueue.Dequeue();
+                    this.DequeueAction();
                     this.enemyAttackInProgress = false;
                 }
                 return;
             }
 
+            if (head.Type == PendingActionType.EnemyRecover)
+            {
+                if (IsActorDead(head)) { this.DequeueAction(); return; }
+                if (Time.time < this.animationLockUntil) return;
+                this.battlefieldView.RecoverEnemyStagger(head.SlotIndex);
+                this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
+                this.DequeueAction();
+                return;
+            }
+
             if (IsActorDead(head))
             {
-                this.actionQueue.Dequeue();
+                this.DequeueAction();
                 if (this.freezeOperatorWhenActionQueued)
                     this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
                 return;
             }
             if (Time.time < this.animationLockUntil) return;
-            this.actionQueue.Dequeue();
+            this.DequeueAction();
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Operator);
 

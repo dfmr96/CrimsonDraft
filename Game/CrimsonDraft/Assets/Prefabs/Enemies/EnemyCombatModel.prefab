@@ -300,6 +300,7 @@ GameObject:
   - component: {fileID: 8240169509672565525}
   - component: {fileID: 4764755364702932714}
   - component: {fileID: 4489834574403919956}
+  - component: {fileID: -1893326760067448798}
   m_Layer: 9
   m_Name: EnemyCombatModel
   m_TagString: Untagged
@@ -320,6 +321,7 @@ Transform:
   m_LocalScale: {x: 0.65, y: 0.65, z: 0.65}
   m_ConstrainProportionsScale: 1
   m_Children:
+  - {fileID: 2227823198016029922}
   - {fileID: 7866864487380068544}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -361,6 +363,19 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: ca71e19b6c15d6f42b2ee8da58d621aa, type: 2}
+--- !u!114 &-1893326760067448798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2350718203404714951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab16d92a5ffaffc4d930ea178b8a6dd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.EnemyDeathMarker
+  bloodPool: {fileID: 3067606022537090538}
 --- !u!1 &2403354697059710437
 GameObject:
   m_ObjectHideFlags: 0
@@ -916,3 +931,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7918398764379592393}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &6349911704890049922
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8240169509672565525}
+    m_Modifications:
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8254315684813410408, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_Name
+      value: BloodPool
+      objectReference: {fileID: 0}
+    - target: {fileID: 8254315684813410408, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+--- !u!4 &2227823198016029922 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5113197908879982944, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+  m_PrefabInstance: {fileID: 6349911704890049922}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3067606022537090538 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8254315684813410408, guid: 55dbba85ea70f3245845448fd133ccd6, type: 3}
+  m_PrefabInstance: {fileID: 6349911704890049922}
+  m_PrefabAsset: {fileID: 0}

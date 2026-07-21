@@ -20,5 +20,6 @@ namespace CrimsonDraft.Combat
         void SetOperatorWeapon(int index, WeaponItem? weapon);
         void SetDimmed(bool dimmed);
         void SetOperatorDimmed(int index, bool dimmed);
+        void SetOperatorFocusFireMarked(int index, bool marked);
     }
 }

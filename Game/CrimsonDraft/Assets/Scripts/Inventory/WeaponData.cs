@@ -16,6 +16,7 @@ namespace CrimsonDraft.Inventory
         [SerializeField] private BurstPatternData? burstPattern;
         [SerializeField] private WeaponSlot        weaponSlot             = WeaponSlot.Primary;
         [SerializeField, Min(1)] private int       damage                 = 20;
+        [SerializeField, Min(0)] private int       poiseDamage            = 10;
 
         public Caliber           Caliber                => this.caliber;
         public GunType           GunType                => this.gunType;
@@ -25,5 +26,6 @@ namespace CrimsonDraft.Inventory
         public BurstPatternData? BurstPattern           => this.burstPattern;
         public WeaponSlot        WeaponSlot             => this.weaponSlot;
         public int               Damage                 => this.damage;
+        public int               PoiseDamage            => this.poiseDamage;
     }
 }

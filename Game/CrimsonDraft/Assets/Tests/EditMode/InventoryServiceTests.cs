@@ -66,27 +66,27 @@ namespace CrimsonDraft.Tests
         private static OperatorRuntime MakeAlive(int slot) =>
             new OperatorRuntime(slot, null, isPresent: true, maxHp: 100);
 
-        private static WeaponData MakeWeaponData(string caliber = "9mm", int magazineCapacity = 6)
+        private static WeaponData MakeWeaponData(Caliber caliber = Caliber._9mm, int magazineCapacity = 6)
         {
             var d  = ScriptableObject.CreateInstance<WeaponData>();
             var so = new UnityEditor.SerializedObject(d);
             so.FindProperty("itemId").stringValue        = System.Guid.NewGuid().ToString();
             so.FindProperty("itemType").enumValueIndex   = (int)ItemType.Weapon;
             so.FindProperty("displayName").stringValue   = "Test Weapon";
-            so.FindProperty("caliber").stringValue       = caliber;
+            so.FindProperty("caliber").enumValueIndex    = (int)caliber;
             so.FindProperty("magazineCapacity").intValue = magazineCapacity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
         }
 
-        private static AmmoBoxData MakeAmmoBoxData(string caliber = "9mm", int defaultQuantity = 30)
+        private static AmmoBoxData MakeAmmoBoxData(Caliber caliber = Caliber._9mm, int defaultQuantity = 30)
         {
             var d  = ScriptableObject.CreateInstance<AmmoBoxData>();
             var so = new UnityEditor.SerializedObject(d);
             so.FindProperty("itemId").stringValue       = System.Guid.NewGuid().ToString();
             so.FindProperty("itemType").enumValueIndex  = (int)ItemType.AmmoBox;
             so.FindProperty("displayName").stringValue  = "Test Box";
-            so.FindProperty("caliber").stringValue      = caliber;
+            so.FindProperty("caliber").enumValueIndex   = (int)caliber;
             so.FindProperty("defaultQuantity").intValue = defaultQuantity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
@@ -292,7 +292,7 @@ namespace CrimsonDraft.Tests
         public void CanReload_returnsFalse_whenNoWeaponEquipped()
         {
             var service = MakeService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
 
             Assert.IsFalse(service.CanReload(0, operatorSlot: 0));
         }
@@ -302,8 +302,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("5.56", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeWeaponData(Caliber._556x45, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
             service.EquipWeapon(0, operatorSlot: 0);
 
             Assert.IsFalse(service.CanReload(1, operatorSlot: 0));
@@ -314,8 +314,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(10);
 
@@ -327,8 +327,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm", defaultQuantity: 99), operatorSlot: 0, quantity: 99);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm, defaultQuantity: 99), operatorSlot: 0, quantity: 99);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(10);
 
@@ -345,8 +345,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0, quantity: 5);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0, quantity: 5);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(0);
 
