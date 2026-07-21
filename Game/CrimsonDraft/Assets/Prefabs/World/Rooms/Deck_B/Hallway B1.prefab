@@ -806,7 +806,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 18984
+  m_VersionIndex: 18996
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -1388,7 +1388,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 25254
+  m_VersionIndex: 25266
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -1744,7 +1744,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 16905
+  m_VersionIndex: 16917
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2421,7 +2421,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 16157
+  m_VersionIndex: 16169
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -3191,7 +3191,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 19050
+  m_VersionIndex: 19062
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -3355,6 +3355,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 3567511464561374740}
   m_Layer: 0
   m_Name: Hallway B1
   m_TagString: Untagged
@@ -3416,6 +3417,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: HALLWAY_B1
+--- !u!114 &3567511464561374740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -5.3999987, y: -3.509994}
+  - {x: 6.1000023, y: -3.509994}
+  - {x: 6.1000023, y: -7.000002}
+  - {x: -5.3999987, y: -7.000002}
+  mapOffset: {x: -44.458138, y: -19.811642}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &6074910840474337740
 GameObject:
   m_ObjectHideFlags: 0
@@ -3664,7 +3686,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 25254
+  m_VersionIndex: 25266
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4652,7 +4674,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 24077
+  m_VersionIndex: 24089
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5121,7 +5143,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 18258
+  m_VersionIndex: 18270
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5420,7 +5442,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 3970
+  m_VersionIndex: 3994
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5916,9 +5938,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_24
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -2.290222
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 12.908524
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.06
+      value: -4.152
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6458,6 +6492,18 @@ PrefabInstance:
       propertyPath: doorId
       value: DR_25
       objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.x
+      value: 6.141959
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.y
+      value: -10.201899
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapRotation
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 9130620908116774643, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_Name
       value: DR_25
@@ -6556,7 +6602,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5644205763183238322, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.05
+      value: 2.842
       objectReference: {fileID: 0}
     - target: {fileID: 5644205763183238322, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6597,6 +6643,18 @@ PrefabInstance:
     - target: {fileID: 7897431446175867931, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: doorId
       value: DR_25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.x
+      value: 12.563949
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapOffset.y
+      value: -3.4571936
+      objectReference: {fileID: 0}
+    - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 9130620908116774643, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: m_Name
