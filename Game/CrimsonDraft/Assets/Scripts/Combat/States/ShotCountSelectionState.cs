@@ -67,6 +67,7 @@ namespace CrimsonDraft.Combat
                 {
                     this.context.FocusFireParticipantIndex = nextIndex;
                     this.context.SelectedOperator          = this.context.FocusFireParticipants[nextIndex];
+                    this.context.RepositionCommandPanelToOperator(this.context.SelectedOperator);
                     this.context.TransitionTo(this);
                     return;
                 }

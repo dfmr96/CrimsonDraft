@@ -164,7 +164,19 @@ namespace CrimsonDraft.Combat
             this.ConfigureWeapon(weaponData);
             this.shotCount = Mathf.Max(1, shotCount);
             var firstShotLocal = this.ComputeRandomShotLocal();
-            return this.BuildResolvedShots(firstShotLocal, this.shotCount);
+            var shots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
+
+            // The interactive QTE spawns its markers/feedback from ResolvePendingShotsAsync,
+            // which this path bypasses — do it here so every participant's bullets show up
+            // positioned on the reticle, not just the trigger's.
+            foreach (var shot in shots)
+            {
+                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
+                this.SpawnMarker(local);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+            }
+
+            return shots;
         }
 
         public void Hide()

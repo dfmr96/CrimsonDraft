@@ -731,6 +731,7 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(1, this.menuView.FocusFireMarkedCallCount);
             Assert.IsTrue(this.menuView.LastFocusFireMarkedValue);
             Assert.IsFalse(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.menuView.OperatorDimmedByIndex[0]); // marked operator visually dimmed + non-selectable
         }
 
         [Test]
@@ -951,7 +952,8 @@ namespace CrimsonDraft.Tests
                 this.healthByOperator.TryGetValue(index, out hpRatio);
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
             public void SetDimmed(bool dimmed) { }
-            public void SetOperatorDimmed(int index, bool dimmed) { }
+            public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
+            public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
             public int  FocusFireMarkedCallCount  { get; private set; }
             public bool LastFocusFireMarkedValue  { get; private set; }
             public int  LastFocusFireMarkedSlot   { get; private set; } = -1;

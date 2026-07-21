@@ -171,11 +171,14 @@ namespace CrimsonDraft.Combat
             this.isPlayingBurst = true;
             if (isGroup)
             {
-                foreach (var participant in this.pendingGroupShots)
+                var bursts = new UniTask[this.pendingGroupShots.Count];
+                for (int i = 0; i < this.pendingGroupShots.Count; i++)
                 {
-                    await this.battlefieldView.PlayOperatorShootBurstAsync(
+                    var participant = this.pendingGroupShots[i];
+                    bursts[i] = this.battlefieldView.PlayOperatorShootBurstAsync(
                         participant.Slot, this.context.CurrentTargetSlot, participant.Shots);
                 }
+                await UniTask.WhenAll(bursts);
             }
             else
             {

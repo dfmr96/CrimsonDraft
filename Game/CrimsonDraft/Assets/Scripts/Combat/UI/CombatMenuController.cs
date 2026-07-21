@@ -209,10 +209,13 @@ namespace CrimsonDraft.Combat
         internal void SuppressNextOperatorFocusSfx() => this.suppressNextOperatorFocusSfx = true;
         internal void SuppressNextCommandFocusSfx()  => this.suppressNextCommandFocusSfx  = true;
 
+        internal void RepositionCommandPanelToOperator(int slot) =>
+            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+
         internal void BeginShootConfiguration(int slot)
         {
             this.SelectedOperator = slot;
-            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+            RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
         }
@@ -223,7 +226,7 @@ namespace CrimsonDraft.Combat
             this.FocusFireParticipantIndex = 0;
             this.FocusFireShotCounts.Clear();
             this.SelectedOperator = participants[0];
-            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(participants[0]));
+            RepositionCommandPanelToOperator(participants[0]);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
         }

@@ -84,6 +84,7 @@ namespace CrimsonDraft.Combat
                 this.context.FocusFireMarked.Add(slot);
                 this.context.Orchestrator.MarkOperatorForFocusFire(slot);
                 this.menuView.SetOperatorFocusFireMarked(slot, true);
+                this.menuView.SetOperatorDimmed(slot, true);
                 this.commandPanel.Hide();
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);
