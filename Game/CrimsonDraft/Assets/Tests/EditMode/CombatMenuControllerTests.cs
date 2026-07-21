@@ -718,6 +718,57 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
         }
 
+        [Test]
+        public void CommandPanel_focusFire_marksOperatorAndFreezesAtb()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire);
+
+            CollectionAssert.Contains(c.FocusFireMarked, 0);
+            Assert.AreEqual(1, this.orchestrator.MarkOperatorForFocusFireCallCount);
+            Assert.AreEqual(0, this.orchestrator.LastMarkedFocusFireSlot);
+            Assert.AreEqual(1, this.menuView.FocusFireMarkedCallCount);
+            Assert.IsTrue(this.menuView.LastFocusFireMarkedValue);
+            Assert.IsFalse(this.commandPanel.IsVisible);
+        }
+
+        [Test]
+        public void OperatorSelected_withNoneMarked_enablesFocusFire()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+
+            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void OperatorSelected_withOneOfThreeMarked_stillEnablesFocusFireForAnother()
+        {
+            var c = BuildAndInit(); // default FakeOperatorRoster has 3 slots, all alive
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+
+            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void OperatorSelected_withAllOthersMarked_disablesFocusFireForTheLastOne()
+        {
+            var c = BuildAndInit(); // 3 slots
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 1
+
+            this.menuView.RaiseOnOperatorSelected(2); // only unmarked operator left
+
+            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeInventoryService : IInventoryService
@@ -778,6 +829,15 @@ namespace CrimsonDraft.Tests
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
             public void SetDimmed(bool dimmed) { }
             public void SetOperatorDimmed(int index, bool dimmed) { }
+            public int  FocusFireMarkedCallCount  { get; private set; }
+            public bool LastFocusFireMarkedValue  { get; private set; }
+            public int  LastFocusFireMarkedSlot   { get; private set; } = -1;
+            public void SetOperatorFocusFireMarked(int index, bool marked)
+            {
+                this.FocusFireMarkedCallCount++;
+                this.LastFocusFireMarkedValue = marked;
+                this.LastFocusFireMarkedSlot  = index;
+            }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
@@ -1016,6 +1076,13 @@ namespace CrimsonDraft.Tests
             {
                 this.NotifyEnemyStaggeredCallCount++;
                 this.LastStaggeredSlot = enemySlot;
+            }
+            public int MarkOperatorForFocusFireCallCount { get; private set; }
+            public int LastMarkedFocusFireSlot           { get; private set; } = -1;
+            public void MarkOperatorForFocusFire(int operatorSlot)
+            {
+                this.MarkOperatorForFocusFireCallCount++;
+                this.LastMarkedFocusFireSlot = operatorSlot;
             }
         }
 

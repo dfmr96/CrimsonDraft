@@ -60,6 +60,19 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
+            if (command == CombatCommand.FocusFire)
+            {
+                this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
+                int slot = this.context.SelectedOperator;
+                this.context.FocusFireMarked.Add(slot);
+                this.context.Orchestrator.MarkOperatorForFocusFire(slot);
+                this.menuView.SetOperatorFocusFireMarked(slot, true);
+                this.commandPanel.Hide();
+                this.menuView.SetDimmed(false);
+                this.context.TransitionTo(this.context.OperatorSelState);
+                return;
+            }
+
             if (command == CombatCommand.Items)
             {
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);

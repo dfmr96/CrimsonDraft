@@ -1,5 +1,5 @@
 #nullable enable
 namespace CrimsonDraft.Combat
 {
-    public enum CombatCommand { Shoot, Items }
+    public enum CombatCommand { Shoot, Items, FocusFire }
 }

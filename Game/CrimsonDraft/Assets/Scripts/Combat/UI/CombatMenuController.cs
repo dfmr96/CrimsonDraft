@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Combat
         internal int   SelectedShotCount     { get; set; } = 1;
         internal int   CurrentTargetSlot     { get; set; } = -1;
         internal ICombatOrchestrator Orchestrator { get; private set; } = null!;
+        internal List<int> FocusFireMarked { get; } = new();
 
         internal const int BaseDamage   = 20;
         internal const int MaxShotCount = 6;

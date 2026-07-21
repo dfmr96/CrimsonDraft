@@ -138,6 +138,15 @@ namespace CrimsonDraft.Combat
             this.atbSystem.FreezeActor(enemySlot, ATBActorKind.Enemy);
         }
 
+        public void MarkOperatorForFocusFire(int operatorSlot)
+        {
+            // Same "reset then freeze" shape as NotifyEnemyStaggered — the marked
+            // operator's gauge must not tick back up to ready while it waits, or
+            // NotifyReadyOperators() would offer it a command panel again.
+            this.atbSystem.ResetActor(operatorSlot, ATBActorKind.Operator);
+            this.atbSystem.FreezeActor(operatorSlot, ATBActorKind.Operator);
+        }
+
         public void NotifyShootCompleted()
         {
             if (!this.actionQueue.HasPending) return;
