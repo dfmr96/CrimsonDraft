@@ -73,6 +73,16 @@ namespace CrimsonDraft.Infrastructure.Events
         }
     }
 
+    public readonly struct FocusFireConfigurationRequestedEvent
+    {
+        public int[] ParticipantSlots { get; }
+
+        public FocusFireConfigurationRequestedEvent(int[] participantSlots)
+        {
+            this.ParticipantSlots = participantSlots;
+        }
+    }
+
     public readonly struct GuardAlertChangedEvent
     {
         public string GuardId { get; init; }

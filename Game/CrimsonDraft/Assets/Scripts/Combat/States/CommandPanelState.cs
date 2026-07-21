@@ -53,7 +53,24 @@ namespace CrimsonDraft.Combat
             {
                 if (GetMaxAvailableShotCount() <= 0) return;
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
-                this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
+
+                if (this.context.FocusFireMarked.Count > 0)
+                {
+                    int[] participants = new int[this.context.FocusFireMarked.Count + 1];
+                    this.context.FocusFireMarked.CopyTo(participants, 0);
+                    participants[participants.Length - 1] = this.context.SelectedOperator;
+
+                    for (int i = 0; i < this.context.FocusFireMarked.Count; i++)
+                        this.menuView.SetOperatorFocusFireMarked(this.context.FocusFireMarked[i], false);
+                    this.context.FocusFireMarked.Clear();
+
+                    this.context.Orchestrator.EnqueueAction(PendingAction.FocusFire(this.context.SelectedOperator, participants));
+                }
+                else
+                {
+                    this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
+                }
+
                 this.commandPanel.Hide();
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);

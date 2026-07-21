@@ -17,6 +17,7 @@ namespace CrimsonDraft.Combat
         private ATBSystem                                    atbSystem          = null!;
         private CombatActionQueue                            actionQueue        = null!;
         private IPublisher<ShootConfigurationRequestedEvent> shootPublisher     = null!;
+        private IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher = null!;
         private IPublisher<CombatEndedEvent>                 combatEndPublisher = null!;
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
@@ -50,6 +51,7 @@ namespace CrimsonDraft.Combat
             ATBSystem                                    atbSystem,
             CombatActionQueue                            actionQueue,
             IPublisher<ShootConfigurationRequestedEvent> shootPublisher,
+            IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher,
             IPublisher<CombatEndedEvent>                 combatEndPublisher,
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
@@ -60,6 +62,7 @@ namespace CrimsonDraft.Combat
             this.atbSystem          = atbSystem;
             this.actionQueue        = actionQueue;
             this.shootPublisher     = shootPublisher;
+            this.focusFirePublisher = focusFirePublisher;
             this.combatEndPublisher = combatEndPublisher;
             this.battlefieldView    = battlefieldView;
             this.roster             = roster;
@@ -159,6 +162,15 @@ namespace CrimsonDraft.Combat
             SetAnimationLock(this.operatorActionDurationSec);
         }
 
+        public void NotifyFocusFireCompleted()
+        {
+            if (!this.actionQueue.HasPending) return;
+            if (this.actionQueue.Peek().Type != PendingActionType.FocusFire) return;
+            this.DequeueAction();
+            this.shootConfigurationInProgress = false;
+            SetAnimationLock(this.operatorActionDurationSec);
+        }
+
         // The single place actions leave the queue, so every dequeue can count toward
         // staggered enemies' action-based recovery (see NotifyActionDequeued on
         // IBattlefieldView) without duplicating that bookkeeping at each call site.
@@ -233,6 +245,15 @@ namespace CrimsonDraft.Combat
                 ATBActorState? actor = this.atbSystem.GetActor(action.SlotIndex, ATBActorKind.Enemy);
                 return actor == null || actor.IsDead;
             }
+            if (action.Type == PendingActionType.FocusFire)
+            {
+                for (int i = 0; i < action.FocusFireParticipants.Length; i++)
+                {
+                    int s = action.FocusFireParticipants[i];
+                    if (s >= this.roster.Count || !this.roster[s].IsAlive) return true;
+                }
+                return false;
+            }
             return action.SlotIndex >= this.roster.Count || !this.roster[action.SlotIndex].IsAlive;
         }
 
@@ -249,6 +270,19 @@ namespace CrimsonDraft.Combat
                     if (IsActorDead(head)) { this.DequeueAction(); return; }
                     this.shootConfigurationInProgress = true;
                     this.shootPublisher.Publish(new ShootConfigurationRequestedEvent(head.SlotIndex));
+                }
+                return;
+            }
+
+            if (head.Type == PendingActionType.FocusFire)
+            {
+                if (!this.shootConfigurationInProgress)
+                {
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
+                    this.shootConfigurationInProgress = true;
+                    for (int i = 0; i < head.FocusFireParticipants.Length; i++)
+                        this.atbSystem.UnfreezeActor(head.FocusFireParticipants[i], ATBActorKind.Operator);
+                    this.focusFirePublisher.Publish(new FocusFireConfigurationRequestedEvent(head.FocusFireParticipants));
                 }
                 return;
             }

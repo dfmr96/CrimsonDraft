@@ -769,6 +769,52 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
         }
 
+        [Test]
+        public void CommandPanel_shoot_withMarkedOperators_enqueuesFocusFireAction()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot); // triggers, 1 is the trigger
+
+            Assert.IsNotNull(this.orchestrator.LastEnqueuedAction);
+            var action = this.orchestrator.LastEnqueuedAction!.Value;
+            Assert.AreEqual(PendingActionType.FocusFire, action.Type);
+            Assert.AreEqual(1, action.SlotIndex);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, action.FocusFireParticipants);
+        }
+
+        [Test]
+        public void CommandPanel_shoot_withMarkedOperators_clearsMarksAndUnmarksView()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            Assert.AreEqual(0, c.FocusFireMarked.Count);
+            Assert.AreEqual(2, this.menuView.FocusFireMarkedCallCount); // marked(0,true) then unmarked(0,false)
+            Assert.IsFalse(this.menuView.LastFocusFireMarkedValue);
+            Assert.AreEqual(0, this.menuView.LastFocusFireMarkedSlot);
+        }
+
+        [Test]
+        public void CommandPanel_shoot_withNoMarkedOperators_enqueuesNormalShoot()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
+
+            Assert.IsNotNull(this.orchestrator.LastEnqueuedAction);
+            var action = this.orchestrator.LastEnqueuedAction!.Value;
+            Assert.AreEqual(PendingActionType.Shoot, action.Type);
+            Assert.AreEqual(0, action.SlotIndex);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeInventoryService : IInventoryService

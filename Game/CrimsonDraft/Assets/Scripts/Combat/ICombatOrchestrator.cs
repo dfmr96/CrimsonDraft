@@ -10,5 +10,6 @@ namespace CrimsonDraft.Combat
         void NotifyShootCompleted();
         void NotifyEnemyStaggered(int enemySlot);
         void MarkOperatorForFocusFire(int operatorSlot);
+        void NotifyFocusFireCompleted();
     }
 }
