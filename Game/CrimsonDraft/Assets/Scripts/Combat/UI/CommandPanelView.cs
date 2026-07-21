@@ -84,6 +84,33 @@ namespace CrimsonDraft.Combat
 
                 this.entries[i].item.interactable = enabled;
                 this.ApplyCommandVisualState(i, enabled);
+                RerouteNavigationAround(this.entries[i].item, enabled);
+            }
+        }
+
+        // Entries use Explicit navigation with hardcoded neighbor links, so a disabled entry's own
+        // interactable/mode flags don't stop a NEIGHBOR from still navigating onto it via its
+        // hardcoded selectOnUp/selectOnDown. Splice the disabled entry out of the chain instead —
+        // its neighbors point at each other while it's disabled, and get reconnected through it
+        // again once it's re-enabled. The entry's own selectOnUp/selectOnDown never change.
+        private static void RerouteNavigationAround(ActionMenuItem item, bool enabled)
+        {
+            var nav  = item.navigation;
+            var up   = nav.selectOnUp   as ActionMenuItem;
+            var down = nav.selectOnDown as ActionMenuItem;
+
+            if (up != null)
+            {
+                var upNav = up.navigation;
+                upNav.selectOnDown = enabled ? item : down;
+                up.navigation = upNav;
+            }
+
+            if (down != null)
+            {
+                var downNav = down.navigation;
+                downNav.selectOnUp = enabled ? item : up;
+                down.navigation = downNav;
             }
         }
 

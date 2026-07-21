@@ -771,6 +771,25 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void CommandPanel_focusFire_onLastAvailableOperator_isRejectedEvenIfUiEventFires()
+        {
+            var c = BuildAndInit(); // 3 slots
+            this.menuView.RaiseOnOperatorSelected(0);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
+
+            this.menuView.RaiseOnOperatorSelected(1);
+            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 1
+
+            this.menuView.RaiseOnOperatorSelected(2); // only unmarked operator left, FocusFire now disabled
+
+            // Simulates a UI bug where the disabled button's submit event fires anyway.
+            this.commandPanel.ForceRaiseOnCommandSelected(CombatCommand.FocusFire);
+
+            CollectionAssert.DoesNotContain(c.FocusFireMarked, 2);
+            Assert.AreEqual(2, c.FocusFireMarked.Count); // still just the first two — no third mark, no hard-lock
+        }
+
+        [Test]
         public void CommandPanel_shoot_withMarkedOperators_enqueuesFocusFireAction()
         {
             var c = BuildAndInit();
@@ -993,6 +1012,10 @@ namespace CrimsonDraft.Tests
                     return;
                 this.OnCommandSelected?.Invoke(cmd);
             }
+            // Bypasses the enabled-check above — simulates a stale/bugged UI element still firing
+            // its submit event despite being disabled (e.g. ActionMenuItem's OnSubmit not checking
+            // IsInteractable), to verify the game-logic layer independently rejects it.
+            public void ForceRaiseOnCommandSelected(CombatCommand cmd) => this.OnCommandSelected?.Invoke(cmd);
         }
 
         private sealed class FakeCombatInventoryView : ICombatInventoryView

@@ -79,6 +79,11 @@ namespace CrimsonDraft.Combat
 
             if (command == CombatCommand.FocusFire)
             {
+                // Re-validated here (not just in the view's SetCommandEnabled) so a stale/bypassed
+                // UI click can never mark every alive operator and leave no one able to trigger —
+                // that would hard-lock combat with the whole party frozen waiting on a Shoot command.
+                if (this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1) return;
+
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 int slot = this.context.SelectedOperator;
                 this.context.FocusFireMarked.Add(slot);

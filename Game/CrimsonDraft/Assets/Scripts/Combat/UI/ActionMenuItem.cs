@@ -48,7 +48,11 @@ namespace CrimsonDraft.Combat
 
         #region ISubmitHandler
 
-        void ISubmitHandler.OnSubmit(BaseEventData eventData) => this.OnSubmit?.Invoke();
+        void ISubmitHandler.OnSubmit(BaseEventData eventData)
+        {
+            if (!IsInteractable()) return;
+            this.OnSubmit?.Invoke();
+        }
 
         #endregion
     }
