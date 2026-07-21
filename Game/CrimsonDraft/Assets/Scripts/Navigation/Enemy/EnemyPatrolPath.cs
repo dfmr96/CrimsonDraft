@@ -20,6 +20,8 @@ namespace CrimsonDraft.Navigation.Enemy
             index = (index + 1) % waypoints.Length;
         }
 
+        public void ResetIndex() => index = 0;
+
         private void OnValidate()
         {
             if (waypoints.Length == 0)
