@@ -815,6 +815,36 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0, action.SlotIndex);
         }
 
+        [Test]
+        public void BeginFocusFireConfiguration_seedsGroupStateAndEntersShotCountForFirstParticipant()
+        {
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            Assert.AreEqual(0, c.SelectedOperator);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, c.FocusFireParticipants);
+            Assert.IsTrue(this.shotCountView.IsVisible);
+        }
+
+        [Test]
+        public void ShotCountConfirm_groupFlow_loopsThroughParticipantsThenReachesTargetSelection()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
+            var c = BuildAndInit();
+            c.BeginFocusFireConfiguration(new[] { 0, 1 });
+
+            InvokeConfirm(c); // confirms participant 0's shot count
+
+            Assert.AreEqual(1, c.SelectedOperator);
+            Assert.AreEqual(1, c.FocusFireShotCounts[0]);
+            Assert.IsTrue(this.shotCountView.IsVisible); // re-entered for participant 1
+
+            InvokeConfirm(c); // confirms participant 1's (trigger) shot count -> TargetSelState
+
+            Assert.AreEqual(1, c.FocusFireShotCounts[1]);
+            Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeInventoryService : IInventoryService
@@ -1150,6 +1180,8 @@ namespace CrimsonDraft.Tests
                 this.MarkOperatorForFocusFireCallCount++;
                 this.LastMarkedFocusFireSlot = operatorSlot;
             }
+            public int NotifyFocusFireCompletedCallCount { get; private set; }
+            public void NotifyFocusFireCompleted()        => this.NotifyFocusFireCompletedCallCount++;
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster

@@ -58,6 +58,23 @@ namespace CrimsonDraft.Combat
             this.context.SelectedShotCount = Mathf.Clamp(this.shotCountView.Value, 1, max);
             this.shotCountView.Hide();
 
+            if (this.context.FocusFireParticipants.Length > 0)
+            {
+                this.context.FocusFireShotCounts[this.context.SelectedOperator] = this.context.SelectedShotCount;
+
+                int nextIndex = this.context.FocusFireParticipantIndex + 1;
+                if (nextIndex < this.context.FocusFireParticipants.Length)
+                {
+                    this.context.FocusFireParticipantIndex = nextIndex;
+                    this.context.SelectedOperator          = this.context.FocusFireParticipants[nextIndex];
+                    this.context.TransitionTo(this);
+                    return;
+                }
+
+                this.context.TransitionTo(this.context.TargetSelState);
+                return;
+            }
+
             int[] enemies = this.battlefieldView.GetOccupiedEnemySlots();
             if (enemies.Length == 0)
             {
