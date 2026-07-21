@@ -216,6 +216,20 @@ namespace CrimsonDraft.Navigation.Enemy
             this.combatTriggered = true;
         }
 
+        public void ResetToSpawn(Vector3 position, Quaternion rotation)
+        {
+            if (!isActiveAndEnabled) return;
+
+            navAgent.Warp(position);
+            transform.rotation = rotation;
+
+            combatTriggered = false;
+            dialoguePaused  = false;
+
+            path?.ResetIndex();
+            TransitionTo(GuardAlertState.Patrol);
+        }
+
         private void TriggerCombat()
         {
             if (sceneTransitionService == null) return;
