@@ -1370,6 +1370,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.000535379, y: 0.0035371468, z: 0.028450236}
   m_Center: {x: 0.000012003758, y: 0.000000059636825, z: -0.00065816595}
+--- !u!1 &2473953336078498115
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6193328805126998559}
+  m_Layer: 0
+  m_Name: EnemySpawn_EE_00
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6193328805126998559
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2473953336078498115}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -3.7830017, y: 0, z: -1.782001}
+  m_LocalScale: {x: 0.99999976, y: 1, z: 0.99999976}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5657470409267998554}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2833720397307837070
 GameObject:
   m_ObjectHideFlags: 0
@@ -3096,6 +3127,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
+  - component: {fileID: 3435183381096001008}
   m_Layer: 0
   m_Name: Bathroom B
   m_TagString: Untagged
@@ -3138,6 +3170,7 @@ Transform:
   - {fileID: 7077435662946251337}
   - {fileID: 7520219112839959561}
   - {fileID: 3607796706058129271}
+  - {fileID: 6193328805126998559}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &8589300061817933664
@@ -3153,6 +3186,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: BATHROOM_B
+  enemySpawns:
+  - enemy: {fileID: 2645649357418299535}
+    spawnPoint: {fileID: 6193328805126998559}
+--- !u!114 &3435183381096001008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5955768853396820527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
+  localPoints:
+  - {x: -5.400002, y: 0.49000597}
+  - {x: 2.0999978, y: 0.49000597}
+  - {x: 2.0999978, y: -7.000001}
+  - {x: -5.400002, y: -7.000001}
+  mapOffset: {x: -40.92939, y: -11.923387}
+  mapRotation: 90
+  mapScale: {x: 1, y: 1}
+  zOrder: 0
 --- !u!1 &6320380605145795940
 GameObject:
   m_ObjectHideFlags: 0
@@ -4678,7 +4735,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4825
+  m_VersionIndex: 4087
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -5317,6 +5374,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1926334418175416011, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
   m_PrefabInstance: {fileID: 1568069695485304779}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2645649357418299535 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3563995502093295428, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
+  m_PrefabInstance: {fileID: 1568069695485304779}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c994b2a8fb008fe4ba350d0219e39f2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyNavAgent
 --- !u!1001 &4365415558205964597
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5607,6 +5675,18 @@ PrefabInstance:
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
       value: DR_20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: 2.1861205
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 4.2681403
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapRotation
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x

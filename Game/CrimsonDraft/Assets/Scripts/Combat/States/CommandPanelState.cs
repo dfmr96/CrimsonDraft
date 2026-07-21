@@ -53,7 +53,43 @@ namespace CrimsonDraft.Combat
             {
                 if (GetMaxAvailableShotCount() <= 0) return;
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
-                this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
+
+                if (this.context.FocusFireMarked.Count > 0)
+                {
+                    int[] participants = new int[this.context.FocusFireMarked.Count + 1];
+                    this.context.FocusFireMarked.CopyTo(participants, 0);
+                    participants[participants.Length - 1] = this.context.SelectedOperator;
+
+                    for (int i = 0; i < this.context.FocusFireMarked.Count; i++)
+                        this.menuView.SetOperatorFocusFireMarked(this.context.FocusFireMarked[i], false);
+                    this.context.FocusFireMarked.Clear();
+
+                    this.context.Orchestrator.EnqueueAction(PendingAction.FocusFire(this.context.SelectedOperator, participants));
+                }
+                else
+                {
+                    this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
+                }
+
+                this.commandPanel.Hide();
+                this.menuView.SetDimmed(false);
+                this.context.TransitionTo(this.context.OperatorSelState);
+                return;
+            }
+
+            if (command == CombatCommand.FocusFire)
+            {
+                // Re-validated here (not just in the view's SetCommandEnabled) so a stale/bypassed
+                // UI click can never mark every alive operator and leave no one able to trigger —
+                // that would hard-lock combat with the whole party frozen waiting on a Shoot command.
+                if (this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1) return;
+
+                this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
+                int slot = this.context.SelectedOperator;
+                this.context.FocusFireMarked.Add(slot);
+                this.context.Orchestrator.MarkOperatorForFocusFire(slot);
+                this.menuView.SetOperatorFocusFireMarked(slot, true);
+                this.menuView.SetOperatorDimmed(slot, true);
                 this.commandPanel.Hide();
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);

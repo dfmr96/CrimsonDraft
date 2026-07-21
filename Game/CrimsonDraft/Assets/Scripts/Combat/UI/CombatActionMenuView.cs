@@ -27,6 +27,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private TMP_Text[]          operatorAmmoLabels = Array.Empty<TMP_Text>();
         [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
+        [SerializeField] private Image[]          operatorFocusFireMarkers = Array.Empty<Image>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
@@ -314,6 +315,13 @@ namespace CrimsonDraft.Combat
             CanvasGroup cg = overview.GetComponent<CanvasGroup>();
             if (cg == null) cg = overview.gameObject.AddComponent<CanvasGroup>();
             cg.DOFade(dimmed ? 0.4f : 1f, 0.15f);
+        }
+
+        public void SetOperatorFocusFireMarked(int index, bool marked)
+        {
+            if (index < 0 || index >= this.operatorFocusFireMarkers.Length) return;
+            var marker = this.operatorFocusFireMarkers[index];
+            if (marker != null) marker.gameObject.SetActive(marked);
         }
 
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)

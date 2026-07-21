@@ -20,13 +20,19 @@ namespace CrimsonDraft.Combat
             public int CurrentHp;
             public int MaxHp;
             public bool IsDead;
+            public int CurrentPoise;
+            public int InitialPoise; // the roll this enemy resets to on a silent Poise reset
+            public bool IsStaggered;
+            public int StaggerActionsRemaining;
+            public bool RecoveryQueued; // true once its EnemyRecover action has been enqueued
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
         [SerializeField] private Transform[] playerSlotTransforms = Array.Empty<Transform>();
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
-        [SerializeField, Min(0.01f)] private float enemyDeathFadeDuration = 0.2f;
+        [SerializeField, Min(0.1f)] private float enemyDeathAnimTimeoutSec = 3f;
+        [SerializeField, Min(0f)] private float bloodPoolRevealDurationSec = 0.5f;
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
@@ -48,6 +54,11 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+        private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
+        private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
+        private readonly IRandomSource poiseRandom = new UnityRandomSource();
+        private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
+        private const int DefaultMaxHp = 100;
 
         private IOperatorRoster? roster;
 
@@ -74,6 +85,7 @@ namespace CrimsonDraft.Combat
             this.operatorAnimatorBySlot.Clear();
             this.enemyAnimatorBySlot.Clear();
             this.enemyHitToggleBySlot.Clear();
+            this.enemyDeathMarkerBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -101,11 +113,20 @@ namespace CrimsonDraft.Combat
                 if (mr != null) this.enemyRendererBySlot[i] = mr;
                 var enemyAnimator = go.GetComponentInChildren<Animator>();
                 if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
+                var deathMarker = go.GetComponentInChildren<EnemyDeathMarker>();
+                if (deathMarker != null) this.enemyDeathMarkerBySlot[i] = deathMarker;
+                int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
+                int rolledMaxHp = RollMaxHp(enemy);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
                 {
-                    CurrentHp = Mathf.Max(1, enemy.MaxHp),
-                    MaxHp = Mathf.Max(1, enemy.MaxHp),
-                    IsDead = false
+                    CurrentHp               = Mathf.Max(1, rolledMaxHp),
+                    MaxHp                   = Mathf.Max(1, rolledMaxHp),
+                    IsDead                  = false,
+                    CurrentPoise            = rolledPoise,
+                    InitialPoise            = rolledPoise,
+                    IsStaggered             = false,
+                    StaggerActionsRemaining = 0,
+                    RecoveryQueued          = false
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -139,6 +160,18 @@ namespace CrimsonDraft.Combat
             }
         }
 
+        private int RollMaxHp(EnemyData enemy)
+        {
+            int[] pool = enemy.MaxHpPool;
+            if (pool == null || pool.Length == 0)
+            {
+                Debug.LogWarning($"[BattlefieldView] {enemy.name} has no MaxHpPool configured; using default {DefaultMaxHp}.", enemy);
+                return DefaultMaxHp;
+            }
+
+            return pool[this.enemyStatRandom.NextInt(0, pool.Length)];
+        }
+
         public int[] GetOccupiedEnemySlots() => this.occupiedEnemySlots;
 
         public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex)
@@ -146,27 +179,173 @@ namespace CrimsonDraft.Combat
             if (slotIndex < 0 || slotIndex >= this.currentEnemySlots.Length)
                 return null;
 
-            return this.currentEnemySlots[slotIndex]?.HitMaskProfile;
+            EnemyData? enemy = this.currentEnemySlots[slotIndex];
+            if (enemy == null) return null;
+
+            if (IsEnemyStaggered(slotIndex) && enemy.StaggeredHitMaskProfile != null)
+                return enemy.StaggeredHitMaskProfile;
+
+            return enemy.HitMaskProfile;
         }
 
-        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage)
+        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
         {
             if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
-                return new EnemyDamageResult(slotIndex, 0, 0, false);
+                return new EnemyDamageResult(slotIndex, 0, 0, false, false);
 
             if (state.IsDead)
-                return new EnemyDamageResult(slotIndex, 0, 0, true);
+                return new EnemyDamageResult(slotIndex, 0, 0, true, false);
 
-            int appliedDamage = Mathf.Max(0, damage);
+            int appliedDamage = Mathf.Max(0, hpDamage);
             state.CurrentHp = Mathf.Max(0, state.CurrentHp - appliedDamage);
             bool isDead = state.CurrentHp <= 0;
-            if (!isDead)
-                return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false);
+            if (isDead)
+            {
+                // Only the HP/flag state is set here — the fade-out and removal from
+                // occupiedEnemySlots (which is what SyncDeadEnemies/CombatEndedEvent key
+                // off) are deferred to FinalizeEnemyDeath(), called once the operator's
+                // shoot animation finishes playing, so combat can never end mid-burst.
+                state.IsDead = true;
+                return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false);
+            }
 
-            state.IsDead = true;
-            if (this.enemyGoBySlot.TryGetValue(slotIndex, out var go) && go != null)
-                StartCoroutine(this.FadeOutAndHideEnemy(go));
+            bool willStagger = false;
+            // Poise doesn't drain further while the enemy is already down — it only
+            // matters again once it recovers (see RecoverEnemyStagger).
+            if (!state.IsStaggered)
+            {
+                state.CurrentPoise -= Mathf.Max(0, poiseDamage);
 
+                EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
+                    ? this.currentEnemySlots[slotIndex]
+                    : null;
+
+                if (enemyData != null && state.CurrentPoise <= 0)
+                {
+                    // Only the decision is made here — the actual knockdown (state flag,
+                    // timer, animation, ATB reset) is deferred to TriggerEnemyStagger(),
+                    // called once the operator's shoot animation finishes playing, so the
+                    // enemy never visually collapses mid-burst.
+                    willStagger = CombatMenuController.ShouldStagger(
+                        state.CurrentPoise, state.CurrentHp, state.MaxHp, enemyData.StaggerHpThresholdPct);
+                    if (!willStagger)
+                        state.CurrentPoise = state.InitialPoise; // silent reset — enemy too healthy to stagger yet
+                }
+            }
+
+            return new EnemyDamageResult(slotIndex, appliedDamage, state.CurrentHp, false, willStagger);
+        }
+
+        public void TriggerEnemyStagger(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state) || state.IsDead) return;
+
+            EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
+                ? this.currentEnemySlots[slotIndex]
+                : null;
+            if (enemyData == null) return;
+
+            state.IsStaggered             = true;
+            state.StaggerActionsRemaining = Mathf.Max(0, enemyData.StaggerRecoveryActionCount);
+            state.RecoveryQueued          = false;
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+                anim.SetBool(IsStaggeredHash, true);
+        }
+
+        public void RecoverEnemyStagger(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
+
+            state.IsStaggered    = false;
+            state.CurrentPoise   = state.InitialPoise; // fresh Poise for the next round of combat
+            state.RecoveryQueued = false;
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+                anim.SetBool(IsStaggeredHash, false);
+        }
+
+        private readonly List<int> readyToRecoverSlotsBuf = new();
+
+        public int[] NotifyActionDequeued()
+        {
+            this.readyToRecoverSlotsBuf.Clear();
+            foreach (var kvp in this.enemyStateBySlot)
+            {
+                var state = kvp.Value;
+                if (!state.IsStaggered || state.RecoveryQueued) continue;
+
+                state.StaggerActionsRemaining--;
+                if (state.StaggerActionsRemaining > 0) continue;
+
+                state.RecoveryQueued = true;
+                this.readyToRecoverSlotsBuf.Add(kvp.Key);
+            }
+            return this.readyToRecoverSlotsBuf.ToArray();
+        }
+
+        public bool IsEnemyStaggered(int slotIndex) =>
+            this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsStaggered;
+
+        // Reflects EnemyRuntimeState.IsDead the instant HP crosses to 0 — unlike
+        // occupiedEnemySlots, which only drops the slot once FinalizeEnemyDeath's fall +
+        // blood-pool sequence finishes. CombatOrchestrator needs this immediate signal so a
+        // dying-but-still-mid-animation enemy can never queue or execute an attack.
+        public bool IsEnemyDead(int slotIndex) =>
+            this.enemyStateBySlot.TryGetValue(slotIndex, out var state) && state.IsDead;
+
+        public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
+
+        public void FinalizeEnemyDeath(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
+            StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex, state.IsStaggered));
+        }
+
+        // RE-style "definitely dead" marker: a blood pool (a child object referenced via
+        // EnemyDeathMarker) reveals under the corpse so the player can tell it won't get
+        // back up. If the enemy was still standing, it collapses first, reusing the same
+        // Fall clip the stagger knockdown uses (there's no separate "falls dead" clip); if
+        // it was already down from a stagger, the collapse is skipped since it's already
+        // on the ground. The corpse is never hidden or destroyed — once removed from
+        // occupiedEnemySlots it's untargetable and dead to the ATB system (SyncDeadEnemies
+        // picks it up from there), but stays visible in the scene as an inert prop.
+        private IEnumerator PlayDeathSequenceThenFinalize(int slotIndex, bool wasAlreadyDown)
+        {
+            if (!wasAlreadyDown && this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            {
+                anim.SetBool(IsStaggeredHash, true);
+                yield return this.WaitForAnimatorStateChange(anim);
+            }
+
+            if (this.enemyDeathMarkerBySlot.TryGetValue(slotIndex, out var marker) && marker != null && marker.BloodPool != null)
+            {
+                marker.BloodPool.SetActive(true);
+                yield return new WaitForSeconds(this.bloodPoolRevealDurationSec);
+            }
+
+            RemoveFromOccupiedSlots(slotIndex);
+        }
+
+        // Doesn't assume a specific destination state name, just waits for whatever new
+        // state IsStaggered leads to and reads its real clip length. Safety-timeouts out
+        // rather than hanging combat forever if it isn't wired to a reachable transition.
+        private IEnumerator WaitForAnimatorStateChange(Animator anim)
+        {
+            int startStateHash = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+            while (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash && Time.time < giveUpAt)
+                yield return null;
+
+            if (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash)
+                yield break;
+
+            var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
+            float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
+            if (duration > 0f)
+                yield return new WaitForSeconds(duration);
+        }
+
+        private void RemoveFromOccupiedSlots(int slotIndex)
+        {
             var nextOccupied = new List<int>(this.occupiedEnemySlots.Length);
             foreach (int slot in this.occupiedEnemySlots)
             {
@@ -174,11 +353,7 @@ namespace CrimsonDraft.Combat
                     nextOccupied.Add(slot);
             }
             this.occupiedEnemySlots = nextOccupied.ToArray();
-
-            return new EnemyDamageResult(slotIndex, appliedDamage, 0, true);
         }
-
-        public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
         public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
         {
@@ -223,39 +398,13 @@ namespace CrimsonDraft.Combat
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT
-        public (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex)
+        public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex)
         {
             if (this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
-                return (state.CurrentHp, state.MaxHp, state.IsDead);
-            return (0, 0, true);
+                return (state.CurrentHp, state.MaxHp, state.IsDead, state.CurrentPoise, state.IsStaggered);
+            return (0, 0, true, 0, false);
         }
 #endif
-
-        private IEnumerator FadeOutAndHideEnemy(GameObject enemyGo)
-        {
-            if (enemyGo == null)
-                yield break;
-
-            var mr = enemyGo.GetComponent<MeshRenderer>();
-            if (mr == null)
-            {
-                enemyGo.SetActive(false);
-                yield break;
-            }
-
-            float elapsed = 0f;
-            float duration = Mathf.Max(0.01f, this.enemyDeathFadeDuration);
-            var startColor = mr.material.color;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float alpha = Mathf.Clamp01(1f - elapsed / duration);
-                mr.material.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
-                yield return null;
-            }
-
-            enemyGo.SetActive(false);
-        }
 
         public void SetOperatorIndicator(int slotIndex)
         {

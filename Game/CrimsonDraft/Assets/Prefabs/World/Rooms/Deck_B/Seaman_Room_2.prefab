@@ -605,7 +605,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 16576
+  m_VersionIndex: 16585
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -961,7 +961,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 14816
+  m_VersionIndex: 14825
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -1317,7 +1317,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 13485
+  m_VersionIndex: 13494
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -1425,6 +1425,37 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
+--- !u!1 &2514891061345241133
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7333738377435231914}
+  m_Layer: 0
+  m_Name: EnemySpawn_EE_00
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7333738377435231914
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2514891061345241133}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2.8199997, y: 0, z: -2.2000012}
+  m_LocalScale: {x: 0.99999976, y: 1, z: 0.99999976}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5657470409267998554}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2589583761445212539
 GameObject:
   m_ObjectHideFlags: 0
@@ -2733,6 +2764,7 @@ Transform:
   - {fileID: 6001113026116597312}
   - {fileID: 8573273754022910424}
   - {fileID: 2101613414711124786}
+  - {fileID: 7333738377435231914}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &8589300061817933664
@@ -2748,6 +2780,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: SEAMAN_ROOM_2
+  enemySpawns:
+  - enemy: {fileID: 1408726827561473988}
+    spawnPoint: {fileID: 7333738377435231914}
 --- !u!114 &2878457690343220834
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3377,7 +3412,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 11461
+  m_VersionIndex: 11470
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4228,7 +4263,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 15487
+  m_VersionIndex: 15496
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4527,7 +4562,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4004
+  m_VersionIndex: 4013
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -4851,6 +4886,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
+--- !u!114 &1408726827561473988 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3563995502093295428, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
+  m_PrefabInstance: {fileID: 2520070288264202368}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c994b2a8fb008fe4ba350d0219e39f2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyNavAgent
 --- !u!4 &4053978954081853003 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1926334418175416011, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}

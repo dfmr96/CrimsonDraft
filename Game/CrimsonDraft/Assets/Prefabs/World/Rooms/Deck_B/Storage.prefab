@@ -113,6 +113,37 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5495902117074765545, guid: cd20e2c3c7e60e043bf58b9039665da5, type: 3}
+--- !u!1 &1061013888127237742
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1473031165647124643}
+  m_Layer: 0
+  m_Name: EnemySpawn_EE_00
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1473031165647124643
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1061013888127237742}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.92387867, z: -0, w: 0.38268545}
+  m_LocalPosition: {x: -3.086999, y: 0.061, z: -3.5340004}
+  m_LocalScale: {x: 0.99999976, y: 1, z: 0.99999976}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5657470409267998554}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2327931379086818637
 GameObject:
   m_ObjectHideFlags: 0
@@ -872,6 +903,7 @@ Transform:
   - {fileID: 4748486491008344812}
   - {fileID: 3034565194300378809}
   - {fileID: 3772624318237246047}
+  - {fileID: 1473031165647124643}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &8589300061817933664
@@ -887,6 +919,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
   roomId: STORAGE
+  enemySpawns:
+  - enemy: {fileID: 1352397541004116509}
+    spawnPoint: {fileID: 1473031165647124643}
 --- !u!114 &1757728695054192825
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2106,7 +2141,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4098
+  m_VersionIndex: 4107
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -2671,6 +2706,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
+--- !u!114 &1352397541004116509 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3563995502093295428, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}
+  m_PrefabInstance: {fileID: 2571965931508325721}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c994b2a8fb008fe4ba350d0219e39f2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyNavAgent
 --- !u!4 &4110312638272080786 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1926334418175416011, guid: 0249e796b8475ba479e28a614bcf4c12, type: 3}

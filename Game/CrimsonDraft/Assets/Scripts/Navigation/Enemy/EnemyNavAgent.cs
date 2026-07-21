@@ -216,6 +216,26 @@ namespace CrimsonDraft.Navigation.Enemy
             this.combatTriggered = true;
         }
 
+        public void ResetToSpawn(Vector3 position, Quaternion rotation)
+        {
+            if (!isActiveAndEnabled) return;
+
+            // A room activated for the first time this session cascades Awake()/OnEnable() on its
+            // enemies synchronously, but Start() (where navAgent is normally assigned) is deferred
+            // to the next frame — so navAgent can still be null here. GetComponent doesn't have that
+            // restriction: the component already exists on the GameObject regardless of Start() timing.
+            if (navAgent == null) navAgent = GetComponent<NavMeshAgent>();
+
+            navAgent.Warp(position);
+            transform.rotation = rotation;
+
+            combatTriggered = false;
+            dialoguePaused  = false;
+
+            path?.ResetIndex();
+            TransitionTo(GuardAlertState.Patrol);
+        }
+
         private void TriggerCombat()
         {
             if (sceneTransitionService == null) return;

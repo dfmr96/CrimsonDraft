@@ -86,6 +86,14 @@ namespace CrimsonDraft.Combat
             this.activeZoneMaskSprite  = profile.ZoneMaskSprite;
             this.activeZoneDefinitions = profile.ZoneDefinitions;
             this.activeColorTolerance  = profile.ColorTolerance;
+
+            // The visible (black & white) silhouette was previously a single static sprite set
+            // only in the Inspector — SilhouetteSprite is the per-profile equivalent, separate
+            // from ZoneMaskSprite (the color-coded sprite sampled for zone/hit detection, never
+            // itself shown). Only overridden when the profile actually configured one, so
+            // profiles that haven't been updated yet keep the old static sprite.
+            if (this.silhouetteImage != null && profile.SilhouetteSprite != null)
+                this.silhouetteImage.sprite = profile.SilhouetteSprite;
         }
 
         public void ConfigureWeapon(WeaponData? weaponData)
@@ -153,6 +161,30 @@ namespace CrimsonDraft.Combat
 
             if (this.phase == AimPhase.WaitingResolve && !this.isResolvingSequence)
                 this.ResolvePendingShotsAsync().Forget();
+        }
+
+        // Reuses the aim position already locked by the real interactive QTE (confirmedLocalPos)
+        // without re-running the vertical/horizontal oscillation — used for Focus Fire's marked
+        // participants, who share the trigger's aim point but apply their own weapon's burst
+        // pattern and dispersion.
+        public ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount)
+        {
+            this.ConfigureWeapon(weaponData);
+            this.shotCount = Mathf.Max(1, shotCount);
+            var firstShotLocal = this.ComputeRandomShotLocal();
+            var shots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
+
+            // The interactive QTE spawns its markers/feedback from ResolvePendingShotsAsync,
+            // which this path bypasses — do it here so every participant's bullets show up
+            // positioned on the reticle, not just the trigger's.
+            foreach (var shot in shots)
+            {
+                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
+                this.SpawnMarker(local);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+            }
+
+            return shots;
         }
 
         public void Hide()

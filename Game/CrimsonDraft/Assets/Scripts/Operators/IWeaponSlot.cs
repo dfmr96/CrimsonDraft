@@ -9,6 +9,7 @@ namespace CrimsonDraft.Operators
         int     BaseDamage { get; }
         int     CurrentAmmo { get; }
         int     MaxAmmo     { get; }
+        int     PoiseDamage { get; }
         void    SetAmmo(int value);
     }
 }

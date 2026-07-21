@@ -10,13 +10,15 @@ namespace CrimsonDraft.Combat
         public int DamageApplied  { get; }
         public int RemainingHp    { get; }
         public bool IsDead        { get; }
+        public bool IsStaggered   { get; }
 
-        public EnemyDamageResult(int slotIndex, int damageApplied, int remainingHp, bool isDead)
+        public EnemyDamageResult(int slotIndex, int damageApplied, int remainingHp, bool isDead, bool isStaggered)
         {
             this.SlotIndex     = slotIndex;
             this.DamageApplied = damageApplied;
             this.RemainingHp   = remainingHp;
             this.IsDead        = isDead;
+            this.IsStaggered   = isStaggered;
         }
     }
 
@@ -31,11 +33,17 @@ namespace CrimsonDraft.Combat
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
-        EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int damage);
+        EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage);
+        void TriggerEnemyStagger(int slotIndex);
+        void RecoverEnemyStagger(int slotIndex);
+        void FinalizeEnemyDeath(int slotIndex);
+        int[] NotifyActionDequeued();
+        bool IsEnemyStaggered(int slotIndex);
+        bool IsEnemyDead(int slotIndex);
         bool HasAliveEnemies();
         UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots);
 #if UNITY_EDITOR || DEBUG_COMBAT
-        (int Current, int Max, bool IsDead) GetEnemyHpDebug(int slotIndex);
+        (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex);
 #endif
     }
 }
