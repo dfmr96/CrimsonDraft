@@ -40,6 +40,7 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
         [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
         [SerializeField] private Vector3 enemyAttackShakeStrength = new(0.15f, 0.15f, 0f);
+        [SerializeField] private GameObject? bloodHitFxPrefab;
 
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
@@ -390,11 +391,27 @@ namespace CrimsonDraft.Combat
         private void TriggerEnemyFlinch(int enemySlotIndex)
         {
             if (enemySlotIndex < 0) return;
+
+            this.SpawnBloodHitFx(enemySlotIndex);
+
             if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
 
             bool useHit2 = this.enemyHitToggleBySlot.TryGetValue(enemySlotIndex, out var toggle) && toggle;
             animator.SetTrigger(useHit2 ? Hit2Hash : Hit1Hash);
             this.enemyHitToggleBySlot[enemySlotIndex] = !useHit2;
+        }
+
+        private void SpawnBloodHitFx(int enemySlotIndex)
+        {
+            if (this.bloodHitFxPrefab == null) return;
+            if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null) return;
+
+            Transform? hitFxPoint = this.enemyDeathMarkerBySlot.TryGetValue(enemySlotIndex, out var marker) && marker != null
+                ? marker.HitFxPoint
+                : null;
+            Vector3 spawnPos = hitFxPoint != null ? hitFxPoint.position : enemyGo.transform.position;
+
+            Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT

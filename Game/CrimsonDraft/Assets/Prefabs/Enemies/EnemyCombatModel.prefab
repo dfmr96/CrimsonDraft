@@ -323,6 +323,7 @@ Transform:
   m_Children:
   - {fileID: 2227823198016029922}
   - {fileID: 7866864487380068544}
+  - {fileID: 8898815198981732231}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &4764755364702932714
@@ -376,6 +377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.EnemyDeathMarker
   bloodPool: {fileID: 3067606022537090538}
+  hitFxPoint: {fileID: 8898815198981732231}
 --- !u!1 &2403354697059710437
 GameObject:
   m_ObjectHideFlags: 0
@@ -569,6 +571,37 @@ Transform:
   m_Children:
   - {fileID: 1736285733147418388}
   m_Father: {fileID: 5799704388271482990}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5776557024883374975
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8898815198981732231}
+  m_Layer: 0
+  m_Name: HitFxPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8898815198981732231
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5776557024883374975}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.837, z: 0.182}
+  m_LocalScale: {x: 1.5384616, y: 1.5384616, z: 1.5384616}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8240169509672565525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6830857137279442237
 GameObject:
