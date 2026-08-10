@@ -11,6 +11,7 @@ namespace CrimsonDraft.Inventory
         [SerializeField] private Caliber           caliber                = Caliber.None;
         [SerializeField] private GunType           gunType                = GunType.Pistols;
         [SerializeField] private int               magazineCapacity       = 1;
+        [SerializeField, Min(1)] private int       maxShotCount           = 10;
         [SerializeField] private int               dispersionRadius       = 10;
         [SerializeField] private Sprite?           dispersionCircleSprite;
         [SerializeField] private BurstPatternData? burstPattern;
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Inventory
         public Caliber           Caliber                => this.caliber;
         public GunType           GunType                => this.gunType;
         public int               MagazineCapacity       => this.magazineCapacity;
+        public int               MaxShotCount           => this.maxShotCount;
         public int               DispersionRadius       => this.dispersionRadius;
         public Sprite?           DispersionCircleSprite => this.dispersionCircleSprite;
         public BurstPatternData? BurstPattern           => this.burstPattern;

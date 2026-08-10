@@ -125,6 +125,7 @@ namespace CrimsonDraft.Tests
             public int     BaseDamage  => 20;
             public int     CurrentAmmo { get; private set; }
             public int     MaxAmmo     { get; }
+            public int     MaxShotCount => 10;
             public int     PoiseDamage => 10;
 
             internal FakeWeaponSlot(Caliber caliber, int currentAmmo, int maxAmmo)

@@ -107,8 +107,9 @@ namespace CrimsonDraft.Combat
         private int GetMaxAvailableShotCount()
         {
             int op = this.context.SelectedOperator;
-            if (this.roster.Count <= op) return CombatMenuController.MaxShotCount;
-            return Mathf.Min(CombatMenuController.MaxShotCount, this.roster[op].ActiveWeapon?.CurrentAmmo ?? 0);
+            if (this.roster.Count <= op) return 0;
+            var weapon = this.roster[op].ActiveWeapon;
+            return weapon == null ? 0 : Mathf.Min(weapon.MaxShotCount, weapon.CurrentAmmo);
         }
     }
 }

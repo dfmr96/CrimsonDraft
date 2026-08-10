@@ -179,6 +179,17 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ShootCommand_limitsShotCountToActiveWeaponMaxShotCount()
+        {
+            this.roster = new FakeOperatorRoster(maxAmmo: 12, maxShotCount: 3);
+            var c = BuildAndInit();
+
+            c.BeginShootConfiguration(0);
+
+            Assert.AreEqual(3, this.shotCountView.MaxValue);
+        }
+
+        [Test]
         public void ShootCommand_doesNotShowCombatInventory()
         {
             BuildAndInit();
@@ -1264,13 +1275,13 @@ namespace CrimsonDraft.Tests
             private readonly System.Collections.Generic.List<int> scratchAlive = new();
             public bool IsInitialized { get; private set; } = true;
 
-            internal FakeOperatorRoster(int slotCount = 3, int maxHp = 100, int maxAmmo = 6)
+            internal FakeOperatorRoster(int slotCount = 3, int maxHp = 100, int maxAmmo = 6, int maxShotCount = 10)
             {
                 this.slots = new OperatorRuntime[slotCount];
                 for (int i = 0; i < slotCount; i++)
                 {
                     this.slots[i] = new OperatorRuntime(i, null, isPresent: true, maxHp);
-                    this.slots[i].SetEquippedWeapon(new FakeWeaponSlot(maxAmmo));
+                    this.slots[i].SetEquippedWeapon(new FakeWeaponSlot(maxAmmo, maxShotCount));
                 }
             }
 
@@ -1298,11 +1309,13 @@ namespace CrimsonDraft.Tests
                 public int     BaseDamage => 20;
                 public int     CurrentAmmo { get; private set; }
                 public int     MaxAmmo { get; }
+                public int     MaxShotCount { get; }
                 public int     PoiseDamage { get; }
 
-                internal FakeWeaponSlot(int maxAmmo, int poiseDamage = 10)
+                internal FakeWeaponSlot(int maxAmmo, int maxShotCount = 10, int poiseDamage = 10)
                 {
                     this.MaxAmmo = Mathf.Max(1, maxAmmo);
+                    this.MaxShotCount = Mathf.Max(1, maxShotCount);
                     this.CurrentAmmo = this.MaxAmmo;
                     this.PoiseDamage = poiseDamage;
                 }

@@ -28,9 +28,6 @@ namespace CrimsonDraft.Combat
         internal Dictionary<int, int> FocusFireShotCounts { get; } = new();
 
         internal const int BaseDamage   = 20;
-        internal const int MaxShotCount = 6;
-        internal const int DefaultAmmo  = 6;
-
         #endregion
 
         #region State machine

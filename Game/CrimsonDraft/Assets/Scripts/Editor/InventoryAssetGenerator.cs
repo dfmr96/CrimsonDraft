@@ -55,6 +55,7 @@ namespace CrimsonDraft.Editor
             so.FindProperty("displayName").stringValue   = displayName;
             so.FindProperty("caliber").enumValueIndex    = (int)caliber;
             so.FindProperty("magazineCapacity").intValue = magazineCapacity;
+            so.FindProperty("maxShotCount").intValue     = 10;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             AssetDatabase.CreateAsset(data, path);
