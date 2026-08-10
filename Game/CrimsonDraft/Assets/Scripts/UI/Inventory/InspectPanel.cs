@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using VContainer;
+using CrimsonDraft.Navigation.Interactables.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -14,6 +15,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image       itemIcon      = null!;
         [SerializeField] private TMP_Text    itemName      = null!;
         [SerializeField] private TMP_Text    itemDescription = null!;
+        [SerializeField] private PickupPreviewView? modelPreview;
 
         [Inject] private InventorySfxData sfx = null!;
 
@@ -36,8 +38,18 @@ namespace CrimsonDraft.UI
         {
             this.currentItem = item;
 
-            this.itemIcon.sprite      = item.Data.Icon;
-            this.itemIcon.enabled     = item.Data.Icon != null;
+            if (item.Data.PreviewModel != null && this.modelPreview != null)
+            {
+                this.itemIcon.enabled = false;
+                this.modelPreview.Show(item.Data);
+            }
+            else
+            {
+                this.modelPreview?.Hide();
+                this.itemIcon.sprite  = item.Data.Icon;
+                this.itemIcon.enabled = item.Data.Icon != null;
+            }
+
             this.itemName.text        = item.Data.DisplayName;
             this.itemDescription.text = item.Data.ExamineDialogue.nodeName;
 
@@ -53,6 +65,7 @@ namespace CrimsonDraft.UI
             if (!IsOpen) return;
             IsOpen = false;
             Hide();
+            this.modelPreview?.Hide();
             this.sfx?.PlayCancel(gameObject);
             OnClose?.Invoke();
         }

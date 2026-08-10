@@ -31,6 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private ContainerController    containerController   = null!;
         private PuzzleViewController    puzzleViewController   = null!;
         private ScreenFader             screenFader            = null!;
+        private PickupPreviewController pickupPreviewController = null!;
 
         [Inject]
         public void Construct(
@@ -41,7 +42,8 @@ namespace CrimsonDraft.Navigation.Interactables
             DocumentController     documentController,
             ContainerController    containerController,
             PuzzleViewController    puzzleViewController,
-            ScreenFader             screenFader)
+            ScreenFader             screenFader,
+            PickupPreviewController pickupPreviewController)
         {
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
@@ -51,6 +53,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.containerController   = containerController;
             this.puzzleViewController   = puzzleViewController;
             this.screenFader            = screenFader;
+            this.pickupPreviewController = pickupPreviewController;
             this.inputService.Interact.performed += OnInteract;
         }
 
@@ -90,7 +93,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.containerController,
                 this.pickupDialogueService,
                 this.puzzleViewController,
-                this.screenFader);
+                this.screenFader,
+                this.pickupPreviewController);
             interactable.Interact(context);
         }
 

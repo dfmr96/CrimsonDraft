@@ -14,6 +14,7 @@ namespace CrimsonDraft.Inventory
         [SerializeField] private bool              stackable       = false;
         [SerializeField] private Sprite            icon            = null!;
         [SerializeField] private DialogueReference examineDialogue = new();
+        [SerializeField] private GameObject?       previewModel;
 
         [SerializeField] private string     secondaryName = string.Empty;
         [SerializeField] private Vector2Int gridSize      = Vector2Int.one;
@@ -30,5 +31,6 @@ namespace CrimsonDraft.Inventory
         public int               MaxStack        => this.maxStack;
         public Sprite?           Icon            => this.icon;
         public DialogueReference ExamineDialogue => this.examineDialogue;
+        public GameObject?       PreviewModel    => this.previewModel;
     }
 }
