@@ -21,6 +21,12 @@ namespace CrimsonDraft.Combat
             this.view.OnItemUsed   += HandleItemUsed;
             this.view.OnCancelled  += HandleCancelled;
             this.view.Show(this.context.SelectedOperator, this.menuView.GetOperatorOverviewRect(this.context.SelectedOperator));
+
+            // The items grid has its own cursor — the roster/command selector box would
+            // otherwise just sit frozen at whatever size/position it last had (the "Items"
+            // row) for the whole time we're in here. Re-shown automatically once we leave:
+            // OperatorSelState/CommandPanelState both re-focus and call MoveSelectorTo on Enter.
+            this.menuView.ClearFocus();
         }
 
         public void Exit()
@@ -28,6 +34,7 @@ namespace CrimsonDraft.Combat
             this.context.Orchestrator.SetWaitMode(false);
             this.view.OnItemUsed  -= HandleItemUsed;
             this.view.OnCancelled -= HandleCancelled;
+            this.menuView.ReleaseOperatorFocus(this.context.SelectedOperator);
         }
 
         private void HandleItemUsed(int slotIndex)

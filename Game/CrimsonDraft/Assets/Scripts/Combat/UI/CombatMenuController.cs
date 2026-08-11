@@ -264,8 +264,21 @@ namespace CrimsonDraft.Combat
         private void OnNavigatePerformed(InputAction.CallbackContext ctx)  =>
             this.currentState.OnNavigate(ctx.ReadValue<Vector2>());
 
-        private void HandleOperatorSelected(int index)        => this.currentState.OnOperatorSelected(index);
-        private void HandleCommandSelected(CombatCommand cmd) => this.currentState.OnCommandSelected(cmd);
+        private void HandleOperatorSelected(int index) => this.currentState.OnOperatorSelected(index);
+
+        private void HandleCommandSelected(CombatCommand cmd)
+        {
+            int slot = this.SelectedOperator;
+            this.menuView.PlayActionFeedback(slot);
+
+            // Items doesn't consume the turn on its own — the operator is still being
+            // decided on until CombatInventoryState.Exit() releases it (use an item, or
+            // cancel back out), so its card should stay lifted through that sub-menu.
+            if (cmd != CombatCommand.Items)
+                this.menuView.ReleaseOperatorFocus(slot);
+
+            this.currentState.OnCommandSelected(cmd);
+        }
 
         private void HandleOperatorFocused(int index)
         {

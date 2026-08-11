@@ -31,8 +31,13 @@ namespace CrimsonDraft.Combat
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
-        [SerializeField] private float bobAmplitude = 4f;
-        [SerializeField] private float bobDuration  = 0.4f;
+        [SerializeField] private float pulseDuration = 0.6f;
+        [SerializeField] private float pulseMinAlpha = 0.55f;
+        [SerializeField] private Vector2 selectorPadding = new(8f, 8f);
+        [SerializeField] private float resizeDuration = 0.12f;
+
+        private Image selectorMarkImage = null!;
+        private RectTransform? selectorFollowTarget;
 
         [Header("Weapon Icon")]
         [SerializeField] private float weaponIconCellSize = 32f; // px per GridSize unit (1×1 = 32px)
@@ -40,6 +45,7 @@ namespace CrimsonDraft.Combat
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
+        private int      focusedOperatorIndex = -1;
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
         private readonly Dictionary<int, float>                  pendingHealthByOperator = new();
         private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
@@ -53,6 +59,7 @@ namespace CrimsonDraft.Combat
             var le = this.selectorMark.GetComponent<LayoutElement>();
             if (le == null) le = this.selectorMark.gameObject.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
+            this.selectorMarkImage = this.selectorMark.GetComponent<Image>();
             this.selectorMark.gameObject.SetActive(false);
             this.TryAutoWireOperatorAmmoLabels();
             this.TryAutoWireOperatorEcgAnimators();
@@ -77,6 +84,7 @@ namespace CrimsonDraft.Combat
                 this.selectedHandlers[i] = () =>
                 {
                     if (this.isMasterDimmed) return;
+                    this.SetFocusedOperatorIndex(index);
                     this.MoveSelector(index);
                     this.OnOperatorFocused?.Invoke(index);
                 };
@@ -90,6 +98,8 @@ namespace CrimsonDraft.Combat
         private void OnDisable()
         {
             this.selectorMark.DOKill();
+            this.selectorMarkImage?.DOKill();
+            this.selectorFollowTarget = null;
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -99,6 +109,20 @@ namespace CrimsonDraft.Combat
 
             this.submitHandlers   = Array.Empty<Action>();
             this.selectedHandlers = Array.Empty<Action>();
+            this.focusedOperatorIndex = -1;
+        }
+
+        // The anchor can be mid-animation (e.g. OperatorFocusBounce lifting the newly
+        // focused card) — re-sampling its position every frame instead of once keeps the
+        // selector box glued to it instead of freezing at the pre-animation position.
+        private void LateUpdate()
+        {
+            if (this.selectorFollowTarget == null || !this.selectorMark.gameObject.activeSelf)
+                return;
+
+            var parentRect   = (RectTransform)this.selectorMark.parent;
+            Vector3 localPos = parentRect.InverseTransformPoint(this.selectorFollowTarget.position);
+            this.selectorMark.localPosition = new Vector3(localPos.x, localPos.y, 0f);
         }
 
         #endregion
@@ -106,7 +130,23 @@ namespace CrimsonDraft.Combat
         #region Private
 
         private void MoveSelector(int index) =>
-            MoveSelectorTo(this.operators[index].SelectorAnchor);
+            MoveSelectorTo(this.GetOperatorOverviewRect(index));
+
+        private void SetFocusedOperatorIndex(int index)
+        {
+            if (this.focusedOperatorIndex == index) return;
+
+            this.GetOperatorBounce(this.focusedOperatorIndex)?.SetFocused(false);
+            this.focusedOperatorIndex = index;
+            this.GetOperatorBounce(index)?.SetFocused(true);
+        }
+
+        private OperatorFocusBounce? GetOperatorBounce(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return null;
+            var overview = this.operators[index].transform.parent;
+            return overview == null ? null : overview.GetComponent<OperatorFocusBounce>();
+        }
 
         private void TryAutoWireOperatorAmmoLabels()
         {
@@ -259,11 +299,69 @@ namespace CrimsonDraft.Combat
         {
             EventSystem.current?.SetSelectedGameObject(null);
             this.selectorMark.DOKill();
+            this.selectorMarkImage?.DOKill();
+            this.selectorFollowTarget = null;
             this.selectorMark.gameObject.SetActive(false);
         }
 
+        // Drops the card's focus-lift without waiting for roster navigation to land on a
+        // different operator — used once a command has actually been given (Shoot/Items/
+        // FocusFire), since the card shouldn't stay raised for the rest of its turn while
+        // it's no longer the one being browsed/decided on.
+        public void ReleaseOperatorFocus(int index)
+        {
+            this.GetOperatorBounce(index)?.SetFocused(false);
+            if (this.focusedOperatorIndex == index)
+                this.focusedOperatorIndex = -1;
+        }
+
+        // Fire-and-forget: plays the shared use-flipbook over the operator's whole card.
+        // Purely decorative, so nothing in the combat flow waits on it.
+        public void PlayActionFeedback(int index) =>
+            this.GetOperatorActionFeedback(index)?.Play();
+
+        private OperatorActionFeedback? GetOperatorActionFeedback(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return null;
+            var overview = this.operators[index].transform.parent;
+            return overview == null ? null : overview.GetComponentInChildren<OperatorActionFeedback>(true);
+        }
+
+        // Pushed every frame from CombatOrchestrator as the operator's ATB gauge ticks
+        // toward ready; purely visual, no gameplay state lives here.
+        public void SetOperatorGauge(int index, float gauge01) =>
+            this.GetOperatorGaugeBar(index)?.SetGauge01(gauge01);
+
+        private OperatorGaugeBar? GetOperatorGaugeBar(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return null;
+            var overview = this.operators[index].transform.parent;
+            return overview == null ? null : overview.GetComponentInChildren<OperatorGaugeBar>(true);
+        }
+
+        // Grows/shrinks the operator card's own border to make room for the command
+        // panel above it, instead of the command panel having its own separate frame.
+        public void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null)
+        {
+            var panel = this.GetOperatorBorderPanel(index);
+            if (panel == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            panel.SetExpanded(expanded, onComplete);
+        }
+
+        private OperatorBorderPanel? GetOperatorBorderPanel(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return null;
+            var overview = this.operators[index].transform.parent;
+            return overview == null ? null : overview.GetComponentInChildren<OperatorBorderPanel>(true);
+        }
+
         public RectTransform GetOperatorAnchor(int index) =>
-            this.operators[index].SelectorAnchor;
+            this.GetOperatorOverviewRect(index);
 
         public RectTransform GetOperatorRect(int index) =>
             (RectTransform)this.operators[index].transform;
@@ -287,6 +385,8 @@ namespace CrimsonDraft.Combat
             if (dimmed)
             {
                 this.selectorMark.DOKill();
+                this.selectorMarkImage?.DOKill();
+                this.selectorFollowTarget = null;
                 this.selectorMark.gameObject.SetActive(false);
             }
         }
@@ -315,6 +415,9 @@ namespace CrimsonDraft.Combat
             CanvasGroup cg = overview.GetComponent<CanvasGroup>();
             if (cg == null) cg = overview.gameObject.AddComponent<CanvasGroup>();
             cg.DOFade(dimmed ? 0.4f : 1f, 0.15f);
+
+            var highlight = overview.GetComponent<OperatorTurnHighlight>();
+            if (highlight != null) highlight.SetActive(!dimmed);
         }
 
         public void SetOperatorFocusFireMarked(int index, bool marked)
@@ -442,19 +545,35 @@ namespace CrimsonDraft.Combat
                 weapon.Data.GridSize.y * this.weaponIconCellSize);
         }
 
+        // anchor is treated as "the rect to cover", not just a point — the selector box
+        // resizes to hug it (roster cards, command rows, and item rows are all different
+        // sizes) instead of staying pinned at whatever size it last had.
         public void MoveSelectorTo(RectTransform anchor)
         {
             this.selectorMark.gameObject.SetActive(true);
             this.selectorMark.DOKill();
+            this.selectorMarkImage?.DOKill();
+            this.selectorFollowTarget = anchor;
 
             var parentRect   = (RectTransform)this.selectorMark.parent;
             Vector3 localPos = parentRect.InverseTransformPoint(anchor.position);
+            this.selectorMark.localPosition = new Vector3(localPos.x, localPos.y, 0f);
 
-            float centerX = localPos.x;
-            float centerY = localPos.y;
+            var corners = new Vector3[4];
+            anchor.GetWorldCorners(corners);
+            float worldWidth  = Vector3.Distance(corners[0], corners[3]);
+            float worldHeight = Vector3.Distance(corners[0], corners[1]);
+            Vector3 selectorScale = this.selectorMark.lossyScale;
+            float targetWidth  = worldWidth  / Mathf.Max(selectorScale.x, 0.0001f) + this.selectorPadding.x;
+            float targetHeight = worldHeight / Mathf.Max(selectorScale.y, 0.0001f) + this.selectorPadding.y;
+            this.selectorMark.DOSizeDelta(new Vector2(targetWidth, targetHeight), this.resizeDuration);
 
-            this.selectorMark.localPosition = new Vector3(centerX, centerY - this.bobAmplitude, 0f);
-            this.selectorMark.DOLocalMoveY(centerY + this.bobAmplitude, this.bobDuration)
+            if (this.selectorMarkImage == null) return;
+
+            Color c = this.selectorMarkImage.color;
+            c.a = 1f;
+            this.selectorMarkImage.color = c;
+            this.selectorMarkImage.DOFade(this.pulseMinAlpha, this.pulseDuration)
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine);
         }

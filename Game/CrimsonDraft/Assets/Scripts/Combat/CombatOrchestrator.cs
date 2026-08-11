@@ -106,9 +106,20 @@ namespace CrimsonDraft.Combat
 
             SyncDeadEnemies();
             this.atbSystem.Tick(Time.deltaTime, this.waitModeActive);
+            SyncOperatorGauges();
             NotifyReadyOperators();
             EnqueueReadyEnemyAttacks();
             ProcessQueueHead();
+        }
+
+        private void SyncOperatorGauges()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Operator);
+                if (actor == null) continue;
+                this.menuView.SetOperatorGauge(i, actor.Gauge);
+            }
         }
 
         private void LateUpdate()

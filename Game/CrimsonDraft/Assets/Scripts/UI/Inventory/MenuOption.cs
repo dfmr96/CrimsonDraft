@@ -13,7 +13,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private TMP_Text label;
 
         [Header("Colors")]
-        [SerializeField] private Color colorNormal   = new Color(1f, 1f, 1f, 0f);
+        [SerializeField] private Color colorNormal   = new Color(1f, 1f, 1f, 1f);
         [SerializeField] private Color colorSelected = new Color(1f, 1f, 0f, 0.9f);
         [SerializeField] private Color colorDisabled = new Color(0.4f, 0.4f, 0.4f, 0f);
 
@@ -48,7 +48,7 @@ namespace CrimsonDraft.UI
             }
 
             background.color = selected ? colorSelected : colorNormal;
-            label.color      = selected ? Color.white    : Color.gray;
+            label.color      = Color.white;
         }
     }
 }
