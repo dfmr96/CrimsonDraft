@@ -335,6 +335,7 @@ MonoBehaviour:
   generalStorage: {fileID: 7512125415745378932}
   pickupRunner: {fileID: 4666882405994449530}
   pickupStorage: {fileID: 6911846866370356816}
+  pickupPreviewView: {fileID: 963160378331553040}
   cachedRoomDoors:
   - {fileID: 0}
   - {fileID: 0}
@@ -853,7 +854,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -6027,21 +6028,33 @@ PrefabInstance:
       propertyPath: m_Name
       value: PickupPreviewPanel
       objectReference: {fileID: 0}
+    - target: {fileID: 2398998823750713261, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2398998823750713261, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2398998823750713261, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_Pivot.x
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_Pivot.y
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchorMin.x
@@ -6060,6 +6073,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -6069,7 +6094,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -25.88269
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6077,19 +6102,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 15.16443
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -6116,6 +6141,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+--- !u!114 &963160378331553040 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9095888908775986238, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
+  m_PrefabInstance: {fileID: 8315548750469450030}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de0ddb9a3976db5448bb502e7ea14c03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.UI.PickupPreviewView
 --- !u!224 &5455893825322314320 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4094327318522733438, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}

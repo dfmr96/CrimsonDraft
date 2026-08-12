@@ -39,6 +39,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private DialogueRunner          pickupRunner     = null!;
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
 
+        // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
+        // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
+        // type scan would resolve that one instead since it sits earlier in the hierarchy.
+        [SerializeField] private PickupPreviewView       pickupPreviewView = null!;
+
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
         [SerializeField] private PickupInteractable[]    cachedPickups        = System.Array.Empty<PickupInteractable>();
@@ -91,7 +96,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
-            builder.RegisterComponentInHierarchy<PickupPreviewView>();
+            builder.RegisterInstance(this.pickupPreviewView);
             builder.Register<PickupPreviewController>(Lifetime.Scoped).AsSelf();
 
             // ── Room transition ──────────────────────────────────────────────

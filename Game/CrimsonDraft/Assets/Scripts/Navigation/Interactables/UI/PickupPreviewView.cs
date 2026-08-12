@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.UI;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables.UI
@@ -19,13 +20,26 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private int            gridColumns  = 4;
         [SerializeField] private int            gridRows     = 4;
 
+        [Header("Highlight Animation")]
+        [SerializeField] private float pulseMinAlpha = 0.25f;
+        [SerializeField] private float pulseMaxAlpha = 0.6f;
+        [SerializeField] private float pulseSpeed    = 2f;
+        [SerializeField] private float autoRotateInterval = 5f;
+
         private GameObject? currentInstance;
-        private int         previewLayer = -1;
+        private int         previewLayer  = -1;
+        private Vector2Int  highlightSize;
+        private bool        highlightRotated;
+        private float       rotateTimer;
+        private Image?      highlightImage;
 
         void Awake()
         {
             this.previewLayer = LayerMask.NameToLayer(this.previewLayerName);
             this.root.SetActive(false);
+
+            if (this.highlightRect != null)
+                this.highlightImage = this.highlightRect.GetComponent<Image>();
 
             if (this.gridRect != null)
                 this.gridRect.sizeDelta = new Vector2(
@@ -41,8 +55,31 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
         void Update()
         {
-            if (this.currentInstance == null) return;
-            this.currentInstance.transform.Rotate(Vector3.up, this.rotationSpeed * Time.deltaTime, Space.World);
+            // Unscaled time -- inventory/inspect UI pauses gameplay via Time.timeScale = 0,
+            // but this preview should keep spinning/pulsing while that's shown.
+            if (this.currentInstance != null)
+                this.currentInstance.transform.Rotate(Vector3.up, this.rotationSpeed * Time.unscaledDeltaTime, Space.World);
+
+            if (this.highlightRect == null) return;
+
+            if (this.highlightImage != null)
+            {
+                float alpha = Mathf.Lerp(this.pulseMinAlpha, this.pulseMaxAlpha,
+                    Mathf.Sin(Time.unscaledTime * this.pulseSpeed) * 0.5f + 0.5f);
+                var color = this.highlightImage.color;
+                color.a = alpha;
+                this.highlightImage.color = color;
+            }
+
+            // Only a non-square footprint has a meaningfully different "other" orientation.
+            if (this.highlightSize.x == this.highlightSize.y) return;
+
+            this.rotateTimer += Time.unscaledDeltaTime;
+            if (this.rotateTimer < this.autoRotateInterval) return;
+
+            this.rotateTimer = 0f;
+            this.highlightRotated = !this.highlightRotated;
+            ApplyHighlightSize();
         }
 
         public void Show(ItemData item)
@@ -53,9 +90,10 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             // same convention as InventoryGrid.CellToLocal for a center-pivoted grid.
             if (this.highlightRect != null)
             {
-                this.highlightRect.sizeDelta = new Vector2(
-                    item.GridSize.x * this.gridCellSize,
-                    item.GridSize.y * this.gridCellSize);
+                this.highlightSize     = item.GridSize;
+                this.highlightRotated  = false;
+                this.rotateTimer       = 0f;
+                ApplyHighlightSize();
                 this.highlightRect.anchoredPosition = new Vector2(
                     -this.gridColumns * this.gridCellSize * 0.5f,
                      this.gridRows    * this.gridCellSize * 0.5f);
@@ -63,16 +101,14 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
             var modelPrefab = item.PreviewModel;
 
-            // No model assigned on the ItemData yet -- stay hidden instead of showing an empty panel.
-            if (modelPrefab == null)
+            // No model assigned on the ItemData yet -- still show the panel (grid/highlight),
+            // just skip instantiating a 3D preview.
+            if (modelPrefab != null)
             {
-                this.root.SetActive(false);
-                return;
+                this.currentInstance = Instantiate(modelPrefab, this.mountPoint.position, this.mountPoint.rotation, this.mountPoint);
+                if (this.previewLayer >= 0)
+                    SetLayerRecursively(this.currentInstance.transform, this.previewLayer);
             }
-
-            this.currentInstance = Instantiate(modelPrefab, this.mountPoint.position, this.mountPoint.rotation, this.mountPoint);
-            if (this.previewLayer >= 0)
-                SetLayerRecursively(this.currentInstance.transform, this.previewLayer);
 
             this.root.SetActive(true);
         }
@@ -81,6 +117,15 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         {
             ClearInstance();
             this.root.SetActive(false);
+        }
+
+        private void ApplyHighlightSize()
+        {
+            if (this.highlightRect == null) return;
+            var size = this.highlightRotated
+                ? new Vector2(this.highlightSize.y, this.highlightSize.x)
+                : new Vector2(this.highlightSize.x, this.highlightSize.y);
+            this.highlightRect.sizeDelta = size * this.gridCellSize;
         }
 
         private void ClearInstance()
