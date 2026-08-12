@@ -214,6 +214,7 @@ namespace CrimsonDraft.Combat
 
         internal void BeginShootConfiguration(int slot)
         {
+            ForceCloseInterruptedUI();
             this.SelectedOperator = slot;
             RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
@@ -222,6 +223,7 @@ namespace CrimsonDraft.Combat
 
         internal void BeginFocusFireConfiguration(int[] participants)
         {
+            ForceCloseInterruptedUI();
             this.FocusFireParticipants     = participants;
             this.FocusFireParticipantIndex = 0;
             this.FocusFireShotCounts.Clear();
@@ -229,6 +231,30 @@ namespace CrimsonDraft.Combat
             RepositionCommandPanelToOperator(participants[0]);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
+        }
+
+        // A queued action (enqueued earlier by some other operator) can reach the head of
+        // CombatActionQueue and fire its ShootConfiguration/FocusFireConfiguration event while
+        // the player is still browsing a *different* operator's command panel or item list --
+        // that operator never actually committed a command, so none of the normal exit paths
+        // (OnCancel/OnCommandSelected) ran to hide its sub-panels. Force every sub-panel closed
+        // here so the interrupted operator's UI can't get stuck half-open; the state's own
+        // Exit() (called right after, by TransitionTo) still runs for its non-visual bookkeeping
+        // (unsubscribing events, SetWaitMode, etc). Hiding an already-hidden view is a no-op, so
+        // this is safe to call even when there's nothing to interrupt.
+        private void ForceCloseInterruptedUI()
+        {
+            if (this.currentState == this.OperatorSelState) return;
+
+            int interruptedSlot = this.SelectedOperator;
+            this.commandPanel.Hide();
+            this.shotCountView.Hide();
+            this.combatInventoryView.Hide();
+            this.aimView.Hide();
+            this.battlefieldView.HideEnemyTargetIndicator();
+            this.menuView.ExpandOperatorBorder(interruptedSlot, false);
+            this.menuView.ReleaseOperatorFocus(interruptedSlot);
+            this.orchestrator.SetWaitMode(false);
         }
 
         internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier, int baseDamage = BaseDamage)
