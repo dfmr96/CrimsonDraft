@@ -961,6 +961,8 @@ namespace CrimsonDraft.Tests
             public void RaiseOnOperatorSelected(int index) => this.OnOperatorSelected?.Invoke(index);
             public void FocusOperator(int index) { }
             public void ClearFocus() { }
+            public void ReleaseOperatorFocus(int index) { }
+            public void PlayActionFeedback(int index) { }
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
@@ -971,6 +973,11 @@ namespace CrimsonDraft.Tests
                 this.healthByOperator[index] = hpRatio;
             public bool TryGetHealth(int index, out float hpRatio) =>
                 this.healthByOperator.TryGetValue(index, out hpRatio);
+            public void SetOperatorGauge(int index, float gauge01) { }
+            // Synchronous, like the real card's animation eventually completing —
+            // keeps existing tests' flow (which expect the reveal to have happened by
+            // the time Enter() returns) working without needing to await anything.
+            public void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
@@ -1001,6 +1008,7 @@ namespace CrimsonDraft.Tests
             private readonly Dictionary<CombatCommand, bool> enabledByCommand = new();
             public RectTransform PanelRect => this.panelRect;
             public void Show(RectTransform _)         => this.IsVisible = true;
+            public void RevealContent()               { }
             public void RepositionTo(RectTransform _) { }
             public void Focus()                       { }
             public void SetCommandEnabled(CombatCommand command, bool enabled) => this.enabledByCommand[command] = enabled;

@@ -17,6 +17,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly IPickupDialogueService PickupDialogueService;
         public readonly PuzzleViewController    PuzzleViewController;
         public readonly ScreenFader            ScreenFader;
+        public readonly PickupPreviewController PickupPreviewController;
 
         public InteractionContext(
             IInventoryService      inventoryService,
@@ -26,7 +27,8 @@ namespace CrimsonDraft.Navigation.Interactables
             ContainerController    containerController,
             IPickupDialogueService pickupDialogueService,
             PuzzleViewController    puzzleViewController,
-            ScreenFader             screenFader)
+            ScreenFader             screenFader,
+            PickupPreviewController pickupPreviewController)
         {
             InventoryService      = inventoryService;
             InputService          = inputService;
@@ -36,6 +38,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PickupDialogueService = pickupDialogueService;
             PuzzleViewController   = puzzleViewController;
             ScreenFader            = screenFader;
+            PickupPreviewController = pickupPreviewController;
         }
     }
 }

@@ -52,7 +52,7 @@ namespace CrimsonDraft.Tests
             FakeDoorDialogueService  dialogue,
             FakeDoorInventoryService inventory)
         {
-            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!);
+            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!);
         }
 
         // ── Tests ─────────────────────────────────────────────────────────────
