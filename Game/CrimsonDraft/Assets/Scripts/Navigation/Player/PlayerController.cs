@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Operators;
 using CrimsonDraft.Inventory;
 
@@ -34,19 +35,25 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
         private static readonly int ArmedHash    = Animator.StringToHash("Armed");
 
-        private IInputService     inputService     = null!;
-        private IInventoryService inventoryService = null!;
-        private IOperatorRoster?  roster;
-        private InputDevice?      lastDevice;
+        private IInputService                inputService                = null!;
+        private IInventoryService            inventoryService            = null!;
+        private ICameraRelativeMovementService cameraRelativeMovementService = null!;
+        private IOperatorRoster?             roster;
+        private InputDevice?                 lastDevice;
 
         public bool IsAiming { get; private set; }
 
         [Inject]
-        public void Construct(IInputService inputService, IInventoryService inventoryService, IOperatorRoster roster)
+        public void Construct(
+            IInputService                  inputService,
+            IInventoryService              inventoryService,
+            ICameraRelativeMovementService cameraRelativeMovementService,
+            IOperatorRoster                roster)
         {
-            this.inputService     = inputService;
-            this.inventoryService = inventoryService;
-            this.roster           = roster;
+            this.inputService                  = inputService;
+            this.inventoryService              = inventoryService;
+            this.cameraRelativeMovementService = cameraRelativeMovementService;
+            this.roster                        = roster;
             this.inputService.Move.performed += OnMovePerformed;
         }
 
@@ -72,6 +79,14 @@ namespace CrimsonDraft.Navigation.Player
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
             this.animator.SetBool(ArmedHash, isArmed);
 
+            var raw       = this.inputService.Move.ReadValue<Vector2>();
+            var isMoveHeld = raw.sqrMagnitude >= 0.01f;
+
+            // Always tick, even on frames where movement itself is skipped below (aiming,
+            // stick at rest) — the release-to-neutral moment is what lets a mid-hold camera
+            // cut adopt the new camera's basis, and that moment must never be missed.
+            this.cameraRelativeMovementService.Tick(isMoveHeld);
+
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;
@@ -79,9 +94,7 @@ namespace CrimsonDraft.Navigation.Player
                 return;
             }
 
-            var raw = this.inputService.Move.ReadValue<Vector2>();
-
-            if (raw.sqrMagnitude < 0.01f)
+            if (!isMoveHeld)
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetFloat(SpeedHash, 0f);
@@ -92,7 +105,17 @@ namespace CrimsonDraft.Navigation.Player
                 ? raw.normalized
                 : Quantize8Way(raw);
 
-            var moveDir = new Vector3(direction.x, 0f, direction.y);
+            var moveDir = this.cameraRelativeMovementService.Right * direction.x
+                        + this.cameraRelativeMovementService.Forward * direction.y;
+            moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
+
+            if (moveDir == Vector3.zero)
+            {
+                this.rb.linearVelocity = Vector3.zero;
+                this.animator.SetFloat(SpeedHash, 0f);
+                return;
+            }
+
             transform.forward = moveDir;
 
             var isSprinting     = this.inputService.Sprint.IsPressed();

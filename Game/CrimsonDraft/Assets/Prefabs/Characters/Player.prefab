@@ -116,6 +116,8 @@ MonoBehaviour:
   animator: {fileID: 1453901650854825600}
   walkSpeed: 2.3
   runSpeed: 7
+  footOffset: 1
+  navMeshTolerance: 0.3
   yellowCautionThreshold: 0.75
   orangeCautionThreshold: 0.5
   dangerThreshold: 0.25
@@ -168,10 +170,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.18
   m_Height: 1
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -0.1}
 --- !u!114 &7067996463242752613
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189,6 +191,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   animator: {fileID: 1453901650854825600}
+  interactingDuration: 1
 --- !u!114 &765452057391134389
 MonoBehaviour:
   m_ObjectHideFlags: 0
