@@ -28,6 +28,7 @@ namespace CrimsonDraft.Combat
         void SetOperatorIndicator(int slotIndex);
         void DimOperatorIndicator();
         void PlayEnemyAttackFeedback(int enemySlotIndex);
+        bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec);
         void ShowOperatorDamage(int operatorSlotIndex, int damage);
         void PlayOperatorHitFx(int operatorSlotIndex);
         void SetEnemyTargetIndicator(int slotIndex);

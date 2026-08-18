@@ -26,6 +26,9 @@ namespace CrimsonDraft.Combat
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
+        // Provisional animation-lock duration used the instant an attack starts (before the
+        // real Attack clip length is known) and the fallback if it never resolves (e.g. no
+        // Animator on a placeholder enemy). See enemyAttackLockCorrected in ProcessQueueHead.
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
@@ -35,6 +38,8 @@ namespace CrimsonDraft.Combat
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
         private readonly Dictionary<int, float> rolledEnemyAttackBaseSec = new();
+        private float enemyAttackStartedAt;
+        private bool  enemyAttackLockCorrected;
 
         private const float DefaultAttackBaseSec = 7f;
 
@@ -315,11 +320,21 @@ namespace CrimsonDraft.Combat
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
                 }
-                else if (Time.time >= this.animationLockUntil)
+                else
                 {
-                    this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
-                    this.DequeueAction();
-                    this.enemyAttackInProgress = false;
+                    if (!this.enemyAttackLockCorrected &&
+                        this.battlefieldView.TryGetResolvedEnemyAttackDuration(head.SlotIndex, out float realDuration))
+                    {
+                        this.animationLockUntil = this.enemyAttackStartedAt + realDuration;
+                        this.enemyAttackLockCorrected = true;
+                    }
+
+                    if (Time.time >= this.animationLockUntil)
+                    {
+                        this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
+                        this.DequeueAction();
+                        this.enemyAttackInProgress = false;
+                    }
                 }
                 return;
             }
@@ -399,6 +414,8 @@ namespace CrimsonDraft.Combat
                 }
             }
 
+            this.enemyAttackStartedAt     = Time.time;
+            this.enemyAttackLockCorrected = false;
             SetAnimationLock(this.defaultEnemyAttackDurSec);
         }
 

@@ -38,8 +38,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
         [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
-        [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
-        [SerializeField] private Vector3 enemyAttackShakeStrength = new(0.15f, 0.15f, 0f);
         [SerializeField] private GameObject? bloodHitFxPrefab;
 
         private readonly List<GameObject> spawnedSprites = new();
@@ -55,8 +53,10 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+        private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
+        private readonly Dictionary<int, float> enemyAttackResolvedDurationBySlot = new();
         private readonly Dictionary<int, OperatorHitFxMarker> operatorHitFxMarkerBySlot = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
         private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
@@ -89,6 +89,7 @@ namespace CrimsonDraft.Combat
             this.enemyHitToggleBySlot.Clear();
             this.enemyDeathMarkerBySlot.Clear();
             this.operatorHitFxMarkerBySlot.Clear();
+            this.enemyAttackResolvedDurationBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -445,16 +446,37 @@ namespace CrimsonDraft.Combat
 
         public void PlayEnemyAttackFeedback(int enemySlotIndex)
         {
-            if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null)
+            this.enemyAttackResolvedDurationBySlot.Remove(enemySlotIndex);
+
+            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null)
                 return;
 
-            enemyGo.transform.DOKill();
-            enemyGo.transform.DOShakePosition(
-                this.enemyAttackShakeDuration,
-                this.enemyAttackShakeStrength,
-                vibrato: 20,
-                randomness: 90f,
-                fadeOut: true);
+            animator.SetTrigger(AttackHash);
+            StartCoroutine(this.ResolveEnemyAttackDuration(enemySlotIndex, animator));
+        }
+
+        public bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec) =>
+            this.enemyAttackResolvedDurationBySlot.TryGetValue(enemySlotIndex, out durationSec);
+
+        // Mirrors WaitForAnimatorStateChange's state-change + real-clip-length detection,
+        // but reports the resolved duration back into a dictionary instead of yielding a
+        // delay itself — CombatOrchestrator polls it to correct its own animation-lock
+        // timestamp once the real Attack clip length is known. Times out silently (leaves
+        // nothing in the dictionary) if the transition never fires, so the orchestrator's
+        // own provisional lock duration is left standing instead.
+        private IEnumerator ResolveEnemyAttackDuration(int enemySlotIndex, Animator anim)
+        {
+            int startStateHash = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+            while (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash && Time.time < giveUpAt)
+                yield return null;
+
+            if (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash)
+                yield break;
+
+            var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
+            if (clipInfo.Length > 0)
+                this.enemyAttackResolvedDurationBySlot[enemySlotIndex] = clipInfo[0].clip.length;
         }
 
         public void PlayOperatorHitFx(int operatorSlotIndex)
