@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 
@@ -20,6 +21,7 @@ namespace CrimsonDraft.Navigation.Rooms
         private readonly PlayerController                       player;
         private readonly RoomTransitionContext                  context;
         private readonly SceneEntryContext                      sceneEntryContext;
+        private readonly IFixedCameraZoneService                zoneService;
         private readonly IPublisher<RoomTransitionStartedEvent> startedPublisher;
         private readonly IPublisher<RoomTransitionedEvent>      endedPublisher;
 
@@ -32,6 +34,7 @@ namespace CrimsonDraft.Navigation.Rooms
             PlayerController                       player,
             RoomTransitionContext                  context,
             SceneEntryContext                      sceneEntryContext,
+            IFixedCameraZoneService                zoneService,
             IPublisher<RoomTransitionStartedEvent> startedPublisher,
             IPublisher<RoomTransitionedEvent>      endedPublisher)
         {
@@ -39,6 +42,7 @@ namespace CrimsonDraft.Navigation.Rooms
             this.player            = player;
             this.context           = context;
             this.sceneEntryContext  = sceneEntryContext;
+            this.zoneService       = zoneService;
             this.startedPublisher  = startedPublisher;
             this.endedPublisher    = endedPublisher;
         }
@@ -80,7 +84,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
                     this.player.transform.SetPositionAndRotation(
                         sp.transform.position, sp.transform.rotation);
-                    sp.ActivateCamera();
+                    sp.ActivateCamera(this.zoneService);
                     return sp.StartingRoom;
                 }
 
@@ -110,7 +114,7 @@ namespace CrimsonDraft.Navigation.Rooms
             var spawnPoint     = FindSpawnPoint(destination, this.currentRoom);
             var spawnTransform = spawnPoint != null ? spawnPoint.transform : destination.transform;
             this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
-            spawnPoint?.ActivateCamera();
+            spawnPoint?.ActivateCamera(this.zoneService);
 
             await tcs.Task;
 

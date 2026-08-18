@@ -1,6 +1,7 @@
 #nullable enable
 
 using MessagePipe;
+using Unity.Cinemachine;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
@@ -9,6 +10,7 @@ using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
@@ -51,6 +53,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private DocumentInteractable[]  cachedDocumentPickups = System.Array.Empty<DocumentInteractable>();
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
+        [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -69,6 +72,13 @@ namespace CrimsonDraft.Navigation
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedCameraZoneTriggers);
+            builder.Register<FixedCameraZoneService>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<FixedCameraZoneBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterComponentInHierarchy<CinemachineBrain>();
+            builder.Register<CameraRelativeMovementService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MapSceneConfig>();
             builder.RegisterComponentInHierarchy<MapRenderer>();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
@@ -173,6 +183,14 @@ namespace CrimsonDraft.Navigation
             this.cachedEnemies = FindObjectsByType<EnemyNavAgent>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             this.cachedCombatTriggers = FindObjectsByType<CombatTrigger>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Camera Zone Triggers")]
+        private void CacheSceneCameraZoneTriggers()
+        {
+            this.cachedCameraZoneTriggers = FindObjectsByType<FixedCameraZoneTrigger>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

@@ -9,8 +9,10 @@ using UnityEngine.InputSystem;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
+using Unity.Cinemachine;
 
 namespace CrimsonDraft.Tests
 {
@@ -157,6 +159,7 @@ namespace CrimsonDraft.Tests
                 player,
                 context,
                 entry ?? ScriptableObject.CreateInstance<SceneEntryContext>(),
+                new FakeCameraZoneService(),
                 new FakePublisher<RoomTransitionStartedEvent>(),
                 new FakePublisher<RoomTransitionedEvent>());
 
@@ -204,6 +207,12 @@ namespace CrimsonDraft.Tests
         private sealed class FakePublisher<T> : IPublisher<T>
         {
             public void Publish(T message) { }
+        }
+
+        private sealed class FakeCameraZoneService : IFixedCameraZoneService
+        {
+            public CinemachineCamera? CurrentZoneCamera => null;
+            public void ActivateZone(CinemachineCamera zoneCamera) { }
         }
     }
 }
