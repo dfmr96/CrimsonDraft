@@ -2412,6 +2412,8 @@ git commit -m "feat(save): wire SaveController/SaveGameLoader into NavigationSco
 - Consumes: `ISaveGameService`/`IGameStateResetter` (Tasks 4, 5), `SaveSlotListView` (Task 8).
 - Produces: a working "Load Game" flow and a "New Game" that resets prior session state.
 
+**Correction (found during implementation):** parenting a new scene's `LifetimeScope` to `GameLifetimeScope` is **not automatic**. `NavigationScope` only reaches the root because its `LifetimeScope.parentReference.TypeName` Inspector field is explicitly set to `CrimsonDraft.Infrastructure.GameLifetimeScope` (VContainer's `ParentReference` mechanism — see `Library/PackageCache/jp.hadashikick.vcontainer@*/Runtime/Unity/LifetimeScope.cs:GetRuntimeParent()`). Without it, a new `LifetimeScope` falls back to `VContainerSettings`'s root scope resolution, which is not `GameLifetimeScope`, so cross-scope singletons (`ISaveGameService`, `IGameStateResetter`, etc.) fail to resolve (`VContainerException: No such registration...`). After adding `MainMenuScope` to the `MainMenuController` GameObject in the scene, its `Parent Reference` → `Type` field in the Inspector must be set to `GameLifetimeScope`, same as `NavigationScope` already has.
+
 - [ ] **Step 1: Create `MainMenuScope`**
 
 `Game/CrimsonDraft/Assets/Scripts/UI/MainMenu/MainMenuScope.cs`:
@@ -2511,10 +2513,11 @@ Expected: no compile errors. (The `loadGameButton.interactable = false` line fro
 
 In the Unity Editor, open the `MainMenu` scene:
 1. Select the GameObject holding `MainMenuController` (or its parent). Add a `MainMenuScope` component to it, or to a new empty parent GameObject if `MainMenuController` shouldn't own scope lifecycle directly — either works since `RegisterComponentInHierarchy` scans the whole scene.
-2. Build a `SaveSlotListPanel` hierarchy identical in structure to the one built for `NavigationScope` in Task 12 Step 3 (reuse the same `SaveSlotRow` prefab asset from `Assets/Prefabs/UI/SaveSlotRow.prefab`), as a child of the Main Menu's Canvas.
-3. Add a `SaveSlotListView` component to it and wire its fields the same way as Task 12 Step 3.
-4. Select the `MainMenuController` GameObject and drag the new panel into its `Load Slot List View` field.
-5. Confirm the `loadGameButton`'s `interactable` checkbox in the Inspector is checked (it may still be unchecked from the old `Awake()`-time disabling — it's fine either way now since the code no longer disables it at runtime, but for a consistent initial state, check it).
+2. On the new `MainMenuScope` component, expand `Parent Reference` in the Inspector and set its `Type` to `GameLifetimeScope` (see the Task 13 correction above — without this, `ISaveGameService`/`IGameStateResetter` fail to resolve at runtime with a `VContainerException`).
+3. Build a `SaveSlotListPanel` hierarchy identical in structure to the one built for `NavigationScope` in Task 12 Step 3b (reuse the same `SaveSlotRow` prefab asset from `Assets/Prefabs/UI/SaveSlotRow.prefab`), as a child of the Main Menu's Canvas.
+4. Add a `SaveSlotListView` component to it and wire its fields the same way as Task 12 Step 3b.
+5. Select the `MainMenuController` GameObject and drag the new panel into its `Load Slot List View` field.
+6. Confirm the `loadGameButton`'s `interactable` checkbox in the Inspector is checked (it may still be unchecked from the old `Awake()`-time disabling — it's fine either way now since the code no longer disables it at runtime, but for a consistent initial state, check it).
 
 - [ ] **Step 5: Enter Play mode and manually verify Load Game / New Game**
 
