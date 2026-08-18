@@ -42,7 +42,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, null!, null!, null!, dialogue, null!, null!, null!);
+            => new(inventory, null!, null!, null!, null!, dialogue, null!, null!, null!, null!);
 
         [Test]
         public void Construct_whenAlreadyCollected_deactivatesGameObject()

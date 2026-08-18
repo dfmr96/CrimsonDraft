@@ -1381,6 +1381,8 @@ git commit -m "feat(save): add SaveSlotRow/SaveSlotListView shared slot-picker U
 
 Note: `ItemDatabase` is deliberately **not** a dependency here — capturing state only needs each item's `ItemId` (already on `ItemData`), never a reverse lookup. Only the *read* path (`SaveGameLoader`, Task 11) needs `ItemDatabase` to turn a saved `itemId` back into an `ItemData` reference.
 
+**Correction (found during implementation):** despite living under `Navigation/Interactables/UI/`, this codebase declares `ContainerController`/`DocumentController`/`PuzzleViewController`/`PickupPreviewController` all in namespace `CrimsonDraft.Navigation.Interactables` (not `.Interactables.UI`) — the folder and namespace don't match for this particular subtree. `SaveController` must follow the same convention (`namespace CrimsonDraft.Navigation.Interactables`), or `PlayerInteractionCaster`/`InteractionContext` (also in `CrimsonDraft.Navigation.Interactables`, with no `using` for a `.UI` suffix) fail to compile with `CS0246`. The code below reflects the corrected namespace.
+
 - [ ] **Step 1: Write the failing tests**
 
 `Game/CrimsonDraft/Assets/Tests/EditMode/SaveControllerTests.cs`:
@@ -1399,7 +1401,7 @@ using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
-using CrimsonDraft.Navigation.Interactables.UI;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
@@ -1626,7 +1628,7 @@ using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
 
-namespace CrimsonDraft.Navigation.Interactables.UI
+namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class SaveController : IInitializable, IDisposable
     {
@@ -1795,7 +1797,6 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
-using CrimsonDraft.Navigation.Interactables.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -1841,7 +1842,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
 - [ ] **Step 2: Inject and pass `SaveController` through `PlayerInteractionCaster`**
 
-Modify `Game/CrimsonDraft/Assets/Scripts/Navigation/Interactables/PlayerInteractionCaster.cs` — add `using CrimsonDraft.Navigation.Interactables.UI;` is already implicitly satisfied (same namespace, no import needed since `ContainerController`/`SaveController` live in `CrimsonDraft.Navigation.Interactables.UI` and this file is in `CrimsonDraft.Navigation.Interactables` — check the existing file: it already references `ContainerController`, `DocumentController`, etc. by bare name with no explicit `using` for `.UI`, meaning `NavigationScope`/`PlayerInteractionCaster` must already have visibility — add `SaveController` as a sibling field exactly like `containerController`:
+Modify `Game/CrimsonDraft/Assets/Scripts/Navigation/Interactables/PlayerInteractionCaster.cs`. No new `using` is needed — `ContainerController`/`DocumentController`/`SaveController` all live in namespace `CrimsonDraft.Navigation.Interactables` (see the Task 9 correction), same as this file, despite the `UI/` subfolder. Add `SaveController` as a sibling field exactly like `containerController`:
 
 ```csharp
         private IInputService          inputService          = null!;

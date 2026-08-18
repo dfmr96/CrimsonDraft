@@ -12,7 +12,7 @@ using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
-using CrimsonDraft.Navigation.Interactables.UI;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;

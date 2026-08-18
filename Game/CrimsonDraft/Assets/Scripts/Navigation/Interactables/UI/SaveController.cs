@@ -14,7 +14,7 @@ using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
 
-namespace CrimsonDraft.Navigation.Interactables.UI
+namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class SaveController : IInitializable, IDisposable
     {
