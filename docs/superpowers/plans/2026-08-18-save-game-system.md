@@ -1585,8 +1585,17 @@ namespace CrimsonDraft.Tests
 
         private static SaveSlotListView MakeView()
         {
-            var go = new GameObject("SaveSlotListView");
-            return go.AddComponent<SaveSlotListView>();
+            var go   = new GameObject("SaveSlotListView");
+            var view = go.AddComponent<SaveSlotListView>();
+
+            // Close() calls view.Hide(), which touches `panel`/`confirmPanel` — wire them to
+            // something non-null (the view's own GameObject is fine) so Hide() doesn't NRE.
+            var so = new SerializedObject(view);
+            so.FindProperty("panel").objectReferenceValue        = go;
+            so.FindProperty("confirmPanel").objectReferenceValue = go;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            return view;
         }
     }
 }
