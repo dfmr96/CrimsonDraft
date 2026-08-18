@@ -16,5 +16,7 @@ namespace CrimsonDraft.Infrastructure
         public void Save(object state) => this.savedState = state;
 
         public T? Load<T>() where T : class => this.savedState as T;
+
+        public void ClearAll() => this.savedState = null;
     }
 }

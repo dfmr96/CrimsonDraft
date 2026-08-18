@@ -16,5 +16,14 @@ namespace CrimsonDraft.Infrastructure
         public void SetCollected(string noteId) => this.collected.Add(noteId);
 
         public IReadOnlyCollection<string> CollectedIds => this.collected;
+
+        public void LoadState(IEnumerable<string> saved)
+        {
+            this.collected.Clear();
+            foreach (var id in saved)
+                this.collected.Add(id);
+        }
+
+        public void ClearAll() => this.collected.Clear();
     }
 }

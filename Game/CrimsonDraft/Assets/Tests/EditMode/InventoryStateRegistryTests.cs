@@ -38,5 +38,15 @@ namespace CrimsonDraft.Tests
             registry.Save(slots);
             Assert.AreSame(slots, registry.Load<InventorySlot[]>());
         }
+
+        [Test]
+        public void ClearAll_removesSavedState()
+        {
+            var registry = new InventoryStateRegistry();
+            registry.Save(new InventorySlot[4]);
+            registry.ClearAll();
+
+            Assert.IsFalse(registry.HasSavedState);
+        }
     }
 }
