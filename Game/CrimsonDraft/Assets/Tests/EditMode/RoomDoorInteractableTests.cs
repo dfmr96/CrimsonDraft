@@ -286,6 +286,8 @@ namespace CrimsonDraft.Tests
                 LastDoorPrefab  = doorPrefab;
                 return UniTask.CompletedTask;
             }
+
+            public void ActivateRoomImmediate(string roomId) { }
         }
 
         private sealed class FakeDialogue : IDialogueService

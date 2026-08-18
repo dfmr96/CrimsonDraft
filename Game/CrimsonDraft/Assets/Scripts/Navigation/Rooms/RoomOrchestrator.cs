@@ -130,6 +130,31 @@ namespace CrimsonDraft.Navigation.Rooms
 
         public RoomController? CurrentRoom => this.currentRoom;
 
+        public void ActivateRoomImmediate(string roomId)
+        {
+            var rooms = Object.FindObjectsOfType<RoomController>(true);
+            RoomController? target = null;
+
+            foreach (var room in rooms)
+            {
+                if (room.RoomId == roomId)
+                {
+                    target = room;
+                    continue;
+                }
+                room.Deactivate();
+            }
+
+            if (target == null)
+            {
+                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found.");
+                return;
+            }
+
+            target.Activate();
+            this.currentRoom = target;
+        }
+
         private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
         {
             foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))

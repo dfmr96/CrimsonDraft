@@ -13,6 +13,7 @@ using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
+using UnityEngine.TestTools;
 
 namespace CrimsonDraft.Tests
 {
@@ -145,6 +146,77 @@ namespace CrimsonDraft.Tests
                 Object.DestroyImmediate(playerGo.gameObject);
                 Object.DestroyImmediate(context);
                 Object.DestroyImmediate(entryContext);
+            }
+        }
+
+        [Test]
+        public void ActivateRoomImmediate_activatesMatchingRoom_deactivatesOthers()
+        {
+            var goA   = new GameObject("RoomA");
+            var roomA = goA.AddComponent<RoomController>();
+            var soA   = new SerializedObject(roomA);
+            soA.FindProperty("roomId").stringValue = "room-a";
+            soA.ApplyModifiedPropertiesWithoutUndo();
+
+            var goB   = new GameObject("RoomB");
+            var roomB = goB.AddComponent<RoomController>();
+            var soB   = new SerializedObject(roomB);
+            soB.FindProperty("roomId").stringValue = "room-b";
+            soB.ApplyModifiedPropertiesWithoutUndo();
+
+            goA.SetActive(true);
+            goB.SetActive(true);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            context.SetStartingRoom(roomA);
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context);
+                ((IInitializable)orchestrator).Initialize();
+
+                orchestrator.ActivateRoomImmediate("room-b");
+
+                Assert.IsFalse(goA.activeSelf, "room-a must be deactivated");
+                Assert.IsTrue(goB.activeSelf, "room-b must be activated");
+                Assert.AreEqual(roomB, orchestrator.CurrentRoom);
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+            }
+        }
+
+        [Test]
+        public void ActivateRoomImmediate_logsWarning_whenRoomIdNotFound()
+        {
+            var goA   = new GameObject("RoomA");
+            var roomA = goA.AddComponent<RoomController>();
+            goA.SetActive(true);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            context.SetStartingRoom(roomA);
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context);
+                ((IInitializable)orchestrator).Initialize();
+
+                LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex(".*"));
+                orchestrator.ActivateRoomImmediate("does-not-exist");
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
             }
         }
 
