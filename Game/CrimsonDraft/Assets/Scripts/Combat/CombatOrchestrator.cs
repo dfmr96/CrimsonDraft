@@ -390,14 +390,6 @@ namespace CrimsonDraft.Combat
             if (action.TargetOperatorSlot >= this.roster.Count) return;
 
             OperatorDamageResult result = this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
-            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
-            this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
-            this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
-            this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
-            this.ecgFeedback?.SetOperatorHealthState(
-                action.TargetOperatorSlot,
-                this.roster[action.TargetOperatorSlot].HpRatio,
-                this.roster[action.TargetOperatorSlot].IsAlive);
 
             if (result.IsDead)
             {
@@ -414,9 +406,30 @@ namespace CrimsonDraft.Combat
                 }
             }
 
+            // Damage/ATB/dimming apply immediately (state must stay authoritative), but the
+            // operator's visual reaction waits for the Animation Event fired from the
+            // enemy's Attack clip at the moment the hit actually connects.
+            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex, () => this.OnEnemyAttackImpact(action, result));
+
             this.enemyAttackStartedAt     = Time.time;
             this.enemyAttackLockCorrected = false;
             SetAnimationLock(this.defaultEnemyAttackDurSec);
+        }
+
+        private void OnEnemyAttackImpact(PendingAction action, OperatorDamageResult result)
+        {
+            this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
+            this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
+            this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
+            this.ecgFeedback?.SetOperatorHealthState(
+                action.TargetOperatorSlot,
+                this.roster[action.TargetOperatorSlot].HpRatio,
+                this.roster[action.TargetOperatorSlot].IsAlive);
+
+            if (result.IsDead)
+                this.battlefieldView.PlayOperatorDeath(action.TargetOperatorSlot);
+            else
+                this.battlefieldView.PlayOperatorFlinch(action.TargetOperatorSlot);
         }
 
         private void SyncDeadEnemies()

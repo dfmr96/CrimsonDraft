@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Cysharp.Threading.Tasks;
 
 namespace CrimsonDraft.Combat
@@ -27,10 +28,12 @@ namespace CrimsonDraft.Combat
         void Populate(EncounterData encounter);
         void SetOperatorIndicator(int slotIndex);
         void DimOperatorIndicator();
-        void PlayEnemyAttackFeedback(int enemySlotIndex);
+        void PlayEnemyAttackFeedback(int enemySlotIndex, Action onAttackImpact);
         bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec);
         void ShowOperatorDamage(int operatorSlotIndex, int damage);
         void PlayOperatorHitFx(int operatorSlotIndex);
+        void PlayOperatorFlinch(int operatorSlotIndex);
+        void PlayOperatorDeath(int operatorSlotIndex);
         void SetEnemyTargetIndicator(int slotIndex);
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();

@@ -1157,7 +1157,7 @@ namespace CrimsonDraft.Tests
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
             public void DimOperatorIndicator()                         { }
-            public void PlayEnemyAttackFeedback(int enemySlotIndex)    { }
+            public void PlayEnemyAttackFeedback(int enemySlotIndex, Action onAttackImpact) => onAttackImpact?.Invoke();
             public bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec)
             {
                 durationSec = 0f;
@@ -1165,6 +1165,8 @@ namespace CrimsonDraft.Tests
             }
             public void ShowOperatorDamage(int operatorSlotIndex, int damage) { }
             public void PlayOperatorHitFx(int operatorSlotIndex) { }
+            public void PlayOperatorFlinch(int operatorSlotIndex) { }
+            public void PlayOperatorDeath(int operatorSlotIndex) { }
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
             public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
