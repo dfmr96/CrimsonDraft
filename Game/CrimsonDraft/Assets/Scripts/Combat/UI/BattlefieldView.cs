@@ -38,8 +38,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
         [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
-        [SerializeField, Min(0.01f)] private float enemyAttackShakeDuration = 0.2f;
-        [SerializeField] private Vector3 enemyAttackShakeStrength = new(0.15f, 0.15f, 0f);
         [SerializeField] private GameObject? bloodHitFxPrefab;
 
         private readonly List<GameObject> spawnedSprites = new();
@@ -51,12 +49,18 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
         private static readonly int ShootHash = Animator.StringToHash("Shoot");
         private static readonly int AimHash = Animator.StringToHash("Aim");
+        private static readonly int FlinchHash = Animator.StringToHash("Flinch");
+        private static readonly int OperatorDeathHash = Animator.StringToHash("Death");
         private readonly Dictionary<int, Animator> enemyAnimatorBySlot = new();
         private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
         private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
+        private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
+        private readonly Dictionary<int, float> enemyAttackResolvedDurationBySlot = new();
+        private readonly Dictionary<int, EnemyAttackEventRelay> enemyAttackEventRelayBySlot = new();
+        private readonly Dictionary<int, OperatorHitFxMarker> operatorHitFxMarkerBySlot = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
         private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
         private const int DefaultMaxHp = 100;
@@ -87,6 +91,9 @@ namespace CrimsonDraft.Combat
             this.enemyAnimatorBySlot.Clear();
             this.enemyHitToggleBySlot.Clear();
             this.enemyDeathMarkerBySlot.Clear();
+            this.operatorHitFxMarkerBySlot.Clear();
+            this.enemyAttackResolvedDurationBySlot.Clear();
+            this.enemyAttackEventRelayBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -116,6 +123,8 @@ namespace CrimsonDraft.Combat
                 if (enemyAnimator != null) this.enemyAnimatorBySlot[i] = enemyAnimator;
                 var deathMarker = go.GetComponentInChildren<EnemyDeathMarker>();
                 if (deathMarker != null) this.enemyDeathMarkerBySlot[i] = deathMarker;
+                var attackEventRelay = go.GetComponentInChildren<EnemyAttackEventRelay>();
+                if (attackEventRelay != null) this.enemyAttackEventRelayBySlot[i] = attackEventRelay;
                 int rolledPoise = this.poiseRandom.NextInt(enemy.MinPoise, enemy.MaxPoise + 1);
                 int rolledMaxHp = RollMaxHp(enemy);
                 this.enemyStateBySlot[i] = new EnemyRuntimeState
@@ -154,6 +163,9 @@ namespace CrimsonDraft.Combat
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
                 if (operatorAnimator != null)
                     this.operatorAnimatorBySlot[i] = operatorAnimator;
+
+                var hitFxMarker = go.GetComponentInChildren<OperatorHitFxMarker>();
+                if (hitFxMarker != null) this.operatorHitFxMarkerBySlot[i] = hitFxMarker;
 
                 var operatorAudio = go.GetComponentInChildren<OperatorCombatAudio>();
                 if (operatorAudio != null && this.roster != null)
@@ -438,18 +450,85 @@ namespace CrimsonDraft.Combat
             if (mr != null) mr.material.color = new Color(0.4f, 0.4f, 0.4f, 1f);
         }
 
-        public void PlayEnemyAttackFeedback(int enemySlotIndex)
+        public void PlayEnemyAttackFeedback(int enemySlotIndex, Action onAttackImpact)
         {
-            if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null)
+            this.enemyAttackResolvedDurationBySlot.Remove(enemySlotIndex);
+
+            if (this.enemyAttackEventRelayBySlot.TryGetValue(enemySlotIndex, out var relay) && relay != null)
+                relay.Bind(onAttackImpact);
+
+            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null)
                 return;
 
-            enemyGo.transform.DOKill();
-            enemyGo.transform.DOShakePosition(
-                this.enemyAttackShakeDuration,
-                this.enemyAttackShakeStrength,
-                vibrato: 20,
-                randomness: 90f,
-                fadeOut: true);
+            animator.SetTrigger(AttackHash);
+            StartCoroutine(this.ResolveEnemyAttackDuration(enemySlotIndex, animator));
+        }
+
+        public bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec) =>
+            this.enemyAttackResolvedDurationBySlot.TryGetValue(enemySlotIndex, out durationSec);
+
+        // Mirrors WaitForAnimatorStateChange's state-change + real-clip-length detection,
+        // but reports the resolved duration back into a dictionary instead of yielding a
+        // delay itself — CombatOrchestrator polls it to correct its own animation-lock
+        // timestamp once the real Attack clip length is known. Times out silently (leaves
+        // nothing in the dictionary) if the transition never fires, so the orchestrator's
+        // own provisional lock duration is left standing instead.
+        private IEnumerator ResolveEnemyAttackDuration(int enemySlotIndex, Animator anim)
+        {
+            int startStateHash = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+            while (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash && Time.time < giveUpAt)
+                yield return null;
+
+            if (anim.GetCurrentAnimatorStateInfo(0).fullPathHash == startStateHash)
+                yield break;
+
+            var clipInfo = anim.GetCurrentAnimatorClipInfo(0);
+            if (clipInfo.Length > 0)
+                this.enemyAttackResolvedDurationBySlot[enemySlotIndex] = clipInfo[0].clip.length;
+        }
+
+        public void PlayOperatorHitFx(int operatorSlotIndex)
+        {
+            if (this.bloodHitFxPrefab == null) return;
+            if (operatorSlotIndex < 0 || operatorSlotIndex >= this.playerSlotTransforms.Length) return;
+
+            Transform? hitFxPoint = this.operatorHitFxMarkerBySlot.TryGetValue(operatorSlotIndex, out var marker) && marker != null
+                ? marker.HitFxPoint
+                : null;
+            Vector3 spawnPos = hitFxPoint != null ? hitFxPoint.position : this.playerSlotTransforms[operatorSlotIndex].position;
+
+            Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
+        }
+
+        public void PlayOperatorFlinch(int operatorSlotIndex)
+        {
+            if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
+                return;
+
+            animator.SetTrigger(FlinchHash);
+        }
+
+        public void PlayOperatorDeath(int operatorSlotIndex)
+        {
+            if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
+                return;
+
+            animator.SetTrigger(OperatorDeathHash);
+            StartCoroutine(this.PlayOperatorDeathSequence(operatorSlotIndex, animator));
+        }
+
+        // Reuses the same generic state-change wait as the enemy death sequence, then
+        // reveals the pre-placed blood-pool decal exactly like EnemyDeathMarker.BloodPool.
+        private IEnumerator PlayOperatorDeathSequence(int operatorSlotIndex, Animator anim)
+        {
+            yield return this.WaitForAnimatorStateChange(anim);
+
+            if (this.operatorHitFxMarkerBySlot.TryGetValue(operatorSlotIndex, out var marker)
+                && marker != null && marker.BloodPool != null)
+            {
+                marker.BloodPool.SetActive(true);
+            }
         }
 
         public void ShowOperatorDamage(int operatorSlotIndex, int damage)

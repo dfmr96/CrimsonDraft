@@ -26,6 +26,9 @@ namespace CrimsonDraft.Combat
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
+        // Provisional animation-lock duration used the instant an attack starts (before the
+        // real Attack clip length is known) and the fallback if it never resolves (e.g. no
+        // Animator on a placeholder enemy). See enemyAttackLockCorrected in ProcessQueueHead.
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
@@ -35,6 +38,8 @@ namespace CrimsonDraft.Combat
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
         private readonly Dictionary<int, float> rolledEnemyAttackBaseSec = new();
+        private float enemyAttackStartedAt;
+        private bool  enemyAttackLockCorrected;
 
         private const float DefaultAttackBaseSec = 7f;
 
@@ -86,7 +91,11 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.FillOperatorGauges();
 
             for (int i = 0; i < this.roster.Count; i++)
+            {
                 this.menuView.SetOperatorDimmed(i, true);
+                if (!this.roster[i].IsAlive)
+                    this.atbSystem.MarkDead(i, ATBActorKind.Operator);
+            }
 
             this.knownAliveEnemySlots.Clear();
             for (int i = 0; i < this.encounter.EnemySlots.Length; i++)
@@ -142,7 +151,7 @@ namespace CrimsonDraft.Combat
         public bool IsOperatorReady(int slotIndex)
         {
             ATBActorState? actor = this.atbSystem.GetActor(slotIndex, ATBActorKind.Operator);
-            return actor != null && actor.IsReady && actor.IsAwaitingCommand;
+            return actor != null && !actor.IsDead && actor.IsReady && actor.IsAwaitingCommand;
         }
 
         public void NotifyEnemyStaggered(int enemySlot)
@@ -311,11 +320,21 @@ namespace CrimsonDraft.Combat
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
                 }
-                else if (Time.time >= this.animationLockUntil)
+                else
                 {
-                    this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
-                    this.DequeueAction();
-                    this.enemyAttackInProgress = false;
+                    if (!this.enemyAttackLockCorrected &&
+                        this.battlefieldView.TryGetResolvedEnemyAttackDuration(head.SlotIndex, out float realDuration))
+                    {
+                        this.animationLockUntil = this.enemyAttackStartedAt + realDuration;
+                        this.enemyAttackLockCorrected = true;
+                    }
+
+                    if (Time.time >= this.animationLockUntil)
+                    {
+                        this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
+                        this.DequeueAction();
+                        this.enemyAttackInProgress = false;
+                    }
                 }
                 return;
             }
@@ -370,16 +389,47 @@ namespace CrimsonDraft.Combat
         {
             if (action.TargetOperatorSlot >= this.roster.Count) return;
 
-            this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
-            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
+            OperatorDamageResult result = this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
+
+            if (result.IsDead)
+            {
+                this.atbSystem.MarkDead(action.TargetOperatorSlot, ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(action.TargetOperatorSlot, true);
+
+                if (this.menuView.IsOperatorFocused(action.TargetOperatorSlot))
+                {
+                    IReadOnlyList<int> aliveSlots = this.roster.GetAliveSlots();
+                    if (aliveSlots.Count > 0)
+                        this.menuView.FocusOperator(aliveSlots[0]);
+                    else
+                        this.menuView.ClearFocus();
+                }
+            }
+
+            // Damage/ATB/dimming apply immediately (state must stay authoritative), but the
+            // operator's visual reaction waits for the Animation Event fired from the
+            // enemy's Attack clip at the moment the hit actually connects.
+            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex, () => this.OnEnemyAttackImpact(action, result));
+
+            this.enemyAttackStartedAt     = Time.time;
+            this.enemyAttackLockCorrected = false;
+            SetAnimationLock(this.defaultEnemyAttackDurSec);
+        }
+
+        private void OnEnemyAttackImpact(PendingAction action, OperatorDamageResult result)
+        {
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
+            this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
             this.ecgFeedback?.SetOperatorHealthState(
                 action.TargetOperatorSlot,
                 this.roster[action.TargetOperatorSlot].HpRatio,
                 this.roster[action.TargetOperatorSlot].IsAlive);
 
-            SetAnimationLock(this.defaultEnemyAttackDurSec);
+            if (result.IsDead)
+                this.battlefieldView.PlayOperatorDeath(action.TargetOperatorSlot);
+            else
+                this.battlefieldView.PlayOperatorFlinch(action.TargetOperatorSlot);
         }
 
         private void SyncDeadEnemies()

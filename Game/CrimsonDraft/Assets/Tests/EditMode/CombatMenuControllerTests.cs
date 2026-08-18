@@ -982,6 +982,8 @@ namespace CrimsonDraft.Tests
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
+            public int  FocusedOperatorIndex { get; set; } = -1;
+            public bool IsOperatorFocused(int index) => this.FocusedOperatorIndex == index;
             public int  FocusFireMarkedCallCount  { get; private set; }
             public bool LastFocusFireMarkedValue  { get; private set; }
             public int  LastFocusFireMarkedSlot   { get; private set; } = -1;
@@ -1155,8 +1157,16 @@ namespace CrimsonDraft.Tests
             public void Populate(EncounterData encounter)              { }
             public void SetOperatorIndicator(int slotIndex)            { }
             public void DimOperatorIndicator()                         { }
-            public void PlayEnemyAttackFeedback(int enemySlotIndex)    { }
+            public void PlayEnemyAttackFeedback(int enemySlotIndex, Action onAttackImpact) => onAttackImpact?.Invoke();
+            public bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec)
+            {
+                durationSec = 0f;
+                return false;
+            }
             public void ShowOperatorDamage(int operatorSlotIndex, int damage) { }
+            public void PlayOperatorHitFx(int operatorSlotIndex) { }
+            public void PlayOperatorFlinch(int operatorSlotIndex) { }
+            public void PlayOperatorDeath(int operatorSlotIndex) { }
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
             public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;
