@@ -98,6 +98,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4813616885095699706}
+  - {fileID: 5972646950085176240}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6248927136952844247
@@ -113,9 +114,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerController
   rb: {fileID: 7586606001846501166}
-  animator: {fileID: 1453901650854825600}
+  animator: {fileID: 289134265740325322}
   walkSpeed: 2.3
-  runSpeed: 7
+  runSpeed: 5
   footOffset: 1
   navMeshTolerance: 0.3
   yellowCautionThreshold: 0.75
@@ -190,7 +191,7 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 256
-  animator: {fileID: 1453901650854825600}
+  animator: {fileID: 289134265740325322}
   interactingDuration: 1
 --- !u!114 &765452057391134389
 MonoBehaviour:
@@ -1942,7 +1943,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1082271958561512970, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
       propertyPath: m_IsActive
@@ -2448,11 +2449,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 196617083158879657}
   m_SourcePrefab: {fileID: 100100000, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
---- !u!95 &1453901650854825600 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
-  m_PrefabInstance: {fileID: 4992203288176685841}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4813616885095699706 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1163fd4944da27f4d8baab61ef94f74f, type: 3}
@@ -2526,6 +2522,170 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerHeadLookController
   headBone: {fileID: 1892980541899557600}
   lookAxisOffset: {x: -90, y: -180, z: 0}
+  detectionRadius: 3
+  maxAngle: 45
+  weightSpeed: 3
+  detectionInterval: 0.3
+  lookableLayer:
+    serializedVersion: 2
+    m_Bits: 256
+--- !u!1001 &6154630397018295387
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4853855590609233854}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_Name
+      value: SoldierCharacter_animated
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 4d9efa6a4c190ee439b2efee78ed5643, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9190488229430717921}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4001290908642472920}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8568238774187155672}
+  m_SourcePrefab: {fileID: 100100000, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+--- !u!95 &289134265740325322 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+  m_PrefabInstance: {fileID: 6154630397018295387}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3103221830550750705 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -109924306360743510, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+  m_PrefabInstance: {fileID: 6154630397018295387}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5972646950085176240 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+  m_PrefabInstance: {fileID: 6154630397018295387}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6460636235736412426 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+  m_PrefabInstance: {fileID: 6154630397018295387}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &9190488229430717921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460636235736412426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd874ac0107f2254eb2f8cfd84f6a19d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrimsonDraft.Audio.FootstepController
+  walkEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: de1070a8a0c2dc940880ad0397f478b2, type: 2}
+  runEvent:
+    idInternal: 0
+    valueGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 9b6793be04ccb50438b95ee1b7194828, type: 2}
+  mapping: {fileID: 11400000, guid: 8280ccae9cfaff94c8c60c319a9f4ed9, type: 2}
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 64
+  rayDistance: 0.3
+  rb: {fileID: 7586606001846501166}
+  minSpeedSqr: 0.05
+--- !u!114 &4001290908642472920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460636235736412426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95e4e2463efd72040b2b781303e44d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkGameObj
+  m_listeners:
+    initialListenerList: []
+    useDefaultListeners: 1
+  isEnvironmentAware: 1
+  isStaticObject: 0
+  m_positionOffsetData:
+    KeepMe: 0
+    positionOffset: {x: 0, y: 0, z: 0}
+  m_posOffsetData: {fileID: 0}
+  listenerMask: 1
+--- !u!114 &8568238774187155672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460636235736412426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f11b10b33f131d418f5c0c7c6289d9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Player.PlayerHeadLookController
+  headBone: {fileID: 3103221830550750705}
+  lookAxisOffset: {x: 0, y: 0, z: 0}
   detectionRadius: 3
   maxAngle: 45
   weightSpeed: 3
