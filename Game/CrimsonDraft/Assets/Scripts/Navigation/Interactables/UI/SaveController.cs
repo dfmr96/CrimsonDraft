@@ -19,15 +19,13 @@ namespace CrimsonDraft.Navigation.Interactables
     public sealed class SaveController : IInitializable, IDisposable
     {
         private readonly IInputService       inputService;
-        private readonly SaveSlotListView    view;
         private readonly ISaveGameService    saveGameService;
         private readonly IInventoryService   inventoryService;
         private readonly IOperatorRoster     roster;
         private readonly IRoomOrchestrator   roomOrchestrator;
         private readonly PlayerController    player;
         private readonly WorldStateRegistries world;
-
-        private bool isOpen;
+        private readonly SaveSlotNavigator   navigator;
 
         [Preserve]
         public SaveController(
@@ -41,38 +39,43 @@ namespace CrimsonDraft.Navigation.Interactables
             WorldStateRegistries world)
         {
             this.inputService     = inputService;
-            this.view             = view;
             this.saveGameService  = saveGameService;
             this.inventoryService = inventoryService;
             this.roster           = roster;
             this.roomOrchestrator = roomOrchestrator;
             this.player           = player;
             this.world            = world;
+            this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
 
         void IInitializable.Initialize()
         {
-            this.inputService.UIBack.performed += OnBack;
+            this.inputService.UINavigate.performed += OnNavigate;
+            this.inputService.UIConfirm.performed  += OnConfirm;
+            this.inputService.UIBack.performed     += OnBack;
         }
 
         public void Open()
         {
-            if (this.isOpen) return;
-            this.isOpen = true;
+            if (this.navigator.IsOpen) return;
             Time.timeScale = 0f;
             this.inputService.SwitchToUI();
-            this.view.Show(this.saveGameService.ListSlotSummaries(), OnSlotClicked);
+            this.navigator.Open(this.saveGameService.ListSlotSummaries());
         }
 
-        private void OnSlotClicked(SaveSlotSummary summary)
+        private void OnNavigatorClosed()
         {
-            this.view.ShowConfirm($"Save to slot {summary.slot + 1}?", () => Save(summary.slot));
+            Time.timeScale = 1f;
+            this.inputService.SwitchToGameplay();
         }
+
+        private void OnNavigate(InputAction.CallbackContext ctx) => this.navigator.HandleNavigate(ctx.ReadValue<Vector2>());
+        private void OnConfirm(InputAction.CallbackContext _)    => this.navigator.HandleConfirm();
+        private void OnBack(InputAction.CallbackContext _)       => this.navigator.HandleBack();
 
         public void Save(int slot)
         {
             this.saveGameService.WriteToDisk(slot, BuildSaveData());
-            Close();
         }
 
         private SaveGameData BuildSaveData()
@@ -124,23 +127,11 @@ namespace CrimsonDraft.Navigation.Interactables
             return data;
         }
 
-        private void OnBack(InputAction.CallbackContext _)
-        {
-            if (!this.isOpen) return;
-            Close();
-        }
-
-        private void Close()
-        {
-            this.isOpen = false;
-            this.view.Hide();
-            Time.timeScale = 1f;
-            this.inputService.SwitchToGameplay();
-        }
-
         void IDisposable.Dispose()
         {
-            this.inputService.UIBack.performed -= OnBack;
+            this.inputService.UINavigate.performed -= OnNavigate;
+            this.inputService.UIConfirm.performed  -= OnConfirm;
+            this.inputService.UIBack.performed     -= OnBack;
         }
     }
 }

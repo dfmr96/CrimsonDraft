@@ -3,23 +3,20 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace CrimsonDraft.Infrastructure.Save.UI
 {
     public sealed class SaveSlotRow : MonoBehaviour
     {
-        [SerializeField] private Button           button = null!;
-        [SerializeField] private TextMeshProUGUI  label  = null!;
+        [SerializeField] private TextMeshProUGUI label = null!;
 
-        public void Bind(SaveSlotSummary summary, Action onClick)
+        public void Bind(SaveSlotSummary summary, bool isSelected)
         {
+            string prefix = isSelected ? "> " : "  ";
             this.label.text = summary.isEmpty
-                ? $"Slot {summary.slot + 1} — empty"
-                : $"Slot {summary.slot + 1} — {summary.roomId} — {FormatPlaytime(summary.playtimeSeconds)} — {summary.timestampIso}";
+                ? $"{prefix}Slot {summary.slot + 1} — empty"
+                : $"{prefix}Slot {summary.slot + 1} — {summary.roomId} — {FormatPlaytime(summary.playtimeSeconds)} — {summary.timestampIso}";
 
-            this.button.onClick.RemoveAllListeners();
-            this.button.onClick.AddListener(() => onClick());
             gameObject.SetActive(true);
         }
 
