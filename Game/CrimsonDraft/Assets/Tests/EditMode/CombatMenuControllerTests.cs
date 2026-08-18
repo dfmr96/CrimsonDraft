@@ -982,6 +982,8 @@ namespace CrimsonDraft.Tests
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
+            public int  FocusedOperatorIndex { get; set; } = -1;
+            public bool IsOperatorFocused(int index) => this.FocusedOperatorIndex == index;
             public int  FocusFireMarkedCallCount  { get; private set; }
             public bool LastFocusFireMarkedValue  { get; private set; }
             public int  LastFocusFireMarkedSlot   { get; private set; } = -1;

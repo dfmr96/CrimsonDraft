@@ -142,7 +142,7 @@ namespace CrimsonDraft.Combat
         public bool IsOperatorReady(int slotIndex)
         {
             ATBActorState? actor = this.atbSystem.GetActor(slotIndex, ATBActorKind.Operator);
-            return actor != null && actor.IsReady && actor.IsAwaitingCommand;
+            return actor != null && !actor.IsDead && actor.IsReady && actor.IsAwaitingCommand;
         }
 
         public void NotifyEnemyStaggered(int enemySlot)
@@ -370,7 +370,7 @@ namespace CrimsonDraft.Combat
         {
             if (action.TargetOperatorSlot >= this.roster.Count) return;
 
-            this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
+            OperatorDamageResult result = this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
             this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
@@ -378,6 +378,21 @@ namespace CrimsonDraft.Combat
                 action.TargetOperatorSlot,
                 this.roster[action.TargetOperatorSlot].HpRatio,
                 this.roster[action.TargetOperatorSlot].IsAlive);
+
+            if (result.IsDead)
+            {
+                this.atbSystem.MarkDead(action.TargetOperatorSlot, ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(action.TargetOperatorSlot, true);
+
+                if (this.menuView.IsOperatorFocused(action.TargetOperatorSlot))
+                {
+                    IReadOnlyList<int> aliveSlots = this.roster.GetAliveSlots();
+                    if (aliveSlots.Count > 0)
+                        this.menuView.FocusOperator(aliveSlots[0]);
+                    else
+                        this.menuView.ClearFocus();
+                }
+            }
 
             SetAnimationLock(this.defaultEnemyAttackDurSec);
         }

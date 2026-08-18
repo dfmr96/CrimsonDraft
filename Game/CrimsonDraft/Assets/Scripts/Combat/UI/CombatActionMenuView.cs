@@ -420,6 +420,16 @@ namespace CrimsonDraft.Combat
             if (highlight != null) highlight.SetActive(!dimmed);
         }
 
+        public bool IsOperatorFocused(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return false;
+
+            if (this.focusedOperatorIndex == index) return true;
+
+            return EventSystem.current != null
+                && EventSystem.current.currentSelectedGameObject == this.operators[index].gameObject;
+        }
+
         public void SetOperatorFocusFireMarked(int index, bool marked)
         {
             if (index < 0 || index >= this.operatorFocusFireMarkers.Length) return;

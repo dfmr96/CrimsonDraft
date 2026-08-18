@@ -21,11 +21,12 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0.01f, 0.5f)] private float trailFraction = 0.18f;
         [SerializeField, Range(0.1f, 4f)] private float fadeExponent = 1f;
 
-        [Header("Health States (ECG_1..ECG_4)")]
+        [Header("Health States (ECG_1..ECG_4, Dead)")]
         [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
         [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
         [SerializeField] private Sprite? stageSpriteWarning;  // 25-50%
         [SerializeField] private Sprite? stageSpriteCritical; // 0-25%, fast/erratic
+        [SerializeField] private Sprite? stageSpriteDead;     // 0%, static flatline
 
         [SerializeField] private float stageDurationStable = 3f;
         [SerializeField] private float stageDurationCaution = 2f;
@@ -34,23 +35,33 @@ namespace CrimsonDraft.Combat
 
         private float t;
         private bool isResting;
+        private bool isFlatlined;
         private float restTimer;
+        private Material? sourceMaterial;
         private Material? runtimeMaterial;
 
         #endregion
 
         #region Unity Lifecycle
 
+        private void Awake()
+        {
+            this.sourceMaterial = this.traceImage.material;
+        }
+
         private void OnEnable()
         {
             this.t = 0f;
             this.isResting = false;
             this.restTimer = 0f;
-            this.ApplySweep();
+            if (!this.isFlatlined)
+                this.ApplySweep();
         }
 
         private void Update()
         {
+            if (this.isFlatlined) return;
+
             if (this.isResting)
             {
                 this.restTimer += Time.unscaledDeltaTime;
@@ -90,6 +101,21 @@ namespace CrimsonDraft.Combat
         public void SetHealthState(float hpRatio)
         {
             hpRatio = Mathf.Clamp01(hpRatio);
+
+            if (hpRatio <= 0f)
+            {
+                this.isFlatlined = true;
+                if (this.stageSpriteDead != null)
+                    this.traceImage.sprite = this.stageSpriteDead;
+                this.traceImage.material = null;
+                return;
+            }
+
+            if (this.isFlatlined)
+            {
+                this.isFlatlined = false;
+                this.GetRuntimeMaterial();
+            }
 
             Sprite? sprite;
             float duration;
@@ -142,11 +168,9 @@ namespace CrimsonDraft.Combat
         private Material GetRuntimeMaterial()
         {
             if (this.runtimeMaterial == null)
-            {
-                this.runtimeMaterial = Instantiate(this.traceImage.material);
-                this.traceImage.material = this.runtimeMaterial;
-            }
+                this.runtimeMaterial = Instantiate(this.sourceMaterial);
 
+            this.traceImage.material = this.runtimeMaterial;
             return this.runtimeMaterial;
         }
 
