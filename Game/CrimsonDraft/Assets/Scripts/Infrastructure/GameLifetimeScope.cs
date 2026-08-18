@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Infrastructure.UI;
 
@@ -51,6 +52,11 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);
+
+            builder.Register<WorldStateRegistries>(Lifetime.Singleton);
+
+            builder.Register<SaveGameService>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<GameStateResetter>(Lifetime.Singleton).AsImplementedInterfaces();
         }
     }
 }

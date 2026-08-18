@@ -1054,19 +1054,20 @@ git commit -m "feat(save): add GameStateResetter for New Game state reset"
 
 ---
 
-### Task 6: Register new services in `GameLifetimeScope` + create the `ItemDatabase` asset
+### Task 6: Register new services in `GameLifetimeScope`
+
+**Correction (found during implementation):** the plan originally had this task also register `ItemDatabase` on `GameLifetimeScope`. That's not possible — `CrimsonDraft.Infrastructure.asmdef` cannot reference `CrimsonDraft.Inventory` because `CrimsonDraft.Inventory.asmdef` already references `CrimsonDraft.Infrastructure`; adding the reverse reference creates a circular assembly dependency, which Unity rejects at compile time (confirmed: `CS0234`/`CS0246` on `GameLifetimeScope.cs` when `ItemDatabase` was referenced there). `ItemDatabase` is only ever consumed by `SaveGameLoader`, which is `NavigationScope`-scoped — so it's registered there instead (moved into Task 12, which already touches `NavigationScope` and scene wiring). Task 6 below only covers `WorldStateRegistries`/`SaveGameService`/`GameStateResetter`, none of which reference `Inventory` types.
 
 **Files:**
 - Modify: `Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs`
-- Create (Unity asset, not code): `Game/CrimsonDraft/Assets/Data/ItemDatabase.asset`
 
 **Interfaces:**
-- Consumes: `WorldStateRegistries` (Task 1), `ISaveGameService`/`SaveGameService` (Task 4), `IGameStateResetter`/`GameStateResetter` (Task 5), `ItemDatabase` (Task 3).
-- Produces: all four resolvable via DI from any child scope (`NavigationScope`, the new `MainMenuScope` in Task 13) — `WorldStateRegistries`, `ISaveGameService`, `IGameStateResetter`, `ItemDatabase`.
+- Consumes: `WorldStateRegistries` (Task 1), `ISaveGameService`/`SaveGameService` (Task 4), `IGameStateResetter`/`GameStateResetter` (Task 5).
+- Produces: all three resolvable via DI from any child scope (`NavigationScope`, the new `MainMenuScope` in Task 13) — `WorldStateRegistries`, `ISaveGameService`, `IGameStateResetter`.
 
 - [ ] **Step 1: Register the new services in `GameLifetimeScope.Configure`**
 
-Modify `Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs` — add `using CrimsonDraft.Infrastructure.Save;` and `using CrimsonDraft.Inventory;` to the usings, add an `[SerializeField] private ItemDatabase itemDatabase = null!;` field, and add these lines at the end of `Configure`:
+Modify `Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs` — add `using CrimsonDraft.Infrastructure.Save;` to the usings, and add these lines at the end of `Configure`:
 
 ```csharp
             builder.Register<DoorStateRegistry>(Lifetime.Singleton);
@@ -1080,40 +1081,23 @@ Modify `Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs` �
 
             builder.Register<WorldStateRegistries>(Lifetime.Singleton);
 
-            if (this.itemDatabase == null)
-                throw new System.InvalidOperationException(
-                    $"{nameof(this.itemDatabase)} is not assigned in {nameof(GameLifetimeScope)}.");
-            builder.RegisterInstance(this.itemDatabase);
-
             builder.Register<SaveGameService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<GameStateResetter>(Lifetime.Singleton).AsImplementedInterfaces();
 ```
 
-(The eight `Register<...Registry>` lines already exist in the file — leave them where they are and add the five new lines directly after them, replacing the file's current final `}` of `Configure` accordingly.)
+(The eight `Register<...Registry>` lines already exist in the file — leave them where they are and add the three new lines directly after them.)
 
-- [ ] **Step 2: Verify the project compiles (it will error until the asset is assigned)**
+- [ ] **Step 2: Verify the project compiles**
 
-Check `read_console` (MCP) or the Console window. Expected at this point: a runtime `InvalidOperationException` only if `GameLifetimeScope`'s `Boot` scene is entered before Step 3 — compilation itself must succeed with no errors.
+Check `read_console` (MCP) or the Console window.
+Expected: no errors.
 
-- [ ] **Step 3: Create and populate the `ItemDatabase` asset**
-
-In the Unity Editor:
-1. Right-click `Assets/Data/` → `Create` → `CrimsonDraft` → `Inventory` → `Item Database`. Name it `ItemDatabase`.
-2. Select the new asset, click the "Populate From Project" button in its Inspector (added in Task 3) to auto-fill `allItems` from every `ItemData` asset in the project.
-3. Open the `Boot` scene, select the `GameLifetimeScope` GameObject, and drag the new `ItemDatabase` asset into the `Item Database` field added in Step 1.
-4. Save the `Boot` scene.
-
-- [ ] **Step 4: Verify no compile/runtime errors on scope build**
-
-Enter Play mode from the `Boot` scene (or any scene, since `Bootstrapper` loads `Boot` additively) and confirm via `read_console` that `GameLifetimeScope` builds without the `InvalidOperationException` from Step 1, and without any other new errors.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs Game/CrimsonDraft/Assets/Data/ItemDatabase.asset Game/CrimsonDraft/Assets/Data/ItemDatabase.asset.meta Game/CrimsonDraft/Assets/Scenes/Boot.unity
-git commit -m "feat(save): register save services and ItemDatabase asset in GameLifetimeScope"
+git add Game/CrimsonDraft/Assets/Scripts/Infrastructure/GameLifetimeScope.cs
+git commit -m "feat(save): register WorldStateRegistries/SaveGameService/GameStateResetter in GameLifetimeScope"
 ```
-(Adjust the `Boot.unity` path above to match the actual scene path if it differs — check with `git status` before committing.)
 
 ---
 
@@ -2317,16 +2301,24 @@ git commit -m "feat(save): add SaveGameLoader to apply pending saves on scene en
 - Scene (not code): the navigation scene(s) containing a `SaveRoomMarker` room (e.g. `Deck_B_Development` — verify the exact scene name(s) via the `SaveRoomMarker` usages in the project before proceeding)
 
 **Interfaces:**
-- Consumes: `SaveController` (Task 9), `SaveGameLoader` (Task 11), `SaveSlotListView` (Task 8), `SavePointInteractable` (Task 10).
+- Consumes: `SaveController` (Task 9), `SaveGameLoader` (Task 11), `SaveSlotListView` (Task 8), `SavePointInteractable` (Task 10), `ItemDatabase` (Task 3).
 - Produces: a working, testable in-Editor save point.
 
-- [ ] **Step 1: Register `SaveSlotListView`, `SaveController`, and `SaveGameLoader` in `NavigationScope`**
+**Note:** `ItemDatabase` is registered here, not in `GameLifetimeScope` — see the Task 6 correction. Because `NavigationScope` is per-scene (rebuilt on every navigation scene load, e.g. separately for Deck B and Deck C), the `ItemDatabase` asset reference must be assigned on **each** scene's `NavigationScope` component individually, not once in `Boot`.
 
-Modify `Game/CrimsonDraft/Assets/Scripts/Navigation/NavigationScope.cs` — add `using CrimsonDraft.Infrastructure.Save;` and `using CrimsonDraft.Infrastructure.Save.UI;` to the usings.
+- [ ] **Step 1: Register `ItemDatabase`, `SaveSlotListView`, `SaveController`, and `SaveGameLoader` in `NavigationScope`**
 
-Add a serialized field near the other view fields (next to `pickupPreviewView`):
+Modify `Game/CrimsonDraft/Assets/Scripts/Navigation/NavigationScope.cs` — add `using CrimsonDraft.Infrastructure.Save;` and `using CrimsonDraft.Infrastructure.Save.UI;` to the usings (`CrimsonDraft.Inventory` is already imported).
+
+Add serialized fields near the other data/view fields (next to `mapDataSet` and `pickupPreviewView` respectively):
 ```csharp
+        [SerializeField] private ItemDatabase             itemDatabase      = null!;
         [SerializeField] private SaveSlotListView        saveSlotListView  = null!;
+```
+
+Register `ItemDatabase` next to the other `RegisterInstance` calls near the top of `Configure` (next to `this.mapDataSet`):
+```csharp
+            builder.RegisterInstance(this.itemDatabase);
 ```
 
 Register the view and the two controllers. Insert `SaveSlotListView` registration next to `ContainerView`'s:
@@ -2358,7 +2350,14 @@ Register `SaveGameLoader` **immediately after** the `RoomOrchestrator` registrat
 Check `read_console` (MCP) or the Console window.
 Expected: compile errors about the unassigned `saveSlotListView` serialized field only surface at scene-build time in the Editor (missing reference), not at compile time — confirm no C# compile errors.
 
-- [ ] **Step 3: Build the `SaveSlotListView` prefab/hierarchy in the target scene**
+- [ ] **Step 3a: Create and populate the `ItemDatabase` asset**
+
+In the Unity Editor:
+1. Right-click `Assets/Data/` → `Create` → `CrimsonDraft` → `Inventory` → `Item Database`. Name it `ItemDatabase`.
+2. Select the new asset, click the "Populate From Project" button in its Inspector (added in Task 3) to auto-fill `allItems` from every `ItemData` asset in the project.
+3. In each navigation scene (e.g. `Deck_B_Development`, and any other scene with its own `NavigationScope`), select the `NavigationScope` GameObject and drag the `ItemDatabase` asset into the `Item Database` field added in Step 1. Save each scene.
+
+- [ ] **Step 3b: Build the `SaveSlotListView` prefab/hierarchy in the target scene**
 
 In the Unity Editor, open the scene that has the `NavigationScope` GameObject (e.g. `Deck_B_Development`):
 1. Under the scene's HUD/UI Canvas (the same Canvas that hosts `ContainerView`'s panel — inspect the `ContainerView` GameObject in the Hierarchy to find it), create a new child GameObject `SaveSlotListPanel` with:
