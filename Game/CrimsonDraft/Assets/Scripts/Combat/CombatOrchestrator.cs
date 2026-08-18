@@ -86,7 +86,11 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.FillOperatorGauges();
 
             for (int i = 0; i < this.roster.Count; i++)
+            {
                 this.menuView.SetOperatorDimmed(i, true);
+                if (!this.roster[i].IsAlive)
+                    this.atbSystem.MarkDead(i, ATBActorKind.Operator);
+            }
 
             this.knownAliveEnemySlots.Clear();
             for (int i = 0; i < this.encounter.EnemySlots.Length; i++)
@@ -373,6 +377,7 @@ namespace CrimsonDraft.Combat
             OperatorDamageResult result = this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
             this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
+            this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
             this.ecgFeedback?.SetOperatorHealthState(
                 action.TargetOperatorSlot,

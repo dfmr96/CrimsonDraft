@@ -29,6 +29,7 @@ namespace CrimsonDraft.Combat
         void DimOperatorIndicator();
         void PlayEnemyAttackFeedback(int enemySlotIndex);
         void ShowOperatorDamage(int operatorSlotIndex, int damage);
+        void PlayOperatorHitFx(int operatorSlotIndex);
         void SetEnemyTargetIndicator(int slotIndex);
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();

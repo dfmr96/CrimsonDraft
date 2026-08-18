@@ -57,6 +57,7 @@ namespace CrimsonDraft.Combat
         private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
+        private readonly Dictionary<int, OperatorHitFxMarker> operatorHitFxMarkerBySlot = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
         private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
         private const int DefaultMaxHp = 100;
@@ -87,6 +88,7 @@ namespace CrimsonDraft.Combat
             this.enemyAnimatorBySlot.Clear();
             this.enemyHitToggleBySlot.Clear();
             this.enemyDeathMarkerBySlot.Clear();
+            this.operatorHitFxMarkerBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
 
             var occupied = new List<int>();
@@ -154,6 +156,9 @@ namespace CrimsonDraft.Combat
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
                 if (operatorAnimator != null)
                     this.operatorAnimatorBySlot[i] = operatorAnimator;
+
+                var hitFxMarker = go.GetComponentInChildren<OperatorHitFxMarker>();
+                if (hitFxMarker != null) this.operatorHitFxMarkerBySlot[i] = hitFxMarker;
 
                 var operatorAudio = go.GetComponentInChildren<OperatorCombatAudio>();
                 if (operatorAudio != null && this.roster != null)
@@ -450,6 +455,19 @@ namespace CrimsonDraft.Combat
                 vibrato: 20,
                 randomness: 90f,
                 fadeOut: true);
+        }
+
+        public void PlayOperatorHitFx(int operatorSlotIndex)
+        {
+            if (this.bloodHitFxPrefab == null) return;
+            if (operatorSlotIndex < 0 || operatorSlotIndex >= this.playerSlotTransforms.Length) return;
+
+            Transform? hitFxPoint = this.operatorHitFxMarkerBySlot.TryGetValue(operatorSlotIndex, out var marker) && marker != null
+                ? marker.HitFxPoint
+                : null;
+            Vector3 spawnPos = hitFxPoint != null ? hitFxPoint.position : this.playerSlotTransforms[operatorSlotIndex].position;
+
+            Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
         }
 
         public void ShowOperatorDamage(int operatorSlotIndex, int damage)

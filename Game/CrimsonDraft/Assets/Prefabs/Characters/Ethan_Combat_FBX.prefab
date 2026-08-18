@@ -158,6 +158,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1962420109353925008}
+  - {fileID: 8015033391249049828}
   m_Father: {fileID: 2290421594976552197}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &903563713589975297
@@ -684,6 +685,37 @@ Transform:
   m_Children:
   - {fileID: 6109013111648526681}
   m_Father: {fileID: 5904563144676444517}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3274382100663243353
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8015033391249049828}
+  m_Layer: 0
+  m_Name: HitFxPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8015033391249049828
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3274382100663243353}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6887866400243542423}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3338580745077633651
 GameObject:
@@ -1271,6 +1303,7 @@ GameObject:
   - component: {fileID: 678324653056214925}
   - component: {fileID: 3290676108458685830}
   - component: {fileID: 9065828844165077293}
+  - component: {fileID: 1640248965614162888}
   m_Layer: 9
   m_Name: Ethan_Combat_FBX
   m_TagString: Untagged
@@ -1367,6 +1400,19 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 9a565e7176a079d40aab30f0ec3b5dca, type: 2}
+--- !u!114 &1640248965614162888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7087180348194864006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5166347e937a274438adb4b3f4fa2ed0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.OperatorHitFxMarker
+  hitFxPoint: {fileID: 8015033391249049828}
 --- !u!1 &7533079032247636854
 GameObject:
   m_ObjectHideFlags: 0

@@ -324,6 +324,7 @@ GameObject:
   - component: {fileID: 8330987275434727088}
   - component: {fileID: 2811436100706746911}
   - component: {fileID: 3715393405629064879}
+  - component: {fileID: 6135686470219022380}
   m_Layer: 9
   m_Name: Lilou_Combat_FBX
   m_TagString: Untagged
@@ -420,6 +421,19 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 9a565e7176a079d40aab30f0ec3b5dca, type: 2}
+--- !u!114 &6135686470219022380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1761072602272906524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5166347e937a274438adb4b3f4fa2ed0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.OperatorHitFxMarker
+  hitFxPoint: {fileID: 9146751544114823358}
 --- !u!1 &2522933713762693135
 GameObject:
   m_ObjectHideFlags: 0
@@ -544,6 +558,37 @@ Transform:
   m_Children:
   - {fileID: 8943959002405652164}
   m_Father: {fileID: 1641522606089616822}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3299305759211814729
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9146751544114823358}
+  m_Layer: 0
+  m_Name: HitFxPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9146751544114823358
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3299305759211814729}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6612232667006673129}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3338435051228739767
 GameObject:
@@ -670,6 +715,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8822153979515325441}
+  - {fileID: 9146751544114823358}
   m_Father: {fileID: 7638496323661092043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3615755173286054169
