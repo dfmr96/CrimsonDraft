@@ -66,7 +66,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private void OnNavigatorClosed()
         {
             Time.timeScale = 1f;
-            this.inputService.SwitchToGameplay();
+            DeferredInputAction.Run(this.inputService.SwitchToGameplay);
         }
 
         private void OnNavigate(InputAction.CallbackContext ctx) => this.navigator.HandleNavigate(ctx.ReadValue<Vector2>());

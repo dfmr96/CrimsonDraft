@@ -67,9 +67,12 @@ namespace CrimsonDraft.Infrastructure.Save.UI
 
             if (this.isConfirming)
             {
+                // Close (hide the view, switch input maps) before invoking the callback: the
+                // callback may trigger a scene load (e.g. loading a save), which can destroy
+                // the view's GameObject before we'd get a chance to hide it.
                 int slot = this.slots[this.cursorIndex].slot;
-                this.onConfirmSlot(slot);
                 Close();
+                this.onConfirmSlot(slot);
                 return;
             }
 

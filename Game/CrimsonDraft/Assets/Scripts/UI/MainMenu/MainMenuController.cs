@@ -37,7 +37,7 @@ namespace CrimsonDraft.UI.MainMenu
                 "Load",
                 slot => this.saveGameService.LoadSlot(slot),
                 canConfirm: summary => !summary.isEmpty,
-                onClosed: () => this.inputService.SwitchToGameplay());
+                onClosed: () => DeferredInputAction.Run(this.inputService.SwitchToGameplay));
 
             this.inputService.UINavigate.performed += OnNavigate;
             this.inputService.UIConfirm.performed  += OnConfirm;
