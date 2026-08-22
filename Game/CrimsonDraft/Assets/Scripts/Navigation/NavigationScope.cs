@@ -72,10 +72,6 @@ namespace CrimsonDraft.Navigation
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
-            builder.RegisterInstance(this.cachedEnemies);
-            builder.RegisterInstance(this.cachedCombatTriggers);
-            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
-
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
 
             builder.RegisterInstance(this.cachedCameraZoneTriggers);
@@ -147,6 +143,10 @@ namespace CrimsonDraft.Navigation
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);
+            builder.RegisterInstance(this.cachedEnemies);
+            builder.RegisterInstance(this.cachedCombatTriggers);
+            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
