@@ -25,6 +25,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly IRoomOrchestrator   roomOrchestrator;
         private readonly PlayerController    player;
         private readonly WorldStateRegistries world;
+        private readonly PlaytimeTracker     playtimeTracker;
         private readonly SaveSlotNavigator   navigator;
 
         [Preserve]
@@ -36,7 +37,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IOperatorRoster      roster,
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
-            WorldStateRegistries world)
+            WorldStateRegistries world,
+            PlaytimeTracker      playtimeTracker)
         {
             this.inputService     = inputService;
             this.saveGameService  = saveGameService;
@@ -45,6 +47,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.roomOrchestrator = roomOrchestrator;
             this.player           = player;
             this.world            = world;
+            this.playtimeTracker  = playtimeTracker;
             this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
 
@@ -75,17 +78,19 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Save(int slot)
         {
-            this.saveGameService.WriteToDisk(slot, BuildSaveData());
+            int previousSaveCount = this.saveGameService.ReadFromDisk(slot)?.saveCount ?? 0;
+            this.saveGameService.WriteToDisk(slot, BuildSaveData(previousSaveCount + 1));
         }
 
-        private SaveGameData BuildSaveData()
+        private SaveGameData BuildSaveData(int saveCount)
         {
             var data = new SaveGameData
             {
                 sceneName       = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
                 roomId          = this.roomOrchestrator.CurrentRoom != null ? this.roomOrchestrator.CurrentRoom.RoomId : "",
-                timestampIso    = DateTime.UtcNow.ToString("o"),
-                playtimeSeconds = Time.realtimeSinceStartup,
+                timestampIso    = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                saveCount       = saveCount,
+                playtimeSeconds = this.playtimeTracker.CurrentSeconds,
                 playerPosition  = this.player.transform.position,
                 playerRotation  = this.player.transform.rotation,
                 operatorHp      = this.roster.GetHpSnapshot(),

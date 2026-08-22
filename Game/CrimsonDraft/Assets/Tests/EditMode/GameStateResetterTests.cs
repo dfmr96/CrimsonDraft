@@ -30,7 +30,7 @@ namespace CrimsonDraft.Tests
             inventoryState.Save(new object());
             rosterHealth.Save(new[] { 100 });
 
-            var resetter = new GameStateResetter(world, inventoryState, rosterHealth);
+            var resetter = new GameStateResetter(world, inventoryState, rosterHealth, new PlaytimeTracker());
             resetter.ResetAll();
 
             Assert.IsFalse(doors.IsUnlocked("door-a"));

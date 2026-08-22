@@ -10,6 +10,9 @@ namespace CrimsonDraft.Infrastructure.Save
         void WriteToDisk(int slot, SaveGameData data);
         SaveGameData? ReadFromDisk(int slot);
 
+        /// <summary>Deletes the slot's file if it exists. Returns false if the slot was already empty.</summary>
+        bool DeleteSlot(int slot);
+
         /// <summary>Reads the slot, stashes it as the pending load, and loads its scene. Returns false if the slot is empty.</summary>
         bool LoadSlot(int slot);
 

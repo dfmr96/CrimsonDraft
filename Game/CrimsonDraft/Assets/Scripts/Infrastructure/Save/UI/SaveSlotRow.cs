@@ -15,7 +15,7 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             string prefix = isSelected ? "> " : "  ";
             this.label.text = summary.isEmpty
                 ? $"{prefix}Slot {summary.slot + 1} — empty"
-                : $"{prefix}Slot {summary.slot + 1} — {summary.roomId} — {FormatPlaytime(summary.playtimeSeconds)} — {summary.timestampIso}";
+                : $"{prefix}#{summary.saveCount}/{summary.roomId}/{FormatPlaytime(summary.playtimeSeconds)}/{ExtractTime(summary.timestampIso)}";
 
             gameObject.SetActive(true);
         }
@@ -24,6 +24,12 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         {
             var span = TimeSpan.FromSeconds(seconds);
             return $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}";
+        }
+
+        private static string ExtractTime(string timestamp)
+        {
+            int spaceIndex = timestamp.IndexOf(' ');
+            return spaceIndex >= 0 ? timestamp[(spaceIndex + 1)..] : timestamp;
         }
     }
 }

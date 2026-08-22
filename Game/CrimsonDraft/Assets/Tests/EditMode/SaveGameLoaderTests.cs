@@ -25,6 +25,7 @@ namespace CrimsonDraft.Tests
             public IReadOnlyList<SaveSlotSummary> ListSlotSummaries() => Array.Empty<SaveSlotSummary>();
             public void WriteToDisk(int slot, SaveGameData data) { }
             public SaveGameData? ReadFromDisk(int slot) => null;
+            public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
             public SaveGameData? ConsumePendingLoad()
             {
@@ -115,7 +116,7 @@ namespace CrimsonDraft.Tests
 
             try
             {
-                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world);
+                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
                 Assert.IsNull(inventory.LoadedSlots);
@@ -166,7 +167,7 @@ namespace CrimsonDraft.Tests
 
             try
             {
-                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world);
+                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
                 Assert.IsTrue(world.Doors.IsUnlocked("door-1"));

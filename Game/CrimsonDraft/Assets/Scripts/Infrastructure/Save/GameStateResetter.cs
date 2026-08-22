@@ -9,16 +9,19 @@ namespace CrimsonDraft.Infrastructure.Save
         private readonly WorldStateRegistries  world;
         private readonly InventoryStateRegistry inventoryState;
         private readonly RosterHealthRegistry   rosterHealth;
+        private readonly PlaytimeTracker        playtimeTracker;
 
         [Preserve]
         public GameStateResetter(
             WorldStateRegistries   world,
             InventoryStateRegistry inventoryState,
-            RosterHealthRegistry   rosterHealth)
+            RosterHealthRegistry   rosterHealth,
+            PlaytimeTracker        playtimeTracker)
         {
-            this.world          = world;
-            this.inventoryState = inventoryState;
-            this.rosterHealth   = rosterHealth;
+            this.world           = world;
+            this.inventoryState  = inventoryState;
+            this.rosterHealth    = rosterHealth;
+            this.playtimeTracker = playtimeTracker;
         }
 
         public void ResetAll()
@@ -31,6 +34,7 @@ namespace CrimsonDraft.Infrastructure.Save
             this.world.Enemies.ClearAll();
             this.inventoryState.ClearAll();
             this.rosterHealth.ClearAll();
+            this.playtimeTracker.Reset();
         }
     }
 }

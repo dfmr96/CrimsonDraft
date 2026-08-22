@@ -28,6 +28,7 @@ namespace CrimsonDraft.Navigation
         private readonly PlayerController     player;
         private readonly ItemDatabase         itemDatabase;
         private readonly WorldStateRegistries world;
+        private readonly PlaytimeTracker      playtimeTracker;
 
         [Preserve]
         public SaveGameLoader(
@@ -37,7 +38,8 @@ namespace CrimsonDraft.Navigation
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
             ItemDatabase         itemDatabase,
-            WorldStateRegistries world)
+            WorldStateRegistries world,
+            PlaytimeTracker      playtimeTracker)
         {
             this.saveGameService  = saveGameService;
             this.inventoryService = inventoryService;
@@ -46,6 +48,7 @@ namespace CrimsonDraft.Navigation
             this.player           = player;
             this.itemDatabase     = itemDatabase;
             this.world            = world;
+            this.playtimeTracker  = playtimeTracker;
         }
 
         void IInitializable.Initialize()
@@ -61,6 +64,7 @@ namespace CrimsonDraft.Navigation
             this.world.Enemies.LoadState(data.defeatedEnemyIds);
             ApplyInventory(data);
             this.roster.RestoreHp(data.operatorHp);
+            this.playtimeTracker.RestoreFrom(data.playtimeSeconds);
 
             this.roomOrchestrator.ActivateRoomImmediate(data.roomId);
             this.player.transform.SetPositionAndRotation(data.playerPosition, data.playerRotation);

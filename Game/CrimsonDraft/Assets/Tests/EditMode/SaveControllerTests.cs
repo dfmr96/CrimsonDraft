@@ -29,6 +29,7 @@ namespace CrimsonDraft.Tests
             public IReadOnlyList<SaveSlotSummary> ListSlotSummaries() => Array.Empty<SaveSlotSummary>();
             public void WriteToDisk(int slot, SaveGameData data) { this.WrittenSlot = slot; this.WrittenData = data; }
             public SaveGameData? ReadFromDisk(int slot) => null;
+            public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
             public SaveGameData? ConsumePendingLoad() => null;
         }
@@ -167,7 +168,7 @@ namespace CrimsonDraft.Tests
             try
             {
                 var controller = new SaveController(
-                    inputService, view, saveService, inventory, roster, roomOrch, player, world);
+                    inputService, view, saveService, inventory, roster, roomOrch, player, world, new PlaytimeTracker());
 
                 controller.Save(3);
 

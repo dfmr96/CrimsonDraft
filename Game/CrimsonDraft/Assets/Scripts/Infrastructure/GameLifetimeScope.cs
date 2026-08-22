@@ -57,6 +57,7 @@ namespace CrimsonDraft.Infrastructure
 
             builder.Register<SaveGameService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<GameStateResetter>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<PlaytimeTracker>(Lifetime.Singleton);
         }
     }
 }

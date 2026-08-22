@@ -12,5 +12,6 @@ namespace CrimsonDraft.Infrastructure.Save
         public string roomId;
         public string timestampIso;
         public float  playtimeSeconds;
+        public int    saveCount;
     }
 }

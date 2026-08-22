@@ -38,6 +38,7 @@ namespace CrimsonDraft.Infrastructure.Save
                         roomId          = data.roomId,
                         timestampIso    = data.timestampIso,
                         playtimeSeconds = data.playtimeSeconds,
+                        saveCount       = data.saveCount,
                     });
             }
             return summaries;
@@ -70,6 +71,15 @@ namespace CrimsonDraft.Infrastructure.Save
                 Debug.LogError($"[SaveGameService] Failed to read slot {slot}: {e}");
                 return null;
             }
+        }
+
+        public bool DeleteSlot(int slot)
+        {
+            string path = SlotPath(slot);
+            if (!File.Exists(path)) return false;
+
+            File.Delete(path);
+            return true;
         }
 
         public bool LoadSlot(int slot)

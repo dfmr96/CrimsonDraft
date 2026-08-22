@@ -44,6 +44,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public string roomId       = "";
         public string timestampIso = "";
         public float  playtimeSeconds;
+        public int    saveCount;
 
         public Vector3    playerPosition;
         public Quaternion playerRotation = Quaternion.identity;
