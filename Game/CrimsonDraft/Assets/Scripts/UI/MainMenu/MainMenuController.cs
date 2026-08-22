@@ -43,7 +43,7 @@ namespace CrimsonDraft.UI.MainMenu
 
             this.inputService.UINavigate.performed += OnNavigate;
             this.inputService.UIConfirm.performed  += OnConfirm;
-            this.inputService.UIBack.performed     += OnBack;
+            this.inputService.UICancel.performed   += OnBack;
 
             this.newGameButton.onClick.AddListener(OnNewGameClicked);
             this.loadGameButton.onClick.AddListener(OnLoadGameClicked);
@@ -66,7 +66,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.inputService == null) return;
             this.inputService.UINavigate.performed -= OnNavigate;
             this.inputService.UIConfirm.performed  -= OnConfirm;
-            this.inputService.UIBack.performed     -= OnBack;
+            this.inputService.UICancel.performed   -= OnBack;
         }
 
         private bool HasAnySave()
