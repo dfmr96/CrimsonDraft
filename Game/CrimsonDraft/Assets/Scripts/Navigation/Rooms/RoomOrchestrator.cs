@@ -49,6 +49,11 @@ namespace CrimsonDraft.Navigation.Rooms
 
         void IInitializable.Initialize()
         {
+            // Entering a Deck scene doesn't imply the Gameplay map is already active --
+            // e.g. coming from the main menu leaves the UI map enabled for its own
+            // navigation, and nothing else switches back on a fresh scene load.
+            this.inputService.SwitchToGameplay();
+
             var rooms = Object.FindObjectsOfType<RoomController>(true);
 
             if (rooms.Length == 0)
