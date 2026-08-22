@@ -3,6 +3,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
@@ -56,6 +57,14 @@ namespace CrimsonDraft.UI.MainMenu
 
             this.bgMain.SetActive(true);
             this.bgPre.SetActive(false);
+
+            // EventSystem only auto-selects firstSelectedGameObject once, at its own
+            // Start() -- which runs while bgMain (and its buttons) are still inactive.
+            // Without this, no GameObject is ever selected, so arrow keys/gamepad stick
+            // have nothing to navigate from even though the UI action map is enabled.
+            var eventSystem = EventSystem.current;
+            if (eventSystem != null)
+                eventSystem.SetSelectedGameObject(eventSystem.firstSelectedGameObject);
         }
     }
 }
