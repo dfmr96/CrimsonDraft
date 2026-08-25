@@ -126,8 +126,10 @@ namespace CrimsonDraft.Tests
             public IReadOnlyList<InventorySlot> Slots                              => Array.Empty<InventorySlot>();
             public int  SlotCount                                                   => 0;
             public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
+            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => false;
             public bool AddItemAuto(ItemData data, int quantity = 0)               => AddItemAutoResult;
             public void RemoveItem(int slotIndex)                                  { }
+            public void PruneEmptyStacks()                                         { }
             public void MoveItem(int fromSlot, int toSlot)                         { }
             public void EquipWeapon(int slotIndex, int operatorSlot)               { }
             public void UnequipWeapon(int slotIndex)                               { }

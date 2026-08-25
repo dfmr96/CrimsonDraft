@@ -933,12 +933,14 @@ namespace CrimsonDraft.Tests
             public int LastRemovedSlotIndex { get; private set; } = -1;
 
             public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
+            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => true;
             public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
             public void RemoveItem(int slotIndex)
             {
                 this.RemoveItemCallCount++;
                 this.LastRemovedSlotIndex = slotIndex;
             }
+            public void PruneEmptyStacks() { }
             public void MoveItem(int fromSlot, int toSlot)                         { }
             public void EquipWeapon(int slotIndex, int operatorSlot)               { }
             public void UnequipWeapon(int slotIndex)                               { }
