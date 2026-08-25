@@ -33,6 +33,16 @@ namespace CrimsonDraft.Combat
         [SerializeField] private float stageDurationWarning = 1.2f;
         [SerializeField] private float stageDurationCritical = 0.6f;
 
+        // Soft color-matched glow sitting behind the trace so the ECG's own backdrop isn't
+        // flat black — a gradient sprite tinted per health band instead of a fixed color,
+        // so it reads at a glance which of the 4 stages is currently active.
+        [Header("Background Effect (tints the gradient 'Effect' image behind the trace)")]
+        [SerializeField] private Image? effectImage;
+        [SerializeField] private Color effectColorStable   = new(0.4901961f, 0.7058824f, 0.29803923f, 0.55f);
+        [SerializeField] private Color effectColorCaution   = new(0.6901961f, 0.7058824f, 0.29803923f, 0.55f);
+        [SerializeField] private Color effectColorWarning   = new(0.6901961f, 0.5568628f, 0.29803923f, 0.55f);
+        [SerializeField] private Color effectColorCritical  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
+
         private float t;
         private bool isResting;
         private bool isFlatlined;
@@ -108,6 +118,8 @@ namespace CrimsonDraft.Combat
                 if (this.stageSpriteDead != null)
                     this.traceImage.sprite = this.stageSpriteDead;
                 this.traceImage.material = null;
+                if (this.effectImage != null)
+                    this.effectImage.enabled = false;
                 return;
             }
 
@@ -115,20 +127,26 @@ namespace CrimsonDraft.Combat
             {
                 this.isFlatlined = false;
                 this.GetRuntimeMaterial();
+                if (this.effectImage != null)
+                    this.effectImage.enabled = true;
             }
 
             Sprite? sprite;
             float duration;
+            Color effectColor;
 
-            if (hpRatio <= 0.25f)      { sprite = this.stageSpriteCritical; duration = this.stageDurationCritical; }
-            else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  }
-            else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  }
-            else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   }
+            if (hpRatio <= 0.25f)      { sprite = this.stageSpriteCritical; duration = this.stageDurationCritical; effectColor = this.effectColorCritical; }
+            else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  effectColor = this.effectColorWarning;  }
+            else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  effectColor = this.effectColorCaution;  }
+            else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   effectColor = this.effectColorStable;   }
 
             if (sprite != null)
                 this.traceImage.sprite = sprite;
 
             this.sweepDuration = duration;
+
+            if (this.effectImage != null)
+                this.effectImage.color = effectColor;
         }
 
         #endregion

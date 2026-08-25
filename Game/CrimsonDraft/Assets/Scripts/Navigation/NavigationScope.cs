@@ -101,6 +101,9 @@ namespace CrimsonDraft.Navigation
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
 
+            builder.RegisterComponentInHierarchy<PauseMenuView>();
+            builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();
+
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();

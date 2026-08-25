@@ -14,6 +14,7 @@ namespace CrimsonDraft.UI
 
         private int               selectedIndex = 0;
         private bool              isOpen        = false;
+        private bool              currentCanSplit;
         private InventoryItemView? currentItem;
         private RectTransform     rectTransform = null!;
 
@@ -21,6 +22,7 @@ namespace CrimsonDraft.UI
         public System.Action? OnClose;
         public System.Action<InventoryItemView>? OnUseRequested;
         public System.Action<InventoryItemView>? OnCombineRequested;
+        public System.Action<InventoryItemView>? OnSplitRequested;
 
         void Awake()
         {
@@ -35,15 +37,18 @@ namespace CrimsonDraft.UI
 
         public void Open(InventoryItemView item, ContextMenuOptions options)
         {
-            this.currentItem = item;
-            this.isOpen      = true;
+            this.currentItem     = item;
+            this.isOpen          = true;
+            this.currentCanSplit = options.CanSplit;
 
-            this.options[0].SetDisabled(!options.CanEquip && !options.CanUse);
+            this.options[0].SetDisabled(!options.CanEquip && !options.CanUse && !options.CanSplit);
             this.options[1].SetDisabled(!options.CanInspect);
             this.options[2].SetDisabled(!options.CanCombine);
 
             if (options.CanEquip)
                 this.options[0].SetLabel(item.BoundItem.IsEquipped ? "Unequip" : "Equip");
+            else if (options.CanSplit)
+                this.options[0].SetLabel("Split");
             else
                 this.options[0].SetLabel("Use");
 
@@ -95,7 +100,9 @@ namespace CrimsonDraft.UI
             switch (type)
             {
                 case MenuOption.OptionType.Use:
-                    if (item != null) OnUseRequested?.Invoke(item);
+                    if (item == null) break;
+                    if (this.currentCanSplit) OnSplitRequested?.Invoke(item);
+                    else                       OnUseRequested?.Invoke(item);
                     break;
                 case MenuOption.OptionType.Inspect:
                     if (this.inspectPanel != null && item != null)

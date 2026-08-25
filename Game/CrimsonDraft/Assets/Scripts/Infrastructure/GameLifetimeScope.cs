@@ -5,6 +5,7 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using CrimsonDraft.Infrastructure.Audio;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -16,12 +17,17 @@ namespace CrimsonDraft.Infrastructure
 {
     public sealed class GameLifetimeScope : LifetimeScope
     {
-        [SerializeField] private InputActionAsset inputActions = null!;
+        [SerializeField] private InputActionAsset inputActions   = null!;
+        [SerializeField] private AudioSettingsData audioSettingsData = null!;
 
         protected override void Awake()
         {
             base.Awake();
             DontDestroyOnLoad(gameObject);
+
+            // The game is fully keyboard/gamepad-driven — the OS cursor is never used for
+            // input, but builds still show it by default.
+            Cursor.visible = false;
         }
 
         protected override void Configure(IContainerBuilder builder)
@@ -32,6 +38,9 @@ namespace CrimsonDraft.Infrastructure
 
             builder.RegisterInstance(this.inputActions);
             builder.Register<InputService>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.audioSettingsData);
+            builder.Register<AudioSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
 
             var options = builder.RegisterMessagePipe();
             builder.RegisterMessageBroker<CombatStartedEvent>(options);

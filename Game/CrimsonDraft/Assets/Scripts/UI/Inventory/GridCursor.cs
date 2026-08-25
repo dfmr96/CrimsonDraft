@@ -59,6 +59,7 @@ namespace CrimsonDraft.UI
         public event System.Action<InventoryItemView>?               OnItemPlaced;
         public event System.Action?                                   OnCombineCancelled;
         public event System.Action?                                   OnCloseRequested;
+        public event System.Action<InventoryItemView>?                OnSplitCancelled;
 
         // Grid state
         private int        currentGridIndex;
@@ -71,6 +72,7 @@ namespace CrimsonDraft.UI
         // Held item state
         private InventoryItemView? heldItem;
         private InventoryGrid?     heldFromGrid;
+        private bool               isSplitPhantomHeld;
 
         private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
 
@@ -371,6 +373,18 @@ namespace CrimsonDraft.UI
             UpdateHeldItemVisual();
         }
 
+        public void BeginHoldingSplitItem(InventoryItemView view, InventoryGrid fromGrid)
+        {
+            this.heldFromGrid       = fromGrid;
+            this.heldItem           = view;
+            this.isSplitPhantomHeld = true;
+
+            view.SetGridOrigin(this.currentCell);
+            view.transform.SetAsLastSibling();
+            PlaceSelectorAt(this.currentCell);
+            UpdateHeldItemVisual();
+        }
+
         void TryPlace()
         {
             InventoryGrid targetGrid = CurrentGrid;
@@ -441,8 +455,9 @@ namespace CrimsonDraft.UI
 
             OnItemPlaced?.Invoke(this.heldItem);
 
-            this.heldItem     = null;
-            this.heldFromGrid = null;
+            this.heldItem           = null;
+            this.heldFromGrid       = null;
+            this.isSplitPhantomHeld = false;
 
             PlaceSelectorAt(this.currentCell);
         }
@@ -450,6 +465,19 @@ namespace CrimsonDraft.UI
         void CancelPickup()
         {
             if (this.heldItem == null) return;
+
+            if (this.isSplitPhantomHeld)
+            {
+                InventoryItemView phantom = this.heldItem;
+
+                this.heldItem           = null;
+                this.heldFromGrid       = null;
+                this.isSplitPhantomHeld = false;
+
+                OnSplitCancelled?.Invoke(phantom);
+                PlaceSelectorAt(this.currentCell);
+                return;
+            }
 
             this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
@@ -625,6 +653,9 @@ namespace CrimsonDraft.UI
 
         public int GetOperatorOf(InventoryItemView view)
             => view.OwnerGrid != null ? this.gridGroup.IndexOf(view.OwnerGrid) : -1;
+
+        public InventoryGrid? GetGridForOperator(int operatorIndex)
+            => this.gridGroup.GetGrid(operatorIndex);
 
         public InventoryItemView? FindView(InventoryItem item)
         {

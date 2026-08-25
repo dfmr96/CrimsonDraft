@@ -22,6 +22,8 @@ namespace CrimsonDraft.UI
         private readonly InventorySfxData  sfx;
 
         private InventoryItemView? combineSourceItem;
+        private InventoryItemView? splitSourceItem;
+        private InventoryItemView? pendingSplitPhantom;
 
         private static readonly Color ColorCombineSourceTint = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f); // #9A9F5C
 
@@ -52,20 +54,24 @@ namespace CrimsonDraft.UI
         {
             this.contextMenu.OnUseRequested      += HandleUse;
             this.contextMenu.OnCombineRequested  += EnterCombineMode;
+            this.contextMenu.OnSplitRequested    += HandleSplitRequested;
             this.cursor.OnCellConfirmed          += OnCellConfirmed;
             this.cursor.OnCombineTargetConfirmed += HandleCombineConfirm;
             this.cursor.OnItemPlaced             += HandleItemPlaced;
             this.cursor.OnCombineCancelled       += ExitCombineMode;
+            this.cursor.OnSplitCancelled         += HandleSplitCancelled;
         }
 
         public void Dispose()
         {
             this.contextMenu.OnUseRequested      -= HandleUse;
             this.contextMenu.OnCombineRequested  -= EnterCombineMode;
+            this.contextMenu.OnSplitRequested    -= HandleSplitRequested;
             this.cursor.OnCellConfirmed          -= OnCellConfirmed;
             this.cursor.OnCombineTargetConfirmed -= HandleCombineConfirm;
             this.cursor.OnItemPlaced             -= HandleItemPlaced;
             this.cursor.OnCombineCancelled       -= ExitCombineMode;
+            this.cursor.OnSplitCancelled         -= HandleSplitCancelled;
         }
 
         // ── Context menu ────────────────────────────────────────────────────
@@ -79,6 +85,10 @@ namespace CrimsonDraft.UI
                 CanUse     = (view.Data is ConsumableData cd && cd.HealAmount > 0)
                           || view.Data.ItemType == ItemType.KeyItem
                           || view.Data.ItemType == ItemType.SocketItem,
+                CanSplit   = view.Data.ItemType == ItemType.AmmoBox
+                          && view.BoundItem is AmmoBoxItem ammo
+                          && ammo.Quantity > 1
+                          && HasSpaceForSplit(view),
                 CanInspect = true,
             };
             this.contextMenu.Open(view, options);
@@ -171,6 +181,105 @@ namespace CrimsonDraft.UI
             }
         }
 
+        // ── Split ───────────────────────────────────────────────────────────
+
+        private void HandleSplitRequested(InventoryItemView view)
+        {
+            if (view.BoundItem is not AmmoBoxItem sourceAmmo || sourceAmmo.Quantity <= 1)
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                return;
+            }
+
+            int sourceOperator = this.cursor.GetOperatorOf(view);
+            if (sourceOperator < 0 || !TryFindOperatorSlotForSplit(sourceOperator, out int targetOperator))
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                return;
+            }
+
+            int splitOff = sourceAmmo.Quantity / 2;
+            var newItem  = new AmmoBoxItem(sourceAmmo.Data, splitOff);
+
+            if (!this.inventoryService.AddExistingItem(newItem, targetOperator))
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                return;
+            }
+
+            sourceAmmo.AddQuantity(-splitOff);
+            view.RefreshQuantity();
+
+            InventoryGrid sourceGrid = view.OwnerGrid!;
+            InventoryItemView newView = this.itemSpawner.SpawnFloating(newItem, sourceGrid, this.cursor.CurrentCell);
+
+            this.splitSourceItem     = view;
+            this.pendingSplitPhantom = newView;
+            this.sfx.PlayDecide(this.cursor.gameObject);
+            this.cursor.BeginHoldingSplitItem(newView, sourceGrid);
+        }
+
+        private void HandleSplitCancelled(InventoryItemView phantomView)
+        {
+            RemoveFromInventoryData(phantomView.BoundItem);
+
+            if (this.splitSourceItem != null && phantomView.BoundItem is AmmoBoxItem phantomAmmo)
+            {
+                this.splitSourceItem.BoundItem.AddQuantity(phantomAmmo.Quantity);
+                this.splitSourceItem.RefreshQuantity();
+            }
+
+            this.splitSourceItem     = null;
+            this.pendingSplitPhantom = null;
+            Object.Destroy(phantomView.gameObject);
+        }
+
+        private bool HasSpaceForSplit(InventoryItemView view)
+        {
+            int sourceOperator = this.cursor.GetOperatorOf(view);
+            return sourceOperator >= 0 && TryFindOperatorSlotForSplit(sourceOperator, out _);
+        }
+
+        // Checks preferredOperator first, then every other living operator, for a free logical
+        // inventory slot — so splitting isn't blocked just because the source operator is full
+        // when a teammate still has room.
+        private bool TryFindOperatorSlotForSplit(int preferredOperator, out int operatorSlot)
+        {
+            int slotsPerOp = this.roster.Count > 0
+                ? this.inventoryService.SlotCount / this.roster.Count
+                : 4;
+
+            if (HasFreeSlotForOperator(preferredOperator, slotsPerOp))
+            {
+                operatorSlot = preferredOperator;
+                return true;
+            }
+
+            for (int op = 0; op < this.roster.Count; op++)
+            {
+                if (op == preferredOperator) continue;
+                if (HasFreeSlotForOperator(op, slotsPerOp))
+                {
+                    operatorSlot = op;
+                    return true;
+                }
+            }
+
+            operatorSlot = -1;
+            return false;
+        }
+
+        private bool HasFreeSlotForOperator(int operatorSlot, int slotsPerOp)
+        {
+            if (operatorSlot < 0 || operatorSlot >= this.roster.Count) return false;
+            if (!this.roster[operatorSlot].IsAlive) return false;
+
+            int start = operatorSlot * slotsPerOp;
+            for (int i = start; i < start + slotsPerOp; i++)
+                if (this.inventoryService.Slots[i].IsEmpty) return true;
+            return false;
+        }
+
         // ── Combine ─────────────────────────────────────────────────────────
 
         private void EnterCombineMode(InventoryItemView source)
@@ -217,6 +326,7 @@ namespace CrimsonDraft.UI
                 else
                 {
                     source.OwnerGrid?.RemoveItem(source);
+                    RemoveFromInventoryData(source.BoundItem);
                     Object.Destroy(source.gameObject);
                 }
 
@@ -249,6 +359,7 @@ namespace CrimsonDraft.UI
                 if (ammoItem.Quantity <= 0)
                 {
                     ammoView.OwnerGrid?.RemoveItem(ammoView);
+                    RemoveFromInventoryData(ammoView.BoundItem);
                     Object.Destroy(ammoView.gameObject);
                 }
                 else
@@ -300,6 +411,12 @@ namespace CrimsonDraft.UI
 
         private void HandleItemPlaced(InventoryItemView item)
         {
+            if (item == this.pendingSplitPhantom)
+            {
+                this.splitSourceItem     = null;
+                this.pendingSplitPhantom = null;
+            }
+
             // Unequip if equipped weapon moved to a different operator's grid
             if (item.BoundItem is WeaponItem weapon && weapon.IsEquipped)
             {
@@ -316,7 +433,18 @@ namespace CrimsonDraft.UI
             }
 
             // Sync item to correct operator block, then record 2D position
-            SyncItemToOperatorSlot(item);
+            int fromSlot = FindSlotIndex(item.BoundItem);
+            if (fromSlot >= 0 && !TrySyncItemToOperatorSlot(item, fromSlot))
+            {
+                // Destination operator's 4 inventory slots are already full of distinct stacks —
+                // the visual grid still had room (it's larger than the logical slot cap), so the
+                // drop looked like it worked. Bounce it back so data and visuals don't diverge
+                // (a diverged item would look moved here but still belong to its old operator
+                // everywhere that reads from IInventoryService, e.g. the combat inventory panel).
+                RevertPlacementToSlot(item, fromSlot);
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                return;
+            }
 
             var origin = item.GridOrigin;
             for (int i = 0; i < this.inventoryService.SlotCount; i++)
@@ -329,28 +457,32 @@ namespace CrimsonDraft.UI
             }
         }
 
-        private void SyncItemToOperatorSlot(InventoryItemView item)
+        private int FindSlotIndex(InventoryItem item)
+        {
+            for (int i = 0; i < this.inventoryService.SlotCount; i++)
+                if (this.inventoryService.Slots[i].Item == item) return i;
+            return -1;
+        }
+
+        private void RemoveFromInventoryData(InventoryItem item)
+        {
+            int slot = FindSlotIndex(item);
+            if (slot >= 0) this.inventoryService.RemoveItem(slot);
+        }
+
+        // Returns false if the target operator's 4 logical slots are already full of distinct
+        // stacks — caller is responsible for reverting the visual placement in that case.
+        private bool TrySyncItemToOperatorSlot(InventoryItemView item, int fromSlot)
         {
             int toOpIndex = this.cursor.GetOperatorOf(item);
-            if (toOpIndex < 0) return;
+            if (toOpIndex < 0) return true;
 
             int slotsPerOp = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
                 : 4;
 
-            int fromSlot = -1;
-            for (int i = 0; i < this.inventoryService.SlotCount; i++)
-            {
-                if (this.inventoryService.Slots[i].Item == item.BoundItem)
-                {
-                    fromSlot = i;
-                    break;
-                }
-            }
-            if (fromSlot < 0) return;
-
             int blockStart = toOpIndex * slotsPerOp;
-            if (fromSlot >= blockStart && fromSlot < blockStart + slotsPerOp) return;
+            if (fromSlot >= blockStart && fromSlot < blockStart + slotsPerOp) return true;
 
             InventoryGrid toGrid = item.OwnerGrid!;
 
@@ -359,7 +491,7 @@ namespace CrimsonDraft.UI
                 if (this.inventoryService.Slots[i].IsEmpty)
                 {
                     this.inventoryService.MoveItem(fromSlot, i);
-                    return;
+                    return true;
                 }
 
                 var occupantItem = this.inventoryService.Slots[i].Item!;
@@ -368,9 +500,39 @@ namespace CrimsonDraft.UI
                 {
                     // Occupant displaced (held or moved elsewhere) — swap slots
                     this.inventoryService.MoveItem(fromSlot, i);
-                    return;
+                    return true;
                 }
             }
+
+            return false;
+        }
+
+        private void RevertPlacementToSlot(InventoryItemView item, int slotIndex)
+        {
+            var saved = this.inventoryService.Slots[slotIndex];
+            if (saved.GridCol < 0 || saved.GridRow < 0) return; // no prior position to revert to
+
+            int slotsPerOp = this.roster.Count > 0
+                ? this.inventoryService.SlotCount / this.roster.Count
+                : 4;
+            InventoryGrid? oldGrid = this.cursor.GetGridForOperator(slotIndex / slotsPerOp);
+            if (oldGrid == null) return;
+
+            item.OwnerGrid?.RemoveItem(item);
+
+            while (item.Rotation != saved.GridRotation)
+                item.Rotate();
+
+            item.SetGridOrigin(new Vector2Int(saved.GridCol, saved.GridRow));
+            item.SetOwnerGrid(oldGrid);
+
+            var rt  = item.GetComponent<RectTransform>();
+            rt.SetParent(oldGrid.transform, false);
+            Vector2 pos = oldGrid.CellToLocal(item.GridOrigin);
+            if (item.Rotation == 1) pos.x += rt.sizeDelta.y;
+            rt.anchoredPosition = pos;
+
+            oldGrid.PlaceItem(item);
         }
 
     }
