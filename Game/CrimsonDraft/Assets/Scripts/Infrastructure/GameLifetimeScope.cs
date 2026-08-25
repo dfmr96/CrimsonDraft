@@ -24,6 +24,10 @@ namespace CrimsonDraft.Infrastructure
         {
             base.Awake();
             DontDestroyOnLoad(gameObject);
+
+            // The game is fully keyboard/gamepad-driven — the OS cursor is never used for
+            // input, but builds still show it by default.
+            Cursor.visible = false;
         }
 
         protected override void Configure(IContainerBuilder builder)
