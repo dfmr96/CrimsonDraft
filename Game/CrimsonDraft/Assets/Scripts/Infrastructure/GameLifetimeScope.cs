@@ -5,6 +5,7 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using CrimsonDraft.Infrastructure.Audio;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
@@ -16,7 +17,8 @@ namespace CrimsonDraft.Infrastructure
 {
     public sealed class GameLifetimeScope : LifetimeScope
     {
-        [SerializeField] private InputActionAsset inputActions = null!;
+        [SerializeField] private InputActionAsset inputActions   = null!;
+        [SerializeField] private AudioSettingsData audioSettingsData = null!;
 
         protected override void Awake()
         {
@@ -32,6 +34,9 @@ namespace CrimsonDraft.Infrastructure
 
             builder.RegisterInstance(this.inputActions);
             builder.Register<InputService>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.audioSettingsData);
+            builder.Register<AudioSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
 
             var options = builder.RegisterMessagePipe();
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
