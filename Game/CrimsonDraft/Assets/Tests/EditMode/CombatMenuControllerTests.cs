@@ -976,6 +976,7 @@ namespace CrimsonDraft.Tests
             public bool TryGetHealth(int index, out float hpRatio) =>
                 this.healthByOperator.TryGetValue(index, out hpRatio);
             public void SetOperatorGauge(int index, float gauge01) { }
+            public void PlayOperatorDamageShake(int index) { }
             // Synchronous, like the real card's animation eventually completing —
             // keeps existing tests' flow (which expect the reveal to have happened by
             // the time Enter() returns) working without needing to await anything.

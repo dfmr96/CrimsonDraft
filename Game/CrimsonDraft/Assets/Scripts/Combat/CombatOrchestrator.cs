@@ -420,6 +420,7 @@ namespace CrimsonDraft.Combat
         {
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
             this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
+            this.menuView.PlayOperatorDamageShake(action.TargetOperatorSlot);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
             this.ecgFeedback?.SetOperatorHealthState(
                 action.TargetOperatorSlot,

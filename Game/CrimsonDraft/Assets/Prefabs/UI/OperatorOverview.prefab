@@ -907,6 +907,81 @@ MonoBehaviour:
   collapseDuration: 0.15
   expandEase: 6
   collapseEase: 5
+--- !u!1 &3287461173354055073
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3496497350056157019}
+  - component: {fileID: 6502244662147899066}
+  - component: {fileID: 7091242688206743414}
+  m_Layer: 9
+  m_Name: Effect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &3496497350056157019
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3287461173354055073}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 573430310647130322}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0.124801636, y: 0.027299881}
+  m_SizeDelta: {x: -1.8288, y: -1.9292}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &6502244662147899066
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3287461173354055073}
+  m_CullTransparentMesh: 1
+--- !u!114 &7091242688206743414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3287461173354055073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.4901961, g: 0.7058824, b: 0.29803923, a: 0.039215688}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 22699c363c4b12a47adf0bb71bdd8bf7, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &3336555615713473608
 GameObject:
   m_ObjectHideFlags: 0
@@ -1240,6 +1315,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3605019237408302565}
+  - {fileID: 3496497350056157019}
   m_Father: {fileID: 1924925887609816257}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
@@ -1311,6 +1387,11 @@ MonoBehaviour:
   stageDurationCaution: 2.5
   stageDurationWarning: 2
   stageDurationCritical: 1.5
+  effectImage: {fileID: 7091242688206743414}
+  effectColorStable: {r: 0.4901961, g: 0.7058824, b: 0.29803923, a: 0.55}
+  effectColorCaution: {r: 0.6901961, g: 0.7058824, b: 0.29803923, a: 0.55}
+  effectColorWarning: {r: 0.6901961, g: 0.5568628, b: 0.29803923, a: 0.55}
+  effectColorCritical: {r: 0.73333335, g: 0.44705883, b: 0.26666668, a: 0.55}
 --- !u!1 &5531057374965054296
 GameObject:
   m_ObjectHideFlags: 0
@@ -1705,6 +1786,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5565654260718611596}
   - component: {fileID: 3739009676826939908}
+  - component: {fileID: 8611947452301641156}
   m_Layer: 9
   m_Name: OperatorOverview
   m_TagString: Untagged
@@ -1740,6 +1822,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8245922219208722824}
   m_CullTransparentMesh: 1
+--- !u!114 &8611947452301641156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8245922219208722824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc3ee95c2c7dc224291171b9290cb4d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.OperatorCardShake
+  target: {fileID: 0}
+  strength: 6
+  vibrato: 18
+  duration: 0.25
+  randomness: 90
 --- !u!1 &8726119886560101149
 GameObject:
   m_ObjectHideFlags: 0
