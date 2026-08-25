@@ -16,5 +16,7 @@ namespace CrimsonDraft.Infrastructure
         public void Save(int[] hp) => this.savedHp = hp;
 
         public int[]? Load() => this.savedHp;
+
+        public void ClearAll() => this.savedHp = null;
     }
 }

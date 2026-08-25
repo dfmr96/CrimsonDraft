@@ -48,6 +48,8 @@ namespace CrimsonDraft.Tests
 
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
                 => UniTask.CompletedTask;
+
+            public void ActivateRoomImmediate(string roomId) { }
         }
 
         private sealed class FakeSubscriber<T> : ISubscriber<T>

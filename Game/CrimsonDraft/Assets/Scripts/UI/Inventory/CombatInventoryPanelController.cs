@@ -138,6 +138,7 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineSlot = -1;
 
+            this.inventoryService.PruneEmptyStacks();
             RepositionToOperator(operatorOverviewRect);
             PopulateGrid(opSlot);
             SetVisible(true);

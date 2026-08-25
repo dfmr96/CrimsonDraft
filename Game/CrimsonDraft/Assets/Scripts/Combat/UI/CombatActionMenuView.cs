@@ -494,6 +494,19 @@ namespace CrimsonDraft.Combat
             animator.SetHealthState(hpRatio);
         }
 
+        // Fire-and-forget: a quick punch on the card itself, distinct from the ECG line's
+        // own health-state color/sprite (SetOperatorHealth) — this is the "ficha got hit"
+        // reaction, played once per impact rather than tied to the current HP value.
+        public void PlayOperatorDamageShake(int index) =>
+            this.GetOperatorCardShake(index)?.PlayDamageShake();
+
+        private OperatorCardShake? GetOperatorCardShake(int index)
+        {
+            if (index < 0 || index >= this.operators.Length) return null;
+            var overview = this.operators[index].transform.parent; // "Visual"
+            return overview == null ? null : overview.parent?.GetComponent<OperatorCardShake>();
+        }
+
         private void ApplyPendingHealthIcons()
         {
             foreach (var kvp in this.pendingHealthByOperator)

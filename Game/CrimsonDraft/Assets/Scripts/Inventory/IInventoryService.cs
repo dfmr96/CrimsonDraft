@@ -19,11 +19,21 @@ namespace CrimsonDraft.Inventory
         /// Returns false if all 4 slots are occupied and item cannot stack.</summary>
         bool AddItem(ItemData data, int operatorSlot, int quantity = 0);
 
+        /// <summary>Places an already-constructed item into the first empty slot of operatorSlot's 4-slot
+        /// section, preserving its object reference (unlike AddItem, which always constructs a new item).
+        /// Returns false if all 4 slots are occupied.</summary>
+        bool AddExistingItem(InventoryItem item, int operatorSlot);
+
         /// <summary>Tries each operator in order until one has space. Returns false only if all operators are full.</summary>
         bool AddItemAuto(ItemData data, int quantity = 0);
 
         /// <summary>Clears the slot at slotIndex (Item = null, Quantity = 0).</summary>
         void RemoveItem(int slotIndex);
+
+        /// <summary>Clears any slot holding an AmmoBoxItem whose Quantity has reached 0 — a
+        /// safety net so a stack that was drained without going through a path that already
+        /// removes it (e.g. legacy save data) doesn't linger as a visible 0-quantity item.</summary>
+        void PruneEmptyStacks();
 
         /// <summary>Swaps the full contents of fromSlot and toSlot.</summary>
         void MoveItem(int fromSlot, int toSlot);

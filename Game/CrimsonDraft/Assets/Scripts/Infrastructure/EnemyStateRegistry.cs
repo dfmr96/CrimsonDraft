@@ -17,5 +17,14 @@ namespace CrimsonDraft.Infrastructure
         public void SetDefeated(string enemyKey) => this.defeated.Add(enemyKey);
 
         public IReadOnlyCollection<string> GetDefeated() => this.defeated;
+
+        public void LoadState(IEnumerable<string> saved)
+        {
+            this.defeated.Clear();
+            foreach (var key in saved)
+                this.defeated.Add(key);
+        }
+
+        public void ClearAll() => this.defeated.Clear();
     }
 }

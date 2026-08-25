@@ -9,6 +9,8 @@ using NaughtyAttributes;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Map;
+using CrimsonDraft.Infrastructure.Save;
+using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
@@ -35,6 +37,8 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private SceneEntryContext     sceneEntryContext     = null!;
         [SerializeField] private RoomController        startingRoom         = null!;
         [SerializeField] private MapDataSet            mapDataSet           = null!;
+        [SerializeField] private ItemDatabase          itemDatabase         = null!;
+        [SerializeField] private SaveSlotListView      saveSlotListView     = null!;
 
         [SerializeField] private DialogueRunner          generalRunner    = null!;
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
@@ -60,16 +64,13 @@ namespace CrimsonDraft.Navigation
             builder.RegisterInstance(this.startingLoadout);
             builder.RegisterInstance(this.combineRecipeLibrary);
             builder.RegisterInstance(this.mapDataSet);
+            builder.RegisterInstance(this.itemDatabase);
             builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<PlayerAimController>();
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
-
-            builder.RegisterInstance(this.cachedEnemies);
-            builder.RegisterInstance(this.cachedCombatTriggers);
-            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
 
@@ -100,11 +101,17 @@ namespace CrimsonDraft.Navigation
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
 
+            builder.RegisterComponentInHierarchy<PauseMenuView>();
+            builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();
+
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+
+            builder.RegisterInstance(this.saveSlotListView);
+            builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
             builder.RegisterInstance(this.pickupPreviewView);
             builder.Register<PickupPreviewController>(Lifetime.Scoped).AsSelf();
@@ -129,6 +136,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
                    .AsImplementedInterfaces();
+            builder.Register<SaveGameLoader>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<MapStateTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<WeatherAmbienceController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MusicManagerController>().AsImplementedInterfaces();
@@ -138,6 +146,10 @@ namespace CrimsonDraft.Navigation
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);
+            builder.RegisterInstance(this.cachedEnemies);
+            builder.RegisterInstance(this.cachedCombatTriggers);
+            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);

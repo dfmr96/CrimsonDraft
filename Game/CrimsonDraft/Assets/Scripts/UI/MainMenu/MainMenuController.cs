@@ -1,8 +1,14 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VContainer;
+using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Save;
+using CrimsonDraft.Infrastructure.Save.UI;
 
 namespace CrimsonDraft.UI.MainMenu
 {
@@ -13,20 +19,103 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Button newGameButton  = null!;
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
+        [SerializeField] private SaveSlotListView loadSlotListView = null!;
 
-        private void Awake()
+        private IInputService      inputService      = null!;
+        private ISaveGameService   saveGameService   = null!;
+        private IGameStateResetter gameStateResetter = null!;
+        private SaveSlotNavigator  loadNavigator     = null!;
+        private bool               isLoadingSlot;
+
+        [Inject]
+        public void Construct(IInputService inputService, ISaveGameService saveGameService, IGameStateResetter gameStateResetter)
         {
+            this.inputService      = inputService;
+            this.saveGameService   = saveGameService;
+            this.gameStateResetter = gameStateResetter;
+
+            this.loadNavigator = new SaveSlotNavigator(
+                this.loadSlotListView,
+                "Load",
+                OnSlotConfirmed,
+                canConfirm: summary => !summary.isEmpty,
+                onClosed: () => DeferredInputAction.Run(OnLoadNavigatorClosed));
+
+            this.inputService.UINavigate.performed += OnNavigate;
+            this.inputService.UIConfirm.performed  += OnConfirm;
+            this.inputService.UICancel.performed   += OnBack;
+
             this.newGameButton.onClick.AddListener(OnNewGameClicked);
+            this.loadGameButton.onClick.AddListener(OnLoadGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
 
-            // Not implemented yet — keep visible but non-functional.
-            this.loadGameButton.interactable = false;
+            this.loadGameButton.interactable = HasAnySave();
+        }
+
+        private void Start()
+        {
+            // Runs after every scope's IInitializable.Initialize() (VContainer builds in
+            // Awake), so this wins over InputService's default SwitchToGameplay() and lets
+            // the EventSystem's InputSystemUIInputModule read Move/Submit/Cancel from the UI
+            // map -- otherwise arrow keys/gamepad do nothing on the main menu.
+            this.inputService.SwitchToUI();
+        }
+
+        private void OnDestroy()
+        {
+            if (this.inputService == null) return;
+            this.inputService.UINavigate.performed -= OnNavigate;
+            this.inputService.UIConfirm.performed  -= OnConfirm;
+            this.inputService.UICancel.performed   -= OnBack;
+        }
+
+        private bool HasAnySave()
+        {
+            var summaries = this.saveGameService.ListSlotSummaries();
+            for (int i = 0; i < summaries.Count; i++)
+                if (!summaries[i].isEmpty) return true;
+            return false;
         }
 
         private void OnNewGameClicked()
         {
+            this.gameStateResetter.ResetAll();
             SceneManager.LoadScene(this.newGameSceneName, LoadSceneMode.Single);
         }
+
+        private void OnLoadGameClicked()
+        {
+            this.inputService.SwitchToUI();
+
+            // The Load Game button stays the EventSystem's selected object after being
+            // clicked/submitted. Left selected, pressing Confirm while the slot list is
+            // open would also re-trigger this Button's OnClick (same UI/Submit action),
+            // reopening the navigator and resetting the cursor to slot 1.
+            EventSystem.current.SetSelectedGameObject(null);
+
+            this.loadNavigator.Open(this.saveGameService.ListSlotSummaries());
+        }
+
+        private void OnSlotConfirmed(int slot)
+        {
+            this.isLoadingSlot = true;
+            this.saveGameService.LoadSlot(slot);
+        }
+
+        private void OnLoadNavigatorClosed()
+        {
+            // On a successful load the scene is already being replaced -- RoomOrchestrator
+            // in the new scene switches to Gameplay itself. Touching input/EventSystem here
+            // would race with (and can override) that switch, or hit destroyed objects.
+            if (this.isLoadingSlot) return;
+
+            this.inputService.SwitchToUI();
+            EventSystem.current.SetSelectedGameObject(this.loadGameButton.gameObject);
+        }
+
+        private void OnNavigate(InputAction.CallbackContext ctx) => this.loadNavigator.HandleNavigate(ctx.ReadValue<Vector2>());
+        private void OnConfirm(InputAction.CallbackContext _)    => this.loadNavigator.HandleConfirm();
+        private void OnBack(InputAction.CallbackContext _)       => this.loadNavigator.HandleBack();
 
         private void OnExitClicked()
         {

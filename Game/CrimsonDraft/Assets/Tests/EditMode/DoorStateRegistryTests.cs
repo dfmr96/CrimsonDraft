@@ -88,5 +88,15 @@ namespace CrimsonDraft.Tests
             registry.SetUnlocked("door-a");
             Assert.AreEqual(DoorMapState.Unlocked, registry.GetState()["door-a"]);
         }
+
+        [Test]
+        public void ClearAll_removesAllDoorState()
+        {
+            var registry = new DoorStateRegistry();
+            registry.SetUnlocked("door-a");
+            registry.ClearAll();
+
+            Assert.AreEqual(DoorMapState.Unknown, registry.GetMapState("door-a"));
+        }
     }
 }
