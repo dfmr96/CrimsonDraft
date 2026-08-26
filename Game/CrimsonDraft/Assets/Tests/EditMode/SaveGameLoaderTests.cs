@@ -76,18 +76,6 @@ namespace CrimsonDraft.Tests
             public void ActivateRoomImmediate(string roomId) => this.ActivatedRoomId = roomId;
         }
 
-        private sealed class FakeSpawner : IOperatorCorpseSpawner
-        {
-            public int SpawnCallCount;
-            public RoomController? LastRoom;
-
-            public void Spawn(RoomController room, Vector3 position, Quaternion rotation)
-            {
-                this.SpawnCallCount++;
-                this.LastRoom = room;
-            }
-        }
-
         private static KeyItemData MakeKeyItemData(string id, int maxUses)
         {
             var d  = ScriptableObject.CreateInstance<KeyItemData>();
@@ -128,7 +116,7 @@ namespace CrimsonDraft.Tests
 
             try
             {
-                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker(), new FakeSpawner());
+                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
                 Assert.IsNull(inventory.LoadedSlots);
@@ -181,16 +169,9 @@ namespace CrimsonDraft.Tests
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
-            var corpseRoomGo = new GameObject("Room2");
-            var corpseRoom   = corpseRoomGo.AddComponent<RoomController>();
-            var corpseRoomSo = new SerializedObject(corpseRoom);
-            corpseRoomSo.FindProperty("roomId").stringValue = "room-2";
-            corpseRoomSo.ApplyModifiedPropertiesWithoutUndo();
-            var spawner = new FakeSpawner();
-
             try
             {
-                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker(), spawner);
+                var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
                 Assert.IsTrue(world.Doors.IsUnlocked("door-1"));
@@ -200,8 +181,6 @@ namespace CrimsonDraft.Tests
                 Assert.IsTrue(world.KnownMaps.IsKnown("map-1"));
                 Assert.IsTrue(world.Enemies.IsDefeated("enemy-1"));
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
-                Assert.AreEqual(1, spawner.SpawnCallCount);
-                Assert.AreEqual(corpseRoom, spawner.LastRoom);
                 CollectionAssert.AreEqual(new[] { 80 }, roster.RestoredHp);
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);
@@ -214,7 +193,6 @@ namespace CrimsonDraft.Tests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(playerGo);
-                UnityEngine.Object.DestroyImmediate(corpseRoomGo);
                 UnityEngine.Object.DestroyImmediate(itemDb);
                 UnityEngine.Object.DestroyImmediate(keyData);
             }

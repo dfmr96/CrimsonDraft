@@ -109,12 +109,13 @@ namespace CrimsonDraft.Tests
             var roster     = new FakeRoster(count: 2, deadSlots: 1);
             var roomOrch   = new FakeRoomOrchestrator(room);
             var subscriber = new FakeSubscriber<CombatEndedEvent>();
+            var roomTransitionedSubscriber = new FakeSubscriber<RoomTransitionedEvent>();
             var registry   = new OperatorCorpseRegistry();
             var spawner    = new FakeSpawner();
 
             try
             {
-                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, registry, spawner);
+                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, roomTransitionedSubscriber, registry, spawner);
                 ((IInitializable)bootstrap).Initialize();
 
                 subscriber.Publish(new CombatEndedEvent { Victory = true });
@@ -144,13 +145,14 @@ namespace CrimsonDraft.Tests
             var roster     = new FakeRoster(count: 1, deadSlots: 0);
             var roomOrch   = new FakeRoomOrchestrator(room);
             var subscriber = new FakeSubscriber<CombatEndedEvent>();
+            var roomTransitionedSubscriber = new FakeSubscriber<RoomTransitionedEvent>();
             var registry   = new OperatorCorpseRegistry();
             var spawner    = new FakeSpawner();
             registry.Record(0, "room-1", Vector3.zero, Quaternion.identity);
 
             try
             {
-                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, registry, spawner);
+                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, roomTransitionedSubscriber, registry, spawner);
                 ((IInitializable)bootstrap).Initialize();
 
                 subscriber.Publish(new CombatEndedEvent { Victory = false });
@@ -176,12 +178,13 @@ namespace CrimsonDraft.Tests
             var roster     = new FakeRoster(count: 1); // no dead slots
             var roomOrch   = new FakeRoomOrchestrator(room);
             var subscriber = new FakeSubscriber<CombatEndedEvent>();
+            var roomTransitionedSubscriber = new FakeSubscriber<RoomTransitionedEvent>();
             var registry   = new OperatorCorpseRegistry();
             var spawner    = new FakeSpawner();
 
             try
             {
-                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, registry, spawner);
+                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, roomTransitionedSubscriber, registry, spawner);
                 ((IInitializable)bootstrap).Initialize();
 
                 subscriber.Publish(new CombatEndedEvent { Victory = true });
@@ -192,6 +195,92 @@ namespace CrimsonDraft.Tests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(roomGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+
+        [Test]
+        public void Initialize_spawnsCorpseAlreadyRecordedForCurrentRoom()
+        {
+            var roomGo = new GameObject("Room");
+            var room   = roomGo.AddComponent<RoomController>();
+            var roomSo = new SerializedObject(room);
+            roomSo.FindProperty("roomId").stringValue = "room-1";
+            roomSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            var roster     = new FakeRoster(count: 1, deadSlots: 0);
+            var roomOrch   = new FakeRoomOrchestrator(room);
+            var subscriber = new FakeSubscriber<CombatEndedEvent>();
+            var roomTransitionedSubscriber = new FakeSubscriber<RoomTransitionedEvent>();
+            var registry   = new OperatorCorpseRegistry();
+            var spawner    = new FakeSpawner();
+            registry.Record(0, "room-1", new Vector3(2f, 0f, 2f), Quaternion.identity);
+
+            try
+            {
+                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, roomTransitionedSubscriber, registry, spawner);
+                ((IInitializable)bootstrap).Initialize();
+
+                Assert.AreEqual(1, spawner.SpawnCallCount);
+                Assert.AreEqual(room, spawner.LastRoom);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(roomGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+
+        [Test]
+        public void RoomTransitioned_spawnsRecordedCorpseOnlyForItsOwnRoom_andOnlyOnce()
+        {
+            var otherRoomGo = new GameObject("OtherRoom");
+            var otherRoom    = otherRoomGo.AddComponent<RoomController>();
+            var otherRoomSo  = new SerializedObject(otherRoom);
+            otherRoomSo.FindProperty("roomId").stringValue = "room-1";
+            otherRoomSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var targetRoomGo = new GameObject("TargetRoom");
+            var targetRoom    = targetRoomGo.AddComponent<RoomController>();
+            var targetRoomSo  = new SerializedObject(targetRoom);
+            targetRoomSo.FindProperty("roomId").stringValue = "room-2";
+            targetRoomSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            var roster     = new FakeRoster(count: 1, deadSlots: 0);
+            var roomOrch   = new FakeRoomOrchestrator(otherRoom); // starts in room-1, not room-2
+            var subscriber = new FakeSubscriber<CombatEndedEvent>();
+            var roomTransitionedSubscriber = new FakeSubscriber<RoomTransitionedEvent>();
+            var registry   = new OperatorCorpseRegistry();
+            var spawner    = new FakeSpawner();
+            registry.Record(0, "room-2", new Vector3(3f, 0f, 3f), Quaternion.identity);
+
+            try
+            {
+                var bootstrap = new OperatorCorpseBootstrap(roster, roomOrch, player, subscriber, roomTransitionedSubscriber, registry, spawner);
+                ((IInitializable)bootstrap).Initialize();
+
+                Assert.AreEqual(0, spawner.SpawnCallCount);
+
+                roomTransitionedSubscriber.Publish(new RoomTransitionedEvent(otherRoom));
+                Assert.AreEqual(0, spawner.SpawnCallCount);
+
+                roomTransitionedSubscriber.Publish(new RoomTransitionedEvent(targetRoom));
+                Assert.AreEqual(1, spawner.SpawnCallCount);
+                Assert.AreEqual(targetRoom, spawner.LastRoom);
+
+                roomTransitionedSubscriber.Publish(new RoomTransitionedEvent(targetRoom));
+                Assert.AreEqual(1, spawner.SpawnCallCount);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(otherRoomGo);
+                UnityEngine.Object.DestroyImmediate(targetRoomGo);
                 UnityEngine.Object.DestroyImmediate(playerGo);
             }
         }
