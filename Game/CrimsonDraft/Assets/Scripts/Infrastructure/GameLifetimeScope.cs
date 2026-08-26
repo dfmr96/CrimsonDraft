@@ -61,6 +61,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);
+            builder.Register<OperatorCorpseRegistry>(Lifetime.Singleton);
 
             builder.Register<WorldStateRegistries>(Lifetime.Singleton);
 

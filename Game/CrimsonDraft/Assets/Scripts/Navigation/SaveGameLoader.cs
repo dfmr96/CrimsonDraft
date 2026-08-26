@@ -62,6 +62,7 @@ namespace CrimsonDraft.Navigation
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
             this.world.Enemies.LoadState(data.defeatedEnemyIds);
+            ApplyOperatorCorpses(data);
             ApplyInventory(data);
             this.roster.RestoreHp(data.operatorHp);
             this.playtimeTracker.RestoreFrom(data.playtimeSeconds);
@@ -84,6 +85,19 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.rooms)
                 dict[entry.roomId] = entry.state;
             this.world.Rooms.LoadState(dict);
+        }
+
+        // Only restores the registry data — actually spawning each corpse's GameObject is
+        // deferred to OperatorCorpseBootstrap, which does it lazily as each room becomes
+        // active (on this same startup for the restored current room, or later via
+        // RoomTransitionedEvent), rather than instantiating every recorded corpse across
+        // every room in the level up front.
+        private void ApplyOperatorCorpses(SaveGameData data)
+        {
+            var entries = new List<OperatorCorpseRegistry.Entry>();
+            foreach (var e in data.operatorCorpses)
+                entries.Add(new OperatorCorpseRegistry.Entry(e.slotIndex, e.roomId, e.position, e.rotation));
+            this.world.OperatorCorpses.LoadState(entries);
         }
 
         private void ApplyInventory(SaveGameData data)

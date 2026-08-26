@@ -135,13 +135,14 @@ namespace CrimsonDraft.Tests
         {
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");
             world.Notes.SetCollected("note-1");
             world.KnownMaps.MarkKnown("map-1");
             world.Enemies.SetDefeated("enemy-1");
+            world.OperatorCorpses.Record(0, "room-1", new Vector3(9f, 0f, 9f), Quaternion.identity);
 
             var weaponData = MakeWeaponData("weapon-1");
             var weaponItem = new WeaponItem(weaponData);
@@ -185,6 +186,10 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(1, data.readNoteIds.Count);
                 Assert.AreEqual(1, data.knownMapIds.Count);
                 Assert.AreEqual(1, data.defeatedEnemyIds.Count);
+                Assert.AreEqual(1, data.operatorCorpses.Count);
+                Assert.AreEqual(0, data.operatorCorpses[0].slotIndex);
+                Assert.AreEqual("room-1", data.operatorCorpses[0].roomId);
+                Assert.AreEqual(new Vector3(9f, 0f, 9f), data.operatorCorpses[0].position);
                 CollectionAssert.AreEqual(new[] { 42 }, data.operatorHp);
                 Assert.AreEqual(1, data.inventorySlots.Count);
                 Assert.AreEqual("weapon-1", data.inventorySlots[0].itemId);
