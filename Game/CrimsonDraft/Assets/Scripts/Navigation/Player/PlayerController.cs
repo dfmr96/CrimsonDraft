@@ -31,9 +31,13 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField, Range(0f, 1f)] private float orangeCautionSpeedRatio = 0.86f;
         [SerializeField, Range(0f, 1f)] private float dangerSpeedRatio        = 0.72f;
 
-        private static readonly int SpeedHash    = Animator.StringToHash("Speed");
+        
         private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
         private static readonly int ArmedHash    = Animator.StringToHash("Armed");
+
+        private static readonly int IdleHash = Animator.StringToHash("Idle");
+        private static readonly int WalkHash = Animator.StringToHash("Walk");
+        private static readonly int RunHash = Animator.StringToHash("Run");
 
         private IInputService                inputService                = null!;
         private IInventoryService            inventoryService            = null!;
@@ -90,14 +94,15 @@ namespace CrimsonDraft.Navigation.Player
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
                 return;
             }
 
             if (!isMoveHeld)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetBool(IdleHash,true);
+                this.animator.SetBool(RunHash,false);
+                this.animator.SetBool(WalkHash,false);
                 return;
             }
 
@@ -112,7 +117,9 @@ namespace CrimsonDraft.Navigation.Player
             if (moveDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetBool(IdleHash,false);
+                this.animator.SetBool(RunHash,false);
+                this.animator.SetBool(WalkHash,false);
                 return;
             }
 
@@ -121,18 +128,33 @@ namespace CrimsonDraft.Navigation.Player
             var isSprinting     = this.inputService.Sprint.IsPressed();
             var speedMultiplier = this.GetSpeedMultiplier();
             var speed           = (isSprinting ? this.runSpeed : this.walkSpeed) * speedMultiplier;
-            var animSpeed       = isSprinting ? 1f : 0.5f;
+            this.animator.SetBool(IdleHash,false);
+
+            if (isSprinting)
+            {
+                this.animator.SetBool(RunHash,true);
+                this.animator.SetBool(WalkHash,false);
+            }
+            else
+            {
+                this.animator.SetBool(RunHash,false);
+                this.animator.SetBool(WalkHash,true);
+            }
+
 
             var resolvedDir = ResolveNavMeshDirection(moveDir, speed);
             if (resolvedDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetBool(IdleHash,true);
+                this.animator.SetBool(RunHash,false);
+                this.animator.SetBool(WalkHash,false);
                 return;
             }
-
+    
             this.rb.linearVelocity = resolvedDir * speed;
-            this.animator.SetFloat(SpeedHash, animSpeed);
+
+
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
