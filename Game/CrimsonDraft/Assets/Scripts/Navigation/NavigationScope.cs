@@ -150,6 +150,7 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterInstance(this.corpseSettings);
             builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
+            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
