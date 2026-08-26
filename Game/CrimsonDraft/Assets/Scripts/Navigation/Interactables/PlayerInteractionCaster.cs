@@ -96,9 +96,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
 
 
-            var interactableType = hit.collider.TryGetComponent<IDoorInteractable>(out var door);
-            var interactableType2 = hit.collider.TryGetComponent<DocumentInteractable>(out var document);
-            if(door == null && document == null)
+            var isPickup = hit.collider.TryGetComponent<PickupInteractable>(out var pickup);
+            var isPoi    = hit.collider.TryGetComponent<PoiInteractable>(out var poi);
+            if (isPickup || isPoi)
             {
                 if (hit.transform.position.y <= interactStandHeight)
                 {
@@ -109,7 +109,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     this.animator.SetTrigger(InteractStandHash);
                 }
             }
-            
+
 
             var context = new InteractionContext(
                 this.inventoryService,
@@ -125,14 +125,6 @@ namespace CrimsonDraft.Navigation.Interactables
             interactable.Interact(context);
         }
 
-        /*
-        private System.Collections.IEnumerator ClearInteractingAfterDelay()
-        {
-            yield return new WaitForSeconds(this.interactingDuration);
-            this.animator.SetBool(InteractingHash, false);
-            this.interactingRoutine = null;
-        }
-        */
 
         public bool CanUseItem(ItemData item)
         {

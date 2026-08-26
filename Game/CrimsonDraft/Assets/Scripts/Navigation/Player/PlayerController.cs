@@ -32,7 +32,6 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField, Range(0f, 1f)] private float dangerSpeedRatio        = 0.72f;
 
         
-        private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
         private static readonly int ArmedHash    = Animator.StringToHash("Armed");
 
         private static readonly int IdleHash = Animator.StringToHash("Idle");
@@ -77,7 +76,7 @@ namespace CrimsonDraft.Navigation.Player
         internal void SetAiming(bool value)
         {
             this.IsAiming = value;
-            this.animator.SetBool(IsAimingHash, value);
+            //this.animator.SetBool(IsAimingHash, value);
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -107,9 +106,8 @@ namespace CrimsonDraft.Navigation.Player
             if (!isMoveHeld)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetBool(IdleHash,true);
-                this.animator.SetBool(RunHash,false);
-                this.animator.SetBool(WalkHash,false);
+                this.animator.SetTrigger(IdleHash);
+                
                 return;
             }
 
@@ -124,9 +122,7 @@ namespace CrimsonDraft.Navigation.Player
             if (moveDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetBool(IdleHash,false);
-                this.animator.SetBool(RunHash,false);
-                this.animator.SetBool(WalkHash,false);
+                this.animator.SetTrigger(IdleHash);
                 return;
             }
 
@@ -135,17 +131,15 @@ namespace CrimsonDraft.Navigation.Player
             var isSprinting     = this.inputService.Sprint.IsPressed();
             var speedMultiplier = this.GetSpeedMultiplier();
             var speed           = (isSprinting ? this.runSpeed : this.walkSpeed) * speedMultiplier;
-            this.animator.SetBool(IdleHash,false);
+        
 
             if (isSprinting)
             {
-                this.animator.SetBool(RunHash,true);
-                this.animator.SetBool(WalkHash,false);
+                this.animator.SetTrigger(RunHash);
             }
             else
             {
-                this.animator.SetBool(RunHash,false);
-                this.animator.SetBool(WalkHash,true);
+                this.animator.SetTrigger(WalkHash);
             }
 
 
@@ -153,9 +147,7 @@ namespace CrimsonDraft.Navigation.Player
             if (resolvedDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetBool(IdleHash,true);
-                this.animator.SetBool(RunHash,false);
-                this.animator.SetBool(WalkHash,false);
+                this.animator.SetTrigger(IdleHash);
                 return;
             }
     

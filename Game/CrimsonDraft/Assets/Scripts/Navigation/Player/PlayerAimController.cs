@@ -70,12 +70,15 @@ namespace CrimsonDraft.Navigation.Player
             BuildTargetList();
             this.currentTargetIndex = 0;
             this.playerController.SetAiming(true);
+            this.animator.SetTrigger("AimEnter");
         }
 
         private void ExitAim()
         {
             this.targets.Clear();
             this.playerController.SetAiming(false);
+            this.animator.SetTrigger("AimExit");
+
         }
 
         private void BuildTargetList()
