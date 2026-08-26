@@ -29,6 +29,7 @@ namespace CrimsonDraft.Navigation
         private readonly ItemDatabase         itemDatabase;
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker      playtimeTracker;
+        private readonly IOperatorCorpseSpawner corpseSpawner;
 
         [Preserve]
         public SaveGameLoader(
@@ -39,7 +40,8 @@ namespace CrimsonDraft.Navigation
             PlayerController     player,
             ItemDatabase         itemDatabase,
             WorldStateRegistries world,
-            PlaytimeTracker      playtimeTracker)
+            PlaytimeTracker      playtimeTracker,
+            IOperatorCorpseSpawner corpseSpawner)
         {
             this.saveGameService  = saveGameService;
             this.inventoryService = inventoryService;
@@ -49,6 +51,7 @@ namespace CrimsonDraft.Navigation
             this.itemDatabase     = itemDatabase;
             this.world            = world;
             this.playtimeTracker  = playtimeTracker;
+            this.corpseSpawner    = corpseSpawner;
         }
 
         void IInitializable.Initialize()
@@ -62,6 +65,7 @@ namespace CrimsonDraft.Navigation
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
             this.world.Enemies.LoadState(data.defeatedEnemyIds);
+            ApplyOperatorCorpses(data);
             ApplyInventory(data);
             this.roster.RestoreHp(data.operatorHp);
             this.playtimeTracker.RestoreFrom(data.playtimeSeconds);
@@ -84,6 +88,26 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.rooms)
                 dict[entry.roomId] = entry.state;
             this.world.Rooms.LoadState(dict);
+        }
+
+        private void ApplyOperatorCorpses(SaveGameData data)
+        {
+            var entries = new List<OperatorCorpseRegistry.Entry>();
+            foreach (var e in data.operatorCorpses)
+                entries.Add(new OperatorCorpseRegistry.Entry(e.slotIndex, e.roomId, e.position, e.rotation));
+            this.world.OperatorCorpses.LoadState(entries);
+
+            var rooms = UnityEngine.Object.FindObjectsOfType<RoomController>(true);
+            foreach (var entry in entries)
+            {
+                RoomController? room = Array.Find(rooms, r => r.RoomId == entry.RoomId);
+                if (room == null)
+                {
+                    UnityEngine.Debug.LogWarning($"[SaveGameLoader] No room '{entry.RoomId}' for saved operator corpse (slot {entry.SlotIndex}).");
+                    continue;
+                }
+                this.corpseSpawner.Spawn(room, entry.Position, entry.Rotation);
+            }
         }
 
         private void ApplyInventory(SaveGameData data)
