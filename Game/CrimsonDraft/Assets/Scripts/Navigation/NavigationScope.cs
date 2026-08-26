@@ -39,6 +39,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private MapDataSet            mapDataSet           = null!;
         [SerializeField] private ItemDatabase          itemDatabase         = null!;
         [SerializeField] private SaveSlotListView      saveSlotListView     = null!;
+        [SerializeField] private OperatorCorpseSettings corpseSettings      = null!;
 
         [SerializeField] private DialogueRunner          generalRunner    = null!;
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
@@ -146,6 +147,9 @@ namespace CrimsonDraft.Navigation
             builder.RegisterInstance(this.cachedEnemies);
             builder.RegisterInstance(this.cachedCombatTriggers);
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.corpseSettings);
+            builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
