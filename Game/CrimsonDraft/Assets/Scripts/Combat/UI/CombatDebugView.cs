@@ -5,6 +5,7 @@
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using VContainer;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Operators;
@@ -14,19 +15,22 @@ namespace CrimsonDraft.Combat
     public sealed class CombatDebugView : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI? text;
+        [SerializeField] private Key killOperatorAndEndCombatKey = Key.F9;
 
-        private ATBSystem?          atbSystem;
-        private CombatActionQueue?  actionQueue;
-        private CombatOrchestrator? orchestrator;
-        private IOperatorRoster?    roster;
-        private IBattlefieldView?   battlefieldView;
-        private IEncounterContext?  encounterContext;
-        private bool                initialized;
+        private ATBSystem?              atbSystem;
+        private CombatActionQueue?      actionQueue;
+        private CombatOrchestrator?     orchestrator;
+        private IOperatorRoster?        roster;
+        private IBattlefieldView?       battlefieldView;
+        private IEncounterContext?      encounterContext;
+        private CombatSessionController? combatSession;
+        private bool                    initialized;
 
         [Inject]
         public void Construct(ATBSystem atbSystem, CombatActionQueue actionQueue,
                               CombatOrchestrator orchestrator, IOperatorRoster roster,
-                              IBattlefieldView battlefieldView, IEncounterContext encounterContext)
+                              IBattlefieldView battlefieldView, IEncounterContext encounterContext,
+                              CombatSessionController combatSession)
         {
             this.atbSystem        = atbSystem;
             this.actionQueue      = actionQueue;
@@ -34,6 +38,7 @@ namespace CrimsonDraft.Combat
             this.roster           = roster;
             this.battlefieldView  = battlefieldView;
             this.encounterContext = encounterContext;
+            this.combatSession    = combatSession;
             this.initialized      = true;
         }
 
@@ -41,6 +46,30 @@ namespace CrimsonDraft.Combat
         {
             if (!this.initialized || this.text == null) return;
             this.text.text = BuildDebugText();
+
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb[this.killOperatorAndEndCombatKey].wasPressedThisFrame)
+                KillFirstAliveOperatorAndEndCombat();
+        }
+
+        // Debug-only shortcut for exercising the operator-death → corpse flow without
+        // playing an entire encounter: kills the first alive operator directly via the
+        // same public ApplyDamage API combat uses, then ends combat exactly like a real
+        // victory would (CombatEndedEvent fires, OperatorCorpseBootstrap reacts to it).
+        private void KillFirstAliveOperatorAndEndCombat()
+        {
+            if (this.roster == null || this.combatSession == null) return;
+
+            var aliveSlots = this.roster.GetAliveSlots();
+            if (aliveSlots.Count == 0)
+            {
+                Debug.LogWarning("[CombatDebugView] No alive operator to kill.");
+                return;
+            }
+
+            OperatorRuntime target = this.roster[aliveSlots[0]];
+            target.ApplyDamage(target.Hp);
+            this.combatSession.EndCombat(true);
         }
 
         private string BuildDebugText()
