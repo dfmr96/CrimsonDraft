@@ -103,8 +103,11 @@ namespace CrimsonDraft.Tests
             roomSo.ApplyModifiedPropertiesWithoutUndo();
 
             var playerGo = new GameObject("Player");
-            playerGo.transform.position = new Vector3(4f, 0f, 5f);
+            playerGo.transform.position = new Vector3(4f, 1.15f, 5f);
             var player = playerGo.AddComponent<PlayerController>();
+            var playerSo = new SerializedObject(player);
+            playerSo.FindProperty("footOffset").floatValue = 1.15f;
+            playerSo.ApplyModifiedPropertiesWithoutUndo();
 
             var roster     = new FakeRoster(count: 2, deadSlots: 1);
             var roomOrch   = new FakeRoomOrchestrator(room);
@@ -124,6 +127,8 @@ namespace CrimsonDraft.Tests
                 Assert.IsFalse(registry.IsRecorded(0));
                 Assert.AreEqual(1, spawner.SpawnCallCount);
                 Assert.AreEqual(room, spawner.LastRoom);
+                // Must be the player's *foot* position (transform.position minus footOffset on Y),
+                // not the raw Rigidbody-pivot transform.position — otherwise the corpse floats.
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), spawner.LastPosition);
             }
             finally

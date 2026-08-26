@@ -75,7 +75,7 @@ namespace CrimsonDraft.Navigation
                 if (this.roster[i].IsAlive) continue;
                 if (this.registry.IsRecorded(i)) continue;
 
-                Vector3    pos = this.player.transform.position;
+                Vector3    pos = this.player.FootPosition;
                 Quaternion rot = this.player.transform.rotation;
 
                 this.registry.Record(i, room.RoomId, pos, rot);

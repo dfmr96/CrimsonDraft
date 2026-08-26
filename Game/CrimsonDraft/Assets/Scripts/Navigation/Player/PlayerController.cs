@@ -43,6 +43,13 @@ namespace CrimsonDraft.Navigation.Player
 
         public bool IsAiming { get; private set; }
 
+        // transform.position is the Rigidbody's pivot, not the ground — footOffset is the
+        // vertical distance between them (see OnDrawGizmosSelected's "foot anchor" and
+        // ResolveNavMeshDirection's sampleY). Anything that needs to place something at the
+        // player's actual ground position (e.g. a dropped corpse) must use this, not
+        // transform.position directly, or it ends up floating footOffset meters in the air.
+        public Vector3 FootPosition => transform.position - new Vector3(0f, this.footOffset, 0f);
+
         [Inject]
         public void Construct(
             IInputService                  inputService,
