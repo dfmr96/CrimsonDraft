@@ -17,7 +17,8 @@ namespace CrimsonDraft.Tests
             var notes     = new NoteRegistry();
             var knownMaps = new KnownMapsRegistry();
             var enemies   = new EnemyStateRegistry();
-            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies);
+            var operatorCorpses = new OperatorCorpseRegistry();
+            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses);
             var inventoryState = new InventoryStateRegistry();
             var rosterHealth   = new RosterHealthRegistry();
 

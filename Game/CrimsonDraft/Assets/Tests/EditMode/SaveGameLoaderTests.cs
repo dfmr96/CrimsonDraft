@@ -110,7 +110,7 @@ namespace CrimsonDraft.Tests
             var itemDb      = MakeDatabase();
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -161,7 +161,7 @@ namespace CrimsonDraft.Tests
             var roomOrch  = new FakeRoomOrchestrator();
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
