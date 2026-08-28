@@ -13,6 +13,7 @@ namespace CrimsonDraft.UI.MainMenu
             builder.RegisterComponentInHierarchy<MainMenuCameraTravel>();
             builder.RegisterComponentInHierarchy<OptionsTabController>();
             builder.RegisterComponentInHierarchy<OptionsMenuController>();
+            builder.RegisterComponentInHierarchy<GeneralMenuController>();
         }
     }
 }

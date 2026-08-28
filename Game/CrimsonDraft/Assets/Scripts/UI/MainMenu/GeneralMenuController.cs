@@ -1,6 +1,8 @@
 #nullable enable
 
+using CrimsonDraft.Infrastructure.Graphics;
 using UnityEngine;
+using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
 {
@@ -47,12 +49,18 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Vector3 spinAxis     = Vector3.up;
         [SerializeField] private float   sweepDegrees = 270f;
         [SerializeField] private int     stepPercent  = 5;
-        [SerializeField] private int     startPercent = 50;
 
         private GameObject[] outlines = null!;
         private int          gammaValue;
+        private IGraphicsSettingsService graphicsSettingsService = null!;
 
         public int ChannelCount => 3;
+
+        [Inject]
+        public void Construct(IGraphicsSettingsService graphicsSettingsService)
+        {
+            this.graphicsSettingsService = graphicsSettingsService;
+        }
 
         private void Awake()
         {
@@ -63,7 +71,14 @@ namespace CrimsonDraft.UI.MainMenu
             this.gamma.baseRotation         = this.gamma.knob.localRotation;
             this.gamma.baseAnchoredPosition = this.gamma.fillBar.anchoredPosition;
             this.gamma.baseWidth            = this.gamma.fillBar.rect.width;
-            this.gammaValue                 = this.startPercent;
+        }
+
+        private void Start()
+        {
+            // Reads graphicsSettingsService, injected via Construct() during the scope's own
+            // Awake() -- deferring to Start() guarantees that already ran (see
+            // MainMenuController.Start()/OptionsMenuController.Start() for the same reasoning).
+            this.gammaValue = Mathf.RoundToInt(this.graphicsSettingsService.Gamma * 100f);
             ApplyGamma();
         }
 
@@ -85,6 +100,7 @@ namespace CrimsonDraft.UI.MainMenu
 
             this.gammaValue = Mathf.Clamp(this.gammaValue + direction * this.stepPercent, 0, 100);
             ApplyGamma();
+            this.graphicsSettingsService.SetGamma(this.gammaValue / 100f);
         }
 
         private void ApplyGamma()
