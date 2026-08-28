@@ -12,11 +12,16 @@ namespace CrimsonDraft.UI.MainMenu
 {
     public sealed class MainMenuCameraTravel : MonoBehaviour
     {
+        private enum Destination { None, NewGame, Options }
+
         [Header("References")]
         [SerializeField] private Transform  cameraTransform = null!; // Main_Menu-Camera -- the camera that actually moves.
         [SerializeField] private Transform  newGamePose     = null!; // New_Game-Camera -- position/rotation marker only, not a live camera.
+        [SerializeField] private Transform  optionsPose     = null!; // Options-Camera -- position/rotation marker only, not a live camera.
         [SerializeField] private GameObject titleCanvas     = null!;
         [SerializeField] private GameObject newGameCanvas   = null!;
+        [SerializeField] private GameObject optionsCanvas   = null!;
+        [SerializeField] private OptionsTabController optionsController = null!;
         [Tooltip("Selectable enfocado al llegar al canvas de New Game -- sin esto el EventSystem se queda sin selección y Navigate/Submit/Cancel no tienen nada sobre lo que actuar.")]
         [SerializeField] private Selectable newGameFirstSelected = null!;
 
@@ -27,7 +32,7 @@ namespace CrimsonDraft.UI.MainMenu
         private IInputService inputService = null!;
         private Vector3       homePosition;
         private Quaternion    homeRotation;
-        private bool          isAtNewGame;
+        private Destination   currentDestination;
         private bool          isTravelling;
 
         [Inject]
@@ -53,9 +58,9 @@ namespace CrimsonDraft.UI.MainMenu
 
         public void TravelToNewGame()
         {
-            if (this.isTravelling || this.isAtNewGame) return;
-            this.isTravelling = true;
-            this.isAtNewGame  = true;
+            if (this.isTravelling || this.currentDestination != Destination.None) return;
+            this.currentDestination = Destination.NewGame;
+            this.isTravelling       = true;
 
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
@@ -72,18 +77,49 @@ namespace CrimsonDraft.UI.MainMenu
                 });
         }
 
+        public void TravelToOptions()
+        {
+            if (this.isTravelling || this.currentDestination != Destination.None) return;
+            this.currentDestination = Destination.Options;
+            this.isTravelling       = true;
+
+            this.titleCanvas.SetActive(false);
+            EventSystem.current?.SetSelectedGameObject(null);
+
+            DOTween.Sequence()
+                .SetTarget(this)
+                .Append(this.cameraTransform.DOMove(this.optionsPose.position, this.travelDuration).SetEase(this.travelEase))
+                .Join(this.cameraTransform.DORotateQuaternion(this.optionsPose.rotation, this.travelDuration).SetEase(this.travelEase))
+                .OnComplete(() =>
+                {
+                    this.isTravelling = false;
+                    this.optionsCanvas.SetActive(true);
+                    this.optionsController.Open();
+                });
+        }
+
         private void OnCancel(InputAction.CallbackContext _)
         {
-            if (!this.isAtNewGame || this.isTravelling) return;
+            if (this.currentDestination == Destination.None || this.isTravelling) return;
             TravelBack();
         }
 
         private void TravelBack()
         {
-            this.isTravelling = true;
-            this.isAtNewGame  = false;
+            Destination from = this.currentDestination;
+            this.currentDestination = Destination.None;
+            this.isTravelling       = true;
 
-            this.newGameCanvas.SetActive(false);
+            switch (from)
+            {
+                case Destination.NewGame:
+                    this.newGameCanvas.SetActive(false);
+                    break;
+                case Destination.Options:
+                    this.optionsController.Close();
+                    this.optionsCanvas.SetActive(false);
+                    break;
+            }
             EventSystem.current?.SetSelectedGameObject(null);
 
             DOTween.Sequence()
