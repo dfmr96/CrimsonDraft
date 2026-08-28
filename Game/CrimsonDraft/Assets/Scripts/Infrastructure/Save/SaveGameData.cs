@@ -21,6 +21,15 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class OperatorCorpseEntry
+    {
+        public int        slotIndex;
+        public string     roomId = "";
+        public Vector3    position;
+        public Quaternion rotation = Quaternion.identity;
+    }
+
+    [Serializable]
     public sealed class InventorySlotEntry
     {
         public int    slotIndex;
@@ -55,6 +64,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();
     }

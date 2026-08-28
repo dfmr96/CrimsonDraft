@@ -107,6 +107,17 @@ namespace CrimsonDraft.Navigation.Interactables
             data.knownMapIds.AddRange(this.world.KnownMaps.GetState());
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
 
+            foreach (var entry in this.world.OperatorCorpses.GetAll())
+            {
+                data.operatorCorpses.Add(new OperatorCorpseEntry
+                {
+                    slotIndex = entry.SlotIndex,
+                    roomId    = entry.RoomId,
+                    position  = entry.Position,
+                    rotation  = entry.Rotation,
+                });
+            }
+
             var slots = this.inventoryService.GetRawSlots();
             for (int i = 0; i < slots.Length; i++)
             {

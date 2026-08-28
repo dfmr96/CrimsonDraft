@@ -19,7 +19,8 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Button newGameButton  = null!;
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
-        [SerializeField] private SaveSlotListView loadSlotListView = null!;
+        [SerializeField] private LoadGameSaveListView loadListView  = null!;
+        [SerializeField] private MainMenuCameraTravel cameraTravel  = null!;
 
         private IInputService      inputService      = null!;
         private ISaveGameService   saveGameService   = null!;
@@ -35,7 +36,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.gameStateResetter = gameStateResetter;
 
             this.loadNavigator = new SaveSlotNavigator(
-                this.loadSlotListView,
+                this.loadListView,
                 "Load",
                 OnSlotConfirmed,
                 canConfirm: summary => !summary.isEmpty,
@@ -46,7 +47,6 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UICancel.performed   += OnBack;
 
             this.newGameButton.onClick.AddListener(OnNewGameClicked);
-            this.loadGameButton.onClick.AddListener(OnLoadGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
 
             this.loadGameButton.interactable = HasAnySave();
@@ -83,7 +83,11 @@ namespace CrimsonDraft.UI.MainMenu
             SceneManager.LoadScene(this.newGameSceneName, LoadSceneMode.Single);
         }
 
-        private void OnLoadGameClicked()
+        /// <summary>
+        /// Called by MainMenuCameraTravel once the camera arrives at LoadGame-Camera --
+        /// mirrors how TravelToOptions() hands off to OptionsTabController.Open().
+        /// </summary>
+        public void OpenLoadGameList()
         {
             this.inputService.SwitchToUI();
 
@@ -110,12 +114,41 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.isLoadingSlot) return;
 
             this.inputService.SwitchToUI();
-            EventSystem.current.SetSelectedGameObject(this.loadGameButton.gameObject);
+            this.cameraTravel.TravelBackFromLoadGame();
         }
 
-        private void OnNavigate(InputAction.CallbackContext ctx) => this.loadNavigator.HandleNavigate(ctx.ReadValue<Vector2>());
-        private void OnConfirm(InputAction.CallbackContext _)    => this.loadNavigator.HandleConfirm();
-        private void OnBack(InputAction.CallbackContext _)       => this.loadNavigator.HandleBack();
+        private void OnNavigate(InputAction.CallbackContext ctx)
+        {
+            var direction = ctx.ReadValue<Vector2>();
+
+            // While the Yes/No confirm prompt is up, horizontal input toggles which option is
+            // selected instead of moving the (hidden) slot list cursor -- SaveSlotNavigator
+            // itself ignores Navigate entirely while confirming.
+            if (this.loadNavigator.IsConfirming)
+            {
+                if (direction.x > 0.5f) this.loadListView.SetConfirmSelection(yesSelected: true);
+                else if (direction.x < -0.5f) this.loadListView.SetConfirmSelection(yesSelected: false);
+                return;
+            }
+
+            this.loadNavigator.HandleNavigate(direction);
+        }
+
+        private void OnConfirm(InputAction.CallbackContext _)
+        {
+            // Confirming a row first opens the Yes/No prompt (HandleConfirm below); pressing
+            // Confirm again while it's up executes whichever option is currently selected.
+            if (this.loadNavigator.IsConfirming)
+            {
+                if (this.loadListView.IsYesSelected) this.loadNavigator.HandleConfirm();
+                else this.loadNavigator.HandleBack();
+                return;
+            }
+
+            this.loadNavigator.HandleConfirm();
+        }
+
+        private void OnBack(InputAction.CallbackContext _) => this.loadNavigator.HandleBack();
 
         private void OnExitClicked()
         {

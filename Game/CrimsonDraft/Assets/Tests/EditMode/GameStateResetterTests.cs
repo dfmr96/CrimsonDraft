@@ -17,7 +17,8 @@ namespace CrimsonDraft.Tests
             var notes     = new NoteRegistry();
             var knownMaps = new KnownMapsRegistry();
             var enemies   = new EnemyStateRegistry();
-            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies);
+            var operatorCorpses = new OperatorCorpseRegistry();
+            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses);
             var inventoryState = new InventoryStateRegistry();
             var rosterHealth   = new RosterHealthRegistry();
 
@@ -27,6 +28,7 @@ namespace CrimsonDraft.Tests
             notes.SetCollected("note-a");
             knownMaps.MarkKnown("map-a");
             enemies.SetDefeated("enemy-a");
+            world.OperatorCorpses.Record(0, "room-a", UnityEngine.Vector3.zero, UnityEngine.Quaternion.identity);
             inventoryState.Save(new object());
             rosterHealth.Save(new[] { 100 });
 
@@ -39,6 +41,7 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(notes.IsCollected("note-a"));
             Assert.IsFalse(knownMaps.IsKnown("map-a"));
             Assert.IsFalse(enemies.IsDefeated("enemy-a"));
+            Assert.IsFalse(world.OperatorCorpses.IsRecorded(0));
             Assert.IsFalse(inventoryState.HasSavedState);
             Assert.IsFalse(rosterHealth.HasSavedState);
         }

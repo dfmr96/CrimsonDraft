@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using CrimsonDraft.Infrastructure.Audio;
 using CrimsonDraft.Infrastructure.Cameras;
+using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save;
@@ -42,6 +43,8 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterInstance(this.audioSettingsData);
             builder.Register<AudioSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
 
+            builder.Register<GraphicsSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
+
             var options = builder.RegisterMessagePipe();
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
@@ -61,6 +64,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);
+            builder.Register<OperatorCorpseRegistry>(Lifetime.Singleton);
 
             builder.Register<WorldStateRegistries>(Lifetime.Singleton);
 

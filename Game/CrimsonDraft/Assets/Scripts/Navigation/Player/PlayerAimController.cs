@@ -17,6 +17,8 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private float    aimRange      = 20f;
         [SerializeField] private LayerMask obstaclesMask;
         [SerializeField] private LayerMask enemyMask;
+        [SerializeField] private Animator animator = null;
+        
 
         private IInputService            inputService           = null!;
         private ISceneTransitionService  sceneTransitionService = null!;
@@ -68,12 +70,15 @@ namespace CrimsonDraft.Navigation.Player
             BuildTargetList();
             this.currentTargetIndex = 0;
             this.playerController.SetAiming(true);
+            this.animator.SetTrigger("AimEnter");
         }
 
         private void ExitAim()
         {
             this.targets.Clear();
             this.playerController.SetAiming(false);
+            this.animator.SetTrigger("AimExit");
+
         }
 
         private void BuildTargetList()
@@ -162,6 +167,7 @@ namespace CrimsonDraft.Navigation.Player
                 return;
             }
 
+            this.animator.SetTrigger("Shoot");
             target.NotifyCombatTriggered();
             ExitAim();
             this.sceneTransitionService.StartCombatAsync(

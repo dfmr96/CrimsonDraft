@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Audio;
+using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Navigation.UI;
@@ -21,10 +22,11 @@ namespace CrimsonDraft.Navigation
 
         private enum PauseState { Closed, Main, Options }
 
-        private readonly IInputService        inputService;
-        private readonly PauseMenuView        view;
-        private readonly IAudioSettingsService audioSettings;
-        private readonly ScreenFader          screenFader;
+        private readonly IInputService          inputService;
+        private readonly PauseMenuView          view;
+        private readonly IAudioSettingsService  audioSettings;
+        private readonly IGraphicsSettingsService graphicsSettings;
+        private readonly ScreenFader            screenFader;
 
         private PauseState state = PauseState.Closed;
 
@@ -33,12 +35,14 @@ namespace CrimsonDraft.Navigation
             IInputService inputService,
             PauseMenuView view,
             IAudioSettingsService audioSettings,
+            IGraphicsSettingsService graphicsSettings,
             ScreenFader screenFader)
         {
-            this.inputService  = inputService;
-            this.view          = view;
-            this.audioSettings = audioSettings;
-            this.screenFader   = screenFader;
+            this.inputService     = inputService;
+            this.view             = view;
+            this.audioSettings    = audioSettings;
+            this.graphicsSettings = graphicsSettings;
+            this.screenFader      = screenFader;
         }
 
         void IInitializable.Initialize()
@@ -75,6 +79,7 @@ namespace CrimsonDraft.Navigation
             this.inputService.SwitchToUI();
             this.view.ShowMain();
             EventSystem.current.SetSelectedGameObject(this.view.FirstMainSelectable);
+            this.graphicsSettings.PushGammaSuppression();
         }
 
         private void Resume()
@@ -84,6 +89,7 @@ namespace CrimsonDraft.Navigation
             this.inputService.SwitchToGameplay();
             this.view.HideAll();
             EventSystem.current.SetSelectedGameObject(null);
+            this.graphicsSettings.PopGammaSuppression();
         }
 
         private void OpenOptions()
@@ -105,6 +111,7 @@ namespace CrimsonDraft.Navigation
         {
             this.state = PauseState.Closed;
             Time.timeScale = 1f;
+            this.graphicsSettings.PopGammaSuppression();
             await this.screenFader.FadeOutAsync();
             SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
         }

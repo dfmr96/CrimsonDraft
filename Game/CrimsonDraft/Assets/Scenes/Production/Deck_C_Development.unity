@@ -2864,6 +2864,11 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!20 &546993961 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 7474191492288069977, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+  m_PrefabInstance: {fileID: 7155837992838019863}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &549229435
 Mesh:
   m_ObjectHideFlags: 0
@@ -11687,7 +11692,7 @@ PrefabInstance:
     - target: {fileID: 763015004618908021, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_Camera
       value: 
-      objectReference: {fileID: 7155837992838019865}
+      objectReference: {fileID: 546993961}
     - target: {fileID: 763015004618908021, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_PlaneDistance
       value: 0.11
@@ -11799,6 +11804,14 @@ PrefabInstance:
     - target: {fileID: 3933975921301609959, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: m_text
       value: Nota
+      objectReference: {fileID: 0}
+    - target: {fileID: 3966705828435806377, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: field of view
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 3966705828435806377, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: far clip plane
+      value: 18.78
       objectReference: {fileID: 0}
     - target: {fileID: 4187168469005616819, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: inventorySfxData
@@ -11932,6 +11945,10 @@ PrefabInstance:
       propertyPath: startingRoom
       value: 
       objectReference: {fileID: 8589300060097439697}
+    - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: corpseSettings
+      value: 
+      objectReference: {fileID: 11400000, guid: f0666713b992ac24fb61922d76c4d6b4, type: 2}
     - target: {fileID: 8284339136364541493, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: saveSlotListView
       value: 
@@ -12080,6 +12097,22 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 18.39
       objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7660445
+      objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.64278764
+      objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8645488593228393264, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8827470668502818505, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
       propertyPath: map
       value: 
@@ -12112,11 +12145,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae10a1969a3e71645a6fcbe6b645ca7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkAudioListener
---- !u!20 &7155837992838019865 stripped
-Camera:
-  m_CorrespondingSourceObject: {fileID: 3966705828435806377, guid: 0d86e4427a00dba429121d737b894eb7, type: 3}
-  m_PrefabInstance: {fileID: 7155837992838019863}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &8589300060052080787 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1673055654853698239, guid: 82e80262e6454a9489691ca8ecea29c9, type: 3}

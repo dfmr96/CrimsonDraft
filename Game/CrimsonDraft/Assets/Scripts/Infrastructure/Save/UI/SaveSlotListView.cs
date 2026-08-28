@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace CrimsonDraft.Infrastructure.Save.UI
 {
-    public sealed class SaveSlotListView : MonoBehaviour
+    public sealed class SaveSlotListView : MonoBehaviour, ISaveSlotListView
     {
         [SerializeField] private GameObject      panel          = null!;
         [SerializeField] private Transform       slotListParent = null!;
@@ -31,9 +31,9 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             this.panel.SetActive(true);
         }
 
-        public void ShowConfirm(string message)
+        public void ShowConfirm(SaveSlotSummary summary, string confirmVerb)
         {
-            this.confirmLabel.text = message;
+            this.confirmLabel.text = $"{confirmVerb} slot {summary.slot + 1}? (Confirm / Cancel)";
             this.confirmPanel.SetActive(true);
         }
 
