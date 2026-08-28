@@ -15,7 +15,7 @@ namespace CrimsonDraft.Infrastructure.Save.UI
     /// </summary>
     public sealed class SaveSlotNavigator
     {
-        private readonly SaveSlotListView              view;
+        private readonly ISaveSlotListView             view;
         private readonly string                        confirmVerb;
         private readonly Action<int>                   onConfirmSlot;
         private readonly Func<SaveSlotSummary, bool>    canConfirm;
@@ -26,9 +26,10 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         private bool isConfirming;
 
         public bool IsOpen { get; private set; }
+        public bool IsConfirming => this.isConfirming;
 
         public SaveSlotNavigator(
-            SaveSlotListView           view,
+            ISaveSlotListView          view,
             string                     confirmVerb,
             Action<int>                onConfirmSlot,
             Func<SaveSlotSummary, bool>? canConfirm = null,
@@ -80,7 +81,7 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             if (!this.canConfirm(summary)) return;
 
             this.isConfirming = true;
-            this.view.ShowConfirm($"{this.confirmVerb} slot {summary.slot + 1}? (Confirm / Cancel)");
+            this.view.ShowConfirm(summary, this.confirmVerb);
         }
 
         public void HandleBack()
