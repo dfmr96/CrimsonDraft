@@ -1,7 +1,10 @@
 #nullable enable
 
+using System;
+using CrimsonDraft.Infrastructure.Audio;
 using TMPro;
 using UnityEngine;
+using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
 {
@@ -34,19 +37,44 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Vector3 spinAxis     = Vector3.up;
         [SerializeField] private float   sweepDegrees = 270f;
         [SerializeField] private int     stepPercent  = 5;
-        [SerializeField] private int     startPercent = 100;
 
-        private SoundChannel[] channels = null!;
+        private SoundChannel[]    channels = null!;
+        private Action<float>[]   applyToService = null!;
+        private IAudioSettingsService audioSettingsService = null!;
 
         public int ChannelCount => this.channels.Length;
 
-        private void Awake()
+        [Inject]
+        public void Construct(IAudioSettingsService audioSettingsService)
         {
+            this.audioSettingsService = audioSettingsService;
+        }
+
+        private void Start()
+        {
+            // Reads audioSettingsService, which VContainer injects via Construct() during the
+            // scope's own Awake() -- deferring to Start() here guarantees that already ran,
+            // same reasoning as MainMenuController.Start().
             this.channels = new[] { this.master, this.sfx, this.music };
-            foreach (var channel in this.channels)
+            this.applyToService = new Action<float>[]
             {
+                this.audioSettingsService.SetMasterVolume,
+                this.audioSettingsService.SetSfxVolume,
+                this.audioSettingsService.SetMusicVolume,
+            };
+
+            float[] startValues01 =
+            {
+                this.audioSettingsService.MasterVolume,
+                this.audioSettingsService.SfxVolume,
+                this.audioSettingsService.MusicVolume,
+            };
+
+            for (int i = 0; i < this.channels.Length; i++)
+            {
+                var channel = this.channels[i];
                 channel.baseRotation = channel.knob.localRotation;
-                channel.value        = this.startPercent;
+                channel.value        = Mathf.RoundToInt(startValues01[i] * 100f);
                 Apply(channel);
                 channel.outline.SetActive(false);
             }
@@ -69,6 +97,7 @@ namespace CrimsonDraft.UI.MainMenu
             var channel = this.channels[index];
             channel.value = Mathf.Clamp(channel.value + direction * this.stepPercent, 0, 100);
             Apply(channel);
+            this.applyToService[index](channel.value / 100f);
         }
 
         private void Apply(SoundChannel channel)
