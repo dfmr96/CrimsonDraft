@@ -1,33 +1,28 @@
 #nullable enable
 
+using CrimsonDraft.Infrastructure.Graphics;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
 {
+    /// <summary>
+    /// Bridges the New Game gamma-calibration slider to the shared, persistent gamma system
+    /// (GraphicsSettingsService) instead of poking a single scene-local Volume directly. The old
+    /// direct-Volume approach never wrote to PlayerPrefs and never touched any Volume outside
+    /// MainMenu, so a value set on this slider didn't persist and didn't carry into Deck_B/C or
+    /// Combat the way Pause/Inventory's gamma control does.
+    /// </summary>
     public sealed class GammaSliderController : MonoBehaviour
     {
-        [SerializeField] private Volume globalVolume  = null!;
-        [Tooltip("Corrimiento de gamma (canal master) aplicado en los extremos del slider.")]
-        [SerializeField] private float  gammaOffsetRange = 0.5f;
+        private IGraphicsSettingsService graphicsSettingsService = null!;
 
-        private LiftGammaGain? liftGammaGain;
-
-        private void Awake()
+        [Inject]
+        public void Construct(IGraphicsSettingsService graphicsSettingsService)
         {
-            if (this.globalVolume.profile.TryGet(out LiftGammaGain lgg))
-                this.liftGammaGain = lgg;
+            this.graphicsSettingsService = graphicsSettingsService;
         }
 
-        public void SetGamma(float sliderValue)
-        {
-            if (this.liftGammaGain == null) return;
-
-            float offset = Mathf.Lerp(-this.gammaOffsetRange, this.gammaOffsetRange, sliderValue);
-            Vector4 gamma = this.liftGammaGain.gamma.value;
-            gamma.w = offset;
-            this.liftGammaGain.gamma.value = gamma;
-        }
+        public void SetGamma(float sliderValue) => this.graphicsSettingsService.SetGamma(sliderValue);
     }
 }
