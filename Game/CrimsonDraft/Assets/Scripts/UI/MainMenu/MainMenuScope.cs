@@ -10,6 +10,11 @@ namespace CrimsonDraft.UI.MainMenu
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterComponentInHierarchy<MainMenuController>();
+            builder.RegisterComponentInHierarchy<MainMenuCameraTravel>();
+            builder.RegisterComponentInHierarchy<OptionsTabController>();
+            builder.RegisterComponentInHierarchy<OptionsMenuController>();
+            builder.RegisterComponentInHierarchy<GeneralMenuController>();
+            builder.RegisterComponentInHierarchy<GammaSliderController>();
         }
     }
 }

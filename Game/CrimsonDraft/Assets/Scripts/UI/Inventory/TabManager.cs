@@ -149,6 +149,16 @@ namespace CrimsonDraft.UI
             ActivateTab(idx);
         }
 
+        // Sole subscriber to InventoryCancel — GridCursor and FilesTabController do NOT
+        // subscribe to it themselves. They used to, each calling EnterTabBar() when they had
+        // nothing left to close, but since both they and this handler reacted to the same
+        // press, subscription order (which depends on GameObject activation order and isn't
+        // guaranteed) decided whether EnterTabBar() ran before or after this method's own
+        // tabBarActive check — on the Inventory tab specifically, GridCursor ran first, so by
+        // the time this method checked tabBarActive it had already flipped true and this
+        // closed the inventory on the very press meant to open the tab bar. Routing everything
+        // through here removes the race: content is queried, never allowed to react to the
+        // input on its own.
         void OnCancelTab(InputAction.CallbackContext ctx)
         {
             if (this.tabBarActive)
@@ -157,10 +167,14 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            // Inventory and Files tabs handle B themselves; Map tab doesn't — enter tab bar for it
-            bool contentHandlesCancel = this.currentIndex == 0
-                                        || (this.filesTab != null && this.filesTab.isActiveAndEnabled);
-            if (!contentHandlesCancel)
+            bool consumed = this.currentIndex == 0
+                            && this.gridCursor != null
+                            && this.gridCursor.TryConsumeCancel();
+
+            if (!consumed && this.filesTab != null && this.filesTab.isActiveAndEnabled)
+                consumed = this.filesTab.TryConsumeCancel();
+
+            if (!consumed)
                 EnterTabBar();
         }
 

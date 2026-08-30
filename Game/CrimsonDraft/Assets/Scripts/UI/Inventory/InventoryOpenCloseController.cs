@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
@@ -24,6 +25,7 @@ namespace CrimsonDraft.UI
         [Inject] private InventorySceneInit sceneInit    = null!;
         [Inject] private TabManager        tabManager    = null!;
         [Inject] private InventorySfxData  sfxData       = null!;
+        [Inject] private IGraphicsSettingsService graphicsSettings = null!;
 
         private const string MapTabName = "Map";
 
@@ -77,6 +79,7 @@ namespace CrimsonDraft.UI
             this.sfxData.PlayDecide(this.gameObject);
             FadeVolume(1f);
             this.ditherFeature?.SetActive(false);
+            this.graphicsSettings.PushGammaSuppression();
         }
 
         public void Close()
@@ -88,6 +91,7 @@ namespace CrimsonDraft.UI
             this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
             this.ditherFeature?.SetActive(true);
+            this.graphicsSettings.PopGammaSuppression();
         }
 
         private void FadeVolume(float target)

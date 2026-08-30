@@ -11,7 +11,7 @@ namespace CrimsonDraft.Infrastructure.Audio
         private const string MasterVolumeKey = "Audio.MasterVolume";
         private const string SfxVolumeKey    = "Audio.SfxVolume";
         private const string MusicVolumeKey  = "Audio.MusicVolume";
-        private const float  DefaultVolume   = 1f;
+        private const float  DefaultVolume   = 0.5f;
 
         private readonly AudioSettingsData data;
 

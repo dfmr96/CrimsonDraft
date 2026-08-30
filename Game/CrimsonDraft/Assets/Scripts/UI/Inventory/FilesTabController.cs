@@ -148,7 +148,6 @@ namespace CrimsonDraft.UI
         {
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
-            this.inputService.InventoryCancel.performed  += OnCancel;
 
             this.categoryIndex   = 0;
             this.selectedIndex   = 0;
@@ -167,7 +166,6 @@ namespace CrimsonDraft.UI
         {
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
-            this.inputService.InventoryCancel.performed  -= OnCancel;
         }
 
         void Update()
@@ -311,16 +309,16 @@ namespace CrimsonDraft.UI
             }
         }
 
-        void OnCancel(InputAction.CallbackContext _)
+        // Called by TabManager.OnCancelTab — the sole subscriber to InventoryCancel — so the
+        // open note detail view gets first chance to consume Cancel before TabManager falls
+        // back to entering the tab bar selector.
+        public bool TryConsumeCancel()
         {
-            if (this.detailView.IsOpen)
-            {
-                this.sfx?.PlayCancel(gameObject);
-                this.detailView.Hide();
-                return;
-            }
-            if (!this.tabManager.IsTabBarActive)
-                this.tabManager.EnterTabBar();
+            if (!this.detailView.IsOpen) return false;
+
+            this.sfx?.PlayCancel(gameObject);
+            this.detailView.Hide();
+            return true;
         }
 
         void OpenNote(DocumentData doc)

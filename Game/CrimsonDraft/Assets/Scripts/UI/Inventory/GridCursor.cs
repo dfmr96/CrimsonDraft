@@ -91,7 +91,6 @@ namespace CrimsonDraft.UI
         {
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
-            this.inputService.InventoryCancel.performed  += OnCancel;
             this.inputService.InventoryPickup.performed  += OnPickup;
             this.inputBound = true;
         }
@@ -100,7 +99,6 @@ namespace CrimsonDraft.UI
         {
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
-            this.inputService.InventoryCancel.performed  -= OnCancel;
             this.inputService.InventoryPickup.performed  -= OnPickup;
             this.inputBound = false;
         }
@@ -285,41 +283,41 @@ namespace CrimsonDraft.UI
             }
         }
 
-        void OnCancel(InputAction.CallbackContext ctx)
+        // Called by TabManager.OnCancelTab — the sole subscriber to InventoryCancel — so this
+        // tab's own submenus/held-item state get first chance to consume Cancel before
+        // TabManager falls back to entering the tab bar selector. Must not subscribe to
+        // InventoryCancel itself: doing so alongside TabManager's own handler let both react
+        // to the same press and race on tab-bar state (see TabManager.OnCancelTab).
+        public bool TryConsumeCancel()
         {
-            if (this.tabManager != null && this.tabManager.IsTabBarActive) return;
-
             if (this.IsCombineMode)
             {
                 this.IsCombineMode = false;
                 OnCombineCancelled?.Invoke();
                 this.sfx?.PlayCancel(gameObject);
-                return;
+                return true;
             }
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx?.PlayCancel(gameObject);
                 this.contextMenu.Close();
-                return;
+                return true;
             }
 
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
             {
                 this.inspectPanel.Close();
-                return;
+                return true;
             }
 
             if (this.heldItem != null)
             {
                 TryPlace();
-                return;
+                return true;
             }
 
-            if (this.tabManager != null)
-                this.tabManager.EnterTabBar();
-            else
-                OnCloseRequested?.Invoke();
+            return false;
         }
 
         public void RequestClose() => OnCloseRequested?.Invoke();
