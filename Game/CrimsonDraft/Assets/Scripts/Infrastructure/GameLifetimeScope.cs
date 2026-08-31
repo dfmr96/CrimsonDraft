@@ -23,8 +23,19 @@ namespace CrimsonDraft.Infrastructure
 
         protected override void Awake()
         {
-            base.Awake();
+            // Must run before base.Awake(): VContainer's LifetimeScope.Build() builds this
+            // root's own container fine, but then immediately tries to build any scoped
+            // children that were waiting on it (AwakeWaitingChildren) -- e.g. MainMenuScope. If
+            // a scene transition (New Game -> Deck_B) unloads MainMenu mid-build, that child
+            // build throws (its RegisterComponentInHierarchy scan finds an empty/unloaded
+            // scene), and the exception propagates straight out of base.Awake() uncaught. If
+            // DontDestroyOnLoad were still below that call, it would never run, and this whole
+            // GameObject -- with every singleton in it (input, inventory, camera, graphics...)
+            // -- would be destroyed along with the unloading scene, orphaning every DI consumer
+            // in whatever scene loads next.
             DontDestroyOnLoad(gameObject);
+
+            base.Awake();
 
             // The game is fully keyboard/gamepad-driven — the OS cursor is never used for
             // input, but builds still show it by default.

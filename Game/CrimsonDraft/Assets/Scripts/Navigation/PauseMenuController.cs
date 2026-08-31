@@ -114,6 +114,7 @@ namespace CrimsonDraft.Navigation
             this.graphicsSettings.PopGammaSuppression();
             await this.screenFader.FadeOutAsync();
             SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
+            await this.screenFader.FadeInAsync();
         }
 
         private void OnBack(InputAction.CallbackContext _)
