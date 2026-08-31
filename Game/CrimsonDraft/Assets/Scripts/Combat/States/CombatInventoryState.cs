@@ -34,7 +34,6 @@ namespace CrimsonDraft.Combat
             this.context.Orchestrator.SetWaitMode(false);
             this.view.OnItemUsed  -= HandleItemUsed;
             this.view.OnCancelled -= HandleCancelled;
-            this.menuView.ReleaseOperatorFocus(this.context.SelectedOperator);
         }
 
         private void HandleItemUsed(int slotIndex)
@@ -42,6 +41,15 @@ namespace CrimsonDraft.Combat
             this.context.Orchestrator.EnqueueAction(
                 PendingAction.UseItem(this.context.SelectedOperator, slotIndex));
             this.view.Hide();
+
+            // Only release the card's focus-lift here, on an actual commit — mirrors
+            // Shoot/FocusFire, which also only release once the turn is spent. Cancelling
+            // back to CommandPanelState (HandleCancelled below) deliberately leaves focus
+            // untouched: releasing it there eased "Visual" back down over ~0.18s while
+            // CommandPanelState.Enter() repositioned the command list from "Visual"'s
+            // still-lifted position in the same frame, leaving the list floating ~liftAmount
+            // px above the border once the card finished easing down underneath it.
+            this.menuView.ReleaseOperatorFocus(this.context.SelectedOperator);
             this.context.TransitionTo(this.context.OperatorSelState);
         }
 

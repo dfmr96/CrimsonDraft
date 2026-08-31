@@ -28,6 +28,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
         [SerializeField] private Image[]          operatorFocusFireMarkers = Array.Empty<Image>();
+        [SerializeField] private Image[]          operatorActionPendingIcons = Array.Empty<Image>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
@@ -49,6 +50,7 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
         private readonly Dictionary<int, float>                  pendingHealthByOperator = new();
         private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
+        private readonly Dictionary<int, bool>                   pendingActionPendingByOperator = new();
 
         #endregion
 
@@ -64,9 +66,11 @@ namespace CrimsonDraft.Combat
             this.TryAutoWireOperatorAmmoLabels();
             this.TryAutoWireOperatorEcgAnimators();
             this.TryAutoWireOperatorWeaponIcons();
+            this.TryAutoWireOperatorActionPendingIcons();
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
+            this.ApplyPendingActionPendingIcons();
         }
 
         private void OnEnable()
@@ -76,6 +80,7 @@ namespace CrimsonDraft.Combat
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
+            this.ApplyPendingActionPendingIcons();
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -268,6 +273,47 @@ namespace CrimsonDraft.Combat
                     continue;
 
                 this.operatorWeaponIcons[i] = weaponNode.GetComponent<Image>();
+            }
+        }
+
+        private void TryAutoWireOperatorActionPendingIcons()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorActionPendingIcons != null && this.operatorActionPendingIcons.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorActionPendingIcons[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorActionPendingIcons = new Image[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var actionNode = overview.Find("Action");
+                if (actionNode == null)
+                    continue;
+
+                this.operatorActionPendingIcons[i] = actionNode.GetComponent<Image>();
             }
         }
 
@@ -500,6 +546,14 @@ namespace CrimsonDraft.Combat
         public void PlayOperatorDamageShake(int index) =>
             this.GetOperatorCardShake(index)?.PlayDamageShake();
 
+        // Same fire-and-forget shot as the shake above, but on the ECG line's own CRT-static
+        // burst -- reuses the array SetOperatorHealth already indexes into, no extra wiring.
+        public void PlayOperatorDamageGlitch(int index)
+        {
+            if (index < 0 || index >= this.operatorEcgAnimators.Length) return;
+            this.operatorEcgAnimators[index]?.PlayDamageGlitch();
+        }
+
         private OperatorCardShake? GetOperatorCardShake(int index)
         {
             if (index < 0 || index >= this.operators.Length) return null;
@@ -552,6 +606,40 @@ namespace CrimsonDraft.Combat
                     continue;
 
                 ApplyWeaponIcon(icon, kvp.Value);
+            }
+        }
+
+        // Shown while the operator has an action sitting in CombatActionQueue waiting its
+        // turn (submitted Shoot/Item/FocusFire, not yet resolved) — hidden again once that
+        // action actually leaves the queue. Starts off in the prefab: nobody has a queued
+        // action until they act.
+        public void SetOperatorActionPending(int index, bool pending)
+        {
+            this.pendingActionPendingByOperator[index] = pending;
+
+            if (index < 0 || index >= this.operatorActionPendingIcons.Length)
+                return;
+
+            var icon = this.operatorActionPendingIcons[index];
+            if (icon == null)
+                return;
+
+            icon.enabled = pending;
+        }
+
+        private void ApplyPendingActionPendingIcons()
+        {
+            foreach (var kvp in this.pendingActionPendingByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorActionPendingIcons.Length)
+                    continue;
+
+                var icon = this.operatorActionPendingIcons[index];
+                if (icon == null)
+                    continue;
+
+                icon.enabled = kvp.Value;
             }
         }
 
