@@ -20,6 +20,8 @@ namespace CrimsonDraft.Combat
         void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo);
         void SetOperatorHealth(int index, float hpRatio);
         void PlayOperatorDamageShake(int index);
+        void PlayOperatorDamageGlitch(int index);
+        void SetOperatorActionPending(int index, bool pending);
         void SetOperatorGauge(int index, float gauge01);
         void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null);
         void SetOperatorWeapon(int index, WeaponItem? weapon);

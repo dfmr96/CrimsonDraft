@@ -43,12 +43,31 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Color effectColorWarning   = new(0.6901961f, 0.5568628f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorCritical  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
 
+        [Header("Damage Glitch (CRT signal-loss burst)")]
+        [SerializeField, Min(0f)] private float glitchDuration = 0.35f;
+        [SerializeField, Min(0f)] private float glitchJitterAmount = 6f;
+        [SerializeField, Range(0f, 1f)] private float glitchMinAlpha = 0.15f;
+
         private float t;
         private bool isResting;
         private bool isFlatlined;
         private float restTimer;
         private Material? sourceMaterial;
         private Material? runtimeMaterial;
+
+        // Whatever alpha the effect Image was left at in the Editor -- SetHealthState only
+        // ever retints RGB per band, it never overwrites this, so a designer's opacity
+        // tweak on the Image component survives entering Play instead of being clobbered
+        // by the hardcoded 0.55f baked into effectColorStable/Caution/Warning/Critical.
+        private float effectBaseAlpha = 1f;
+
+        private RectTransform? glitchRect;
+        private Vector2 glitchRestPosition;
+        private Color glitchTraceRestColor;
+        private Color glitchEffectRestColor;
+        private bool glitchInitialized;
+        private bool isGlitching;
+        private float glitchTimer;
 
         #endregion
 
@@ -57,6 +76,8 @@ namespace CrimsonDraft.Combat
         private void Awake()
         {
             this.sourceMaterial = this.traceImage.material;
+            if (this.effectImage != null)
+                this.effectBaseAlpha = this.effectImage.color.a;
         }
 
         private void OnEnable()
@@ -70,6 +91,9 @@ namespace CrimsonDraft.Combat
 
         private void Update()
         {
+            if (this.isGlitching)
+                this.UpdateGlitch();
+
             if (this.isFlatlined) return;
 
             if (this.isResting)
@@ -146,7 +170,72 @@ namespace CrimsonDraft.Combat
             this.sweepDuration = duration;
 
             if (this.effectImage != null)
+            {
+                effectColor.a = this.effectBaseAlpha;
                 this.effectImage.color = effectColor;
+            }
+        }
+
+        #endregion
+
+        #region Damage Glitch
+
+        // Fire-and-forget CRT-static burst on top of whatever the sweep/health state is
+        // currently doing -- an old TV losing signal: the trace line and its glow tear
+        // horizontally and flicker in opacity for a moment, then snap back to rest. Runs
+        // even while flatlined, since Update() checks isGlitching before the isFlatlined
+        // early-return above.
+        public void PlayDamageGlitch()
+        {
+            this.EnsureGlitchInitialized();
+            this.isGlitching = true;
+            this.glitchTimer = 0f;
+        }
+
+        private void EnsureGlitchInitialized()
+        {
+            if (this.glitchInitialized) return;
+            this.glitchRect = (RectTransform)this.transform;
+            this.glitchRestPosition = this.glitchRect.anchoredPosition;
+            this.glitchTraceRestColor = this.traceImage.color;
+            if (this.effectImage != null)
+                this.glitchEffectRestColor = this.effectImage.color;
+            this.glitchInitialized = true;
+        }
+
+        private void UpdateGlitch()
+        {
+            this.glitchTimer += Time.unscaledDeltaTime;
+            if (this.glitchTimer >= this.glitchDuration)
+            {
+                this.isGlitching = false;
+                this.glitchRect!.anchoredPosition = this.glitchRestPosition;
+                this.traceImage.color = this.glitchTraceRestColor;
+                if (this.effectImage != null)
+                    this.effectImage.color = this.glitchEffectRestColor;
+                return;
+            }
+
+            float jitterX = Random.Range(-this.glitchJitterAmount, this.glitchJitterAmount);
+            this.glitchRect!.anchoredPosition = this.glitchRestPosition + new Vector2(jitterX, 0f);
+
+            var traceColor = this.glitchTraceRestColor;
+            traceColor.a *= Random.Range(this.glitchMinAlpha, 1f);
+            this.traceImage.color = traceColor;
+
+            if (this.effectImage != null)
+            {
+                var effectColor = this.glitchEffectRestColor;
+                effectColor.a *= Random.Range(this.glitchMinAlpha, 1f);
+                this.effectImage.color = effectColor;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (!this.isGlitching || this.glitchRect == null) return;
+            this.isGlitching = false;
+            this.glitchRect.anchoredPosition = this.glitchRestPosition;
         }
 
         #endregion

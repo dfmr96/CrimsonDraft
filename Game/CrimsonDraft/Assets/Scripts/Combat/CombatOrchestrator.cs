@@ -144,6 +144,28 @@ namespace CrimsonDraft.Combat
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.FreezeActor(action.SlotIndex, ATBActorKind.Operator);
             this.menuView.SetOperatorDimmed(action.SlotIndex, true);
+            SetActionPendingIcon(action, true);
+        }
+
+        // Only Shoot/UseItem/FocusFire carry an operator slot meaningful to the roster UI --
+        // EnemyAttack/EnemyRecover's SlotIndex is an enemy slot, and they're enqueued directly
+        // via actionQueue.Enqueue(), never through the public EnqueueAction above, so this only
+        // ever runs for operator-originated actions. FocusFire also lights up every marked
+        // participant, not just the operator who triggered it, since they're all waiting on it.
+        private void SetActionPendingIcon(PendingAction action, bool pending)
+        {
+            switch (action.Type)
+            {
+                case PendingActionType.Shoot:
+                case PendingActionType.UseItem:
+                    this.menuView.SetOperatorActionPending(action.SlotIndex, pending);
+                    break;
+                case PendingActionType.FocusFire:
+                    this.menuView.SetOperatorActionPending(action.SlotIndex, pending);
+                    for (int i = 0; i < action.FocusFireParticipants.Length; i++)
+                        this.menuView.SetOperatorActionPending(action.FocusFireParticipants[i], pending);
+                    break;
+            }
         }
 
         public void SetWaitMode(bool paused) => this.waitModeActive = paused;
@@ -199,7 +221,9 @@ namespace CrimsonDraft.Combat
         // IBattlefieldView) without duplicating that bookkeeping at each call site.
         private void DequeueAction()
         {
-            this.actionQueue.Dequeue();
+            PendingAction dequeued = this.actionQueue.Dequeue();
+            SetActionPendingIcon(dequeued, false);
+
             int[] readySlots = this.battlefieldView.NotifyActionDequeued();
             for (int i = 0; i < readySlots.Length; i++)
                 this.actionQueue.Enqueue(PendingAction.EnemyRecover(readySlots[i]));
@@ -421,6 +445,7 @@ namespace CrimsonDraft.Combat
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
             this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
             this.menuView.PlayOperatorDamageShake(action.TargetOperatorSlot);
+            this.menuView.PlayOperatorDamageGlitch(action.TargetOperatorSlot);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
             this.ecgFeedback?.SetOperatorHealthState(
                 action.TargetOperatorSlot,
