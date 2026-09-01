@@ -9,6 +9,6 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         Vector3 Forward { get; }
         Vector3 Right { get; }
 
-        void Tick(bool inputHeld);
+        void Tick(Vector2 heldDirection);
     }
 }
