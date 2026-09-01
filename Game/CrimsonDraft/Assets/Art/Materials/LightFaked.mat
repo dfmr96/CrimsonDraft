@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-522628218582637530
+--- !u!114 &-1904575584255884177
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20,13 +20,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: FloorHazardMetal
+  m_Name: LightFaked
   m_Shader: {fileID: -6465566751694194690, guid: 8b8b697340fa16848ba72c93c8de257b, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _LIGHTINGMETHOD_TEXEL_LIT
-  - _TEXTURESAMPLEMODE_POINT
+  - _LIGHTINGMETHOD_UNLIT
+  - _TEXTURESAMPLEMODE_BILINEAR
   - _VERTEXJITTERMODE_DISABLED
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -41,47 +41,23 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 4f03d0d3d03af0142beb4c5c8267360e, type: 3}
-        m_Scale: {x: 0.4, y: 0.4}
-        m_Offset: {x: 0.5, y: 0}
-    - _BumpMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailAlbedoMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailMask:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailNormalMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _EmissionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 4f03d0d3d03af0142beb4c5c8267360e, type: 3}
-        m_Scale: {x: 0.4, y: 0.4}
-        m_Offset: {x: 0.5, y: 0}
-    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: 6b586b91f07a52c46b344d21f357d8d9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _OcclusionMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _ParallaxMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _SpecGlossMap:
+    - _NormalMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -105,65 +81,48 @@ Material:
     - _AlphaClipThreshold: 0
     - _AlphaToMask: 0
     - _Blend: 0
-    - _BlendModePreserveSpecular: 1
     - _BlendOp: 0
-    - _BumpScale: 1
     - _CastShadows: 1
-    - _ClearCoatMask: 0
-    - _ClearCoatSmoothness: 0
-    - _ColorDepth: 64
+    - _ColorDepth: 32
     - _Cull: 2
-    - _Cutoff: 0.5
-    - _DetailAlbedoMapScale: 1
-    - _DetailNormalMapScale: 1
+    - _Cutoff: 0.379
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnableAffineTextureMapping: 0
+    - _EnableExternalAlpha: 0
     - _EnableShadows: 0
     - _EnableTextureDownsampling: 0
-    - _EnvironmentReflections: 1
-    - _GlossMapScale: 0
-    - _Glossiness: 0
-    - _GlossyReflections: 0
     - _HueShift: 0
-    - _LIGHTINGMETHOD: 2
-    - _LightnessMultiplier: 1
-    - _Metallic: 0
-    - _OcclusionStrength: 1
-    - _Parallax: 0.005
+    - _LIGHTINGMETHOD: 0
+    - _LightnessMultiplier: 1.09
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _ReceiveShadows: 1
     - _SampleGI: 0
     - _SaturationMultiplier: 1
     - _ShadowDistCutoff: 100
     - _ShadowOffset: 0.01
-    - _Smoothness: 0
-    - _SmoothnessTextureChannel: 0
-    - _SpecularHighlights: 1
+    - _Smoothness: 0.5
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
-    - _TEXTURESAMPLEMODE: 0
+    - _TEXTURESAMPLEMODE: 1
     - _TextureResolution: 256
     - _UseColorQuantization: 1
     - _UseSpecular: 0
     - _UseVertexColor: 0
     - _VERTEXJITTERMODE: 0
     - _VertexPrecision: 8
-    - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZTest: 4
     - _ZWrite: 1
     - _ZWriteControl: 0
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor: {r: 0.8962264, g: 0.8962264, b: 0.8962264, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _Offset: {r: 0.5, g: 0, b: 0, a: 0}
+    - _Offset: {r: 0, g: 0, b: 0, a: 0}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _ShadowTint: {r: 0, g: 0, b: 0, a: 1}
-    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 0}
-    - _Tiling: {r: 0.4, g: 0.4, b: 0, a: 0}
+    - _Tiling: {r: -0.28, g: 1.66, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
