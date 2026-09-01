@@ -1173,6 +1173,7 @@ namespace CrimsonDraft.Tests
             public void PlayOperatorHitFx(int operatorSlotIndex) { }
             public void PlayOperatorFlinch(int operatorSlotIndex) { }
             public void PlayOperatorDeath(int operatorSlotIndex) { }
+            public bool HasOperatorDeathSettled(int operatorSlotIndex) => true;
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
             public void HideEnemyTargetIndicator()                     => this.EnemyTargetVisible = false;
             public int[] GetOccupiedEnemySlots()                       => this.occupiedSlots;

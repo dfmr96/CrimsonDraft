@@ -114,6 +114,7 @@ namespace CrimsonDraft.Combat
             if (!this.initialized) return;
 
             SyncDeadEnemies();
+            SyncOperatorWipe();
             this.atbSystem.Tick(Time.deltaTime, this.waitModeActive);
             SyncOperatorGauges();
             NotifyReadyOperators();
@@ -484,6 +485,30 @@ namespace CrimsonDraft.Combat
                 this.combatEnded = true;
                 this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
             }
+        }
+
+        // Mirrors SyncDeadEnemies: roster HP/alive state updates immediately when an operator
+        // is hit, but defeat is only declared once every present-and-dead slot's death
+        // animation has settled (BattlefieldView.HasOperatorDeathSettled), so combat can never
+        // end while a death animation is still playing.
+        private void SyncOperatorWipe()
+        {
+            if (this.combatEnded) return;
+
+            bool anyPresent = false;
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                if (!this.roster[i].IsPresent) continue;
+                anyPresent = true;
+
+                if (this.roster[i].IsAlive) return;
+                if (!this.battlefieldView.HasOperatorDeathSettled(i)) return;
+            }
+
+            if (!anyPresent) return;
+
+            this.combatEnded = true;
+            this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = false });
         }
 
         private float GetOrRollAttackBaseSec(int slotIndex, EnemyData data)
