@@ -120,6 +120,16 @@ namespace CrimsonDraft.UI.MainMenu
         private void OnSlotConfirmed(int slot)
         {
             this.isLoadingSlot = true;
+
+            // The registries GameStateResetter clears are root-scoped singletons that
+            // survive every scene reload for the whole play session (not just this save
+            // file) -- e.g. RosterHealthRegistry/OperatorCorpseRegistry still hold whatever
+            // an earlier death (a prior playthrough, a Game Over test) last wrote via
+            // OperatorRosterBootstrap.Dispose(). Without clearing them here, that stale
+            // state gets reapplied by OperatorRosterBootstrap.Initialize() in the freshly
+            // loaded scene before SaveGameLoader gets a chance to restore the real save
+            // data, and can leak into it.
+            this.gameStateResetter.ResetAll();
             this.saveGameService.LoadSlot(slot);
         }
 
