@@ -62,6 +62,7 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
             builder.RegisterMessageBroker<ShootConfigurationRequestedEvent>(options);
             builder.RegisterMessageBroker<FocusFireConfigurationRequestedEvent>(options);
+            builder.RegisterMessageBroker<FocusFireCancelledEvent>(options);
 
             builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();

@@ -18,6 +18,7 @@ namespace CrimsonDraft.Combat
         private CombatActionQueue                            actionQueue        = null!;
         private IPublisher<ShootConfigurationRequestedEvent> shootPublisher     = null!;
         private IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher = null!;
+        private IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher = null!;
         private IPublisher<CombatEndedEvent>                 combatEndPublisher = null!;
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
@@ -32,11 +33,18 @@ namespace CrimsonDraft.Combat
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
+        // While a synced-shot group is mid-setup, whoever's still unmarked has to survive to
+        // select Shoot and trigger it, or the group gets silently cancelled (see
+        // SyncFocusFireDeadlock). Weighting enemy target rolls against picking them (relative
+        // to a marked operator's weight of 1) makes that survive-to-trigger window a bit more
+        // reliable without making it guaranteed -- 1 = no bias, 0 = never targeted.
+        [SerializeField, Range(0f, 1f)] private float pendingFocusFireTriggerTargetWeight = 0.35f;
 
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
+        private readonly List<int>      focusFireMarkedSlots = new();
         private readonly Dictionary<int, float> rolledEnemyAttackBaseSec = new();
         private float enemyAttackStartedAt;
         private bool  enemyAttackLockCorrected;
@@ -60,6 +68,7 @@ namespace CrimsonDraft.Combat
             CombatActionQueue                            actionQueue,
             IPublisher<ShootConfigurationRequestedEvent> shootPublisher,
             IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher,
+            IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher,
             IPublisher<CombatEndedEvent>                 combatEndPublisher,
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
@@ -71,6 +80,7 @@ namespace CrimsonDraft.Combat
             this.actionQueue        = actionQueue;
             this.shootPublisher     = shootPublisher;
             this.focusFirePublisher = focusFirePublisher;
+            this.focusFireCancelledPublisher = focusFireCancelledPublisher;
             this.combatEndPublisher = combatEndPublisher;
             this.battlefieldView    = battlefieldView;
             this.roster             = roster;
@@ -115,6 +125,7 @@ namespace CrimsonDraft.Combat
 
             SyncDeadEnemies();
             SyncOperatorWipe();
+            SyncFocusFireDeadlock();
             this.atbSystem.Tick(Time.deltaTime, this.waitModeActive);
             SyncOperatorGauges();
             NotifyReadyOperators();
@@ -146,6 +157,11 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.FreezeActor(action.SlotIndex, ATBActorKind.Operator);
             this.menuView.SetOperatorDimmed(action.SlotIndex, true);
             SetActionPendingIcon(action, true);
+
+            // The marked group is now owned by the queued action itself -- stop tracking it
+            // against the SyncFocusFireDeadlock() invariant below.
+            if (action.Type == PendingActionType.FocusFire)
+                this.focusFireMarkedSlots.Clear();
         }
 
         // Only Shoot/UseItem/FocusFire carry an operator slot meaningful to the roster UI --
@@ -194,6 +210,7 @@ namespace CrimsonDraft.Combat
             // NotifyReadyOperators() would offer it a command panel again.
             this.atbSystem.ResetActor(operatorSlot, ATBActorKind.Operator);
             this.atbSystem.FreezeActor(operatorSlot, ATBActorKind.Operator);
+            this.focusFireMarkedSlots.Add(operatorSlot);
         }
 
         public void NotifyShootCompleted()
@@ -269,8 +286,7 @@ namespace CrimsonDraft.Combat
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
 
-                int targetIndex = this.random.NextInt(0, aliveOperatorSlots.Count);
-                int targetSlot  = aliveOperatorSlots[targetIndex];
+                int targetSlot = SelectEnemyTargetSlot(aliveOperatorSlots);
 
                 this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, targetSlot, data.AttackDamage));
 
@@ -280,6 +296,32 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.UpdateActorGaugeRate(i, ATBActorKind.Enemy, 1f / nextSec);
             }
         }
+
+        // Uniform pick, except while a synced-shot group is pending: operators not yet marked
+        // (i.e. candidates to trigger it) are weighted down instead of excluded, so an enemy
+        // can still choose them -- just less often -- which cuts down on SyncFocusFireDeadlock
+        // having to cancel the group because its would-be trigger died first.
+        private int SelectEnemyTargetSlot(IReadOnlyList<int> aliveOperatorSlots)
+        {
+            if (this.focusFireMarkedSlots.Count == 0 || this.focusFireMarkedSlots.Count >= aliveOperatorSlots.Count)
+                return aliveOperatorSlots[this.random.NextInt(0, aliveOperatorSlots.Count)];
+
+            float totalWeight = 0f;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+                totalWeight += GetTargetWeight(aliveOperatorSlots[i]);
+
+            float roll       = this.random.NextFloat01() * totalWeight;
+            float cumulative = 0f;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+            {
+                cumulative += GetTargetWeight(aliveOperatorSlots[i]);
+                if (roll < cumulative) return aliveOperatorSlots[i];
+            }
+            return aliveOperatorSlots[aliveOperatorSlots.Count - 1];
+        }
+
+        private float GetTargetWeight(int operatorSlot) =>
+            this.focusFireMarkedSlots.Contains(operatorSlot) ? 1f : this.pendingFocusFireTriggerTargetWeight;
 
         private bool IsActorDead(PendingAction action)
         {
@@ -509,6 +551,38 @@ namespace CrimsonDraft.Combat
 
             this.combatEnded = true;
             this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = false });
+        }
+
+        // A synced-shot group freezes its marked operators until whoever is left unmarked
+        // selects Shoot to trigger it (see CommandPanelState.OnCommandSelected). That last
+        // trigger role isn't guaranteed to survive: if they die (or enough marked operators
+        // die that no one is left outside the group), the remaining marked operators would
+        // otherwise stay frozen forever, waiting on a command nobody can send -- a hard lock.
+        // Polled every frame, the same way SyncOperatorWipe/SyncDeadEnemies watch for their
+        // own invariants, since death can happen at any time, not just on a state transition.
+        private void SyncFocusFireDeadlock()
+        {
+            if (this.combatEnded) return;
+            if (this.focusFireMarkedSlots.Count == 0) return;
+
+            for (int i = this.focusFireMarkedSlots.Count - 1; i >= 0; i--)
+            {
+                int slot = this.focusFireMarkedSlots[i];
+                if (slot >= this.roster.Count || !this.roster[slot].IsAlive)
+                    this.focusFireMarkedSlots.RemoveAt(i);
+            }
+
+            if (this.focusFireMarkedSlots.Count == 0) return;
+            if (this.focusFireMarkedSlots.Count < this.roster.GetAliveSlots().Count) return;
+
+            int[] released = this.focusFireMarkedSlots.ToArray();
+            this.focusFireMarkedSlots.Clear();
+            for (int i = 0; i < released.Length; i++)
+            {
+                this.atbSystem.UnfreezeActor(released[i], ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(released[i], false);
+            }
+            this.focusFireCancelledPublisher.Publish(new FocusFireCancelledEvent(released));
         }
 
         private float GetOrRollAttackBaseSec(int slotIndex, EnemyData data)
