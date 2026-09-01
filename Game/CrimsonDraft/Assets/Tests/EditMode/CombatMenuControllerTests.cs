@@ -792,6 +792,33 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void OperatorSelected_withNoAmmo_disablesFocusFire()
+        {
+            var c = BuildAndInit();
+            this.roster[0].ActiveWeapon!.SetAmmo(0);
+
+            this.menuView.RaiseOnOperatorSelected(0);
+
+            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
+        }
+
+        [Test]
+        public void CommandPanel_focusFire_withNoAmmo_isRejectedEvenIfUiEventFires()
+        {
+            var c = BuildAndInit();
+            this.roster[0].ActiveWeapon!.SetAmmo(0);
+            this.menuView.RaiseOnOperatorSelected(0);
+
+            // Simulates a UI bug where the disabled button's submit event fires anyway --
+            // marking without ammo would let a synced-shot group form around a weapon that
+            // has nothing left to fire when the shared QTE resolves.
+            this.commandPanel.ForceRaiseOnCommandSelected(CombatCommand.FocusFire);
+
+            CollectionAssert.DoesNotContain(c.FocusFireMarked, 0);
+            Assert.AreEqual(0, this.orchestrator.MarkOperatorForFocusFireCallCount);
+        }
+
+        [Test]
         public void CommandPanel_shoot_withMarkedOperators_enqueuesFocusFireAction()
         {
             var c = BuildAndInit();

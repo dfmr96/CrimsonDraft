@@ -90,6 +90,10 @@ namespace CrimsonDraft.Combat
                 // UI click can never mark every alive operator and leave no one able to trigger —
                 // that would hard-lock combat with the whole party frozen waiting on a Shoot command.
                 if (this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1) return;
+                // Marking commits this operator to fire once the group triggers, same as Shoot —
+                // it must be just as unavailable without ammo, or the group's shared QTE ends up
+                // resolving a shot for a weapon that has none left to fire.
+                if (GetMaxAvailableShotCount() <= 0) return;
 
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 int slot = this.context.SelectedOperator;

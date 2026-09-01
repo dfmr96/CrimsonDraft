@@ -101,7 +101,7 @@ namespace CrimsonDraft.Combat
             bool hasAmmo = this.roster.Count > index && (this.roster[index].ActiveWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);
             bool wouldExhaustFocusFireGroup = this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1;
-            this.commandPanel.SetCommandEnabled(CombatCommand.FocusFire, !wouldExhaustFocusFireGroup);
+            this.commandPanel.SetCommandEnabled(CombatCommand.FocusFire, hasAmmo && !wouldExhaustFocusFireGroup);
             this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(index));
             this.menuView.SetDimmed(true);
             this.battlefieldView.DimOperatorIndicator();
