@@ -3,10 +3,10 @@
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Player.Movement;
 using CrimsonDraft.Operators;
 using CrimsonDraft.Inventory;
 
@@ -31,18 +31,18 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField, Range(0f, 1f)] private float orangeCautionSpeedRatio = 0.86f;
         [SerializeField, Range(0f, 1f)] private float dangerSpeedRatio        = 0.72f;
 
-        
-        private static readonly int ArmedHash    = Animator.StringToHash("Armed");
+        private static readonly int ArmedHash = Animator.StringToHash("Armed");
+        private static readonly int IdleHash  = Animator.StringToHash("Idle");
+        private static readonly int WalkHash  = Animator.StringToHash("Walk");
+        private static readonly int RunHash   = Animator.StringToHash("Run");
 
-        private static readonly int IdleHash = Animator.StringToHash("Idle");
-        private static readonly int WalkHash = Animator.StringToHash("Walk");
-        private static readonly int RunHash = Animator.StringToHash("Run");
-
-        private IInputService                inputService                = null!;
-        private IInventoryService            inventoryService            = null!;
-        private ICameraRelativeMovementService cameraRelativeMovementService = null!;
-        private IOperatorRoster?             roster;
-        private InputDevice?                 lastDevice;
+        private IInputService         inputService         = null!;
+        private IInventoryService     inventoryService     = null!;
+        private IControlSchemeService controlSchemeService = null!;
+        private IPlayerMovementStrategy modernStrategy  = null!;
+        private IPlayerMovementStrategy classicStrategy = null!;
+        private IOperatorRoster?      roster;
+        private InputDevice?          lastDevice;
 
         public bool IsAiming { get; private set; }
 
@@ -58,12 +58,15 @@ namespace CrimsonDraft.Navigation.Player
             IInputService                  inputService,
             IInventoryService              inventoryService,
             ICameraRelativeMovementService cameraRelativeMovementService,
+            IControlSchemeService          controlSchemeService,
             IOperatorRoster                roster)
         {
-            this.inputService                  = inputService;
-            this.inventoryService              = inventoryService;
-            this.cameraRelativeMovementService = cameraRelativeMovementService;
-            this.roster                        = roster;
+            this.inputService         = inputService;
+            this.inventoryService     = inventoryService;
+            this.controlSchemeService = controlSchemeService;
+            this.roster               = roster;
+            this.modernStrategy       = new ModernPlayerMovementStrategy(cameraRelativeMovementService);
+            this.classicStrategy      = new ClassicPlayerMovementStrategy();
             this.inputService.Move.performed += OnMovePerformed;
         }
 
@@ -76,7 +79,6 @@ namespace CrimsonDraft.Navigation.Player
         internal void SetAiming(bool value)
         {
             this.IsAiming = value;
-            //this.animator.SetBool(IsAimingHash, value);
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -89,13 +91,15 @@ namespace CrimsonDraft.Navigation.Player
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
             this.animator.SetBool(ArmedHash, isArmed);
 
-            var raw       = this.inputService.Move.ReadValue<Vector2>();
-            var isMoveHeld = raw.sqrMagnitude >= 0.01f;
+            var raw = this.inputService.Move.ReadValue<Vector2>();
 
-            // Always tick, even on frames where movement itself is skipped below (aiming,
-            // stick at rest) — the release-to-neutral moment is what lets a mid-hold camera
-            // cut adopt the new camera's basis, and that moment must never be missed.
-            this.cameraRelativeMovementService.Tick(isMoveHeld);
+            var strategy = this.controlSchemeService.CurrentScheme == ControlScheme.Classic
+                ? this.classicStrategy
+                : this.modernStrategy;
+
+            // Always ticked (see IPlayerMovementStrategy) -- ModernPlayerMovementStrategy
+            // depends on this running every frame, aiming or not.
+            var result = strategy.Tick(transform, raw, this.lastDevice, this.IsAiming, Time.fixedDeltaTime);
 
             if (this.IsAiming)
             {
@@ -103,57 +107,28 @@ namespace CrimsonDraft.Navigation.Player
                 return;
             }
 
-            if (!isMoveHeld)
-            {
-                this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetTrigger(IdleHash);
-                
-                return;
-            }
-
-            var direction = this.lastDevice is Gamepad
-                ? raw.normalized
-                : Quantize8Way(raw);
-
-            var moveDir = this.cameraRelativeMovementService.Right * direction.x
-                        + this.cameraRelativeMovementService.Forward * direction.y;
-            moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
-
-            if (moveDir == Vector3.zero)
+            if (result.Direction == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetTrigger(IdleHash);
                 return;
             }
 
-            transform.forward = moveDir;
-
-            var isSprinting     = this.inputService.Sprint.IsPressed();
+            var isSprinting     = this.inputService.Sprint.IsPressed() && result.AllowSprint;
             var speedMultiplier = this.GetSpeedMultiplier();
             var speed           = (isSprinting ? this.runSpeed : this.walkSpeed) * speedMultiplier;
-        
 
-            if (isSprinting)
-            {
-                this.animator.SetTrigger(RunHash);
-            }
-            else
-            {
-                this.animator.SetTrigger(WalkHash);
-            }
+            this.animator.SetTrigger(isSprinting ? RunHash : WalkHash);
 
-
-            var resolvedDir = ResolveNavMeshDirection(moveDir, speed);
+            var resolvedDir = ResolveNavMeshDirection(result.Direction, speed);
             if (resolvedDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetTrigger(IdleHash);
                 return;
             }
-    
+
             this.rb.linearVelocity = resolvedDir * speed;
-
-
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
@@ -162,7 +137,7 @@ namespace CrimsonDraft.Navigation.Player
             Vector3 origin  = this.rb.position;
             float   sampleY = origin.y - this.footOffset;
 
-            Vector3 next  = new Vector3(origin.x + moveDir.x * step, sampleY, origin.z + moveDir.z * step);
+            Vector3 next = new Vector3(origin.x + moveDir.x * step, sampleY, origin.z + moveDir.z * step);
             if (NavMesh.SamplePosition(next, out _, this.navMeshTolerance, NavMesh.AllAreas))
                 return moveDir;
 
@@ -200,22 +175,12 @@ namespace CrimsonDraft.Navigation.Player
         {
             Vector3 foot = transform.position - new Vector3(0f, this.footOffset, 0f);
 
-            // Foot anchor
             Gizmos.color = Color.cyan;
             Gizmos.DrawSphere(foot, 0.08f);
 
-            // NavMesh tolerance radius at foot level
             bool onNavMesh = NavMesh.SamplePosition(foot, out _, this.navMeshTolerance, NavMesh.AllAreas);
             Gizmos.color = onNavMesh ? new Color(0f, 1f, 0f, 0.25f) : new Color(1f, 0f, 0f, 0.25f);
             Gizmos.DrawSphere(foot, this.navMeshTolerance);
-        }
-
-        private static Vector2 Quantize8Way(Vector2 input)
-        {
-            return new Vector2(
-                Mathf.Round(input.x),
-                Mathf.Round(input.y)
-            ).normalized;
         }
     }
 }

@@ -1,17 +1,20 @@
 #nullable enable
 
 using CrimsonDraft.Infrastructure.Graphics;
+using CrimsonDraft.Infrastructure.Input;
 using UnityEngine;
 using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
-    /// General tab content: Language and Control are physical knobs too, same as Sound, but
-    /// locked for now (Adjust is a no-op -- the knob/outline exist, rotating just isn't wired up
-    /// yet). Gamma is a real 0-100 value: rotates its knob exactly like a volume knob and also
-    /// keeps the canvas fill bar in sync. Selection is shown purely via each knob's outline
-    /// (never in the flat canvas), matching Sound.
+    /// General tab content: Language is a physical knob too, same as Sound, but locked for now
+    /// (Adjust is a no-op for it -- the knob/outline exist, rotating just isn't wired up yet).
+    /// Control is a real two-state toggle (Modern/Classic, see IControlSchemeService) -- either
+    /// direction flips it, there's nothing to clamp with only two values. Gamma is a real 0-100
+    /// value: rotates its knob exactly like a volume knob and also keeps the canvas fill bar in
+    /// sync. Selection is shown purely via each knob's outline (never in the flat canvas),
+    /// matching Sound.
     /// </summary>
     public sealed class GeneralMenuController : MonoBehaviour, IOptionsChannelPanel
     {
@@ -53,13 +56,15 @@ namespace CrimsonDraft.UI.MainMenu
         private GameObject[] outlines = null!;
         private int          gammaValue;
         private IGraphicsSettingsService graphicsSettingsService = null!;
+        private IControlSchemeService    controlSchemeService    = null!;
 
         public int ChannelCount => 3;
 
         [Inject]
-        public void Construct(IGraphicsSettingsService graphicsSettingsService)
+        public void Construct(IGraphicsSettingsService graphicsSettingsService, IControlSchemeService controlSchemeService)
         {
             this.graphicsSettingsService = graphicsSettingsService;
+            this.controlSchemeService    = controlSchemeService;
         }
 
         private void Awake()
@@ -96,7 +101,16 @@ namespace CrimsonDraft.UI.MainMenu
 
         public void Adjust(int index, int direction)
         {
-            if (index != GammaIndex) return; // Language and Control are locked for now.
+            if (index == ControlIndex)
+            {
+                var next = this.controlSchemeService.CurrentScheme == ControlScheme.Modern
+                    ? ControlScheme.Classic
+                    : ControlScheme.Modern;
+                this.controlSchemeService.SetScheme(next);
+                return;
+            }
+
+            if (index != GammaIndex) return; // Language is locked for now.
 
             this.gammaValue = Mathf.Clamp(this.gammaValue + direction * this.stepPercent, 0, 100);
             ApplyGamma();

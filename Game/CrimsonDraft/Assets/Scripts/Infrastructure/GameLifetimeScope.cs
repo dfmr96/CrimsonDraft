@@ -57,6 +57,8 @@ namespace CrimsonDraft.Infrastructure
 
             builder.Register<GraphicsSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
 
+            builder.Register<ControlSchemeService>(Lifetime.Singleton).AsImplementedInterfaces();
+
             var options = builder.RegisterMessagePipe();
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
