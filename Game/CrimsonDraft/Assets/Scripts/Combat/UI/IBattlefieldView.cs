@@ -34,6 +34,7 @@ namespace CrimsonDraft.Combat
         void PlayOperatorHitFx(int operatorSlotIndex);
         void PlayOperatorFlinch(int operatorSlotIndex);
         void PlayOperatorDeath(int operatorSlotIndex);
+        bool HasOperatorDeathSettled(int operatorSlotIndex);
         void SetEnemyTargetIndicator(int slotIndex);
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();

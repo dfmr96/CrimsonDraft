@@ -20,6 +20,7 @@ namespace CrimsonDraft.Infrastructure
     {
         [SerializeField] private InputActionAsset inputActions   = null!;
         [SerializeField] private AudioSettingsData audioSettingsData = null!;
+        [SerializeField] private GameOverView gameOverViewPrefab = null!;
 
         protected override void Awake()
         {
@@ -64,6 +65,11 @@ namespace CrimsonDraft.Infrastructure
 
             builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
+
+            if (this.gameOverViewPrefab == null)
+                throw new System.InvalidOperationException(
+                    $"{nameof(this.gameOverViewPrefab)} is not assigned in {nameof(GameLifetimeScope)}.");
+            builder.RegisterComponentInNewPrefab(this.gameOverViewPrefab, Lifetime.Singleton).DontDestroyOnLoad().AsSelf();
 
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();

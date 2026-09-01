@@ -61,6 +61,7 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, float> enemyAttackResolvedDurationBySlot = new();
         private readonly Dictionary<int, EnemyAttackEventRelay> enemyAttackEventRelayBySlot = new();
         private readonly Dictionary<int, OperatorHitFxMarker> operatorHitFxMarkerBySlot = new();
+        private readonly HashSet<int> settledDeadOperatorSlots = new();
         private readonly IRandomSource poiseRandom = new UnityRandomSource();
         private readonly IRandomSource enemyStatRandom = new UnityRandomSource();
         private const int DefaultMaxHp = 100;
@@ -92,6 +93,7 @@ namespace CrimsonDraft.Combat
             this.enemyHitToggleBySlot.Clear();
             this.enemyDeathMarkerBySlot.Clear();
             this.operatorHitFxMarkerBySlot.Clear();
+            this.settledDeadOperatorSlots.Clear();
             this.enemyAttackResolvedDurationBySlot.Clear();
             this.enemyAttackEventRelayBySlot.Clear();
             this.currentEnemySlots = encounter.EnemySlots;
@@ -145,6 +147,17 @@ namespace CrimsonDraft.Combat
             {
                 var op = encounter.Operators[i];
                 if (op == null) continue;
+                // A dead operator has no body on the battlefield — MarkDead already keeps them
+                // out of turns/targeting, this keeps their empty slot visually empty too. They
+                // also never get a PlayOperatorDeath call during this encounter (they were
+                // already dead before it started, e.g. loaded from a save), so mark the slot
+                // settled immediately or SyncOperatorWipe would wait forever for an animation
+                // that will never play.
+                if (this.roster != null && i < this.roster.Count && !this.roster[i].IsAlive)
+                {
+                    this.settledDeadOperatorSlots.Add(i);
+                    continue;
+                }
 
                 GameObject go;
                 if (op.BattlefieldPrefab != null)
@@ -520,6 +533,8 @@ namespace CrimsonDraft.Combat
 
         // Reuses the same generic state-change wait as the enemy death sequence, then
         // reveals the pre-placed blood-pool decal exactly like EnemyDeathMarker.BloodPool.
+        // Only once this settles does the slot count toward CombatOrchestrator's operator-wipe
+        // check, so a defeat can never be declared mid-death-animation.
         private IEnumerator PlayOperatorDeathSequence(int operatorSlotIndex, Animator anim)
         {
             yield return this.WaitForAnimatorStateChange(anim);
@@ -529,7 +544,12 @@ namespace CrimsonDraft.Combat
             {
                 marker.BloodPool.SetActive(true);
             }
+
+            this.settledDeadOperatorSlots.Add(operatorSlotIndex);
         }
+
+        public bool HasOperatorDeathSettled(int operatorSlotIndex) =>
+            this.settledDeadOperatorSlots.Contains(operatorSlotIndex);
 
         public void ShowOperatorDamage(int operatorSlotIndex, int damage)
         {

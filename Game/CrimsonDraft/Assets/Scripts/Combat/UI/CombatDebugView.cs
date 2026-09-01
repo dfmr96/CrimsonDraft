@@ -16,6 +16,7 @@ namespace CrimsonDraft.Combat
     {
         [SerializeField] private TextMeshProUGUI? text;
         [SerializeField] private Key killOperatorAndEndCombatKey = Key.F9;
+        [SerializeField] private Key killAllOperatorsKey         = Key.F8;
 
         private ATBSystem?              atbSystem;
         private CombatActionQueue?      actionQueue;
@@ -50,6 +51,8 @@ namespace CrimsonDraft.Combat
             Keyboard kb = Keyboard.current;
             if (kb != null && kb[this.killOperatorAndEndCombatKey].wasPressedThisFrame)
                 KillFirstAliveOperatorAndEndCombat();
+            if (kb != null && kb[this.killAllOperatorsKey].wasPressedThisFrame)
+                KillAllOperators();
         }
 
         // Debug-only shortcut for exercising the operator-death → corpse flow without
@@ -70,6 +73,29 @@ namespace CrimsonDraft.Combat
             OperatorRuntime target = this.roster[aliveSlots[0]];
             target.ApplyDamage(target.Hp);
             this.combatSession.EndCombat(true);
+        }
+
+        // Debug-only shortcut for exercising the defeat flow end-to-end: kills every alive
+        // operator through the same ApplyDamage + PlayOperatorDeath path a real enemy attack
+        // uses, then lets CombatOrchestrator.SyncOperatorWipe() detect the wipe on its own
+        // once the death animations settle, exactly like it would in a real encounter.
+        private void KillAllOperators()
+        {
+            if (this.roster == null || this.battlefieldView == null) return;
+
+            var aliveSlots = this.roster.GetAliveSlots();
+            if (aliveSlots.Count == 0)
+            {
+                Debug.LogWarning("[CombatDebugView] No alive operators to kill.");
+                return;
+            }
+
+            foreach (int slot in aliveSlots)
+            {
+                OperatorRuntime target = this.roster[slot];
+                target.ApplyDamage(target.Hp);
+                this.battlefieldView.PlayOperatorDeath(slot);
+            }
         }
 
         private string BuildDebugText()
