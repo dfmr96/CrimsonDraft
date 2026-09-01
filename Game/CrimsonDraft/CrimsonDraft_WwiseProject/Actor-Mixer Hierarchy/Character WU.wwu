@@ -6,6 +6,9 @@
 				<Folder Name="Footsteps" ID="{DF0DD171-8A6F-4829-A858-669146AF6A40}" ShortID="42214683">
 					<ChildrenList>
 						<SwitchContainer Name="FootStepsSC" ID="{EEF002C5-112B-430E-BF34-039AEF9DF21C}" ShortID="247623960">
+							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
+							</PropertyList>
 							<ReferenceList>
 								<Reference Name="Conversion">
 									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
@@ -352,7 +355,7 @@
 										<Property Name="NormalOrShuffle" Type="int16" Value="0"/>
 										<Property Name="Volume" Type="Real64">
 											<ValueList>
-												<Value>2</Value>
+												<Value>5</Value>
 											</ValueList>
 										</Property>
 									</PropertyList>
@@ -615,6 +618,7 @@
 					<ChildrenList>
 						<Sound Name="Heartbeat" ID="{1640BB72-F5AA-4B08-B71C-ADB3FE965DB0}" ShortID="439727871">
 							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
 								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
 								<Property Name="MakeUpGain" Type="Real64">
 									<ValueList>
@@ -709,6 +713,7 @@
 					<ChildrenList>
 						<SwitchContainer Name="Radio" ID="{86494946-F12C-46DC-A819-6A2971BC4AAD}" ShortID="341312761">
 							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
 								<Property Name="SwitchBehavior" Type="int16" Value="1"/>
 							</PropertyList>
 							<ReferenceList>
@@ -1145,6 +1150,7 @@
 						</SwitchContainer>
 						<SwitchContainer Name="FireGuns" ID="{583DB351-A86C-4511-9A01-B9E15CF93A40}" ShortID="514520240">
 							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
 								<Property Name="MakeUpGain" Type="Real64">
 									<ValueList>
 										<Value>-7</Value>

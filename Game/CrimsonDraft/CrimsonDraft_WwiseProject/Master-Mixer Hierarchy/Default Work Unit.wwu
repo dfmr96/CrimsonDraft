@@ -38,6 +38,11 @@
 						<Reference Name="AudioDevice">
 							<ObjectRef Name="System" ID="{B4D0CB3A-D1CF-4DC4-8333-86457C3278E2}" WorkUnitID="{4CFEE172-8398-4B24-AABF-FA479882E921}"/>
 						</Reference>
+						<Reference Name="Effect0">
+							<Custom>
+								<Effect Name="Wwise Peak Limiter (Custom)" ID="{02CD0FFA-C8F6-4057-ACFF-139EEA3A66AA}" ShortID="482103816" PluginName="Wwise Peak Limiter" CompanyID="0" PluginID="110" PluginType="3"/>
+							</Custom>
+						</Reference>
 					</ReferenceList>
 					<ChildrenList>
 						<Bus Name="MX" ID="{E4A24276-3BCD-4125-91DA-93D19A8DE1D1}">
@@ -71,6 +76,13 @@
 									</RTPCList>
 								</Property>
 							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Effect0">
+									<Custom>
+										<Effect Name="Wwise Peak Limiter (Custom)" ID="{75077D3D-9B8B-44C6-806C-7006451DA3F5}" ShortID="1049431807" PluginName="Wwise Peak Limiter" CompanyID="0" PluginID="110" PluginType="3"/>
+									</Custom>
+								</Reference>
+							</ReferenceList>
 							<ObjectLists/>
 						</Bus>
 						<Bus Name="SFX" ID="{54018967-B438-4FCF-8086-5D0EBC0AA202}">
@@ -104,6 +116,13 @@
 									</RTPCList>
 								</Property>
 							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Effect0">
+									<Custom>
+										<Effect Name="Wwise Peak Limiter (Custom)" ID="{7A22F596-E5FB-4432-B259-1C1773374ECB}" ShortID="818188370" PluginName="Wwise Peak Limiter" CompanyID="0" PluginID="110" PluginType="3"/>
+									</Custom>
+								</Reference>
+							</ReferenceList>
 							<ChildrenList>
 								<Bus Name="PLAYER" ID="{82202B8D-9C9F-4399-BAFF-04058900DCB7}">
 									<ReferenceList>
