@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation
     {
         private const string MainMenuSceneName = "MainMenu";
 
-        private enum PauseState { Closed, Main, Options }
+        private enum PauseState { Closed, Main, Options, Brightness }
 
         private readonly IInputService          inputService;
         private readonly PauseMenuView          view;
@@ -54,10 +54,12 @@ namespace CrimsonDraft.Navigation
             this.view.ResumeButton.onClick.AddListener(Resume);
             this.view.OptionsButton.onClick.AddListener(OpenOptions);
             this.view.QuitButton.onClick.AddListener(() => QuitToMenuAsync().Forget());
+            this.view.AdjustBrightnessButton.onClick.AddListener(OpenBrightnessCalibration);
 
             this.view.MasterSlider.onValueChanged.AddListener(this.audioSettings.SetMasterVolume);
             this.view.SfxSlider.onValueChanged.AddListener(this.audioSettings.SetSfxVolume);
             this.view.MusicSlider.onValueChanged.AddListener(this.audioSettings.SetMusicVolume);
+            this.view.GammaSlider.onValueChanged.AddListener(this.graphicsSettings.SetGamma);
 
             this.view.HideAll();
         }
@@ -68,7 +70,7 @@ namespace CrimsonDraft.Navigation
             {
                 case PauseState.Closed: Open(); break;
                 case PauseState.Main:   Resume(); break;
-                // Options: ignore -- must back out to Main first.
+                // Options/Brightness: ignore -- must back out to Main first.
             }
         }
 
@@ -95,7 +97,10 @@ namespace CrimsonDraft.Navigation
         private void OpenOptions()
         {
             this.state = PauseState.Options;
-            this.view.SetSliderValues(this.audioSettings.MasterVolume, this.audioSettings.SfxVolume, this.audioSettings.MusicVolume);
+            this.view.SetSliderValues(
+                this.audioSettings.MasterVolume,
+                this.audioSettings.SfxVolume,
+                this.audioSettings.MusicVolume);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);
         }
@@ -105,6 +110,25 @@ namespace CrimsonDraft.Navigation
             this.state = PauseState.Main;
             this.view.ShowMain();
             EventSystem.current.SetSelectedGameObject(this.view.OptionsButton.gameObject);
+        }
+
+        private void OpenBrightnessCalibration()
+        {
+            this.state = PauseState.Brightness;
+            this.view.SetGammaValue(this.graphicsSettings.Gamma);
+            this.view.ShowBrightnessCalibration();
+            EventSystem.current.SetSelectedGameObject(this.view.FirstBrightnessSelectable);
+            // Lift the pause-wide dim suppression while the slider is visible, so dragging it
+            // previews live against the real scene instead of only taking effect after closing.
+            this.graphicsSettings.PopGammaSuppression();
+        }
+
+        private void CloseBrightnessCalibration()
+        {
+            this.state = PauseState.Options;
+            this.graphicsSettings.PushGammaSuppression();
+            this.view.ShowOptions();
+            EventSystem.current.SetSelectedGameObject(this.view.AdjustBrightnessButton.gameObject);
         }
 
         private async UniTaskVoid QuitToMenuAsync()
@@ -121,8 +145,9 @@ namespace CrimsonDraft.Navigation
         {
             switch (this.state)
             {
-                case PauseState.Options: CloseOptions(); break;
-                case PauseState.Main:    Resume(); break;
+                case PauseState.Brightness: CloseBrightnessCalibration(); break;
+                case PauseState.Options:    CloseOptions(); break;
+                case PauseState.Main:       Resume(); break;
                 // Closed: no-op.
             }
         }
