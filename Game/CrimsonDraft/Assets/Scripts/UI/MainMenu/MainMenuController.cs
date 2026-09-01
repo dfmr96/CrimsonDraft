@@ -19,21 +19,28 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Button newGameButton  = null!;
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
-        [SerializeField] private LoadGameSaveListView loadListView  = null!;
-        [SerializeField] private MainMenuCameraTravel cameraTravel  = null!;
+        [SerializeField] private LoadGameSaveListView loadListView      = null!;
+        [SerializeField] private MainMenuCameraTravel cameraTravel      = null!;
+        [SerializeField] private NewGamePromptView    newGamePromptView = null!;
 
-        private IInputService      inputService      = null!;
-        private ISaveGameService   saveGameService   = null!;
-        private IGameStateResetter gameStateResetter = null!;
-        private SaveSlotNavigator  loadNavigator     = null!;
-        private bool               isLoadingSlot;
+        private IInputService         inputService         = null!;
+        private ISaveGameService      saveGameService      = null!;
+        private IGameStateResetter    gameStateResetter    = null!;
+        private IControlSchemeService controlSchemeService = null!;
+        private SaveSlotNavigator     loadNavigator        = null!;
+        private bool                  isLoadingSlot;
 
         [Inject]
-        public void Construct(IInputService inputService, ISaveGameService saveGameService, IGameStateResetter gameStateResetter)
+        public void Construct(
+            IInputService          inputService,
+            ISaveGameService       saveGameService,
+            IGameStateResetter     gameStateResetter,
+            IControlSchemeService  controlSchemeService)
         {
-            this.inputService      = inputService;
-            this.saveGameService   = saveGameService;
-            this.gameStateResetter = gameStateResetter;
+            this.inputService         = inputService;
+            this.saveGameService      = saveGameService;
+            this.gameStateResetter    = gameStateResetter;
+            this.controlSchemeService = controlSchemeService;
 
             this.loadNavigator = new SaveSlotNavigator(
                 this.loadListView,
@@ -48,6 +55,10 @@ namespace CrimsonDraft.UI.MainMenu
 
             this.newGameButton.onClick.AddListener(OnNewGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
+
+            this.newGamePromptView.ModernButton.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
+            this.newGamePromptView.ClassicButton.onClick.AddListener(() => SelectScheme(ControlScheme.Classic));
+            this.newGamePromptView.SetSelectedScheme(this.controlSchemeService.CurrentScheme == ControlScheme.Classic);
 
             this.loadGameButton.interactable = HasAnySave();
         }
@@ -81,6 +92,12 @@ namespace CrimsonDraft.UI.MainMenu
         {
             this.gameStateResetter.ResetAll();
             SceneManager.LoadScene(this.newGameSceneName, LoadSceneMode.Single);
+        }
+
+        private void SelectScheme(ControlScheme scheme)
+        {
+            this.controlSchemeService.SetScheme(scheme);
+            this.newGamePromptView.SetSelectedScheme(scheme == ControlScheme.Classic);
         }
 
         /// <summary>

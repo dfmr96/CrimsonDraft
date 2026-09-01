@@ -26,6 +26,7 @@ namespace CrimsonDraft.Navigation
         private readonly PauseMenuView          view;
         private readonly IAudioSettingsService  audioSettings;
         private readonly IGraphicsSettingsService graphicsSettings;
+        private readonly IControlSchemeService  controlScheme;
         private readonly ScreenFader            screenFader;
 
         private PauseState state = PauseState.Closed;
@@ -36,12 +37,14 @@ namespace CrimsonDraft.Navigation
             PauseMenuView view,
             IAudioSettingsService audioSettings,
             IGraphicsSettingsService graphicsSettings,
+            IControlSchemeService controlScheme,
             ScreenFader screenFader)
         {
             this.inputService     = inputService;
             this.view             = view;
             this.audioSettings    = audioSettings;
             this.graphicsSettings = graphicsSettings;
+            this.controlScheme    = controlScheme;
             this.screenFader      = screenFader;
         }
 
@@ -60,6 +63,11 @@ namespace CrimsonDraft.Navigation
             this.view.SfxSlider.onValueChanged.AddListener(this.audioSettings.SetSfxVolume);
             this.view.MusicSlider.onValueChanged.AddListener(this.audioSettings.SetMusicVolume);
             this.view.GammaSlider.onValueChanged.AddListener(this.graphicsSettings.SetGamma);
+
+            // Toggles share a ToggleGroup (mutually exclusive) -- only react to the one turning
+            // ON, or a single click would fire both listeners (the one switching off too).
+            this.view.ModernToggle.onValueChanged.AddListener(isOn => { if (isOn) this.controlScheme.SetScheme(ControlScheme.Modern); });
+            this.view.ClassicToggle.onValueChanged.AddListener(isOn => { if (isOn) this.controlScheme.SetScheme(ControlScheme.Classic); });
 
             this.view.HideAll();
         }
@@ -101,6 +109,7 @@ namespace CrimsonDraft.Navigation
                 this.audioSettings.MasterVolume,
                 this.audioSettings.SfxVolume,
                 this.audioSettings.MusicVolume);
+            this.view.SetControlToggle(this.controlScheme.CurrentScheme == ControlScheme.Classic);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);
         }

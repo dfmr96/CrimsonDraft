@@ -24,6 +24,8 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Slider sfxSlider              = null!;
         [SerializeField] private Slider musicSlider            = null!;
         [SerializeField] private Button adjustBrightnessButton = null!;
+        [SerializeField] private Toggle modernToggle           = null!;
+        [SerializeField] private Toggle classicToggle          = null!;
 
         [Header("Brightness Panel")]
         [SerializeField] private Slider gammaSlider = null!;
@@ -36,6 +38,8 @@ namespace CrimsonDraft.Navigation.UI
         public Slider MusicSlider             => this.musicSlider;
         public Button AdjustBrightnessButton  => this.adjustBrightnessButton;
         public Slider GammaSlider             => this.gammaSlider;
+        public Toggle ModernToggle            => this.modernToggle;
+        public Toggle ClassicToggle           => this.classicToggle;
 
         public GameObject FirstMainSelectable       => this.resumeButton.gameObject;
         public GameObject FirstOptionsSelectable    => this.masterSlider.gameObject;
@@ -83,5 +87,11 @@ namespace CrimsonDraft.Navigation.UI
         }
 
         public void SetGammaValue(float gamma) => this.gammaSlider.SetValueWithoutNotify(gamma);
+
+        public void SetControlToggle(bool isClassic)
+        {
+            this.modernToggle.SetIsOnWithoutNotify(!isClassic);
+            this.classicToggle.SetIsOnWithoutNotify(isClassic);
+        }
     }
 }
