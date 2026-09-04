@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation
     {
         private const string MainMenuSceneName = "MainMenu";
 
-        private enum PauseState { Closed, Main, Options, Brightness }
+        private enum PauseState { Closed, Main, Options }
 
         private readonly IInputService          inputService;
         private readonly PauseMenuView          view;
@@ -57,7 +57,6 @@ namespace CrimsonDraft.Navigation
             this.view.ResumeButton.onClick.AddListener(Resume);
             this.view.OptionsButton.onClick.AddListener(OpenOptions);
             this.view.QuitButton.onClick.AddListener(() => QuitToMenuAsync().Forget());
-            this.view.AdjustBrightnessButton.onClick.AddListener(OpenBrightnessCalibration);
 
             this.view.MasterSlider.onValueChanged.AddListener(this.audioSettings.SetMasterVolume);
             this.view.SfxSlider.onValueChanged.AddListener(this.audioSettings.SetSfxVolume);
@@ -78,7 +77,7 @@ namespace CrimsonDraft.Navigation
             {
                 case PauseState.Closed: Open(); break;
                 case PauseState.Main:   Resume(); break;
-                // Options/Brightness: ignore -- must back out to Main first.
+                // Options: ignore -- must back out to Main first.
             }
         }
 
@@ -90,6 +89,7 @@ namespace CrimsonDraft.Navigation
             this.view.ShowMain();
             EventSystem.current.SetSelectedGameObject(this.view.FirstMainSelectable);
             this.graphicsSettings.PushGammaSuppression();
+            this.view.FadeInventoryVolume(true);
         }
 
         private void Resume()
@@ -100,6 +100,7 @@ namespace CrimsonDraft.Navigation
             this.view.HideAll();
             EventSystem.current.SetSelectedGameObject(null);
             this.graphicsSettings.PopGammaSuppression();
+            this.view.FadeInventoryVolume(false);
         }
 
         private void OpenOptions()
@@ -109,6 +110,7 @@ namespace CrimsonDraft.Navigation
                 this.audioSettings.MasterVolume,
                 this.audioSettings.SfxVolume,
                 this.audioSettings.MusicVolume);
+            this.view.SetGammaValue(this.graphicsSettings.Gamma);
             this.view.SetControlToggle(this.controlScheme.CurrentScheme == ControlScheme.Classic);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);
@@ -121,30 +123,12 @@ namespace CrimsonDraft.Navigation
             EventSystem.current.SetSelectedGameObject(this.view.OptionsButton.gameObject);
         }
 
-        private void OpenBrightnessCalibration()
-        {
-            this.state = PauseState.Brightness;
-            this.view.SetGammaValue(this.graphicsSettings.Gamma);
-            this.view.ShowBrightnessCalibration();
-            EventSystem.current.SetSelectedGameObject(this.view.FirstBrightnessSelectable);
-            // Lift the pause-wide dim suppression while the slider is visible, so dragging it
-            // previews live against the real scene instead of only taking effect after closing.
-            this.graphicsSettings.PopGammaSuppression();
-        }
-
-        private void CloseBrightnessCalibration()
-        {
-            this.state = PauseState.Options;
-            this.graphicsSettings.PushGammaSuppression();
-            this.view.ShowOptions();
-            EventSystem.current.SetSelectedGameObject(this.view.AdjustBrightnessButton.gameObject);
-        }
-
         private async UniTaskVoid QuitToMenuAsync()
         {
             this.state = PauseState.Closed;
             Time.timeScale = 1f;
             this.graphicsSettings.PopGammaSuppression();
+            this.view.FadeInventoryVolume(false);
             await this.screenFader.FadeOutAsync();
             SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
             await this.screenFader.FadeInAsync();
@@ -154,9 +138,8 @@ namespace CrimsonDraft.Navigation
         {
             switch (this.state)
             {
-                case PauseState.Brightness: CloseBrightnessCalibration(); break;
-                case PauseState.Options:    CloseOptions(); break;
-                case PauseState.Main:       Resume(); break;
+                case PauseState.Options: CloseOptions(); break;
+                case PauseState.Main:    Resume(); break;
                 // Closed: no-op.
             }
         }

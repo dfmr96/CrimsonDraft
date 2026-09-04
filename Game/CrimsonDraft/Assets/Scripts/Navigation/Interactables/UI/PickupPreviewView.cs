@@ -1,8 +1,10 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.Navigation.Interactables.UI
 {
@@ -12,6 +14,14 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private Transform   mountPoint       = null!;
         [SerializeField] private float       rotationSpeed    = 60f;
         [SerializeField] private string      previewLayerName = "ItemPreview";
+
+        // Optional -- only the standalone world pickup-preview panel wires this (InspectPanel's
+        // own PickupPreviewView instance leaves it unassigned, since that one only ever shows
+        // while the full inventory is already open and InventoryOpenCloseController has already
+        // faded the same Volume in). See InventoryOpenCloseController.FadeVolume for the
+        // matching implementation this mirrors.
+        [SerializeField] private Volume? inventoryVolume;
+        [SerializeField] private float   volumeFadeDuration = 0.3f;
 
         [Header("Inventory Footprint")]
         [SerializeField] private RectTransform? gridRect;
@@ -111,13 +121,17 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             }
 
             this.root.SetActive(true);
+            FadeVolume(1f);
         }
 
         public void Hide()
         {
             ClearInstance();
             this.root.SetActive(false);
+            FadeVolume(0f);
         }
+
+        private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);
 
         private void ApplyHighlightSize()
         {

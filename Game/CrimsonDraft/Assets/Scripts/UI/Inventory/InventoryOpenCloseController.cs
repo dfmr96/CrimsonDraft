@@ -1,6 +1,5 @@
 #nullable enable
 
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -9,6 +8,7 @@ using VContainer;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -94,24 +94,7 @@ namespace CrimsonDraft.UI
             this.graphicsSettings.PopGammaSuppression();
         }
 
-        private void FadeVolume(float target)
-        {
-            if (this.inventoryVolume == null) return;
-            if (target > 0f) this.inventoryVolume.gameObject.SetActive(true);
-            DOTween.Kill(this.inventoryVolume);
-            DOTween.To(
-                    () => this.inventoryVolume.weight,
-                    x  => this.inventoryVolume.weight = x,
-                    target,
-                    this.volumeFadeDuration)
-                .SetTarget(this.inventoryVolume)
-                .SetUpdate(true)
-                .SetEase(Ease.InOutSine)
-                .OnComplete(() =>
-                {
-                    if (target <= 0f) this.inventoryVolume.gameObject.SetActive(false);
-                });
-        }
+        private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);
 
         public void Dispose()
         {

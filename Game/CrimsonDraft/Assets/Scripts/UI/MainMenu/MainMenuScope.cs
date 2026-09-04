@@ -14,7 +14,6 @@ namespace CrimsonDraft.UI.MainMenu
             builder.RegisterComponentInHierarchy<OptionsTabController>();
             builder.RegisterComponentInHierarchy<OptionsMenuController>();
             builder.RegisterComponentInHierarchy<GeneralMenuController>();
-            builder.RegisterComponentInHierarchy<GammaSliderController>();
         }
     }
 }

@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace CrimsonDraft.Navigation.UI
@@ -12,7 +13,11 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private GameObject dimBackground   = null!;
         [SerializeField] private GameObject mainPanel        = null!;
         [SerializeField] private GameObject optionsPanel     = null!;
-        [SerializeField] private GameObject brightnessPanel  = null!;
+
+        // Same shared Volume Inventory/pickup-preview/Inspect fade in -- gives the pause menu
+        // the same CRT/PSX-boosted look while it's open. Optional: null just skips the fade.
+        [SerializeField] private Volume? inventoryVolume;
+        [SerializeField] private float   volumeFadeDuration = 0.3f;
 
         [Header("Main Panel")]
         [SerializeField] private Button resumeButton  = null!;
@@ -20,15 +25,12 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Button quitButton    = null!;
 
         [Header("Options Panel")]
-        [SerializeField] private Slider masterSlider          = null!;
-        [SerializeField] private Slider sfxSlider              = null!;
-        [SerializeField] private Slider musicSlider            = null!;
-        [SerializeField] private Button adjustBrightnessButton = null!;
-        [SerializeField] private Toggle modernToggle           = null!;
-        [SerializeField] private Toggle classicToggle          = null!;
-
-        [Header("Brightness Panel")]
-        [SerializeField] private Slider gammaSlider = null!;
+        [SerializeField] private Slider masterSlider = null!;
+        [SerializeField] private Slider sfxSlider    = null!;
+        [SerializeField] private Slider musicSlider  = null!;
+        [SerializeField] private Slider gammaSlider  = null!;
+        [SerializeField] private Toggle modernToggle = null!;
+        [SerializeField] private Toggle classicToggle = null!;
 
         public Button ResumeButton            => this.resumeButton;
         public Button OptionsButton           => this.optionsButton;
@@ -36,14 +38,12 @@ namespace CrimsonDraft.Navigation.UI
         public Slider MasterSlider            => this.masterSlider;
         public Slider SfxSlider               => this.sfxSlider;
         public Slider MusicSlider             => this.musicSlider;
-        public Button AdjustBrightnessButton  => this.adjustBrightnessButton;
         public Slider GammaSlider             => this.gammaSlider;
         public Toggle ModernToggle            => this.modernToggle;
         public Toggle ClassicToggle           => this.classicToggle;
 
-        public GameObject FirstMainSelectable       => this.resumeButton.gameObject;
-        public GameObject FirstOptionsSelectable    => this.masterSlider.gameObject;
-        public GameObject FirstBrightnessSelectable => this.gammaSlider.gameObject;
+        public GameObject FirstMainSelectable    => this.resumeButton.gameObject;
+        public GameObject FirstOptionsSelectable => this.masterSlider.gameObject;
 
         public void ShowMain()
         {
@@ -51,7 +51,6 @@ namespace CrimsonDraft.Navigation.UI
             this.dimBackground.SetActive(true);
             this.mainPanel.SetActive(true);
             this.optionsPanel.SetActive(false);
-            this.brightnessPanel.SetActive(false);
         }
 
         public void ShowOptions()
@@ -59,16 +58,6 @@ namespace CrimsonDraft.Navigation.UI
             this.dimBackground.SetActive(true);
             this.mainPanel.SetActive(false);
             this.optionsPanel.SetActive(true);
-            this.brightnessPanel.SetActive(false);
-        }
-
-        // Hides the dim overlay along with the rest of the menu so brightness is calibrated
-        // against the real, undimmed scene rather than a version already darkened by the menu.
-        public void ShowBrightnessCalibration()
-        {
-            this.dimBackground.SetActive(false);
-            this.optionsPanel.SetActive(false);
-            this.brightnessPanel.SetActive(true);
         }
 
         public void HideAll()
@@ -76,7 +65,6 @@ namespace CrimsonDraft.Navigation.UI
             this.root.SetActive(false);
             this.mainPanel.SetActive(false);
             this.optionsPanel.SetActive(false);
-            this.brightnessPanel.SetActive(false);
         }
 
         public void SetSliderValues(float master, float sfx, float music)
@@ -87,6 +75,8 @@ namespace CrimsonDraft.Navigation.UI
         }
 
         public void SetGammaValue(float gamma) => this.gammaSlider.SetValueWithoutNotify(gamma);
+
+        public void FadeInventoryVolume(bool show) => VolumeFader.Fade(this.inventoryVolume, show, this.volumeFadeDuration);
 
         public void SetControlToggle(bool isClassic)
         {
