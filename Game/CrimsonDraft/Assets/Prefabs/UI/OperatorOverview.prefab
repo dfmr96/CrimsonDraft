@@ -318,8 +318,8 @@ MonoBehaviour:
   - {fileID: 271937763245776410}
   - {fileID: 1782708106107117230}
   - {fileID: 5978050360771850248}
-  inactiveColor: {r: 0.32, g: 0.32, b: 0.32, a: 1}
-  activeColor: {r: 1, g: 1, b: 1, a: 1}
+  inactiveColor: {r: 0.6039216, g: 0.62352943, b: 0.36078432, a: 1}
+  activeColor: {r: 0.6039216, g: 0.62352943, b: 0.36078432, a: 1}
   inactiveFadeDuration: 0.2
   flickerCount: 3
   flickerDuration: 0.4
@@ -665,7 +665,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.6039216, g: 0.62352943, b: 0.36078432, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1147,7 +1147,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.6039216, g: 0.62352943, b: 0.36078432, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1380,10 +1380,10 @@ MonoBehaviour:
   trailFraction: 0.5
   fadeExponent: 4
   stageSpriteStable: {fileID: -2075703557, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
-  stageSpriteCaution: {fileID: -762436692, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
-  stageSpriteWarning: {fileID: 1621664374, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
-  stageSpriteCritical: {fileID: 844466171, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
-  stageSpriteDead: {fileID: -1304373255, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
+  stageSpriteCaution: {fileID: 1621664374, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
+  stageSpriteWarning: {fileID: -762436692, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
+  stageSpriteCritical: {fileID: -1304373255, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
+  stageSpriteDead: {fileID: 844466171, guid: ddd29838614c9a64981f6991e587b49b, type: 3}
   stageDurationStable: 3.5
   stageDurationCaution: 2.5
   stageDurationWarning: 2
@@ -1396,6 +1396,8 @@ MonoBehaviour:
   glitchDuration: 0.35
   glitchJitterAmount: 6
   glitchMinAlpha: 0.15
+  criticalPulseSpeed: 2.5
+  criticalPulseMinAlpha: 0.35
 --- !u!1 &5531057374965054296
 GameObject:
   m_ObjectHideFlags: 0

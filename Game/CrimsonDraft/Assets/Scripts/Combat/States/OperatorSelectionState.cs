@@ -128,7 +128,7 @@ namespace CrimsonDraft.Combat
         private void SyncAllOperatorHealth()
         {
             for (int i = 0; i < this.roster.Count; i++)
-                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio);
+                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio, this.roster[i].IsAlive);
         }
     }
 }

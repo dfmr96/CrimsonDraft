@@ -48,7 +48,7 @@ namespace CrimsonDraft.Combat
         private bool     isMasterDimmed;
         private int      focusedOperatorIndex = -1;
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
-        private readonly Dictionary<int, float>                  pendingHealthByOperator = new();
+        private readonly Dictionary<int, (float hpRatio, bool isAlive)> pendingHealthByOperator = new();
         private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
         private readonly Dictionary<int, bool>                   pendingActionPendingByOperator = new();
 
@@ -526,9 +526,9 @@ namespace CrimsonDraft.Combat
             label.text = $"{current}/{max}";
         }
 
-        public void SetOperatorHealth(int index, float hpRatio)
+        public void SetOperatorHealth(int index, float hpRatio, bool isAlive)
         {
-            this.pendingHealthByOperator[index] = hpRatio;
+            this.pendingHealthByOperator[index] = (hpRatio, isAlive);
 
             if (index < 0 || index >= this.operatorEcgAnimators.Length)
                 return;
@@ -537,7 +537,7 @@ namespace CrimsonDraft.Combat
             if (animator == null)
                 return;
 
-            animator.SetHealthState(hpRatio);
+            animator.SetHealthState(hpRatio, isAlive);
         }
 
         // Fire-and-forget: a quick punch on the card itself, distinct from the ECG line's
@@ -573,7 +573,7 @@ namespace CrimsonDraft.Combat
                 if (animator == null)
                     continue;
 
-                animator.SetHealthState(kvp.Value);
+                animator.SetHealthState(kvp.Value.hpRatio, kvp.Value.isAlive);
             }
         }
 

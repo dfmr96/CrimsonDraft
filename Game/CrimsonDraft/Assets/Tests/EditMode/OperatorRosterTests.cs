@@ -46,14 +46,41 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ApplyDamage_clampsToZero_andMarksDead()
+        public void ApplyDamage_clampsToZero_entersCriticalWithoutDying()
         {
             var op     = MakePresent(0, maxHp: 100);
             var result = op.ApplyDamage(150);
 
             Assert.AreEqual(0, result.RemainingHp);
+            Assert.IsFalse(result.IsDead);
+            Assert.IsTrue(op.IsAlive);
+            Assert.IsTrue(op.IsCritical);
+        }
+
+        [Test]
+        public void ApplyDamage_whileCritical_marksDead()
+        {
+            var op = MakePresent(0, maxHp: 100);
+            op.ApplyDamage(100); // 0 HP -> Critical
+            var result = op.ApplyDamage(1); // finishing blow -> KIA
+
             Assert.IsTrue(result.IsDead);
             Assert.IsFalse(op.IsAlive);
+            Assert.IsFalse(op.IsCritical);
+        }
+
+        [Test]
+        public void Heal_whileCritical_returnsToAliveState()
+        {
+            var op = MakePresent(0, maxHp: 100);
+            op.ApplyDamage(100); // 0 HP -> Critical
+            Assert.IsTrue(op.IsCritical);
+
+            op.Heal(20);
+
+            Assert.IsFalse(op.IsCritical);
+            Assert.IsTrue(op.IsAlive);
+            Assert.AreEqual(20, op.Hp);
         }
 
         [Test]

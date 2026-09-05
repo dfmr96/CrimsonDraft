@@ -998,7 +998,7 @@ namespace CrimsonDraft.Tests
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
                 this.ammoByOperator.TryGetValue(index, out ammo);
             private readonly Dictionary<int, float> healthByOperator = new();
-            public void SetOperatorHealth(int index, float hpRatio) =>
+            public void SetOperatorHealth(int index, float hpRatio, bool isAlive) =>
                 this.healthByOperator[index] = hpRatio;
             public bool TryGetHealth(int index, out float hpRatio) =>
                 this.healthByOperator.TryGetValue(index, out hpRatio);

@@ -21,12 +21,12 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0.01f, 0.5f)] private float trailFraction = 0.18f;
         [SerializeField, Range(0.1f, 4f)] private float fadeExponent = 1f;
 
-        [Header("Health States (ECG_1..ECG_4, Dead)")]
+        [Header("Health States (Normal x3, Critico, KIA)")]
         [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
         [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
-        [SerializeField] private Sprite? stageSpriteWarning;  // 25-50%
-        [SerializeField] private Sprite? stageSpriteCritical; // 0-25%, fast/erratic
-        [SerializeField] private Sprite? stageSpriteDead;     // 0%, static flatline
+        [SerializeField] private Sprite? stageSpriteWarning;  // 0-50%, alive
+        [SerializeField] private Sprite? stageSpriteCritical; // Critico: 0 HP, alive, fast/erratic
+        [SerializeField] private Sprite? stageSpriteDead;     // KIA: static flatline
 
         [SerializeField] private float stageDurationStable = 3f;
         [SerializeField] private float stageDurationCaution = 2f;
@@ -48,9 +48,17 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0f)] private float glitchJitterAmount = 6f;
         [SerializeField, Range(0f, 1f)] private float glitchMinAlpha = 0.15f;
 
+        // Critico (0 HP, still alive): the sprite and its glow breathe in and out like a
+        // warning beacon instead of sitting at a flat tint, so the card visibly flags
+        // "needs healing" instead of just looking like another low-HP band.
+        [Header("Critical Pulse (Critico: needs-healing warning)")]
+        [SerializeField, Min(0.01f)] private float criticalPulseSpeed = 2.5f; // pulses/sec
+        [SerializeField, Range(0f, 1f)] private float criticalPulseMinAlpha = 0.35f;
+
         private float t;
         private bool isResting;
         private bool isFlatlined;
+        private bool isCritical;
         private float restTimer;
         private Material? sourceMaterial;
         private Material? runtimeMaterial;
@@ -85,7 +93,7 @@ namespace CrimsonDraft.Combat
             this.t = 0f;
             this.isResting = false;
             this.restTimer = 0f;
-            if (!this.isFlatlined)
+            if (!this.isFlatlined && !this.isCritical)
                 this.ApplySweep();
         }
 
@@ -93,8 +101,11 @@ namespace CrimsonDraft.Combat
         {
             if (this.isGlitching)
                 this.UpdateGlitch();
+            else if (this.isCritical)
+                this.UpdateCriticalPulse();
 
-            if (this.isFlatlined) return;
+            // Critico shows only the on/off pulse -- no scanning sweep, same as KIA's flatline.
+            if (this.isFlatlined || this.isCritical) return;
 
             if (this.isResting)
             {
@@ -132,16 +143,21 @@ namespace CrimsonDraft.Combat
 
         #region Health State
 
-        public void SetHealthState(float hpRatio)
+        // isAlive distinguishes Critico (0 HP, still alive -- one more hit from KIA) from a
+        // confirmed kill: hpRatio alone can't tell them apart since both sit at 0.
+        public void SetHealthState(float hpRatio, bool isAlive)
         {
             hpRatio = Mathf.Clamp01(hpRatio);
 
-            if (hpRatio <= 0f)
+            if (!isAlive)
             {
+                // KIA: solid, no sweep, no pulse, no glow -- just the flatline.
+                this.isCritical = false;
                 this.isFlatlined = true;
                 if (this.stageSpriteDead != null)
                     this.traceImage.sprite = this.stageSpriteDead;
                 this.traceImage.material = null;
+                this.traceImage.color = Color.white;
                 if (this.effectImage != null)
                     this.effectImage.enabled = false;
                 return;
@@ -159,7 +175,7 @@ namespace CrimsonDraft.Combat
             float duration;
             Color effectColor;
 
-            if (hpRatio <= 0.25f)      { sprite = this.stageSpriteCritical; duration = this.stageDurationCritical; effectColor = this.effectColorCritical; }
+            if (hpRatio <= 0f)         { sprite = this.stageSpriteCritical; duration = this.stageDurationCritical; effectColor = this.effectColorCritical; }
             else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  effectColor = this.effectColorWarning;  }
             else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  effectColor = this.effectColorCaution;  }
             else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   effectColor = this.effectColorStable;   }
@@ -168,10 +184,38 @@ namespace CrimsonDraft.Combat
                 this.traceImage.sprite = sprite;
 
             this.sweepDuration = duration;
+            this.isCritical    = hpRatio <= 0f;
+
+            // Critico drops the scanning-sweep material entirely -- only the pulse (in
+            // UpdateCriticalPulse) drives it, on/off, no barrido.
+            if (this.isCritical)
+                this.traceImage.material = null;
+            else
+                this.traceImage.color = Color.white; // clear any pulse dimming left from Critico
 
             if (this.effectImage != null)
             {
                 effectColor.a = this.effectBaseAlpha;
+                this.effectImage.color = effectColor;
+            }
+        }
+
+        // Breathes the trace sprite and its background glow between full brightness and
+        // criticalPulseMinAlpha so Critico visibly nags at the player instead of sitting
+        // still like a normal (if low) health band.
+        private void UpdateCriticalPulse()
+        {
+            float wave   = (Mathf.Sin(Time.unscaledTime * this.criticalPulseSpeed * Mathf.PI * 2f) + 1f) * 0.5f;
+            float alpha  = Mathf.Lerp(this.criticalPulseMinAlpha, 1f, wave);
+
+            var traceColor = Color.white;
+            traceColor.a = alpha;
+            this.traceImage.color = traceColor;
+
+            if (this.effectImage != null)
+            {
+                var effectColor = this.effectColorCritical;
+                effectColor.a = this.effectBaseAlpha * alpha;
                 this.effectImage.color = effectColor;
             }
         }

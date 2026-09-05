@@ -30,7 +30,12 @@ namespace CrimsonDraft.Tests
                 {
                     this.slots[i] = new OperatorRuntime(i, null, isPresent: true, maxHp: 100);
                     if (Array.IndexOf(deadSlots, i) >= 0)
+                    {
+                        // First hit only drops them to Critical (0 HP, still alive); the
+                        // second confirms the kill.
                         this.slots[i].ApplyDamage(9999);
+                        this.slots[i].ApplyDamage(9999);
+                    }
                 }
             }
 

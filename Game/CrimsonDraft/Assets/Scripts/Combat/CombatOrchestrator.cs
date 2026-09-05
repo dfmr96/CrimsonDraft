@@ -525,7 +525,28 @@ namespace CrimsonDraft.Combat
             if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0 && !this.combatEnded)
             {
                 this.combatEnded = true;
+                FinalizeCriticalOperatorsOnCombatEnd();
                 this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
+            }
+        }
+
+        // Critical (0 HP, still alive) is a mid-combat-only reprieve -- whoever survived the
+        // fight standing at death's door doesn't walk away from it. Finalizing here (before
+        // CombatEndedEvent goes out) ensures OperatorCorpseBootstrap and every other listener
+        // see a consistent, already-dead roster.
+        private void FinalizeCriticalOperatorsOnCombatEnd()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                OperatorRuntime op = this.roster[i];
+                if (!op.IsCritical) continue;
+
+                op.FinalizeCriticalOnCombatEnd();
+                this.atbSystem.MarkDead(i, ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(i, true);
+                this.ecgFeedback?.SetOperatorHealthState(i, op.HpRatio, op.IsAlive);
+                this.menuView.SetOperatorHealth(i, op.HpRatio, op.IsAlive);
+                this.battlefieldView.PlayOperatorDeath(i);
             }
         }
 
@@ -649,7 +670,7 @@ namespace CrimsonDraft.Combat
                 bool  isAlive   = isPresent && this.roster[i].IsAlive;
 
                 this.ecgFeedback?.SetOperatorHealthState(i, hpRatio, isAlive);
-                this.menuView.SetOperatorHealth(i, hpRatio);
+                this.menuView.SetOperatorHealth(i, hpRatio, isAlive);
             }
         }
     }

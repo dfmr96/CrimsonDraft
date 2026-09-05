@@ -157,7 +157,9 @@ namespace CrimsonDraft.Tests
             this.orchestrator.MarkOperatorForFocusFire(1);
 
             // Operator 2 is the only one left unmarked -- the one who would have to select
-            // Shoot to trigger the group -- and dies before ever doing so.
+            // Shoot to trigger the group -- and dies before ever doing so. Two hits: the
+            // first drops them to Critical (0 HP, still alive), the second confirms the kill.
+            this.roster[2].ApplyDamage(9999);
             this.roster[2].ApplyDamage(9999);
 
             Tick();
@@ -188,7 +190,9 @@ namespace CrimsonDraft.Tests
             this.orchestrator.MarkOperatorForFocusFire(1);
 
             // A marked operator dies instead of the trigger -- operator 2 is still alive and
-            // unmarked, so the (now smaller) group can still be triggered normally.
+            // unmarked, so the (now smaller) group can still be triggered normally. Two hits
+            // to actually confirm the kill (first only drops them to Critical).
+            this.roster[0].ApplyDamage(9999);
             this.roster[0].ApplyDamage(9999);
 
             Tick();
@@ -202,6 +206,7 @@ namespace CrimsonDraft.Tests
         {
             this.orchestrator.MarkOperatorForFocusFire(0);
             this.orchestrator.MarkOperatorForFocusFire(1);
+            this.roster[2].ApplyDamage(9999);
             this.roster[2].ApplyDamage(9999);
 
             Tick();
@@ -324,7 +329,7 @@ namespace CrimsonDraft.Tests
             public RectTransform GetOperatorOverviewRect(int index)  => new GameObject().AddComponent<RectTransform>();
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) { }
-            public void SetOperatorHealth(int index, float hpRatio) { }
+            public void SetOperatorHealth(int index, float hpRatio, bool isAlive) { }
             public void PlayOperatorDamageShake(int index) { }
             public void PlayOperatorDamageGlitch(int index) { }
             public void SetOperatorActionPending(int index, bool pending) { }
