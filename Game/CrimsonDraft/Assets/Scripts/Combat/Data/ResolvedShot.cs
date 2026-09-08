@@ -7,14 +7,16 @@ namespace CrimsonDraft.Combat
     public readonly struct ResolvedShot
     {
         public int           Index         { get; }
+        public int           BulletIndex   { get; }
         public Vector2       NormalizedPos { get; }
         public ShotZone      Zone          { get; }
         public ShotPrecision Precision     { get; }
         public int           Damage        { get; }
 
-        public ResolvedShot(int index, Vector2 normalizedPos, ShotZone zone, ShotPrecision precision, int damage)
+        public ResolvedShot(int index, int bulletIndex, Vector2 normalizedPos, ShotZone zone, ShotPrecision precision, int damage)
         {
             this.Index         = index;
+            this.BulletIndex   = bulletIndex;
             this.NormalizedPos = normalizedPos;
             this.Zone          = zone;
             this.Precision     = precision;
