@@ -71,7 +71,7 @@ namespace CrimsonDraft.UI
         [Button("100% — Stable")]  private void TestEcgStable()   => this.ApplyHealthState(1f);
         [Button("60% — Caution")]  private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
         [Button("10% — Warning")]  private void TestEcgWarning()  => this.ApplyHealthState(0.1f);
-        [Button("0% — Critico")]   private void TestEcgCritical() => this.ApplyHealthState(0f, isAlive: true);
+        [Button("0% — Mercy")]     private void TestEcgMercy()     => this.ApplyHealthState(0f, isAlive: true);
         [Button("KIA")]            private void TestEcgKia()      => this.ApplyHealthState(0f, isAlive: false);
 #endif
 

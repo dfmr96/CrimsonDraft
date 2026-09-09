@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
@@ -51,6 +52,8 @@ namespace CrimsonDraft.Combat
         private int               activeBaseDamage       = CombatMenuController.BaseDamage;
         private Sprite?           activeDispersionSprite;
         private BurstPatternData? activeBurstPattern;
+        private int               activePelletCount = 1;
+        private IShotResolutionStrategy activeShotStrategy = new SingleShotStrategy();
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
@@ -102,6 +105,10 @@ namespace CrimsonDraft.Combat
             this.activeBaseDamage       = weaponData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
             this.activeBurstPattern     = weaponData?.BurstPattern;
+            this.activePelletCount      = Mathf.Max(1, weaponData?.PelletCount ?? 1);
+            this.activeShotStrategy     = weaponData?.GunType is GunType.Shotgun or GunType.REShotgun
+                ? new PelletSpreadStrategy()
+                : new SingleShotStrategy();
         }
 
         public void SetShotCount(int shotCount)
@@ -236,36 +243,27 @@ namespace CrimsonDraft.Combat
         private ResolvedShot[] BuildResolvedShots(Vector2 firstShotLocal, int count)
         {
             int clampedCount = Mathf.Max(1, count);
-            var resolved     = new ResolvedShot[clampedCount];
-            var shots        = this.activeBurstPattern?.Shots;
+            var resolved     = new List<ResolvedShot>(clampedCount);
+            int flatIndex    = 0;
 
-            for (int i = 0; i < clampedCount; i++)
+            for (int bulletIndex = 0; bulletIndex < clampedCount; bulletIndex++)
             {
-                Vector2 shotLocal;
-                if (shots != null && shots.Length > 0)
-                {
-                    // Burst pattern: confirmedLocalPos is the aim point; each entry's ellipse
-                    // provides the per-shot dispersion (including shot 0 whose center is at origin).
-                    var entry  = shots[Mathf.Min(i, shots.Length - 1)];
-                    var offset = BurstPatternData.SamplePoint(in entry);
-                    shotLocal  = new Vector2(
-                        Mathf.Round(this.confirmedLocalPos.x + offset.x),
-                        Mathf.Round(this.confirmedLocalPos.y + offset.y));
-                }
-                else
-                {
-                    shotLocal = ComputeBulletLocalFromPrimary(firstShotLocal, i, this.perBulletYOffset);
-                }
+                Vector2[] pelletPositions = this.activeShotStrategy.GetPelletLocalPositions(
+                    this.confirmedLocalPos, firstShotLocal, bulletIndex, this.perBulletYOffset, this.activeBurstPattern, this.activePelletCount);
 
-                Vector2             normalized = this.NormalizeShotLocal(shotLocal);
-                ShotZoneDefinition? def        = this.SampleSilhouette(shotLocal);
-                ShotZone            zone       = def?.zone ?? ShotZone.Miss;
-                ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
-                float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
-                int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
-                resolved[i] = new ResolvedShot(i, normalized, zone, precision, damage);
+                foreach (var shotLocal in pelletPositions)
+                {
+                    Vector2             normalized = this.NormalizeShotLocal(shotLocal);
+                    ShotZoneDefinition? def        = this.SampleSilhouette(shotLocal);
+                    ShotZone            zone       = def?.zone ?? ShotZone.Miss;
+                    ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
+                    float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
+                    int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
+                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage));
+                    flatIndex++;
+                }
             }
-            return resolved;
+            return resolved.ToArray();
         }
 
         private async UniTaskVoid ResolvePendingShotsAsync()
@@ -288,7 +286,11 @@ namespace CrimsonDraft.Combat
                 this.SpawnMarker(local);
                 this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
 
-                if (i < this.pendingResolvedShots.Length - 1 && this.bulletSequenceDelay > 0f)
+                // Only pause between distinct bullets, not between pellets of the same shell -
+                // a shotgun blast should read as one simultaneous spread, not a slow trickle.
+                bool isLastShot     = i == this.pendingResolvedShots.Length - 1;
+                bool advancesBullet = !isLastShot && this.pendingResolvedShots[i + 1].BulletIndex != shot.BulletIndex;
+                if (advancesBullet && this.bulletSequenceDelay > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
             }
 
@@ -440,6 +442,13 @@ namespace CrimsonDraft.Combat
             new Vector2(
                 Mathf.Round(primaryLocal.x),
                 Mathf.Round(primaryLocal.y + Mathf.Max(0, bulletIndex) * perBulletYOffset));
+
+        // Number of distinct bullets fired represented in a resolved-shots array - 1 for a
+        // normal weapon (1 pellet per bullet), or fewer than shots.Length for a shotgun where
+        // several entries share the same BulletIndex. Relies on BulletIndex being
+        // non-decreasing across the array, guaranteed by BuildResolvedShots's construction order.
+        internal static int CountBullets(ResolvedShot[] shots) =>
+            shots.Length == 0 ? 1 : shots[shots.Length - 1].BulletIndex + 1;
 
         private ShotZoneDefinition? SampleSilhouette(Vector2 shotLocal)
         {
