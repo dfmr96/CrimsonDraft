@@ -52,7 +52,7 @@ namespace CrimsonDraft.UI
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.DisplayName ?? string.Empty;
             if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive);
 
-            this.ApplyHealthState(op.HpRatio);
+            this.ApplyHealthState(op.HpRatio, op.IsAlive);
 
             if (this.weaponSlot0Root != null)
                 RefreshWeaponSlot(op.PrimaryWeapon   as WeaponItem, this.weaponSlot0Root, this.weaponSlot0Icon, this.weaponSlot0AmmoLabel);
@@ -60,18 +60,19 @@ namespace CrimsonDraft.UI
                 RefreshWeaponSlot(op.SecondaryWeapon as WeaponItem, this.weaponSlot1Root, this.weaponSlot1Icon, this.weaponSlot1AmmoLabel);
         }
 
-        private void ApplyHealthState(float hpRatio)
+        private void ApplyHealthState(float hpRatio, bool isAlive = true)
         {
-            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio);
+            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive);
             if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Test-only — previews the 4 ECG health bands from the Inspector without touching real HP.
-        [Button("100% — Stable")]   private void TestEcgStable()   => this.ApplyHealthState(1f);
-        [Button("60% — Caution")]   private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
-        [Button("35% — Warning")]   private void TestEcgWarning()  => this.ApplyHealthState(0.35f);
-        [Button("10% — Critical")]  private void TestEcgCritical() => this.ApplyHealthState(0.1f);
+        // Test-only — previews the ECG states from the Inspector without touching real HP.
+        [Button("100% — Stable")]  private void TestEcgStable()   => this.ApplyHealthState(1f);
+        [Button("60% — Caution")]  private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
+        [Button("10% — Warning")]  private void TestEcgWarning()  => this.ApplyHealthState(0.1f);
+        [Button("0% — Mercy")]     private void TestEcgMercy()     => this.ApplyHealthState(0f, isAlive: true);
+        [Button("KIA")]            private void TestEcgKia()      => this.ApplyHealthState(0f, isAlive: false);
 #endif
 
         private static void RefreshWeaponSlot(WeaponItem? w, GameObject root, Image icon, TMP_Text? ammoLabel)

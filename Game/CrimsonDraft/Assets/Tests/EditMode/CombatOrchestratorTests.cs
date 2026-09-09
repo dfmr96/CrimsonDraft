@@ -150,6 +150,41 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(2, result);
         }
 
+        // ── Enemy targeting bias against an operator in Mercy ──
+
+        [Test]
+        public void SelectEnemyTargetSlot_mercyOperator_weightedDown_evenWithoutPendingFocusFire()
+        {
+            this.roster[0].ApplyDamage(100); // 0 HP, still alive -> Mercy
+            Assert.IsTrue(this.roster[0].IsMercy);
+
+            SetRandom(new FakeRandomSource { NextFloat01Value = 0.2f });
+
+            int result = InvokeSelectEnemyTargetSlot(new List<int> { 0, 1, 2 });
+
+            // Weights: slot0 (Mercy) = 0.35 (default mercyTargetWeight), slot1 = 1, slot2 = 1
+            // -> total = 2.35. roll = 0.2 * 2.35 = 0.47, past slot0's narrowed [0, 0.35) bucket
+            // -- a roll that would have landed on slot0 under a plain uniform 1/3 split now
+            // falls through to slot1 instead.
+            Assert.AreEqual(1, result);
+        }
+
+        [Test]
+        public void ReviveMercyOperatorsOnCombatEnd_healsToOneHp_insteadOfKilling()
+        {
+            this.roster[0].ApplyDamage(100); // 0 HP, still alive -> Mercy
+            Assert.IsTrue(this.roster[0].IsMercy);
+
+            var method = typeof(CombatOrchestrator).GetMethod("ReviveMercyOperatorsOnCombatEnd",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            method!.Invoke(this.orchestrator, null);
+
+            Assert.IsTrue(this.roster[0].IsAlive);
+            Assert.IsFalse(this.roster[0].IsMercy);
+            Assert.AreEqual(1, this.roster[0].Hp);
+        }
+
         [Test]
         public void FocusFireTrigger_diesBeforeTriggering_releasesMarkedOperators()
         {
@@ -157,7 +192,9 @@ namespace CrimsonDraft.Tests
             this.orchestrator.MarkOperatorForFocusFire(1);
 
             // Operator 2 is the only one left unmarked -- the one who would have to select
-            // Shoot to trigger the group -- and dies before ever doing so.
+            // Shoot to trigger the group -- and dies before ever doing so. Two hits: the
+            // first drops them to Mercy (0 HP, still alive), the second confirms the kill.
+            this.roster[2].ApplyDamage(9999);
             this.roster[2].ApplyDamage(9999);
 
             Tick();
@@ -188,7 +225,9 @@ namespace CrimsonDraft.Tests
             this.orchestrator.MarkOperatorForFocusFire(1);
 
             // A marked operator dies instead of the trigger -- operator 2 is still alive and
-            // unmarked, so the (now smaller) group can still be triggered normally.
+            // unmarked, so the (now smaller) group can still be triggered normally. Two hits
+            // to actually confirm the kill (first only drops them to Mercy).
+            this.roster[0].ApplyDamage(9999);
             this.roster[0].ApplyDamage(9999);
 
             Tick();
@@ -202,6 +241,7 @@ namespace CrimsonDraft.Tests
         {
             this.orchestrator.MarkOperatorForFocusFire(0);
             this.orchestrator.MarkOperatorForFocusFire(1);
+            this.roster[2].ApplyDamage(9999);
             this.roster[2].ApplyDamage(9999);
 
             Tick();
@@ -324,7 +364,7 @@ namespace CrimsonDraft.Tests
             public RectTransform GetOperatorOverviewRect(int index)  => new GameObject().AddComponent<RectTransform>();
             public void MoveSelectorTo(RectTransform anchor) { }
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) { }
-            public void SetOperatorHealth(int index, float hpRatio) { }
+            public void SetOperatorHealth(int index, float hpRatio, bool isAlive) { }
             public void PlayOperatorDamageShake(int index) { }
             public void PlayOperatorDamageGlitch(int index) { }
             public void SetOperatorActionPending(int index, bool pending) { }

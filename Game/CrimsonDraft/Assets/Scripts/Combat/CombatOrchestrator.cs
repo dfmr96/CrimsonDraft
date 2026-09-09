@@ -40,6 +40,12 @@ namespace CrimsonDraft.Combat
         // reliable without making it guaranteed -- 1 = no bias, 0 = never targeted.
         [SerializeField, Range(0f, 1f)] private float pendingFocusFireTriggerTargetWeight = 0.35f;
 
+        // An operator in Mercy (0 HP, still alive -- one more hit from KIA) is weighted down
+        // as an enemy target, mirroring RE2's mercy invincibility: it doesn't stop them from
+        // being finished off, but it buys the player a better chance to land a heal first.
+        // 1 = no bias, 0 = never targeted while in Mercy.
+        [SerializeField, Range(0f, 1f)] private float mercyTargetWeight = 0.35f;
+
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
         private readonly HashSet<int>   syncAliveSet         = new();
@@ -297,31 +303,56 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        // Uniform pick, except while a synced-shot group is pending: operators not yet marked
-        // (i.e. candidates to trigger it) are weighted down instead of excluded, so an enemy
-        // can still choose them -- just less often -- which cuts down on SyncFocusFireDeadlock
-        // having to cancel the group because its would-be trigger died first.
+        // Uniform pick, except when weighting is actually in play: while a synced-shot group
+        // is pending, operators not yet marked (i.e. candidates to trigger it) are weighted
+        // down instead of excluded, so an enemy can still choose them -- just less often --
+        // which cuts down on SyncFocusFireDeadlock having to cancel the group because its
+        // would-be trigger died first. Independently, anyone in Mercy is weighted down too
+        // (see GetTargetWeight). The fast uniform path is only taken when neither applies, so
+        // the common case (no focus-fire setup, nobody in Mercy) skips the weighted-roll math.
         private int SelectEnemyTargetSlot(IReadOnlyList<int> aliveOperatorSlots)
         {
-            if (this.focusFireMarkedSlots.Count == 0 || this.focusFireMarkedSlots.Count >= aliveOperatorSlots.Count)
+            bool hasPendingFocusFireTrigger =
+                this.focusFireMarkedSlots.Count > 0 && this.focusFireMarkedSlots.Count < aliveOperatorSlots.Count;
+
+            bool anyMercy = false;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+            {
+                if (this.roster[aliveOperatorSlots[i]].IsMercy)
+                {
+                    anyMercy = true;
+                    break;
+                }
+            }
+
+            if (!hasPendingFocusFireTrigger && !anyMercy)
                 return aliveOperatorSlots[this.random.NextInt(0, aliveOperatorSlots.Count)];
 
             float totalWeight = 0f;
             for (int i = 0; i < aliveOperatorSlots.Count; i++)
-                totalWeight += GetTargetWeight(aliveOperatorSlots[i]);
+                totalWeight += GetTargetWeight(aliveOperatorSlots[i], hasPendingFocusFireTrigger);
 
             float roll       = this.random.NextFloat01() * totalWeight;
             float cumulative = 0f;
             for (int i = 0; i < aliveOperatorSlots.Count; i++)
             {
-                cumulative += GetTargetWeight(aliveOperatorSlots[i]);
+                cumulative += GetTargetWeight(aliveOperatorSlots[i], hasPendingFocusFireTrigger);
                 if (roll < cumulative) return aliveOperatorSlots[i];
             }
             return aliveOperatorSlots[aliveOperatorSlots.Count - 1];
         }
 
-        private float GetTargetWeight(int operatorSlot) =>
-            this.focusFireMarkedSlots.Contains(operatorSlot) ? 1f : this.pendingFocusFireTriggerTargetWeight;
+        private float GetTargetWeight(int operatorSlot, bool hasPendingFocusFireTrigger)
+        {
+            float weight = hasPendingFocusFireTrigger && !this.focusFireMarkedSlots.Contains(operatorSlot)
+                ? this.pendingFocusFireTriggerTargetWeight
+                : 1f;
+
+            if (this.roster[operatorSlot].IsMercy)
+                weight *= this.mercyTargetWeight;
+
+            return weight;
+        }
 
         private bool IsActorDead(PendingAction action)
         {
@@ -525,7 +556,28 @@ namespace CrimsonDraft.Combat
             if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0 && !this.combatEnded)
             {
                 this.combatEnded = true;
+                ReviveMercyOperatorsOnCombatEnd();
                 this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
+            }
+        }
+
+        // Mercy (0 HP, still alive) is only a mid-combat threat window -- whoever survives
+        // the fight while still at death's door gets patched up to 1 HP instead of being
+        // finished off, mirroring RE2's own mercy rule. Healing here (before CombatEndedEvent
+        // goes out) also keeps the "Hp<=0 always means confirmed KIA" invariant intact for
+        // RestoreHp -- the roster's HP snapshot (NavigationScope reloads, save/load) has no
+        // separate alive/dead bit, so a Mercy survivor persisting at literal 0 HP would read
+        // back as dead the next time that snapshot is restored.
+        private void ReviveMercyOperatorsOnCombatEnd()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                OperatorRuntime op = this.roster[i];
+                if (!op.IsMercy) continue;
+
+                op.Heal(1);
+                this.ecgFeedback?.SetOperatorHealthState(i, op.HpRatio, op.IsAlive);
+                this.menuView.SetOperatorHealth(i, op.HpRatio, op.IsAlive);
             }
         }
 
@@ -649,7 +701,7 @@ namespace CrimsonDraft.Combat
                 bool  isAlive   = isPresent && this.roster[i].IsAlive;
 
                 this.ecgFeedback?.SetOperatorHealthState(i, hpRatio, isAlive);
-                this.menuView.SetOperatorHealth(i, hpRatio);
+                this.menuView.SetOperatorHealth(i, hpRatio, isAlive);
             }
         }
     }

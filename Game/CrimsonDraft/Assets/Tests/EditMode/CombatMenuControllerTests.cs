@@ -224,7 +224,7 @@ namespace CrimsonDraft.Tests
             c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             Assert.IsTrue(this.aimView.IsVisible);
         }
 
@@ -236,7 +236,7 @@ namespace CrimsonDraft.Tests
             c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             Assert.IsTrue(this.commandPanel.IsVisible);
         }
 
@@ -248,7 +248,7 @@ namespace CrimsonDraft.Tests
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
             InvokeConfirm(c);
 
             Assert.IsFalse(this.aimView.IsVisible);
@@ -272,9 +272,9 @@ namespace CrimsonDraft.Tests
 
             var shots = new[]
             {
-                new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20),
-                new ResolvedShot(1, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0),
-                new ResolvedShot(2, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40),
+                new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20),
+                new ResolvedShot(1, 1, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0),
+                new ResolvedShot(2, 2, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40),
             };
             this.aimView.FireResolvedShots(shots);
 
@@ -296,7 +296,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c); // ShotCountSelectionState -> AimingState directly (no enemies)
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             InvokeConfirm(c); // dismiss -> triggers burst
 
@@ -317,7 +317,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c); // -> TargetSelState
             InvokeConfirm(c); // -> AimingState
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             InvokeConfirm(c); // dismiss -> starts burst, held pending
 
@@ -349,7 +349,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.AreEqual(20, this.battlefieldView.LastDamageResult.DamageApplied);
             Assert.AreEqual(80, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -367,7 +367,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Legs, ShotPrecision.Normal, 16) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Legs, ShotPrecision.Normal, 16) });
 
             // FakeWeaponSlot's default PoiseDamage is 10 (Task 1) -> legs doubles it to 20.
             Assert.AreEqual(20, this.battlefieldView.LastPoiseDamageApplied);
@@ -385,7 +385,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
 
             Assert.AreEqual(0, this.battlefieldView.LastPoiseDamageApplied);
         }
@@ -403,7 +403,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             // The knockdown must not fire mid-QTE — only after the shoot burst animation plays.
             Assert.AreEqual(0, this.orchestrator.NotifyEnemyStaggeredCallCount);
@@ -423,7 +423,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             InvokeConfirm(c); // dismiss aim window -> plays the burst, then triggers the stagger
 
@@ -445,7 +445,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             InvokeConfirm(c); // dismiss aim window -> plays the burst
 
@@ -466,7 +466,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, new Vector2(0.25f, 0.75f), ShotZone.Miss, ShotPrecision.Normal, 0) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, new Vector2(0.25f, 0.75f), ShotZone.Miss, ShotPrecision.Normal, 0) });
 
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.DamageApplied);
             Assert.AreEqual(100, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -632,7 +632,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.AreEqual(1, this.battlefieldView.LastDamageResult.SlotIndex);
             Assert.AreEqual(20, this.battlefieldView.LastDamageResult.DamageApplied);
@@ -652,7 +652,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             Assert.IsTrue(this.battlefieldView.LastDamageResult.IsDead);
             Assert.AreEqual(0, this.battlefieldView.LastDamageResult.RemainingHp);
@@ -670,7 +670,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             // Combat-end (SyncDeadEnemies -> CombatEndedEvent) keys off HasAliveEnemies /
             // GetOccupiedEnemySlots. Neither must flip before the shoot burst has played,
@@ -691,7 +691,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20) });
 
             InvokeConfirm(c); // dismiss aim window -> plays the burst, then finalizes the death
 
@@ -712,7 +712,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
             InvokeConfirm(c); // dismiss aim window -> plays the burst
 
@@ -900,7 +900,7 @@ namespace CrimsonDraft.Tests
             this.battlefieldView.SetOccupiedSlots(new[] { 1 });
             this.battlefieldView.SetEnemyHp(1, 1000);
             this.aimView.ResolveShotsForWeaponHandler = (data, count) =>
-                new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 15) };
+                new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 15) };
 
             var c = BuildAndInit();
             c.BeginFocusFireConfiguration(new[] { 0, 1 });
@@ -910,7 +910,7 @@ namespace CrimsonDraft.Tests
 
             InvokeConfirm(c); // TargetSelState -> AimingState (only slot 1 is occupied)
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
 
             InvokeConfirm(c); // dismiss aim window -> plays both bursts, finalizes
 
@@ -934,7 +934,7 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             InvokeConfirm(c);
 
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
             InvokeConfirm(c);
 
             Assert.AreEqual(1, this.aimView.ResolveShotsForWeaponCallCount); // once for the one marked participant
@@ -998,7 +998,7 @@ namespace CrimsonDraft.Tests
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>
                 this.ammoByOperator.TryGetValue(index, out ammo);
             private readonly Dictionary<int, float> healthByOperator = new();
-            public void SetOperatorHealth(int index, float hpRatio) =>
+            public void SetOperatorHealth(int index, float hpRatio, bool isAlive) =>
                 this.healthByOperator[index] = hpRatio;
             public bool TryGetHealth(int index, out float hpRatio) =>
                 this.healthByOperator.TryGetValue(index, out hpRatio);
@@ -1151,7 +1151,7 @@ namespace CrimsonDraft.Tests
 
                 var shots = new ResolvedShot[Mathf.Max(1, shotCount)];
                 for (int i = 0; i < shots.Length; i++)
-                    shots[i] = new ResolvedShot(i, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
+                    shots[i] = new ResolvedShot(i, i, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
                 return shots;
             }
         }

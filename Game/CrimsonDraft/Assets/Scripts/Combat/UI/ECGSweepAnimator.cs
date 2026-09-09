@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace CrimsonDraft.Combat
@@ -21,17 +22,17 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0.01f, 0.5f)] private float trailFraction = 0.18f;
         [SerializeField, Range(0.1f, 4f)] private float fadeExponent = 1f;
 
-        [Header("Health States (ECG_1..ECG_4, Dead)")]
+        [Header("Health States (Normal x3, Mercy, KIA)")]
         [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
         [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
-        [SerializeField] private Sprite? stageSpriteWarning;  // 25-50%
-        [SerializeField] private Sprite? stageSpriteCritical; // 0-25%, fast/erratic
-        [SerializeField] private Sprite? stageSpriteDead;     // 0%, static flatline
+        [SerializeField] private Sprite? stageSpriteWarning;  // 0-50%, alive
+        [SerializeField, FormerlySerializedAs("stageSpriteCritical")] private Sprite? stageSpriteMercy; // Mercy: 0 HP, alive, fast/erratic
+        [SerializeField] private Sprite? stageSpriteDead;     // KIA: static flatline
 
         [SerializeField] private float stageDurationStable = 3f;
         [SerializeField] private float stageDurationCaution = 2f;
         [SerializeField] private float stageDurationWarning = 1.2f;
-        [SerializeField] private float stageDurationCritical = 0.6f;
+        [SerializeField, FormerlySerializedAs("stageDurationCritical")] private float stageDurationMercy = 0.6f;
 
         // Soft color-matched glow sitting behind the trace so the ECG's own backdrop isn't
         // flat black — a gradient sprite tinted per health band instead of a fixed color,
@@ -41,16 +42,24 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Color effectColorStable   = new(0.4901961f, 0.7058824f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorCaution   = new(0.6901961f, 0.7058824f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorWarning   = new(0.6901961f, 0.5568628f, 0.29803923f, 0.55f);
-        [SerializeField] private Color effectColorCritical  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
+        [SerializeField, FormerlySerializedAs("effectColorCritical")] private Color effectColorMercy  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
 
         [Header("Damage Glitch (CRT signal-loss burst)")]
         [SerializeField, Min(0f)] private float glitchDuration = 0.35f;
         [SerializeField, Min(0f)] private float glitchJitterAmount = 6f;
         [SerializeField, Range(0f, 1f)] private float glitchMinAlpha = 0.15f;
 
+        // Mercy (0 HP, still alive): the sprite and its glow breathe in and out like a
+        // warning beacon instead of sitting at a flat tint, so the card visibly flags
+        // "needs healing" instead of just looking like another low-HP band.
+        [Header("Mercy Pulse (needs-healing warning)")]
+        [SerializeField, Min(0.01f), FormerlySerializedAs("criticalPulseSpeed")] private float mercyPulseSpeed = 2.5f; // pulses/sec
+        [SerializeField, Range(0f, 1f), FormerlySerializedAs("criticalPulseMinAlpha")] private float mercyPulseMinAlpha = 0.35f;
+
         private float t;
         private bool isResting;
         private bool isFlatlined;
+        private bool isMercy;
         private float restTimer;
         private Material? sourceMaterial;
         private Material? runtimeMaterial;
@@ -58,7 +67,7 @@ namespace CrimsonDraft.Combat
         // Whatever alpha the effect Image was left at in the Editor -- SetHealthState only
         // ever retints RGB per band, it never overwrites this, so a designer's opacity
         // tweak on the Image component survives entering Play instead of being clobbered
-        // by the hardcoded 0.55f baked into effectColorStable/Caution/Warning/Critical.
+        // by the hardcoded 0.55f baked into effectColorStable/Caution/Warning/Mercy.
         private float effectBaseAlpha = 1f;
 
         private RectTransform? glitchRect;
@@ -85,7 +94,7 @@ namespace CrimsonDraft.Combat
             this.t = 0f;
             this.isResting = false;
             this.restTimer = 0f;
-            if (!this.isFlatlined)
+            if (!this.isFlatlined && !this.isMercy)
                 this.ApplySweep();
         }
 
@@ -93,8 +102,11 @@ namespace CrimsonDraft.Combat
         {
             if (this.isGlitching)
                 this.UpdateGlitch();
+            else if (this.isMercy)
+                this.UpdateMercyPulse();
 
-            if (this.isFlatlined) return;
+            // Mercy shows only the on/off pulse -- no scanning sweep, same as KIA's flatline.
+            if (this.isFlatlined || this.isMercy) return;
 
             if (this.isResting)
             {
@@ -132,16 +144,21 @@ namespace CrimsonDraft.Combat
 
         #region Health State
 
-        public void SetHealthState(float hpRatio)
+        // isAlive distinguishes Mercy (0 HP, still alive -- one more hit from KIA) from a
+        // confirmed kill: hpRatio alone can't tell them apart since both sit at 0.
+        public void SetHealthState(float hpRatio, bool isAlive)
         {
             hpRatio = Mathf.Clamp01(hpRatio);
 
-            if (hpRatio <= 0f)
+            if (!isAlive)
             {
+                // KIA: solid, no sweep, no pulse, no glow -- just the flatline.
+                this.isMercy = false;
                 this.isFlatlined = true;
                 if (this.stageSpriteDead != null)
                     this.traceImage.sprite = this.stageSpriteDead;
                 this.traceImage.material = null;
+                this.traceImage.color = Color.white;
                 if (this.effectImage != null)
                     this.effectImage.enabled = false;
                 return;
@@ -159,7 +176,7 @@ namespace CrimsonDraft.Combat
             float duration;
             Color effectColor;
 
-            if (hpRatio <= 0.25f)      { sprite = this.stageSpriteCritical; duration = this.stageDurationCritical; effectColor = this.effectColorCritical; }
+            if (hpRatio <= 0f)         { sprite = this.stageSpriteMercy;    duration = this.stageDurationMercy;   effectColor = this.effectColorMercy;   }
             else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  effectColor = this.effectColorWarning;  }
             else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  effectColor = this.effectColorCaution;  }
             else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   effectColor = this.effectColorStable;   }
@@ -168,10 +185,38 @@ namespace CrimsonDraft.Combat
                 this.traceImage.sprite = sprite;
 
             this.sweepDuration = duration;
+            this.isMercy       = hpRatio <= 0f;
+
+            // Mercy drops the scanning-sweep material entirely -- only the pulse (in
+            // UpdateMercyPulse) drives it, on/off, no barrido.
+            if (this.isMercy)
+                this.traceImage.material = null;
+            else
+                this.traceImage.color = Color.white; // clear any pulse dimming left from Mercy
 
             if (this.effectImage != null)
             {
                 effectColor.a = this.effectBaseAlpha;
+                this.effectImage.color = effectColor;
+            }
+        }
+
+        // Breathes the trace sprite and its background glow between full brightness and
+        // mercyPulseMinAlpha so Mercy visibly nags at the player instead of sitting
+        // still like a normal (if low) health band.
+        private void UpdateMercyPulse()
+        {
+            float wave   = (Mathf.Sin(Time.unscaledTime * this.mercyPulseSpeed * Mathf.PI * 2f) + 1f) * 0.5f;
+            float alpha  = Mathf.Lerp(this.mercyPulseMinAlpha, 1f, wave);
+
+            var traceColor = Color.white;
+            traceColor.a = alpha;
+            this.traceImage.color = traceColor;
+
+            if (this.effectImage != null)
+            {
+                var effectColor = this.effectColorMercy;
+                effectColor.a = this.effectBaseAlpha * alpha;
                 this.effectImage.color = effectColor;
             }
         }

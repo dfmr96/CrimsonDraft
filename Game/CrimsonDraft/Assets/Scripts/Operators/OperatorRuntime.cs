@@ -16,7 +16,15 @@ namespace CrimsonDraft.Operators
         public IWeaponSlot?   SecondaryWeapon { get; private set; }
         public IWeaponSlot?   ActiveWeapon    => this.PrimaryWeapon ?? this.SecondaryWeapon;
         public float          HpRatio         => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
-        public bool           IsAlive        => this.IsPresent && this.Hp > 0;
+
+        // Reaching 0 HP no longer means dead outright -- it means Mercy (see IsMercy, named
+        // after RE2's mercy-invincibility rule): one more hit is needed to actually finish
+        // them off (IsDead). IsAlive stays true through Mercy so the operator can still act,
+        // be targeted, and be healed back from the brink; only a confirmed kill (KIA) flips
+        // it false.
+        private bool          isDead;
+        public bool           IsAlive        => this.IsPresent && !this.isDead;
+        public bool           IsMercy        => this.IsAlive && this.Hp <= 0;
 
         internal OperatorRuntime(int slotIndex, OperatorData? data, bool isPresent, int maxHp)
         {
@@ -30,8 +38,15 @@ namespace CrimsonDraft.Operators
         public void Heal(int amount)
             => this.Hp = UnityEngine.Mathf.Clamp(this.Hp + UnityEngine.Mathf.Max(0, amount), 0, this.MaxHp);
 
+        // Save/load and roster seeding only ever cross HP outside of combat, where Mercy
+        // can't persist (a Mercy survivor is healed to 1 HP the moment combat ends -- see
+        // CombatOrchestrator.ReviveMercyOperatorsOnCombatEnd) -- so 0 HP here always means a
+        // confirmed KIA, same as the old Hp<=0-is-dead rule.
         internal void RestoreHp(int hp)
-            => this.Hp = UnityEngine.Mathf.Clamp(hp, 0, this.MaxHp);
+        {
+            this.Hp     = UnityEngine.Mathf.Clamp(hp, 0, this.MaxHp);
+            this.isDead = this.Hp <= 0;
+        }
 
         public OperatorDamageResult ApplyDamage(int damage)
         {
@@ -39,8 +54,16 @@ namespace CrimsonDraft.Operators
                 return new OperatorDamageResult(this.SlotIndex, 0, this.Hp, true);
 
             int applied = Mathf.Max(0, damage);
+
+            // Already at death's door -- this hit is the one that finishes them off.
+            if (this.IsMercy)
+            {
+                this.isDead = true;
+                return new OperatorDamageResult(this.SlotIndex, applied, this.Hp, true);
+            }
+
             this.Hp = Mathf.Max(0, this.Hp - applied);
-            return new OperatorDamageResult(this.SlotIndex, applied, this.Hp, this.Hp <= 0);
+            return new OperatorDamageResult(this.SlotIndex, applied, this.Hp, false);
         }
 
         public void SetEquippedWeapon(IWeaponSlot? weapon, int slotIndex = 0)

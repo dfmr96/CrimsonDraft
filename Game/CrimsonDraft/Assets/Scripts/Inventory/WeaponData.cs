@@ -1,5 +1,6 @@
 #nullable enable
 
+using NaughtyAttributes;
 using UnityEngine;
 using CrimsonDraft.Operators;
 
@@ -19,6 +20,11 @@ namespace CrimsonDraft.Inventory
         [SerializeField, Min(1)] private int       damage                 = 20;
         [SerializeField, Min(0)] private int       poiseDamage            = 10;
 
+        // Pellets rolled per bullet within its burst-pattern ellipse - only meaningful for
+        // shotgun-type weapons (see PelletSpreadStrategy); every other GunType always fires
+        // exactly one pellet per bullet regardless of this value.
+        [SerializeField, Min(1), ShowIf(nameof(IsShotgunGunType))] private int pelletCount = 8;
+
         public Caliber           Caliber                => this.caliber;
         public GunType           GunType                => this.gunType;
         public int               MagazineCapacity       => this.magazineCapacity;
@@ -29,5 +35,8 @@ namespace CrimsonDraft.Inventory
         public WeaponSlot        WeaponSlot             => this.weaponSlot;
         public int               Damage                 => this.damage;
         public int               PoiseDamage            => this.poiseDamage;
+        public int               PelletCount            => this.pelletCount;
+
+        private bool IsShotgunGunType() => this.gunType is GunType.Shotgun or GunType.REShotgun;
     }
 }

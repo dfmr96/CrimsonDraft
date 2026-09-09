@@ -393,12 +393,24 @@ namespace CrimsonDraft.Combat
             while (!animator.GetCurrentAnimatorStateInfo(0).IsName("AimingIdlePistol"))
                 await UniTask.NextFrame();
 
-            int count = Mathf.Max(1, shots.Length);
-            for (int i = 0; i < count; i++)
+            // One animation trigger per bullet fired, not per pellet - a shotgun shell that
+            // resolves into several ResolvedShot entries (same BulletIndex) still plays the
+            // shoot animation once.
+            int bulletCount = AimViewController.CountBullets(shots);
+            for (int b = 0; b < bulletCount; b++)
             {
                 animator.SetTrigger(ShootHash);
 
-                if (i < shots.Length && shots[i].Zone != ShotZone.Miss)
+                bool anyHit = false;
+                foreach (var shot in shots)
+                {
+                    if (shot.BulletIndex == b && shot.Zone != ShotZone.Miss)
+                    {
+                        anyHit = true;
+                        break;
+                    }
+                }
+                if (anyHit)
                     this.TriggerEnemyFlinch(enemySlotIndex);
 
                 while (!animator.GetCurrentAnimatorStateInfo(0).IsName("ShootPistolFlexed2"))
