@@ -12,6 +12,7 @@ namespace CrimsonDraft.Inventory
         public int     BaseDamage    => this.Data.Damage;
         public int     PoiseDamage   => this.Data.PoiseDamage;
         public int     MaxAmmo       => this.Data.MagazineCapacity;
+        public int     MaxShotCount  => this.Data.MaxShotCount;
         public int     CurrentAmmo   { get; private set; }
 
         public WeaponItem(WeaponData data) : base(data)
