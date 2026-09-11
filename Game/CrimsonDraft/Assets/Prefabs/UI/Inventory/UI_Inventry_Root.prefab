@@ -394,11 +394,17 @@ MonoBehaviour:
   mountPoint: {fileID: 2411128361510191594}
   rotationSpeed: 60
   previewLayerName: ItemPreview
+  inventoryVolume: {fileID: 0}
+  volumeFadeDuration: 0.3
   gridRect: {fileID: 0}
   highlightRect: {fileID: 0}
   gridCellSize: 40
   gridColumns: 4
   gridRows: 4
+  pulseMinAlpha: 0.25
+  pulseMaxAlpha: 0.6
+  pulseSpeed: 2
+  autoRotateInterval: 5
 --- !u!1 &828156103122059088
 GameObject:
   m_ObjectHideFlags: 0
@@ -5565,8 +5571,12 @@ PrefabInstance:
       objectReference: {fileID: 7475117649238363863}
     - target: {fileID: 2820712007097580999, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
       propertyPath: inspectPanel
-      value: 
+      value:
       objectReference: {fileID: 3840920190659761256}
+    - target: {fileID: 2820712007097580999, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
+      propertyPath: partyPanel
+      value:
+      objectReference: {fileID: 1292876833325481631}
     - target: {fileID: 3606504976372737346, guid: c11f1f1d8d41ff54cac4756d7a52c6df, type: 3}
       propertyPath: m_Name
       value: 'GridCursor       '

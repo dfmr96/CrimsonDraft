@@ -19,6 +19,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private ItemTooltip         tooltip      = null!;
         [SerializeField] private InspectPanel        inspectPanel = null!;
         [SerializeField] private TabManager?         tabManager;
+        [SerializeField] private PartyPanelView?     partyPanel;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -68,6 +69,7 @@ namespace CrimsonDraft.UI
         private Vector2Int lastDir;
         private float      nextMoveTime;
         private bool       holding;
+        private bool       onMeleeSlot;
 
         // Held item state
         private InventoryItemView? heldItem;
@@ -195,6 +197,18 @@ namespace CrimsonDraft.UI
 
         void TryMove(Vector2Int dir)
         {
+            // Melee slot is a pseudo-cell above row 0 -- it isn't part of CurrentGrid, so its
+            // navigation is handled separately from the grid math below.
+            if (this.onMeleeSlot)
+            {
+                if (dir.y < 0)
+                {
+                    ExitMeleeSlotToGrid();
+                    this.sfx?.PlayCursor(gameObject);
+                }
+                return;
+            }
+
             Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
 
             // When not holding an item, skip to the far edge of the current item
@@ -212,6 +226,11 @@ namespace CrimsonDraft.UI
                     else if (dir.y < 0) next.y = o.y + s.y;       // skip past bottom edge (screen down = grid +y)
                     else if (dir.y > 0) next.y = o.y - 1;         // skip past top edge
                 }
+
+                // Pressing up past row 0 exits the grid into the operator's melee slot
+                // (rendered directly above the grid, permanently-equipped so never a grid cell).
+                if (dir.y > 0 && next.y < 0 && TryEnterMeleeSlot())
+                    return;
             }
 
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
@@ -242,6 +261,26 @@ namespace CrimsonDraft.UI
         void OnConfirm(InputAction.CallbackContext ctx)
         {
             if (this.tabManager != null && (this.tabManager.IsTabBarActive || this.tabManager.IsConsumingTabInput)) return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
+
+            if (this.contextMenu != null && this.contextMenu.IsOpen)
+            {
+                this.sfx?.PlayDecide(gameObject);
+                this.contextMenu.ConfirmSelection();
+                return;
+            }
+
+            if (this.onMeleeSlot)
+            {
+                OperatorWidgetView? widget    = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+                MeleeWeaponData?    meleeData = widget?.MeleeData;
+                if (meleeData != null && this.contextMenu != null)
+                {
+                    this.sfx?.PlayDecide(gameObject);
+                    this.contextMenu.OpenForMeleeInspectOnly(widget!.MeleeSlotRoot, meleeData);
+                }
+                return;
+            }
 
             if (this.IsCombineMode)
             {
@@ -253,21 +292,11 @@ namespace CrimsonDraft.UI
 
             if (this.heldItem != null)
             {
-                this.heldItem.Rotate();
-                this.sfx?.PlayCursor(gameObject);
-                UpdateHeldItemVisual();
-                PlaceSelectorAt(this.currentCell);
+                TryPlace();
                 return;
             }
 
             if (this.contextMenu == null) return;
-
-            if (this.contextMenu.IsOpen)
-            {
-                this.sfx?.PlayDecide(gameObject);
-                this.contextMenu.ConfirmSelection();
-                return;
-            }
 
             InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item != null)
@@ -290,11 +319,9 @@ namespace CrimsonDraft.UI
         // to the same press and race on tab-bar state (see TabManager.OnCancelTab).
         public bool TryConsumeCancel()
         {
-            if (this.IsCombineMode)
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
             {
-                this.IsCombineMode = false;
-                OnCombineCancelled?.Invoke();
-                this.sfx?.PlayCancel(gameObject);
+                this.inspectPanel.Close();
                 return true;
             }
 
@@ -305,9 +332,18 @@ namespace CrimsonDraft.UI
                 return true;
             }
 
-            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
+            if (this.onMeleeSlot)
             {
-                this.inspectPanel.Close();
+                ExitMeleeSlotToGrid();
+                this.sfx?.PlayCancel(gameObject);
+                return true;
+            }
+
+            if (this.IsCombineMode)
+            {
+                this.IsCombineMode = false;
+                OnCombineCancelled?.Invoke();
+                this.sfx?.PlayCancel(gameObject);
                 return true;
             }
 
@@ -324,13 +360,20 @@ namespace CrimsonDraft.UI
 
         void OnPickup(InputAction.CallbackContext ctx)
         {
+            if (this.onMeleeSlot) return;
             if (this.contextMenu  != null && this.contextMenu.IsOpen)  return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
             if (this.heldItem == null)
+            {
                 TryPickUp();
-            else
-                TryPlace();
+                return;
+            }
+
+            this.heldItem.Rotate();
+            this.sfx?.PlayCursor(gameObject);
+            UpdateHeldItemVisual();
+            PlaceSelectorAt(this.currentCell);
         }
 
         void OnMenuClosed()
@@ -343,7 +386,12 @@ namespace CrimsonDraft.UI
         {
             this.holding = false;
             this.lastDir = Vector2Int.zero;
-            PlaceSelectorAt(this.currentCell);
+
+            OperatorWidgetView? widget = this.onMeleeSlot && this.partyPanel != null
+                ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+
+            if (widget != null) PlaceMeleeSelector(widget);
+            else                PlaceSelectorAt(this.currentCell);
         }
 
         // ── Pick Up / Place ──────────────────────────────────────────────────
@@ -534,6 +582,47 @@ namespace CrimsonDraft.UI
             this.heldItem.GetComponent<Image>().color = tint;
         }
 
+        // ── Melee Slot ───────────────────────────────────────────────────────
+
+        bool TryEnterMeleeSlot()
+        {
+            OperatorWidgetView? widget = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+            if (widget == null || !widget.HasMeleeWeapon) return false;
+
+            this.onMeleeSlot = true;
+            PlaceMeleeSelector(widget);
+            return true;
+        }
+
+        void ExitMeleeSlotToGrid()
+        {
+            this.onMeleeSlot = false;
+            AttachSelectorToGrid(CurrentGrid);
+            PlaceSelectorAt(this.currentCell);
+        }
+
+        void PlaceMeleeSelector(OperatorWidgetView widget)
+        {
+            RectTransform slot = widget.MeleeSlotRoot;
+            this.selectorRect.SetParent(slot.parent, false);
+            this.selectorRect.pivot            = slot.pivot;
+            this.selectorRect.anchorMin        = slot.anchorMin;
+            this.selectorRect.anchorMax        = slot.anchorMax;
+            this.selectorRect.anchoredPosition = slot.anchoredPosition;
+            this.selectorRect.sizeDelta        = slot.sizeDelta + new Vector2(this.selectorPadding, this.selectorPadding) * 2f;
+
+            if (this.selectorImage != null)
+            {
+                this.selectorImage.color = ColorSelectorOnItem;
+                if (this.selectorSpriteNormal != null)
+                    this.selectorImage.sprite = this.selectorSpriteNormal;
+            }
+
+            MeleeWeaponData? meleeData = widget.MeleeData;
+            if (this.tooltip != null && meleeData != null)
+                this.tooltip.ShowAtItem(meleeData.DisplayName, slot);
+        }
+
         // ── Visual ───────────────────────────────────────────────────────────
 
         void AttachSelectorToGrid(InventoryGrid grid)
@@ -617,6 +706,7 @@ namespace CrimsonDraft.UI
             this.currentGridIndex = 0;
             this.holding          = false;
             this.lastDir          = Vector2Int.zero;
+            this.onMeleeSlot      = false;
             AttachSelectorToGrid(CurrentGrid);
             this.selectorRect.gameObject.SetActive(true);
             PlaceSelectorAt(this.currentCell);
@@ -643,6 +733,7 @@ namespace CrimsonDraft.UI
             if (this.heldItem != null)                                    CancelPickup();
             if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();
+            if (this.onMeleeSlot)                                         ExitMeleeSlotToGrid();
             this.tabManager?.ResetTabBar();
             this.tooltip?.Hide();
             this.holding = false;

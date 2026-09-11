@@ -16,6 +16,7 @@ namespace CrimsonDraft.UI
         private bool              isOpen        = false;
         private bool              currentCanSplit;
         private InventoryItemView? currentItem;
+        private MeleeWeaponData?   currentMeleeItem;
         private RectTransform     rectTransform = null!;
 
         public bool IsOpen => this.isOpen;
@@ -38,6 +39,7 @@ namespace CrimsonDraft.UI
         public void Open(InventoryItemView item, ContextMenuOptions options)
         {
             this.currentItem     = item;
+            this.currentMeleeItem = null;
             this.isOpen          = true;
             this.currentCanSplit = options.CanSplit;
 
@@ -64,6 +66,28 @@ namespace CrimsonDraft.UI
             Show();
         }
 
+        // For items with no InventoryItemView -- e.g. a permanently-equipped melee weapon,
+        // which never enters the spatial inventory grid. Only Inspect is ever meaningful here
+        // (nothing to Use/Equip/Split or Combine), so the other two stay disabled/hidden.
+        public void OpenForMeleeInspectOnly(RectTransform anchor, MeleeWeaponData meleeData)
+        {
+            this.currentItem      = null;
+            this.currentMeleeItem = meleeData;
+            this.isOpen           = true;
+            this.currentCanSplit  = false;
+
+            this.options[0].SetDisabled(true);
+            this.options[1].SetDisabled(false);
+            this.options[2].SetDisabled(true);
+            this.options[0].SetLabel("Use");
+
+            this.selectedIndex = 1; // Inspect is the only enabled option
+
+            PositionNextToRect(anchor);
+            RefreshVisuals();
+            Show();
+        }
+
         public void Close()
         {
             this.isOpen = false;
@@ -76,9 +100,14 @@ namespace CrimsonDraft.UI
             int count = this.options.Length;
             int next  = this.selectedIndex;
 
+            // dir comes from Vector2Int.up/down (y = +1 / -1), but options are laid out
+            // top-to-bottom at increasing array index -- so "down" (-1) must INCREASE the
+            // index. Without the negation this stepped backwards (e.g. Use -> Combine ->
+            // Inspect instead of Use -> Inspect -> Combine), which only looked "roughly
+            // right" when the skipped-disabled-option logic happened to mask it.
             for (int i = 1; i <= count; i++)
             {
-                next = (this.selectedIndex + dir * i + count) % count;
+                next = (this.selectedIndex - dir * i + count) % count;
                 if (!this.options[next].IsDisabled) break;
             }
 
@@ -94,7 +123,8 @@ namespace CrimsonDraft.UI
 
         void ExecuteOption(MenuOption.OptionType type)
         {
-            var item = this.currentItem;
+            var item      = this.currentItem;
+            var meleeData = this.currentMeleeItem;
             Close();
 
             switch (type)
@@ -105,10 +135,13 @@ namespace CrimsonDraft.UI
                     else                       OnUseRequested?.Invoke(item);
                     break;
                 case MenuOption.OptionType.Inspect:
-                    if (this.inspectPanel != null && item != null)
-                        this.inspectPanel.Open(item);
-                    else
+                    if (this.inspectPanel == null)
+                    {
                         Debug.LogWarning("[Menu] InspectPanel not assigned.");
+                        break;
+                    }
+                    if (item != null)           this.inspectPanel.Open(item);
+                    else if (meleeData != null) this.inspectPanel.Open(meleeData);
                     break;
                 case MenuOption.OptionType.Combine:
                     if (item != null) OnCombineRequested?.Invoke(item);
@@ -116,13 +149,15 @@ namespace CrimsonDraft.UI
             }
         }
 
-        void PositionNextToItem(InventoryItemView item)
+        void PositionNextToItem(InventoryItemView item) =>
+            PositionNextToRect(item.GetComponent<RectTransform>());
+
+        void PositionNextToRect(RectTransform itemRT)
         {
             Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
             Camera cam = (rootCanvas != null && rootCanvas.renderMode == RenderMode.ScreenSpaceCamera)
                 ? rootCanvas.worldCamera : null;
 
-            var itemRT = item.GetComponent<RectTransform>();
             Vector3[] wc = new Vector3[4];
             itemRT.GetWorldCorners(wc);
 

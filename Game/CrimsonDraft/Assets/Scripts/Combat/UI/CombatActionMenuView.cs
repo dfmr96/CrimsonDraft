@@ -577,8 +577,7 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        // weapon is the operator's ActiveWeapon (PrimaryWeapon ?? SecondaryWeapon) —
-        // primary is always preferred when both slots are equipped.
+        // weapon is the operator's ActiveWeapon (== PrimaryWeapon — the only firearm slot).
         public void SetOperatorWeapon(int index, WeaponItem? weapon)
         {
             this.pendingWeaponByOperator[index] = weapon;
