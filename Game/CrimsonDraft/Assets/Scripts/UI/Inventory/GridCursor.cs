@@ -27,6 +27,7 @@ namespace CrimsonDraft.UI
 
         [Header("Selector Sizing")]
         [SerializeField] private float selectorPadding = 1f;
+        [SerializeField] private float hoverScaleMultiplier = 1.07f; // cursor + item grow while browsing over an occupied cell
 
         [Header("Hold Colors")]
         [SerializeField] private Color colorHoldTint    = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f); // #9A9F5C
@@ -70,6 +71,8 @@ namespace CrimsonDraft.UI
         private float      nextMoveTime;
         private bool       holding;
         private bool       onMeleeSlot;
+        private InventoryItemView? hoveredItem;      // scaled up while the cursor is browsing over it
+        private RectTransform?     hoveredMeleeIcon; // scaled up while the cursor is on the melee slot
 
         // Held item state
         private InventoryItemView? heldItem;
@@ -549,6 +552,25 @@ namespace CrimsonDraft.UI
             return pos;
         }
 
+        // Item RectTransforms use a top-left pivot (grid-placement math is written around it),
+        // so scaling them directly grows the box only right/down instead of from its visual
+        // center. Recomputing the rest position fresh and offsetting by the pivot-to-center
+        // vector (scaled by how much we're growing) keeps the visible center fixed instead.
+        void ApplyItemHoverScale(InventoryItemView item)
+        {
+            var rt       = item.GetComponent<RectTransform>();
+            Vector2 basePos = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
+            rt.anchoredPosition = basePos + (1f - this.hoverScaleMultiplier) * rt.rect.center;
+            rt.localScale       = Vector3.one * this.hoverScaleMultiplier;
+        }
+
+        void ResetItemHoverScale(InventoryItemView item)
+        {
+            var rt = item.GetComponent<RectTransform>();
+            rt.anchoredPosition = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
+            rt.localScale       = Vector3.one;
+        }
+
         void UpdateHeldItemVisual()
         {
             if (this.heldItem == null) return;
@@ -597,6 +619,14 @@ namespace CrimsonDraft.UI
         void ExitMeleeSlotToGrid()
         {
             this.onMeleeSlot = false;
+
+            if (this.hoveredMeleeIcon != null)
+            {
+                this.hoveredMeleeIcon.anchoredPosition = Vector2.zero;
+                this.hoveredMeleeIcon.localScale       = Vector3.one;
+                this.hoveredMeleeIcon = null;
+            }
+
             AttachSelectorToGrid(CurrentGrid);
             PlaceSelectorAt(this.currentCell);
         }
@@ -608,8 +638,14 @@ namespace CrimsonDraft.UI
             this.selectorRect.pivot            = slot.pivot;
             this.selectorRect.anchorMin        = slot.anchorMin;
             this.selectorRect.anchorMax        = slot.anchorMax;
-            this.selectorRect.anchoredPosition = slot.anchoredPosition;
+            Vector2 selectorBasePos            = slot.anchoredPosition;
             this.selectorRect.sizeDelta        = slot.sizeDelta + new Vector2(this.selectorPadding, this.selectorPadding) * 2f;
+
+            // Same pivot-to-center compensation as the grid's item/selector hover scale --
+            // the melee slot's own pivot isn't necessarily centered, so scaling it directly
+            // would grow it off to one side instead of from its visual middle.
+            this.selectorRect.anchoredPosition = selectorBasePos + (1f - this.hoverScaleMultiplier) * this.selectorRect.rect.center;
+            this.selectorRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
 
             if (this.selectorImage != null)
             {
@@ -621,6 +657,17 @@ namespace CrimsonDraft.UI
             MeleeWeaponData? meleeData = widget.MeleeData;
             if (this.tooltip != null && meleeData != null)
                 this.tooltip.ShowAtItem(meleeData.DisplayName, slot);
+
+            RectTransform? iconRect = widget.MeleeIconRect;
+            if (iconRect != null)
+            {
+                // The icon is anchored right-middle with anchoredPosition always Vector2.zero
+                // (see OperatorWidgetView.AnchorIconToGridSize), so zero is always its true
+                // unscaled rest position -- no need to read it back before offsetting.
+                iconRect.anchoredPosition = (1f - this.hoverScaleMultiplier) * iconRect.rect.center;
+                iconRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
+                this.hoveredMeleeIcon     = iconRect;
+            }
         }
 
         // ── Visual ───────────────────────────────────────────────────────────
@@ -655,12 +702,35 @@ namespace CrimsonDraft.UI
                               : item          != null ? item.GridOrigin
                               : cell;
 
-            this.selectorRect.anchoredPosition = CurrentGrid.CellToLocal(origin)
+            Vector2 selectorBasePos = CurrentGrid.CellToLocal(origin)
                 + new Vector2(this.selectorPadding, -this.selectorPadding);
+            this.selectorRect.anchoredPosition = selectorBasePos;
 
             this.selectorRect.sizeDelta = new Vector2(
                 size.x * CurrentGrid.CellSize - this.selectorPadding * 2f,
                 size.y * CurrentGrid.CellSize - this.selectorPadding * 2f);
+
+            bool highlightItem = !isHolding && item != null;
+
+            if (this.hoveredItem != null && this.hoveredItem != item)
+            {
+                ResetItemHoverScale(this.hoveredItem);
+                this.hoveredItem = null;
+            }
+
+            if (highlightItem)
+            {
+                ApplyItemHoverScale(item!);
+                this.hoveredItem = item;
+            }
+
+            // selectorRect's pivot is top-left (0,1), so scaling it directly would grow the
+            // box only right/down instead of from its visual center -- offset the position by
+            // the pivot-to-center vector, scaled by how much we're shrinking/growing it, to
+            // compensate (same trick as Apply/ResetItemHoverScale below).
+            float selectorScale = highlightItem ? this.hoverScaleMultiplier : 1f;
+            this.selectorRect.anchoredPosition = selectorBasePos + (1f - selectorScale) * this.selectorRect.rect.center;
+            this.selectorRect.localScale = Vector3.one * selectorScale;
 
             if (this.tooltip != null && (this.contextMenu == null || !this.contextMenu.IsOpen))
             {

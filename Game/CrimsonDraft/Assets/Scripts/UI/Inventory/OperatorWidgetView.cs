@@ -34,6 +34,7 @@ namespace CrimsonDraft.UI
         public bool            HasMeleeWeapon => this.currentMeleeData != null;
         public MeleeWeaponData? MeleeData     => this.currentMeleeData;
         public RectTransform    MeleeSlotRoot => (RectTransform)this.weaponSlot1Root.transform;
+        public RectTransform?   MeleeIconRect => this.weaponSlot1Icon != null ? this.weaponSlot1Icon.rectTransform : null;
 
         public void SetEquippedWeapon(WeaponItem? weapon, int slotIndex)
         {
