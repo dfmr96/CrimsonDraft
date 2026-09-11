@@ -73,6 +73,16 @@ namespace CrimsonDraft.Infrastructure.Events
         }
     }
 
+    public readonly struct MeleeConfigurationRequestedEvent
+    {
+        public int OperatorSlot { get; }
+
+        public MeleeConfigurationRequestedEvent(int operatorSlot)
+        {
+            this.OperatorSlot = operatorSlot;
+        }
+    }
+
     public readonly struct FocusFireConfigurationRequestedEvent
     {
         public int[] ParticipantSlots { get; }

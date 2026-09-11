@@ -17,6 +17,7 @@ namespace CrimsonDraft.Combat
         private ATBSystem                                    atbSystem          = null!;
         private CombatActionQueue                            actionQueue        = null!;
         private IPublisher<ShootConfigurationRequestedEvent> shootPublisher     = null!;
+        private IPublisher<MeleeConfigurationRequestedEvent> meleePublisher     = null!;
         private IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher = null!;
         private IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher = null!;
         private IPublisher<CombatEndedEvent>                 combatEndPublisher = null!;
@@ -73,6 +74,7 @@ namespace CrimsonDraft.Combat
             ATBSystem                                    atbSystem,
             CombatActionQueue                            actionQueue,
             IPublisher<ShootConfigurationRequestedEvent> shootPublisher,
+            IPublisher<MeleeConfigurationRequestedEvent> meleePublisher,
             IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher,
             IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher,
             IPublisher<CombatEndedEvent>                 combatEndPublisher,
@@ -85,6 +87,7 @@ namespace CrimsonDraft.Combat
             this.atbSystem          = atbSystem;
             this.actionQueue        = actionQueue;
             this.shootPublisher     = shootPublisher;
+            this.meleePublisher     = meleePublisher;
             this.focusFirePublisher = focusFirePublisher;
             this.focusFireCancelledPublisher = focusFireCancelledPublisher;
             this.combatEndPublisher = combatEndPublisher;
@@ -223,6 +226,64 @@ namespace CrimsonDraft.Combat
         {
             if (!this.actionQueue.HasPending) return;
             if (this.actionQueue.Peek().Type != PendingActionType.Shoot) return;
+            int slotIndex = this.actionQueue.Peek().SlotIndex;
+            this.DequeueAction();
+            if (this.freezeOperatorWhenActionQueued)
+                this.atbSystem.UnfreezeActor(slotIndex, ATBActorKind.Operator);
+            this.shootConfigurationInProgress = false;
+            SetAnimationLock(this.operatorActionDurationSec);
+        }
+
+        // A melee swing that whiffs even one of its slash points leaves the operator open --
+        // punished with a counter-hit worth half of that enemy's own attack damage. Only ever
+        // called once per swing (any miss, not per miss) by AimingState.HandleShotsResolved.
+        public void ApplyMeleeCounterDamage(int operatorSlot, int enemySlot)
+        {
+            if (this.encounter == null) return;
+            if (enemySlot < 0 || enemySlot >= this.encounter.EnemySlots.Length) return;
+            EnemyData? data = this.encounter.EnemySlots[enemySlot];
+            if (data == null) return;
+            if (operatorSlot < 0 || operatorSlot >= this.roster.Count) return;
+            if (!this.roster[operatorSlot].IsAlive) return;
+
+            int counterDamage = data.AttackDamage / 2;
+            if (counterDamage <= 0) return;
+
+            OperatorDamageResult result = this.roster[operatorSlot].ApplyDamage(counterDamage);
+
+            this.battlefieldView.ShowOperatorDamage(operatorSlot, counterDamage);
+            this.battlefieldView.PlayOperatorHitFx(operatorSlot);
+            this.menuView.PlayOperatorDamageShake(operatorSlot);
+            this.menuView.PlayOperatorDamageGlitch(operatorSlot);
+            this.ecgFeedback?.FlashOperatorDamage(operatorSlot);
+            this.ecgFeedback?.SetOperatorHealthState(
+                operatorSlot, this.roster[operatorSlot].HpRatio, this.roster[operatorSlot].IsAlive);
+
+            if (result.IsDead)
+            {
+                this.atbSystem.MarkDead(operatorSlot, ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(operatorSlot, true);
+                this.battlefieldView.PlayOperatorDeath(operatorSlot);
+
+                if (this.menuView.IsOperatorFocused(operatorSlot))
+                {
+                    IReadOnlyList<int> aliveSlots = this.roster.GetAliveSlots();
+                    if (aliveSlots.Count > 0)
+                        this.menuView.FocusOperator(aliveSlots[0]);
+                    else
+                        this.menuView.ClearFocus();
+                }
+            }
+            else
+            {
+                this.battlefieldView.PlayOperatorFlinch(operatorSlot);
+            }
+        }
+
+        public void NotifyMeleeCompleted()
+        {
+            if (!this.actionQueue.HasPending) return;
+            if (this.actionQueue.Peek().Type != PendingActionType.Melee) return;
             int slotIndex = this.actionQueue.Peek().SlotIndex;
             this.DequeueAction();
             if (this.freezeOperatorWhenActionQueued)
@@ -391,6 +452,17 @@ namespace CrimsonDraft.Combat
                     if (IsActorDead(head)) { this.DequeueAction(); return; }
                     this.shootConfigurationInProgress = true;
                     this.shootPublisher.Publish(new ShootConfigurationRequestedEvent(head.SlotIndex));
+                }
+                return;
+            }
+
+            if (head.Type == PendingActionType.Melee)
+            {
+                if (!this.shootConfigurationInProgress)
+                {
+                    if (IsActorDead(head)) { this.DequeueAction(); return; }
+                    this.shootConfigurationInProgress = true;
+                    this.meleePublisher.Publish(new MeleeConfigurationRequestedEvent(head.SlotIndex));
                 }
                 return;
             }

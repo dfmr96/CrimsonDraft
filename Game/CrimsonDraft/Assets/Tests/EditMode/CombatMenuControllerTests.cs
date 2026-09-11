@@ -1121,7 +1121,10 @@ namespace CrimsonDraft.Tests
             public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
             public void ConfigureWeapon(CrimsonDraft.Inventory.WeaponData? weaponData) { }
+            public void ConfigureMeleeWeapon(CrimsonDraft.Inventory.MeleeWeaponData? meleeData) { }
             public void SetShotCount(int shotCount) => this.LastShotCount = shotCount;
+            public float LastOperatorHpRatio { get; private set; } = 1f;
+            public void SetOperatorHpRatio(float hpRatio) => this.LastOperatorHpRatio = hpRatio;
             public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
             {
                 this.ShowShotFeedbackCalled = true;
@@ -1289,9 +1292,20 @@ namespace CrimsonDraft.Tests
                 this.EnqueueCallCount++;
             }
             public int  NotifyShootCompletedCallCount  { get; private set; }
+            public int  NotifyMeleeCompletedCallCount  { get; private set; }
             public void SetWaitMode(bool paused)       { }
             public bool IsOperatorReady(int slotIndex) => true;
             public void NotifyShootCompleted()         => this.NotifyShootCompletedCallCount++;
+            public void NotifyMeleeCompleted()         => this.NotifyMeleeCompletedCallCount++;
+            public int  ApplyMeleeCounterDamageCallCount { get; private set; }
+            public int  LastCounterDamageOperatorSlot    { get; private set; } = -1;
+            public int  LastCounterDamageEnemySlot        { get; private set; } = -1;
+            public void ApplyMeleeCounterDamage(int operatorSlot, int enemySlot)
+            {
+                this.ApplyMeleeCounterDamageCallCount++;
+                this.LastCounterDamageOperatorSlot = operatorSlot;
+                this.LastCounterDamageEnemySlot    = enemySlot;
+            }
             public int NotifyEnemyStaggeredCallCount { get; private set; }
             public int LastStaggeredSlot             { get; private set; } = -1;
             public void NotifyEnemyStaggered(int enemySlot)

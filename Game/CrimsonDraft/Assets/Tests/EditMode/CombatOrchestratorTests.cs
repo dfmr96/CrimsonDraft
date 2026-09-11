@@ -29,6 +29,7 @@ namespace CrimsonDraft.Tests
         private FakeInventoryService     inventory        = null!;
         private FakeEncounterContext     encounterContext = null!;
         private FakePublisher<ShootConfigurationRequestedEvent>     shootPublisher               = null!;
+        private FakePublisher<MeleeConfigurationRequestedEvent>     meleePublisher               = null!;
         private FakePublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher           = null!;
         private FakePublisher<FocusFireCancelledEvent>              focusFireCancelledPublisher  = null!;
         private FakePublisher<CombatEndedEvent>                     combatEndPublisher           = null!;
@@ -45,6 +46,7 @@ namespace CrimsonDraft.Tests
             this.inventory        = new FakeInventoryService();
             this.encounterContext = new FakeEncounterContext();
             this.shootPublisher              = new FakePublisher<ShootConfigurationRequestedEvent>();
+            this.meleePublisher              = new FakePublisher<MeleeConfigurationRequestedEvent>();
             this.focusFirePublisher          = new FakePublisher<FocusFireConfigurationRequestedEvent>();
             this.focusFireCancelledPublisher = new FakePublisher<FocusFireCancelledEvent>();
             this.combatEndPublisher          = new FakePublisher<CombatEndedEvent>();
@@ -54,7 +56,7 @@ namespace CrimsonDraft.Tests
             this.orchestrator = new GameObject("CombatOrchestrator").AddComponent<CombatOrchestrator>();
             this.orchestrator.Construct(
                 this.atbSystem, this.actionQueue,
-                this.shootPublisher, this.focusFirePublisher, this.focusFireCancelledPublisher, this.combatEndPublisher,
+                this.shootPublisher, this.meleePublisher, this.focusFirePublisher, this.focusFireCancelledPublisher, this.combatEndPublisher,
                 this.battlefield, this.roster, this.encounterContext, this.inventory, this.menuView);
             ((IInitializable)this.orchestrator).Initialize();
         }

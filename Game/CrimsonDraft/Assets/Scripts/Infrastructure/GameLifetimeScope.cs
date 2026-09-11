@@ -63,6 +63,7 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterMessageBroker<CombatStartedEvent>(options);
             builder.RegisterMessageBroker<CombatEndedEvent>(options);
             builder.RegisterMessageBroker<ShootConfigurationRequestedEvent>(options);
+            builder.RegisterMessageBroker<MeleeConfigurationRequestedEvent>(options);
             builder.RegisterMessageBroker<FocusFireConfigurationRequestedEvent>(options);
             builder.RegisterMessageBroker<FocusFireCancelledEvent>(options);
 

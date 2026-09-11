@@ -55,6 +55,17 @@ namespace CrimsonDraft.Combat
 
         public void OnCommandSelected(CombatCommand command)
         {
+            if (command == CombatCommand.Melee)
+            {
+                this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
+                this.context.Orchestrator.EnqueueAction(PendingAction.Melee(this.context.SelectedOperator));
+                this.commandPanel.Hide();
+                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
+                this.menuView.SetDimmed(false);
+                this.context.TransitionTo(this.context.OperatorSelState);
+                return;
+            }
+
             if (command == CombatCommand.Shoot)
             {
                 if (GetMaxAvailableShotCount() <= 0) return;
