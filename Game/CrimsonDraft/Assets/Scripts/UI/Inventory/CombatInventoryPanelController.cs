@@ -391,6 +391,7 @@ namespace CrimsonDraft.UI
                 CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0,
                 CanCombine = slotIndex >= 0 && view.Data.ItemType == ItemType.AmmoBox,
                 CanEquip   = false,
+                CanInspect = true,
             };
 
             // Nothing this item can do (no Use, no Combine, no Inspect in this menu) —

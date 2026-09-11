@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using VContainer;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Interactables.UI;
 
 namespace CrimsonDraft.UI
@@ -37,23 +38,34 @@ namespace CrimsonDraft.UI
         public void Open(InventoryItemView item)
         {
             this.currentItem = item;
+            OpenInternal(item.Data);
+            item.SetInspected(true);
+        }
 
-            if (item.Data.PreviewModel != null && this.modelPreview != null)
+        // For items with no InventoryItemView -- e.g. a permanently-equipped melee weapon,
+        // which never enters the spatial inventory grid.
+        public void Open(ItemData data)
+        {
+            this.currentItem = null;
+            OpenInternal(data);
+        }
+
+        void OpenInternal(ItemData data)
+        {
+            if (data.PreviewModel != null && this.modelPreview != null)
             {
                 this.itemIcon.enabled = false;
-                this.modelPreview.Show(item.Data);
+                this.modelPreview.Show(data);
             }
             else
             {
                 this.modelPreview?.Hide();
-                this.itemIcon.sprite  = item.Data.Icon;
-                this.itemIcon.enabled = item.Data.Icon != null;
+                this.itemIcon.sprite  = data.Icon;
+                this.itemIcon.enabled = data.Icon != null;
             }
 
-            this.itemName.text        = item.Data.DisplayName;
-            this.itemDescription.text = item.Data.ExamineDialogue.nodeName;
-
-            item.SetInspected(true);
+            this.itemName.text        = data.DisplayName;
+            this.itemDescription.text = data.ExamineDialogue.nodeName;
 
             IsOpen = true;
             Show();

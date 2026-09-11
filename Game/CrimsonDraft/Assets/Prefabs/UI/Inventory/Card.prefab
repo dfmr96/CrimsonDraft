@@ -318,7 +318,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &9140026718240086970
 RectTransform:
   m_ObjectHideFlags: 0
@@ -474,7 +474,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: -16.439941, y: -71.84001}
+  m_AnchoredPosition: {x: -16.439941, y: -107.48001}
   m_SizeDelta: {x: 67, y: 34}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &3407431597011068625
@@ -917,10 +917,21 @@ MonoBehaviour:
   stageSpriteCaution: {fileID: 806540499, guid: b41ca23c72259984bb9edb025d6a11d9, type: 3}
   stageSpriteWarning: {fileID: 1873305823, guid: b41ca23c72259984bb9edb025d6a11d9, type: 3}
   stageSpriteCritical: {fileID: 1320350986, guid: b41ca23c72259984bb9edb025d6a11d9, type: 3}
+  stageSpriteDead: {fileID: 0}
   stageDurationStable: 1.8
   stageDurationCaution: 1.3
   stageDurationWarning: 0.9
   stageDurationCritical: 0.5
+  effectImage: {fileID: 0}
+  effectColorStable: {r: 0.4901961, g: 0.7058824, b: 0.29803923, a: 0.55}
+  effectColorCaution: {r: 0.6901961, g: 0.7058824, b: 0.29803923, a: 0.55}
+  effectColorWarning: {r: 0.6901961, g: 0.5568628, b: 0.29803923, a: 0.55}
+  effectColorCritical: {r: 0.73333335, g: 0.44705883, b: 0.26666668, a: 0.55}
+  glitchDuration: 0.35
+  glitchJitterAmount: 6
+  glitchMinAlpha: 0.15
+  criticalPulseSpeed: 2.5
+  criticalPulseMinAlpha: 0.35
 --- !u!1 &6439650402651827703
 GameObject:
   m_ObjectHideFlags: 0
@@ -1094,7 +1105,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: -16.439941, y: -107.48001}
+  m_AnchoredPosition: {x: -16.439941, y: -71.84001}
   m_SizeDelta: {x: 133, y: 34}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &7614331467726545743
@@ -1458,8 +1469,8 @@ RectTransform:
   - {fileID: 5284366084531927422}
   - {fileID: 6804948699983453947}
   - {fileID: 8481538968443645349}
-  - {fileID: 4039546786738340238}
   - {fileID: 7678428345803242615}
+  - {fileID: 4039546786738340238}
   m_Father: {fileID: 5845325964851911089}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1497,4 +1508,3 @@ MonoBehaviour:
   weaponSlot0AmmoLabel: {fileID: 1194013271154944095}
   weaponSlot1Root: {fileID: 2633712347494606047}
   weaponSlot1Icon: {fileID: 6890856334217221739}
-  weaponSlot1AmmoLabel: {fileID: 121371098294772634}

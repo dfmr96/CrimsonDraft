@@ -11,11 +11,11 @@ namespace CrimsonDraft.Operators
         public bool           IsPresent      { get; }
         public int            MaxHp          { get; }
 
-        public int            Hp              { get; private set; }
-        public IWeaponSlot?   PrimaryWeapon   { get; private set; }
-        public IWeaponSlot?   SecondaryWeapon { get; private set; }
-        public IWeaponSlot?   ActiveWeapon    => this.PrimaryWeapon ?? this.SecondaryWeapon;
-        public float          HpRatio         => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
+        public int                Hp            { get; private set; }
+        public IWeaponSlot?       PrimaryWeapon { get; private set; }
+        public IWeaponSlot?       ActiveWeapon  => this.PrimaryWeapon;
+        public IMeleeWeapon?      MeleeWeapon   { get; private set; }
+        public float              HpRatio       => this.MaxHp > 0 ? Mathf.Clamp01((float)this.Hp / this.MaxHp) : 0f;
 
         // Reaching 0 HP no longer means dead outright -- it means Critical (see IsCritical):
         // one more hit is needed to actually finish them off (IsDead). IsAlive stays true
@@ -74,8 +74,14 @@ namespace CrimsonDraft.Operators
 
         public void SetEquippedWeapon(IWeaponSlot? weapon, int slotIndex = 0)
         {
-            if (slotIndex == 0) this.PrimaryWeapon   = weapon;
-            else                this.SecondaryWeapon = weapon;
+            this.PrimaryWeapon = weapon;
+        }
+
+        // Set once at run bootstrap from the operator's starting loadout -- the melee weapon
+        // is permanently equipped and never swapped through the inventory/equip pipeline.
+        public void SetMeleeWeapon(IMeleeWeapon? melee)
+        {
+            this.MeleeWeapon = melee;
         }
     }
 }
