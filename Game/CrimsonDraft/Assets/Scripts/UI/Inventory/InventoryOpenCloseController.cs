@@ -1,13 +1,14 @@
 #nullable enable
 
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using VContainer;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -16,9 +17,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject canvasRoot      = null!;
         [SerializeField] private Volume?    inventoryVolume;
         [SerializeField] private float      volumeFadeDuration = 0.3f;
-        [SerializeField] private ScriptableRendererFeature? pixelationFeature;
         [SerializeField] private ScriptableRendererFeature? ditherFeature;
-        [SerializeField] private ScriptableRendererFeature? crtFeature;
 
         [Inject] private IInputService     inputService  = null!;
         [Inject] private GridCursor        cursor        = null!;
@@ -26,6 +25,7 @@ namespace CrimsonDraft.UI
         [Inject] private InventorySceneInit sceneInit    = null!;
         [Inject] private TabManager        tabManager    = null!;
         [Inject] private InventorySfxData  sfxData       = null!;
+        [Inject] private IGraphicsSettingsService graphicsSettings = null!;
 
         private const string MapTabName = "Map";
 
@@ -78,9 +78,8 @@ namespace CrimsonDraft.UI
             this.partyPanel.Refresh();
             this.sfxData.PlayDecide(this.gameObject);
             FadeVolume(1f);
-            this.pixelationFeature?.SetActive(false);
             this.ditherFeature?.SetActive(false);
-            this.crtFeature?.SetActive(true);
+            this.graphicsSettings.PushGammaSuppression();
         }
 
         public void Close()
@@ -91,29 +90,11 @@ namespace CrimsonDraft.UI
             this.inputService.SwitchToGameplay();
             this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
-            this.pixelationFeature?.SetActive(true);
             this.ditherFeature?.SetActive(true);
-            this.crtFeature?.SetActive(false);
+            this.graphicsSettings.PopGammaSuppression();
         }
 
-        private void FadeVolume(float target)
-        {
-            if (this.inventoryVolume == null) return;
-            if (target > 0f) this.inventoryVolume.gameObject.SetActive(true);
-            DOTween.Kill(this.inventoryVolume);
-            DOTween.To(
-                    () => this.inventoryVolume.weight,
-                    x  => this.inventoryVolume.weight = x,
-                    target,
-                    this.volumeFadeDuration)
-                .SetTarget(this.inventoryVolume)
-                .SetUpdate(true)
-                .SetEase(Ease.InOutSine)
-                .OnComplete(() =>
-                {
-                    if (target <= 0f) this.inventoryVolume.gameObject.SetActive(false);
-                });
-        }
+        private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);
 
         public void Dispose()
         {

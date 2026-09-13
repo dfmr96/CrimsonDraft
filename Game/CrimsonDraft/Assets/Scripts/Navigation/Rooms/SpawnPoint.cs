@@ -2,6 +2,7 @@
 
 using Unity.Cinemachine;
 using UnityEngine;
+using CrimsonDraft.Navigation.CamaraSystem;
 
 namespace CrimsonDraft.Navigation.Rooms
 {
@@ -12,17 +13,9 @@ namespace CrimsonDraft.Navigation.Rooms
 
         public RoomController? FromRoom => this.fromRoom;
 
-        public void ActivateCamera()
+        public void ActivateCamera(IFixedCameraZoneService zoneService)
         {
-            if (this.camera == null) return;
-
-            var room = GetComponentInParent<RoomController>(includeInactive: true);
-            if (room == null) return;
-
-            foreach (var cam in room.GetComponentsInChildren<CinemachineCamera>(includeInactive: true))
-                cam.gameObject.SetActive(false);
-
-            this.camera.gameObject.SetActive(true);
+            if (this.camera != null) zoneService.ActivateZone(this.camera);
         }
     }
 }

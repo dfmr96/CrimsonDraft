@@ -43,5 +43,15 @@ namespace CrimsonDraft.Tests
 
             Assert.AreEqual(RoomMapState.Visited, registry.GetState("room-a"));
         }
+
+        [Test]
+        public void ClearAll_removesAllRoomState()
+        {
+            var registry = new RoomStateRegistry();
+            registry.MarkVisited("room-a");
+            registry.ClearAll();
+
+            Assert.AreEqual(RoomMapState.Unknown, registry.GetState("room-a"));
+        }
     }
 }

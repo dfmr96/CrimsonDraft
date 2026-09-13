@@ -37,5 +37,7 @@ namespace CrimsonDraft.Infrastructure
             foreach (var (key, value) in saved)
                 this.state[key] = value;
         }
+
+        public void ClearAll() => this.state.Clear();
     }
 }

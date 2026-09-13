@@ -9,5 +9,6 @@ namespace CrimsonDraft.Navigation.Rooms
     {
         RoomController? CurrentRoom { get; }
         UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab);
+        void ActivateRoomImmediate(string roomId);
     }
 }

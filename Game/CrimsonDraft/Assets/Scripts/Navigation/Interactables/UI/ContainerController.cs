@@ -34,7 +34,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.inputService.UINavigate.performed += OnNavigate;
             this.inputService.UIConfirm.performed  += OnConfirm;
-            this.inputService.UIBack.performed     += OnBack;
+            this.inputService.UICancel.performed   += OnBack;
         }
 
         public void Open(ContainerData data, IInventoryService inventory)
@@ -98,7 +98,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.inputService.UINavigate.performed -= OnNavigate;
             this.inputService.UIConfirm.performed  -= OnConfirm;
-            this.inputService.UIBack.performed     -= OnBack;
+            this.inputService.UICancel.performed   -= OnBack;
         }
     }
 }

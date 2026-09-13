@@ -131,6 +131,19 @@ namespace CrimsonDraft.UI
             Debug.LogWarning($"[InventoryPopulator] No space for existing item: {item.Data.DisplayName}");
         }
 
+        public InventoryItemView SpawnFloating(InventoryItem item, InventoryGrid grid, Vector2Int cell)
+        {
+            InventoryItemView view = Instantiate(this.itemPrefab, grid.transform);
+            view.Initialize(item, cell, grid.CellSize);
+            view.SetOwnerGrid(grid);
+
+            var rt = view.GetComponent<RectTransform>();
+            rt.anchoredPosition = grid.CellToLocal(cell);
+
+            view.RefreshQuantity();
+            return view;
+        }
+
         private void SpawnItemViewFromItem(InventoryItem item, InventoryGrid grid, Vector2Int origin)
         {
             InventoryItemView view = Instantiate(this.itemPrefab, grid.transform);

@@ -6,7 +6,9 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         Stand  = 0,
         Stand2 = 1,
-        Crouch = 2
+        Crouch = 2,
+        // Plays no Interact animation at all (e.g. doors, which have their own transition).
+        None   = 3
     }
 
     public static class InteractionAnimTypeExtensions

@@ -3,9 +3,10 @@
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Player.Movement;
 using CrimsonDraft.Operators;
 using CrimsonDraft.Inventory;
 
@@ -30,23 +31,42 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField, Range(0f, 1f)] private float orangeCautionSpeedRatio = 0.86f;
         [SerializeField, Range(0f, 1f)] private float dangerSpeedRatio        = 0.72f;
 
-        private static readonly int SpeedHash    = Animator.StringToHash("Speed");
-        private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
-        private static readonly int ArmedHash    = Animator.StringToHash("Armed");
+        private static readonly int ArmedHash = Animator.StringToHash("Armed");
+        private static readonly int IdleHash  = Animator.StringToHash("Idle");
+        private static readonly int WalkHash  = Animator.StringToHash("Walk");
+        private static readonly int RunHash   = Animator.StringToHash("Run");
 
-        private IInputService     inputService     = null!;
-        private IInventoryService inventoryService = null!;
-        private IOperatorRoster?  roster;
-        private InputDevice?      lastDevice;
+        private IInputService         inputService         = null!;
+        private IInventoryService     inventoryService     = null!;
+        private IControlSchemeService controlSchemeService = null!;
+        private IPlayerMovementStrategy modernStrategy  = null!;
+        private IPlayerMovementStrategy classicStrategy = null!;
+        private IOperatorRoster?      roster;
+        private InputDevice?          lastDevice;
 
         public bool IsAiming { get; private set; }
 
+        // transform.position is the Rigidbody's pivot, not the ground — footOffset is the
+        // vertical distance between them (see OnDrawGizmosSelected's "foot anchor" and
+        // ResolveNavMeshDirection's sampleY). Anything that needs to place something at the
+        // player's actual ground position (e.g. a dropped corpse) must use this, not
+        // transform.position directly, or it ends up floating footOffset meters in the air.
+        public Vector3 FootPosition => transform.position - new Vector3(0f, this.footOffset, 0f);
+
         [Inject]
-        public void Construct(IInputService inputService, IInventoryService inventoryService, IOperatorRoster roster)
+        public void Construct(
+            IInputService                  inputService,
+            IInventoryService              inventoryService,
+            ICameraRelativeMovementService cameraRelativeMovementService,
+            IControlSchemeService          controlSchemeService,
+            IOperatorRoster                roster)
         {
-            this.inputService     = inputService;
-            this.inventoryService = inventoryService;
-            this.roster           = roster;
+            this.inputService         = inputService;
+            this.inventoryService     = inventoryService;
+            this.controlSchemeService = controlSchemeService;
+            this.roster               = roster;
+            this.modernStrategy       = new ModernPlayerMovementStrategy(cameraRelativeMovementService);
+            this.classicStrategy      = new ClassicPlayerMovementStrategy();
             this.inputService.Move.performed += OnMovePerformed;
         }
 
@@ -59,7 +79,6 @@ namespace CrimsonDraft.Navigation.Player
         internal void SetAiming(bool value)
         {
             this.IsAiming = value;
-            this.animator.SetBool(IsAimingHash, value);
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -72,44 +91,44 @@ namespace CrimsonDraft.Navigation.Player
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
             this.animator.SetBool(ArmedHash, isArmed);
 
+            var raw = this.inputService.Move.ReadValue<Vector2>();
+
+            var strategy = this.controlSchemeService.CurrentScheme == ControlScheme.Classic
+                ? this.classicStrategy
+                : this.modernStrategy;
+
+            // Always ticked (see IPlayerMovementStrategy) -- ModernPlayerMovementStrategy
+            // depends on this running every frame, aiming or not.
+            var result = strategy.Tick(transform, raw, this.lastDevice, this.IsAiming, Time.fixedDeltaTime);
+
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
                 return;
             }
 
-            var raw = this.inputService.Move.ReadValue<Vector2>();
-
-            if (raw.sqrMagnitude < 0.01f)
+            if (result.Direction == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetTrigger(IdleHash);
                 return;
             }
 
-            var direction = this.lastDevice is Gamepad
-                ? raw.normalized
-                : Quantize8Way(raw);
-
-            var moveDir = new Vector3(direction.x, 0f, direction.y);
-            transform.forward = moveDir;
-
-            var isSprinting     = this.inputService.Sprint.IsPressed();
+            var isSprinting     = this.inputService.Sprint.IsPressed() && result.AllowSprint;
             var speedMultiplier = this.GetSpeedMultiplier();
             var speed           = (isSprinting ? this.runSpeed : this.walkSpeed) * speedMultiplier;
-            var animSpeed       = isSprinting ? 1f : 0.5f;
 
-            var resolvedDir = ResolveNavMeshDirection(moveDir, speed);
+            this.animator.SetTrigger(isSprinting ? RunHash : WalkHash);
+
+            var resolvedDir = ResolveNavMeshDirection(result.Direction, speed);
             if (resolvedDir == Vector3.zero)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetTrigger(IdleHash);
                 return;
             }
 
             this.rb.linearVelocity = resolvedDir * speed;
-            this.animator.SetFloat(SpeedHash, animSpeed);
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
@@ -118,7 +137,7 @@ namespace CrimsonDraft.Navigation.Player
             Vector3 origin  = this.rb.position;
             float   sampleY = origin.y - this.footOffset;
 
-            Vector3 next  = new Vector3(origin.x + moveDir.x * step, sampleY, origin.z + moveDir.z * step);
+            Vector3 next = new Vector3(origin.x + moveDir.x * step, sampleY, origin.z + moveDir.z * step);
             if (NavMesh.SamplePosition(next, out _, this.navMeshTolerance, NavMesh.AllAreas))
                 return moveDir;
 
@@ -156,22 +175,12 @@ namespace CrimsonDraft.Navigation.Player
         {
             Vector3 foot = transform.position - new Vector3(0f, this.footOffset, 0f);
 
-            // Foot anchor
             Gizmos.color = Color.cyan;
             Gizmos.DrawSphere(foot, 0.08f);
 
-            // NavMesh tolerance radius at foot level
             bool onNavMesh = NavMesh.SamplePosition(foot, out _, this.navMeshTolerance, NavMesh.AllAreas);
             Gizmos.color = onNavMesh ? new Color(0f, 1f, 0f, 0.25f) : new Color(1f, 0f, 0f, 0.25f);
             Gizmos.DrawSphere(foot, this.navMeshTolerance);
-        }
-
-        private static Vector2 Quantize8Way(Vector2 input)
-        {
-            return new Vector2(
-                Mathf.Round(input.x),
-                Mathf.Round(input.y)
-            ).normalized;
         }
     }
 }

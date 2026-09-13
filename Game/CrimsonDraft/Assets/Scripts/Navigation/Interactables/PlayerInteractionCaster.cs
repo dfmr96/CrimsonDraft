@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
@@ -13,13 +15,18 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class PlayerInteractionCaster : MonoBehaviour, IInteractionCaster
     {
-        private static readonly int IntTypeHash     = Animator.StringToHash("IntType");
-        private static readonly int InteractingHash = Animator.StringToHash("Interacting");
+        
+        private static readonly int InteractStandHash     = Animator.StringToHash("InteractStandEnter");
+        private static readonly int InteractCrouchHash     = Animator.StringToHash("InteractCrouchEnter");
+        private static readonly int InteractExitHash     = Animator.StringToHash("InteractExit");
+        
 
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
         [SerializeField] private Animator  animator = null!;
-        [SerializeField] private float     interactingDuration = 1f;
+
+        [SerializeField] private float interactStandHeight = 0.65f;
+        
 
         private Coroutine? interactingRoutine;
 
@@ -31,6 +38,11 @@ namespace CrimsonDraft.Navigation.Interactables
         private ContainerController    containerController   = null!;
         private PuzzleViewController    puzzleViewController   = null!;
         private ScreenFader             screenFader            = null!;
+        private PickupPreviewController pickupPreviewController = null!;
+        private SaveController          saveController          = null!;
+
+        private ISubscriber<DialogueActiveChangedEvent>? dialogueActiveSubscriber;
+        private IDisposable?                              dialogueActiveSub;
 
         [Inject]
         public void Construct(
@@ -41,7 +53,10 @@ namespace CrimsonDraft.Navigation.Interactables
             DocumentController     documentController,
             ContainerController    containerController,
             PuzzleViewController    puzzleViewController,
-            ScreenFader             screenFader)
+            ScreenFader             screenFader,
+            PickupPreviewController pickupPreviewController,
+            SaveController          saveController,
+            ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber)
         {
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
@@ -51,13 +66,24 @@ namespace CrimsonDraft.Navigation.Interactables
             this.containerController   = containerController;
             this.puzzleViewController   = puzzleViewController;
             this.screenFader            = screenFader;
+            this.pickupPreviewController = pickupPreviewController;
+            this.saveController          = saveController;
+            this.dialogueActiveSubscriber = dialogueActiveSubscriber;
             this.inputService.Interact.performed += OnInteract;
+            this.dialogueActiveSub = this.dialogueActiveSubscriber?.Subscribe(OnDialogueActiveChanged);
         }
 
         private void OnDestroy()
         {
             if (this.inputService != null)
                 this.inputService.Interact.performed -= OnInteract;
+            this.dialogueActiveSub?.Dispose();
+        }
+
+        private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
+        {
+            if (ev.IsActive) return;
+            this.animator.SetTrigger(InteractExitHash);
         }
 
         private void OnInteract(InputAction.CallbackContext _)
@@ -68,15 +94,22 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
 
-            var animType = hit.collider.TryGetComponent<IAnimatedInteractable>(out var animated)
-                ? animated.AnimType
-                : InteractionAnimType.Stand;
-            this.animator.SetFloat(IntTypeHash, animType.ToBlendThreshold());
 
-            if (this.interactingRoutine != null)
-                StopCoroutine(this.interactingRoutine);
-            this.animator.SetBool(InteractingHash, true);
-            this.interactingRoutine = StartCoroutine(ClearInteractingAfterDelay());
+
+            var isPickup = hit.collider.TryGetComponent<PickupInteractable>(out var pickup);
+            var isPoi    = hit.collider.TryGetComponent<PoiInteractable>(out var poi);
+            if (isPickup || isPoi)
+            {
+                if (hit.transform.position.y <= interactStandHeight)
+                {
+                    this.animator.SetTrigger(InteractCrouchHash);
+                }
+                else
+                {
+                    this.animator.SetTrigger(InteractStandHash);
+                }
+            }
+
 
             var context = new InteractionContext(
                 this.inventoryService,
@@ -86,16 +119,12 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.containerController,
                 this.pickupDialogueService,
                 this.puzzleViewController,
-                this.screenFader);
+                this.screenFader,
+                this.pickupPreviewController,
+                this.saveController);
             interactable.Interact(context);
         }
 
-        private System.Collections.IEnumerator ClearInteractingAfterDelay()
-        {
-            yield return new WaitForSeconds(this.interactingDuration);
-            this.animator.SetBool(InteractingHash, false);
-            this.interactingRoutine = null;
-        }
 
         public void CancelInteracting()
         {

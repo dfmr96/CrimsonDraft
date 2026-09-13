@@ -8,6 +8,7 @@ namespace CrimsonDraft.Tests
     public sealed class RosterHealthRegistryTests
     {
         [Test]
+<<<<<<< HEAD
         public void HasSavedState_initially_isFalse()
         {
             var registry = new RosterHealthRegistry();
@@ -50,5 +51,25 @@ namespace CrimsonDraft.Tests
 
             Assert.AreSame(second, registry.Load());
         }
+=======
+        public void Save_thenLoad_returnsSavedArray()
+        {
+            var registry = new RosterHealthRegistry();
+            registry.Save(new[] { 50, 80 });
+
+            CollectionAssert.AreEqual(new[] { 50, 80 }, registry.Load());
+        }
+
+        [Test]
+        public void ClearAll_removesSavedState()
+        {
+            var registry = new RosterHealthRegistry();
+            registry.Save(new[] { 50 });
+            registry.ClearAll();
+
+            Assert.IsFalse(registry.HasSavedState);
+            Assert.IsNull(registry.Load());
+        }
+>>>>>>> Development
     }
 }

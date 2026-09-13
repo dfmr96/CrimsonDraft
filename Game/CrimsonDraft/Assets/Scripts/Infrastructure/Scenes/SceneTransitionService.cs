@@ -3,6 +3,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
@@ -15,7 +16,8 @@ namespace CrimsonDraft.Infrastructure.Scenes
 {
     public sealed class SceneTransitionService : ISceneTransitionService, IInitializable, IDisposable
     {
-        private const string CombatSceneName = "Combat";
+        private const string CombatSceneName   = "Combat";
+        private const string MainMenuSceneName = "MainMenu";
 
         private readonly IInputService inputService;
         private readonly IPublisher<CombatStartedEvent> combatStartedPublisher;
@@ -23,6 +25,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
         private readonly EncounterContext encounterContext;
         private readonly ICameraService cameraService;
         private readonly ScreenFader screenFader;
+        private readonly GameOverView gameOverView;
 
         private IDisposable? combatEndedSubscription;
         private bool isInCombat;
@@ -36,7 +39,8 @@ namespace CrimsonDraft.Infrastructure.Scenes
             ISubscriber<CombatEndedEvent> combatEndedSubscriber,
             EncounterContext encounterContext,
             ICameraService cameraService,
-            ScreenFader screenFader)
+            ScreenFader screenFader,
+            GameOverView gameOverView)
         {
             this.inputService          = inputService;
             this.combatStartedPublisher = combatStartedPublisher;
@@ -44,10 +48,12 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.encounterContext      = encounterContext;
             this.cameraService         = cameraService;
             this.screenFader           = screenFader;
+            this.gameOverView          = gameOverView;
         }
 
         void IInitializable.Initialize()
         {
+            this.gameOverView.Hide();
             this.combatEndedSubscription = this.combatEndedSubscriber.Subscribe(OnCombatEnded);
         }
 
@@ -69,10 +75,10 @@ namespace CrimsonDraft.Infrastructure.Scenes
 
         private void OnCombatEnded(CombatEndedEvent ev)
         {
-            EndCombatAsync().Forget();
+            EndCombatAsync(ev.Victory).Forget();
         }
 
-        private async UniTask EndCombatAsync()
+        private async UniTask EndCombatAsync(bool victory)
         {
             await this.screenFader.FadeOutAsync();
             this.cameraService.ActivateNavigationCamera();
@@ -82,7 +88,38 @@ namespace CrimsonDraft.Infrastructure.Scenes
                 await SceneManager.UnloadSceneAsync(scene).ToUniTask();
 
             this.isInCombat = false;
-            this.inputService.SwitchToGameplay();
+
+            if (victory)
+            {
+                this.inputService.SwitchToGameplay();
+                await this.screenFader.FadeInAsync();
+            }
+            else
+            {
+                await ShowGameOverAsync();
+            }
+        }
+
+        private async UniTask ShowGameOverAsync()
+        {
+            this.inputService.SwitchToUI();
+            this.gameOverView.Show();
+            EventSystem.current.SetSelectedGameObject(this.gameOverView.ReturnToMenuButton.gameObject);
+
+            var tcs = new UniTaskCompletionSource();
+            void OnReturnToMenuClicked() => tcs.TrySetResult();
+            this.gameOverView.ReturnToMenuButton.onClick.AddListener(OnReturnToMenuClicked);
+            try
+            {
+                await tcs.Task;
+            }
+            finally
+            {
+                this.gameOverView.ReturnToMenuButton.onClick.RemoveListener(OnReturnToMenuClicked);
+            }
+
+            this.gameOverView.Hide();
+            SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
             await this.screenFader.FadeInAsync();
         }
 

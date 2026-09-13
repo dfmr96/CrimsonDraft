@@ -71,7 +71,7 @@ namespace CrimsonDraft.Combat
             for (int i = 0; i < this.slots.Length; i++)
             {
                 int            captured       = i;
-                RectTransform capturedAnchor = this.slots[i].item.SelectorAnchor;
+                RectTransform capturedAnchor = (RectTransform)this.slots[i].item.transform;
                 this.submitHandlers[i]   = () => this.OnItemSelected?.Invoke(captured);
                 this.selectedHandlers[i] = () => this.OnEntryFocused?.Invoke(capturedAnchor);
 

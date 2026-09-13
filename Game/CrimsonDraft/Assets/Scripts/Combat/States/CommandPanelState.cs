@@ -35,15 +35,21 @@ namespace CrimsonDraft.Combat
         public void Enter()
         {
             this.context.SuppressNextCommandFocusSfx();
-            this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(this.context.SelectedOperator));
+            int slot = this.context.SelectedOperator;
+
+            // Position/activate with content hidden; the operator's own border grows to
+            // make room, and only once THAT finishes does the panel reveal its text —
+            // otherwise the options would appear before there's space drawn for them.
+            this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(slot));
             this.commandPanel.SetDimmed(false);
-            this.commandPanel.Focus();
+            this.menuView.ExpandOperatorBorder(slot, true, this.commandPanel.RevealContent);
         }
 
         public void OnCancel()
         {
             this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
             this.commandPanel.Hide();
+            this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
             this.context.TransitionTo(this.context.OperatorSelState);
         }
 
@@ -72,6 +78,7 @@ namespace CrimsonDraft.Combat
                 }
 
                 this.commandPanel.Hide();
+                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);
                 return;
@@ -79,6 +86,15 @@ namespace CrimsonDraft.Combat
 
             if (command == CombatCommand.FocusFire)
             {
+                // Re-validated here (not just in the view's SetCommandEnabled) so a stale/bypassed
+                // UI click can never mark every alive operator and leave no one able to trigger —
+                // that would hard-lock combat with the whole party frozen waiting on a Shoot command.
+                if (this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1) return;
+                // Marking commits this operator to fire once the group triggers, same as Shoot —
+                // it must be just as unavailable without ammo, or the group's shared QTE ends up
+                // resolving a shot for a weapon that has none left to fire.
+                if (GetMaxAvailableShotCount() <= 0) return;
+
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 int slot = this.context.SelectedOperator;
                 this.context.FocusFireMarked.Add(slot);
@@ -86,6 +102,7 @@ namespace CrimsonDraft.Combat
                 this.menuView.SetOperatorFocusFireMarked(slot, true);
                 this.menuView.SetOperatorDimmed(slot, true);
                 this.commandPanel.Hide();
+                this.menuView.ExpandOperatorBorder(slot, false);
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);
                 return;
@@ -95,6 +112,7 @@ namespace CrimsonDraft.Combat
             {
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 this.commandPanel.Hide();
+                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
                 this.context.TransitionTo(this.context.CombatInventoryState);
             }
         }

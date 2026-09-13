@@ -6,6 +6,9 @@
 				<Folder Name="Weather" ID="{15148F87-ACC4-4513-9562-BFCACABC86ED}" ShortID="45549827">
 					<ChildrenList>
 						<BlendContainer Name="Storm" ID="{63F2DA68-D7CE-489A-A9FB-186D0AC60A94}" ShortID="347460929">
+							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
+							</PropertyList>
 							<ReferenceList>
 								<Reference Name="Conversion">
 									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
@@ -1159,6 +1162,7 @@
 					<ChildrenList>
 						<SwitchContainer Name="ZombieSFX" ID="{D8AADCAF-2F4E-433E-905F-45CF460B0AFC}" ShortID="318057604">
 							<PropertyList>
+								<Property Name="EnableLoudnessNormalization" Type="bool" Value="True"/>
 								<Property Name="SwitchBehavior" Type="int16" Value="1"/>
 							</PropertyList>
 							<ReferenceList>

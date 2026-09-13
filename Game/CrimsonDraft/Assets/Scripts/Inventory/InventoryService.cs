@@ -81,6 +81,22 @@ namespace CrimsonDraft.Inventory
             return false; // operator's 4 slots are full
         }
 
+        public bool AddExistingItem(InventoryItem item, int operatorSlot)
+        {
+            var s     = EnsureSlots();
+            int start = operatorSlot * 4;
+
+            for (int i = start; i < start + 4; i++)
+            {
+                if (!s[i].IsEmpty) continue;
+                s[i].Item     = item;
+                s[i].Quantity = 1;
+                return true;
+            }
+
+            return false;
+        }
+
         public bool AddItemAuto(ItemData data, int quantity = 0)
         {
             int operatorCount = EnsureSlots().Length / 4;
@@ -97,6 +113,16 @@ namespace CrimsonDraft.Inventory
             var s             = EnsureSlots();
             s[slotIndex].Item     = null;
             s[slotIndex].Quantity = 0;
+        }
+
+        public void PruneEmptyStacks()
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i].Item is AmmoBoxItem box && box.Quantity <= 0)
+                    RemoveItem(i);
+            }
         }
 
         public void MoveItem(int fromSlot, int toSlot)
@@ -163,6 +189,7 @@ namespace CrimsonDraft.Inventory
         {
             var s = EnsureSlots();
             if (s[slotIndex].Item is not AmmoBoxItem box) return false;
+            if (box.Quantity <= 0) return false;
             var weapon = this.roster[operatorSlot].ActiveWeapon;
             if (weapon == null) return false;
             if (weapon.Caliber != box.Data.Caliber) return false;

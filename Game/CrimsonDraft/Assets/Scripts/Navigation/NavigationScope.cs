@@ -1,6 +1,7 @@
 #nullable enable
 
 using MessagePipe;
+using Unity.Cinemachine;
 using VContainer;
 using VContainer.Unity;
 using UnityEngine;
@@ -8,7 +9,10 @@ using NaughtyAttributes;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Map;
+using CrimsonDraft.Infrastructure.Save;
+using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
 using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
@@ -33,11 +37,19 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private SceneEntryContext     sceneEntryContext     = null!;
         [SerializeField] private RoomController        startingRoom         = null!;
         [SerializeField] private MapDataSet            mapDataSet           = null!;
+        [SerializeField] private ItemDatabase          itemDatabase         = null!;
+        [SerializeField] private SaveSlotListView      saveSlotListView     = null!;
+        [SerializeField] private OperatorCorpseSettings corpseSettings      = null!;
 
         [SerializeField] private DialogueRunner          generalRunner    = null!;
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
         [SerializeField] private DialogueRunner          pickupRunner     = null!;
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
+
+        // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
+        // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
+        // type scan would resolve that one instead since it sits earlier in the hierarchy.
+        [SerializeField] private PickupPreviewView       pickupPreviewView = null!;
 
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
@@ -46,12 +58,18 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private DocumentInteractable[]  cachedDocumentPickups = System.Array.Empty<DocumentInteractable>();
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
+        [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
 
         protected override void Configure(IContainerBuilder builder)
         {
+            if (this.corpseSettings == null)
+                throw new System.InvalidOperationException(
+                    $"{nameof(this.corpseSettings)} is not assigned in {nameof(NavigationScope)}.");
+
             builder.RegisterInstance(this.startingLoadout);
             builder.RegisterInstance(this.combineRecipeLibrary);
             builder.RegisterInstance(this.mapDataSet);
+            builder.RegisterInstance(this.itemDatabase);
             builder.Register<CombineService>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<PlayerController>();
@@ -59,11 +77,14 @@ namespace CrimsonDraft.Navigation
             builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
-            builder.RegisterInstance(this.cachedEnemies);
-            builder.RegisterInstance(this.cachedCombatTriggers);
-            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
-
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedCameraZoneTriggers);
+            builder.Register<FixedCameraZoneService>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<FixedCameraZoneBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterComponentInHierarchy<CinemachineBrain>();
+            builder.Register<CameraRelativeMovementService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MapSceneConfig>();
             builder.RegisterComponentInHierarchy<MapRenderer>();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
@@ -85,11 +106,20 @@ namespace CrimsonDraft.Navigation
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
 
+            builder.RegisterComponentInHierarchy<PauseMenuView>();
+            builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();
+
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+
+            builder.RegisterInstance(this.saveSlotListView);
+            builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+
+            builder.RegisterInstance(this.pickupPreviewView);
+            builder.Register<PickupPreviewController>(Lifetime.Scoped).AsSelf();
 
             // ── Room transition ──────────────────────────────────────────────
             this.roomTransitionContext.SetStartingRoom(this.startingRoom);
@@ -111,6 +141,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
                    .AsImplementedInterfaces();
+            builder.Register<SaveGameLoader>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<MapStateTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<WeatherAmbienceController>().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MusicManagerController>().AsImplementedInterfaces();
@@ -120,6 +151,14 @@ namespace CrimsonDraft.Navigation
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);
+            builder.RegisterInstance(this.cachedEnemies);
+            builder.RegisterInstance(this.cachedCombatTriggers);
+            builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.corpseSettings);
+            builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
+            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPickups);
@@ -165,6 +204,14 @@ namespace CrimsonDraft.Navigation
             this.cachedEnemies = FindObjectsByType<EnemyNavAgent>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             this.cachedCombatTriggers = FindObjectsByType<CombatTrigger>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Camera Zone Triggers")]
+        private void CacheSceneCameraZoneTriggers()
+        {
+            this.cachedCameraZoneTriggers = FindObjectsByType<FixedCameraZoneTrigger>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

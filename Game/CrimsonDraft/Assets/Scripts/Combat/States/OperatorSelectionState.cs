@@ -76,11 +76,12 @@ namespace CrimsonDraft.Combat
             this.menuView.ClearFocus();
         }
 
-        public void OnCancel()
-        {
-            this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
-            this.publisher.Publish(new CombatEndedEvent { Victory = false });
-        }
+        // Debug-only shortcut for quickly bailing out of a test combat used to live here
+        // (publishing a defeat CombatEndedEvent on Cancel at the root operator-selection
+        // screen). Removed: it fired on any accidental Cancel press during real gameplay,
+        // ending combat as a loss with no confirmation. There's nothing to cancel out of at
+        // this top-level screen, so this is intentionally a no-op.
+        public void OnCancel() { }
 
         public void OnOperatorFocused(int index)
         {
@@ -100,7 +101,7 @@ namespace CrimsonDraft.Combat
             bool hasAmmo = this.roster.Count > index && (this.roster[index].ActiveWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);
             bool wouldExhaustFocusFireGroup = this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1;
-            this.commandPanel.SetCommandEnabled(CombatCommand.FocusFire, !wouldExhaustFocusFireGroup);
+            this.commandPanel.SetCommandEnabled(CombatCommand.FocusFire, hasAmmo && !wouldExhaustFocusFireGroup);
             this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(index));
             this.menuView.SetDimmed(true);
             this.battlefieldView.DimOperatorIndicator();
@@ -127,7 +128,7 @@ namespace CrimsonDraft.Combat
         private void SyncAllOperatorHealth()
         {
             for (int i = 0; i < this.roster.Count; i++)
-                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio);
+                this.menuView.SetOperatorHealth(i, this.roster[i].HpRatio, this.roster[i].IsAlive);
         }
     }
 }

@@ -83,6 +83,19 @@ namespace CrimsonDraft.Infrastructure.Events
         }
     }
 
+    // Published when a pending synced-shot mark has to be released without ever firing --
+    // e.g. every operator who wasn't marked died before triggering it, which would otherwise
+    // leave the marked operators frozen forever waiting on a Shoot command nobody can send.
+    public readonly struct FocusFireCancelledEvent
+    {
+        public int[] ReleasedSlots { get; }
+
+        public FocusFireCancelledEvent(int[] releasedSlots)
+        {
+            this.ReleasedSlots = releasedSlots;
+        }
+    }
+
     public readonly struct GuardAlertChangedEvent
     {
         public string GuardId { get; init; }

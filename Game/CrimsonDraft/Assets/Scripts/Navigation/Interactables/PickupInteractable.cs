@@ -35,6 +35,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 ? this.item.SecondaryName
                 : this.item.DisplayName;
 
+            context.PickupPreviewController.Show(this.item);
+
             context.PickupDialogueService.StartDialogue(
                 PromptNode,
                 variables: new Dictionary<string, object>
@@ -44,6 +46,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 },
                 onComplete: () =>
                 {
+                    context.PickupPreviewController.Hide();
                     if (!pickupSucceeded) return;
                     this.pickupRegistry.SetCollected(this.pickupId);
                     gameObject.SetActive(false);

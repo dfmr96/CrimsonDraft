@@ -21,6 +21,12 @@ namespace CrimsonDraft.Combat
             this.view.OnItemUsed   += HandleItemUsed;
             this.view.OnCancelled  += HandleCancelled;
             this.view.Show(this.context.SelectedOperator, this.menuView.GetOperatorOverviewRect(this.context.SelectedOperator));
+
+            // The items grid has its own cursor — the roster/command selector box would
+            // otherwise just sit frozen at whatever size/position it last had (the "Items"
+            // row) for the whole time we're in here. Re-shown automatically once we leave:
+            // OperatorSelState/CommandPanelState both re-focus and call MoveSelectorTo on Enter.
+            this.menuView.ClearFocus();
         }
 
         public void Exit()
@@ -35,6 +41,15 @@ namespace CrimsonDraft.Combat
             this.context.Orchestrator.EnqueueAction(
                 PendingAction.UseItem(this.context.SelectedOperator, slotIndex));
             this.view.Hide();
+
+            // Only release the card's focus-lift here, on an actual commit — mirrors
+            // Shoot/FocusFire, which also only release once the turn is spent. Cancelling
+            // back to CommandPanelState (HandleCancelled below) deliberately leaves focus
+            // untouched: releasing it there eased "Visual" back down over ~0.18s while
+            // CommandPanelState.Enter() repositioned the command list from "Visual"'s
+            // still-lifted position in the same frame, leaving the list floating ~liftAmount
+            // px above the border once the card finished easing down underneath it.
+            this.menuView.ReleaseOperatorFocus(this.context.SelectedOperator);
             this.context.TransitionTo(this.context.OperatorSelState);
         }
 

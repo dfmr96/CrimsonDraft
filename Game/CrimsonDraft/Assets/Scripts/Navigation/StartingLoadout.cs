@@ -21,9 +21,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private OperatorData?[]     operatorSlots  = new OperatorData?[4];
         [SerializeField] private StartingItemEntry[] items          = Array.Empty<StartingItemEntry>();
         [SerializeField] private WeaponData?[]       defaultWeapons = new WeaponData?[4];
+        [SerializeField] private MeleeWeaponData?[]  defaultMelee   = new MeleeWeaponData?[4];
 
         public OperatorData?[]     OperatorSlots  => this.operatorSlots;
         public StartingItemEntry[] Items          => this.items;
         public WeaponData?[]       DefaultWeapons => this.defaultWeapons;
+        public MeleeWeaponData?[]  DefaultMelee   => this.defaultMelee;
     }
 }

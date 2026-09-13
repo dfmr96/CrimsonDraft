@@ -37,6 +37,10 @@ namespace CrimsonDraft.UI
 
         public void EnsureSynced()
         {
+            // Drop any ammo stack that was drained to 0 but never cleaned up (safety net —
+            // e.g. legacy save data from before a mutation path removed it properly).
+            this.inventoryService.PruneEmptyStacks();
+
             int slotsPerOperator = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
                 : 4;
@@ -108,11 +112,6 @@ namespace CrimsonDraft.UI
                 {
                     this.cursor.FindView(w0)?.SetEquippedTint(true);
                     this.partyPanel.GetWidget(opIndex)?.SetEquippedWeapon(w0, 0);
-                }
-                if (op.SecondaryWeapon is WeaponItem w1)
-                {
-                    this.cursor.FindView(w1)?.SetEquippedTint(true);
-                    this.partyPanel.GetWidget(opIndex)?.SetEquippedWeapon(w1, 1);
                 }
             }
         }

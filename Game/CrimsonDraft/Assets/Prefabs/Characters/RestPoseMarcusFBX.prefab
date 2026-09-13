@@ -1264,6 +1264,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1209038103047703636}
+  - {fileID: 4242158360678490219}
   m_Father: {fileID: 41588109823842789}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6932920188535527895
@@ -1404,6 +1405,7 @@ GameObject:
   - component: {fileID: 5708871850004194860}
   - component: {fileID: -7964214976811077640}
   - component: {fileID: 1068804028556841002}
+  - component: {fileID: 6866124340880694114}
   m_Layer: 9
   m_Name: RestPoseMarcusFBX
   m_TagString: Untagged
@@ -1500,6 +1502,19 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 9a565e7176a079d40aab30f0ec3b5dca, type: 2}
+--- !u!114 &6866124340880694114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7277250370784497740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5166347e937a274438adb4b3f4fa2ed0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.OperatorHitFxMarker
+  hitFxPoint: {fileID: 4242158360678490219}
 --- !u!1 &8085438452651687288
 GameObject:
   m_ObjectHideFlags: 0
@@ -1689,6 +1704,37 @@ Transform:
   m_Children:
   - {fileID: 5339616490972610304}
   m_Father: {fileID: 41588109823842789}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &9110569449448425549
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4242158360678490219}
+  m_Layer: 0
+  m_Name: HitFxPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4242158360678490219
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9110569449448425549}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5775874084792427225}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9171958788880227263
 GameObject:

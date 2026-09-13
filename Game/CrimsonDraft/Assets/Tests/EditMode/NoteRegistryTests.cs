@@ -1,5 +1,9 @@
 #nullable enable
 
+<<<<<<< HEAD
+=======
+using System.Collections.Generic;
+>>>>>>> Development
 using NUnit.Framework;
 using CrimsonDraft.Infrastructure;
 
@@ -8,6 +12,7 @@ namespace CrimsonDraft.Tests
     public sealed class NoteRegistryTests
     {
         [Test]
+<<<<<<< HEAD
         public void IsCollected_unknownId_returnsFalse()
         {
             var registry = new NoteRegistry();
@@ -19,11 +24,18 @@ namespace CrimsonDraft.Tests
         {
             var registry = new NoteRegistry();
             registry.SetCollected("note-a");
+=======
+        public void LoadState_marksGivenIdsAsCollected()
+        {
+            var registry = new NoteRegistry();
+            registry.LoadState(new List<string> { "note-a" });
+>>>>>>> Development
 
             Assert.IsTrue(registry.IsCollected("note-a"));
         }
 
         [Test]
+<<<<<<< HEAD
         public void SetCollected_doesNotAffectOtherNotes()
         {
             var registry = new NoteRegistry();
@@ -52,6 +64,15 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(2, registry.CollectedIds.Count);
             CollectionAssert.Contains(registry.CollectedIds, "note-a");
             CollectionAssert.Contains(registry.CollectedIds, "note-b");
+=======
+        public void ClearAll_removesAllCollectedIds()
+        {
+            var registry = new NoteRegistry();
+            registry.SetCollected("note-a");
+            registry.ClearAll();
+
+            Assert.IsFalse(registry.IsCollected("note-a"));
+>>>>>>> Development
         }
     }
 }

@@ -11,7 +11,7 @@ using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class RoomDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable
+    public sealed class RoomDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable, IAnimatedInteractable
     {
         private const string OpenedNodeName = "door_opened_feedback";
 
@@ -23,6 +23,10 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
+
+        // Doors have their own opening/transition animation — the player shouldn't also play
+        // a generic Interact animation.
+        public InteractionAnimType AnimType => InteractionAnimType.None;
 
         private IRoomOrchestrator roomOrchestrator = null!;
         private DoorStateRegistry registry         = null!;

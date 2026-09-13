@@ -1,5 +1,6 @@
 #nullable enable
 
+using UnityEngine;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
@@ -10,5 +11,6 @@ namespace CrimsonDraft.UI
         void Spawn(ItemData data, InventoryGrid? preferredGrid = null);
         void SpawnExisting(InventoryItem item, InventoryGrid? preferredGrid = null);
         bool SpawnAt(InventoryItem item, InventoryGrid grid, int col, int row, int rotation = 0);
+        InventoryItemView SpawnFloating(InventoryItem item, InventoryGrid grid, Vector2Int cell);
     }
 }

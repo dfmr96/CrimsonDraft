@@ -68,9 +68,11 @@ namespace CrimsonDraft.Combat
         private readonly ICombatOrchestrator                           orchestrator;
         private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
         private readonly ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber;
+        private readonly ISubscriber<FocusFireCancelledEvent>          focusFireCancelledSubscriber;
         private readonly CombatSfxData?                                sfx;
         private IDisposable? shootSubscription;
         private IDisposable? focusFireSubscription;
+        private IDisposable? focusFireCancelledSubscription;
 
         [UnityEngine.Scripting.Preserve]
         public CombatMenuController(
@@ -87,7 +89,8 @@ namespace CrimsonDraft.Combat
             ICombatOrchestrator                            orchestrator,
             CombatSfxData                                  sfx,
             ISubscriber<ShootConfigurationRequestedEvent>  shootSubscriber,
-            ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber)
+            ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber,
+            ISubscriber<FocusFireCancelledEvent>           focusFireCancelledSubscriber)
         {
             this.menuView             = menuView;
             this.commandPanel         = commandPanel;
@@ -103,6 +106,7 @@ namespace CrimsonDraft.Combat
             this.sfx                  = sfx;
             this.shootSubscriber      = shootSubscriber;
             this.focusFireSubscriber  = focusFireSubscriber;
+            this.focusFireCancelledSubscriber = focusFireCancelledSubscriber;
         }
 
         // Internal constructor for tests (no inputService)
@@ -119,6 +123,7 @@ namespace CrimsonDraft.Combat
             ICombatOrchestrator?         orchestrator    = null,
             ISubscriber<ShootConfigurationRequestedEvent>? shootSubscriber = null,
             ISubscriber<FocusFireConfigurationRequestedEvent>? focusFireSubscriber = null,
+            ISubscriber<FocusFireCancelledEvent>? focusFireCancelledSubscriber = null,
             CombatSfxData?               sfx             = null)
         {
             this.menuView             = menuView;
@@ -133,6 +138,7 @@ namespace CrimsonDraft.Combat
             this.orchestrator         = orchestrator!;
             this.shootSubscriber      = shootSubscriber!;
             this.focusFireSubscriber  = focusFireSubscriber!;
+            this.focusFireCancelledSubscriber = focusFireCancelledSubscriber!;
             this.sfx                  = sfx;
         }
 
@@ -164,6 +170,7 @@ namespace CrimsonDraft.Combat
             this.Orchestrator      = this.orchestrator;
             this.shootSubscription     = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
             this.focusFireSubscription = this.focusFireSubscriber?.Subscribe(e => BeginFocusFireConfiguration(e.ParticipantSlots));
+            this.focusFireCancelledSubscription = this.focusFireCancelledSubscriber?.Subscribe(e => HandleFocusFireCancelled(e.ReleasedSlots));
 
             this.TransitionTo(this.OperatorSelState);
         }
@@ -188,6 +195,7 @@ namespace CrimsonDraft.Combat
 
             this.shootSubscription?.Dispose();
             this.focusFireSubscription?.Dispose();
+            this.focusFireCancelledSubscription?.Dispose();
         }
 
         #endregion
@@ -214,6 +222,7 @@ namespace CrimsonDraft.Combat
 
         internal void BeginShootConfiguration(int slot)
         {
+            ForceCloseInterruptedUI();
             this.SelectedOperator = slot;
             RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
@@ -222,6 +231,7 @@ namespace CrimsonDraft.Combat
 
         internal void BeginFocusFireConfiguration(int[] participants)
         {
+            ForceCloseInterruptedUI();
             this.FocusFireParticipants     = participants;
             this.FocusFireParticipantIndex = 0;
             this.FocusFireShotCounts.Clear();
@@ -229,6 +239,44 @@ namespace CrimsonDraft.Combat
             RepositionCommandPanelToOperator(participants[0]);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
+        }
+
+        // Mirror image of MarkOperatorForFocusFire/CommandPanelState's own FocusFireMarked
+        // bookkeeping: the orchestrator decided nobody is left to trigger this group and
+        // already unfroze/un-dimmed the affected operators itself, so this just drops them
+        // from the UI-side marked list and clears their "marked" icon.
+        private void HandleFocusFireCancelled(int[] releasedSlots)
+        {
+            for (int i = 0; i < releasedSlots.Length; i++)
+            {
+                int slot = releasedSlots[i];
+                this.FocusFireMarked.Remove(slot);
+                this.menuView.SetOperatorFocusFireMarked(slot, false);
+            }
+        }
+
+        // A queued action (enqueued earlier by some other operator) can reach the head of
+        // CombatActionQueue and fire its ShootConfiguration/FocusFireConfiguration event while
+        // the player is still browsing a *different* operator's command panel or item list --
+        // that operator never actually committed a command, so none of the normal exit paths
+        // (OnCancel/OnCommandSelected) ran to hide its sub-panels. Force every sub-panel closed
+        // here so the interrupted operator's UI can't get stuck half-open; the state's own
+        // Exit() (called right after, by TransitionTo) still runs for its non-visual bookkeeping
+        // (unsubscribing events, SetWaitMode, etc). Hiding an already-hidden view is a no-op, so
+        // this is safe to call even when there's nothing to interrupt.
+        private void ForceCloseInterruptedUI()
+        {
+            if (this.currentState == this.OperatorSelState) return;
+
+            int interruptedSlot = this.SelectedOperator;
+            this.commandPanel.Hide();
+            this.shotCountView.Hide();
+            this.combatInventoryView.Hide();
+            this.aimView.Hide();
+            this.battlefieldView.HideEnemyTargetIndicator();
+            this.menuView.ExpandOperatorBorder(interruptedSlot, false);
+            this.menuView.ReleaseOperatorFocus(interruptedSlot);
+            this.orchestrator.SetWaitMode(false);
         }
 
         internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier, int baseDamage = BaseDamage)
@@ -264,8 +312,21 @@ namespace CrimsonDraft.Combat
         private void OnNavigatePerformed(InputAction.CallbackContext ctx)  =>
             this.currentState.OnNavigate(ctx.ReadValue<Vector2>());
 
-        private void HandleOperatorSelected(int index)        => this.currentState.OnOperatorSelected(index);
-        private void HandleCommandSelected(CombatCommand cmd) => this.currentState.OnCommandSelected(cmd);
+        private void HandleOperatorSelected(int index) => this.currentState.OnOperatorSelected(index);
+
+        private void HandleCommandSelected(CombatCommand cmd)
+        {
+            int slot = this.SelectedOperator;
+            this.menuView.PlayActionFeedback(slot);
+
+            // Items doesn't consume the turn on its own — the operator is still being
+            // decided on until CombatInventoryState.Exit() releases it (use an item, or
+            // cancel back out), so its card should stay lifted through that sub-menu.
+            if (cmd != CombatCommand.Items)
+                this.menuView.ReleaseOperatorFocus(slot);
+
+            this.currentState.OnCommandSelected(cmd);
+        }
 
         private void HandleOperatorFocused(int index)
         {

@@ -138,6 +138,7 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineSlot = -1;
 
+            this.inventoryService.PruneEmptyStacks();
             RepositionToOperator(operatorOverviewRect);
             PopulateGrid(opSlot);
             SetVisible(true);
@@ -384,14 +385,24 @@ namespace CrimsonDraft.UI
             InventoryItemView? view = this.grid.GetItemAt(this.currentCell);
             if (view == null) return;
 
-            this.sfx?.PlayDecide(gameObject);
             int slotIndex = FindSlotIndex(view);
             var options = new ContextMenuOptions
             {
                 CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0,
                 CanCombine = slotIndex >= 0 && view.Data.ItemType == ItemType.AmmoBox,
                 CanEquip   = false,
+                CanInspect = true,
             };
+
+            // Nothing this item can do (no Use, no Combine, no Inspect in this menu) —
+            // don't open an all-disabled submenu or let the turn be spent on it.
+            if (!options.CanUse && !options.CanCombine && !options.CanInspect)
+            {
+                this.sfx?.PlayInvalidAction(gameObject);
+                return;
+            }
+
+            this.sfx?.PlayDecide(gameObject);
             this.contextMenu.Open(view, options);
         }
 

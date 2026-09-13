@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Navigation.Rooms
         private readonly PlayerInteractionCaster                interactionCaster;
         private readonly RoomTransitionContext                  context;
         private readonly SceneEntryContext                      sceneEntryContext;
+        private readonly IFixedCameraZoneService                zoneService;
         private readonly IPublisher<RoomTransitionStartedEvent> startedPublisher;
         private readonly IPublisher<RoomTransitionedEvent>      endedPublisher;
 
@@ -34,6 +36,7 @@ namespace CrimsonDraft.Navigation.Rooms
             PlayerInteractionCaster                interactionCaster,
             RoomTransitionContext                  context,
             SceneEntryContext                      sceneEntryContext,
+            IFixedCameraZoneService                zoneService,
             IPublisher<RoomTransitionStartedEvent> startedPublisher,
             IPublisher<RoomTransitionedEvent>      endedPublisher)
         {
@@ -42,12 +45,18 @@ namespace CrimsonDraft.Navigation.Rooms
             this.interactionCaster = interactionCaster;
             this.context           = context;
             this.sceneEntryContext  = sceneEntryContext;
+            this.zoneService       = zoneService;
             this.startedPublisher  = startedPublisher;
             this.endedPublisher    = endedPublisher;
         }
 
         void IInitializable.Initialize()
         {
+            // Entering a Deck scene doesn't imply the Gameplay map is already active --
+            // e.g. coming from the main menu leaves the UI map enabled for its own
+            // navigation, and nothing else switches back on a fresh scene load.
+            this.inputService.SwitchToGameplay();
+
             var rooms = Object.FindObjectsOfType<RoomController>(true);
 
             if (rooms.Length == 0)
@@ -83,7 +92,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
                     this.player.transform.SetPositionAndRotation(
                         sp.transform.position, sp.transform.rotation);
-                    sp.ActivateCamera();
+                    sp.ActivateCamera(this.zoneService);
                     return sp.StartingRoom;
                 }
 
@@ -114,7 +123,7 @@ namespace CrimsonDraft.Navigation.Rooms
             var spawnPoint     = FindSpawnPoint(destination, this.currentRoom);
             var spawnTransform = spawnPoint != null ? spawnPoint.transform : destination.transform;
             this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
-            spawnPoint?.ActivateCamera();
+            spawnPoint?.ActivateCamera(this.zoneService);
 
             await tcs.Task;
 
@@ -129,6 +138,31 @@ namespace CrimsonDraft.Navigation.Rooms
         }
 
         public RoomController? CurrentRoom => this.currentRoom;
+
+        public void ActivateRoomImmediate(string roomId)
+        {
+            var rooms = Object.FindObjectsOfType<RoomController>(true);
+            RoomController? target = null;
+
+            foreach (var room in rooms)
+            {
+                if (room.RoomId == roomId)
+                {
+                    target = room;
+                    continue;
+                }
+                room.Deactivate();
+            }
+
+            if (target == null)
+            {
+                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found.");
+                return;
+            }
+
+            target.Activate();
+            this.currentRoom = target;
+        }
 
         private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
         {

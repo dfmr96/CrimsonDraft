@@ -153,9 +153,12 @@ namespace AK
     namespace GAME_PARAMETERS
     {
         static const AkUniqueID INSIDESTORMFORCE = 3108935281U;
+        static const AkUniqueID MASTERVOLUME = 2918011349U;
         static const AkUniqueID MUSICHPF = 3273766828U;
+        static const AkUniqueID MUSICVOLUME = 2346531308U;
         static const AkUniqueID OUTSIDESTORMFORCE = 1297380730U;
         static const AkUniqueID PLAYERLIFE = 444815956U;
+        static const AkUniqueID SFXVOLUME = 988953028U;
         static const AkUniqueID SIGNALPROXIMITY = 3903230064U;
     } // namespace GAME_PARAMETERS
 

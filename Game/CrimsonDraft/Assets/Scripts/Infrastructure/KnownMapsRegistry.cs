@@ -24,5 +24,7 @@ namespace CrimsonDraft.Infrastructure
             foreach (var mapId in saved)
                 this.knownMaps.Add(mapId);
         }
+
+        public void ClearAll() => this.knownMaps.Clear();
     }
 }

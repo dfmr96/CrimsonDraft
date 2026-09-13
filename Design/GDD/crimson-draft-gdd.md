@@ -1,5 +1,5 @@
 # Crimson Draft — Game Design Document
-*Versión 0.15 — 16 de julio de 2026 — Estado: borrador inicial*
+*Versión 0.16 — 1 de septiembre de 2026 — Estado: borrador inicial*
 
 ## 1. Overview
 
@@ -266,8 +266,13 @@ Para profundizar el QTE como diferenciador del juego (más allá de "apuntar a l
 - **Problema que resuelve Synced Shoot:** si el jugador juega exclusivamente con operadores de armas de baja cadencia, pasa proporcionalmente más tiempo bloqueado sin poder actuar, lo que puede sentirse punitivo frente a enemigos que actúan mientras tanto.
 - **Synced Shoot (nueva acción):** funciona de forma similar a las *techs* combinadas de Chrono Trigger. El jugador puede marcar a varios operadores con Synced Shoot mientras esperan su turno; cuando cualquiera de los operadores marcados ejecuta Shoot, **todos los operadores marcados disparan juntos**, resolviendo un único QTE compartido en vez de uno por operador.
 - **Efecto táctico:** permite consumir el ATB acumulado de varios operadores a la vez, a cambio de una descarga de daño concentrado o fuego de supresión — útil contra enemigos fuertes donde vale la pena sacrificar la cadencia individual de disparos por un golpe grande y coordinado.
+- **Qué pasa si muere el operador que falta:** los operadores marcados quedan bloqueados esperando a que **otro**, sin marcar, ejecute Shoot y dispare al grupo entero. Eso deja un punto de falla: si ese operador libre muere antes de llegar a hacerlo (o mueren suficientes operadores marcados como para que no quede ninguno sin marcar), nadie puede completar la orden que el grupo está esperando. Sin ningún tipo de resolución, el combate quedaría trabado indefinidamente — los operadores marcados nunca vuelven a estar disponibles, pero tampoco están muertos, así que el combate no termina ni en victoria ni en derrota.
+- **Liberación automática:** en cuanto deja de haber al menos un operador vivo y sin marcar, el juego libera automáticamente a los operadores marcados que queden — vuelven a estar disponibles para actuar con normalidad, como si nunca los hubieran marcado. El Synced Shoot que se estaba armando se cancela sin infligir daño, pero el combate nunca se traba esperando una orden que no puede llegar.
+- **Los enemigos evitan (parcialmente) al operador que falta:** perder un Synced Shoot ya armado sigue siendo un costo para el jugador — el ATB que invirtió en coordinarlo se pierde. Para que la liberación automática sea una salvaguarda poco frecuente y no la forma habitual en la que termina un Synced Shoot, mientras haya operadores marcados esperando, los enemigos tienen **menos probabilidad de elegir como blanco al operador todavía libre** para disparar — no cero: sigue pudiendo ser atacado, y sigue pudiendo morir, sólo que ya no le toca la misma proporción de ataques que a cualquier otro operador presente.
 
 `[TODO: definir si Synced Shoot consume munición de todos los operadores marcados o solo de uno; definir el límite de operadores que pueden marcarse a la vez (¿hasta 3? ¿hasta 4 con Darius en el party?); definir cómo se resuelve el daño del QTE compartido — ¿todos apuntan al mismo punto, o cada arma aporta su propio patrón de recoil sobre la misma posición base?]`
+
+`[TODO: la reducción de probabilidad de ser blanco para el operador libre es un valor placeholder sin testear. Falta definir con playtesting qué frecuencia de "Synced Shoot cancelado por liberación automática" se considera aceptable, y ajustar el valor en función de eso — hoy prioriza no romper el combate por sobre preservar la sensación de riesgo real de la mecánica.]`
 
 ---
 
@@ -366,6 +371,7 @@ Adrian, al identificar la pérdida total de contención, intentó activar un pro
 
 ## 12. Changelog
 
+- **v0.16 — 01/09/2026:** Documentado el edge case de Synced Shoot donde el operador libre para gatillarlo podía morir antes de hacerlo, trabando el combate: se agregó liberación automática de los operadores marcados cuando ya no queda nadie sin marcar que pueda disparar, y una reducción (no eliminación) de la probabilidad de que los enemigos ataquen al operador todavía libre mientras el grupo está pendiente, para que esa liberación sea una salvaguarda poco frecuente en vez de la forma habitual en la que termina la mecánica.
 - **v0.15 — 16/07/2026:** Corregida la lógica del Animation Lock — las armas de alta cadencia permiten liberarse antes del bloqueo (no al revés como se había registrado inicialmente).
 - **v0.14 — 16/07/2026:** Agregado el sistema de Animation Lock (duración de animación ligada a cadencia de fuego) y la acción Synced Shoot (disparo coordinado entre operadores marcados, inspirado en las techs de Chrono Trigger).
 - **v0.13 — 16/07/2026:** Agregado el cambio de silueta al derribar a un Wanderer (afecta dónde impactan los disparos siguientes de una ráfaga) y los multiplicadores ocultos de daño a Poise por disparos a piernas y por munición Rip.

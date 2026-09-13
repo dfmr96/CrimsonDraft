@@ -8,7 +8,7 @@ using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class DoorInteractable : MonoBehaviour, IInteractable
+    public sealed class DoorInteractable : MonoBehaviour, IInteractable, IAnimatedInteractable
     {
         private const string OpenedNodeName = "door_opened_feedback";
 
@@ -16,6 +16,10 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private UnityEvent onOpen = new();
 
         private bool unlocked;
+
+        // Doors have their own opening/transition animation — the player shouldn't also play
+        // a generic Interact animation.
+        public InteractionAnimType AnimType => InteractionAnimType.None;
 
         public void Interact(InteractionContext context)
         {

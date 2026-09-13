@@ -39,5 +39,15 @@ namespace CrimsonDraft.Tests
             registry.MarkKnown("deck-a");
             Assert.IsTrue(registry.GetState().Contains("deck-a"));
         }
+
+        [Test]
+        public void ClearAll_removesAllKnownMaps()
+        {
+            var registry = new KnownMapsRegistry();
+            registry.MarkKnown("map-a");
+            registry.ClearAll();
+
+            Assert.IsFalse(registry.IsKnown("map-a"));
+        }
     }
 }

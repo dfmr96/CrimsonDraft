@@ -19,6 +19,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private ItemTooltip         tooltip      = null!;
         [SerializeField] private InspectPanel        inspectPanel = null!;
         [SerializeField] private TabManager?         tabManager;
+        [SerializeField] private PartyPanelView?     partyPanel;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -26,6 +27,7 @@ namespace CrimsonDraft.UI
 
         [Header("Selector Sizing")]
         [SerializeField] private float selectorPadding = 1f;
+        [SerializeField] private float hoverScaleMultiplier = 1.07f; // cursor + item grow while browsing over an occupied cell
 
         [Header("Hold Colors")]
         [SerializeField] private Color colorHoldTint    = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f); // #9A9F5C
@@ -59,6 +61,7 @@ namespace CrimsonDraft.UI
         public event System.Action<InventoryItemView>?               OnItemPlaced;
         public event System.Action?                                   OnCombineCancelled;
         public event System.Action?                                   OnCloseRequested;
+        public event System.Action<InventoryItemView>?                OnSplitCancelled;
 
         // Grid state
         private int        currentGridIndex;
@@ -67,10 +70,14 @@ namespace CrimsonDraft.UI
         private Vector2Int lastDir;
         private float      nextMoveTime;
         private bool       holding;
+        private bool       onMeleeSlot;
+        private InventoryItemView? hoveredItem;      // scaled up while the cursor is browsing over it
+        private RectTransform?     hoveredMeleeIcon; // scaled up while the cursor is on the melee slot
 
         // Held item state
         private InventoryItemView? heldItem;
         private InventoryGrid?     heldFromGrid;
+        private bool               isSplitPhantomHeld;
 
         private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
 
@@ -89,7 +96,6 @@ namespace CrimsonDraft.UI
         {
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
-            this.inputService.InventoryCancel.performed  += OnCancel;
             this.inputService.InventoryPickup.performed  += OnPickup;
             this.inputBound = true;
         }
@@ -98,7 +104,6 @@ namespace CrimsonDraft.UI
         {
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
-            this.inputService.InventoryCancel.performed  -= OnCancel;
             this.inputService.InventoryPickup.performed  -= OnPickup;
             this.inputBound = false;
         }
@@ -195,6 +200,18 @@ namespace CrimsonDraft.UI
 
         void TryMove(Vector2Int dir)
         {
+            // Melee slot is a pseudo-cell above row 0 -- it isn't part of CurrentGrid, so its
+            // navigation is handled separately from the grid math below.
+            if (this.onMeleeSlot)
+            {
+                if (dir.y < 0)
+                {
+                    ExitMeleeSlotToGrid();
+                    this.sfx?.PlayCursor(gameObject);
+                }
+                return;
+            }
+
             Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
 
             // When not holding an item, skip to the far edge of the current item
@@ -212,6 +229,11 @@ namespace CrimsonDraft.UI
                     else if (dir.y < 0) next.y = o.y + s.y;       // skip past bottom edge (screen down = grid +y)
                     else if (dir.y > 0) next.y = o.y - 1;         // skip past top edge
                 }
+
+                // Pressing up past row 0 exits the grid into the operator's melee slot
+                // (rendered directly above the grid, permanently-equipped so never a grid cell).
+                if (dir.y > 0 && next.y < 0 && TryEnterMeleeSlot())
+                    return;
             }
 
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
@@ -242,6 +264,26 @@ namespace CrimsonDraft.UI
         void OnConfirm(InputAction.CallbackContext ctx)
         {
             if (this.tabManager != null && (this.tabManager.IsTabBarActive || this.tabManager.IsConsumingTabInput)) return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
+
+            if (this.contextMenu != null && this.contextMenu.IsOpen)
+            {
+                this.sfx?.PlayDecide(gameObject);
+                this.contextMenu.ConfirmSelection();
+                return;
+            }
+
+            if (this.onMeleeSlot)
+            {
+                OperatorWidgetView? widget    = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+                MeleeWeaponData?    meleeData = widget?.MeleeData;
+                if (meleeData != null && this.contextMenu != null)
+                {
+                    this.sfx?.PlayDecide(gameObject);
+                    this.contextMenu.OpenForMeleeInspectOnly(widget!.MeleeSlotRoot, meleeData);
+                }
+                return;
+            }
 
             if (this.IsCombineMode)
             {
@@ -253,21 +295,11 @@ namespace CrimsonDraft.UI
 
             if (this.heldItem != null)
             {
-                this.heldItem.Rotate();
-                this.sfx?.PlayCursor(gameObject);
-                UpdateHeldItemVisual();
-                PlaceSelectorAt(this.currentCell);
+                TryPlace();
                 return;
             }
 
             if (this.contextMenu == null) return;
-
-            if (this.contextMenu.IsOpen)
-            {
-                this.sfx?.PlayDecide(gameObject);
-                this.contextMenu.ConfirmSelection();
-                return;
-            }
 
             InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
             if (item != null)
@@ -283,54 +315,68 @@ namespace CrimsonDraft.UI
             }
         }
 
-        void OnCancel(InputAction.CallbackContext ctx)
+        // Called by TabManager.OnCancelTab — the sole subscriber to InventoryCancel — so this
+        // tab's own submenus/held-item state get first chance to consume Cancel before
+        // TabManager falls back to entering the tab bar selector. Must not subscribe to
+        // InventoryCancel itself: doing so alongside TabManager's own handler let both react
+        // to the same press and race on tab-bar state (see TabManager.OnCancelTab).
+        public bool TryConsumeCancel()
         {
-            if (this.tabManager != null && this.tabManager.IsTabBarActive) return;
-
-            if (this.IsCombineMode)
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
             {
-                this.IsCombineMode = false;
-                OnCombineCancelled?.Invoke();
-                this.sfx?.PlayCancel(gameObject);
-                return;
+                this.inspectPanel.Close();
+                return true;
             }
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx?.PlayCancel(gameObject);
                 this.contextMenu.Close();
-                return;
+                return true;
             }
 
-            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
+            if (this.onMeleeSlot)
             {
-                this.inspectPanel.Close();
-                return;
+                ExitMeleeSlotToGrid();
+                this.sfx?.PlayCancel(gameObject);
+                return true;
+            }
+
+            if (this.IsCombineMode)
+            {
+                this.IsCombineMode = false;
+                OnCombineCancelled?.Invoke();
+                this.sfx?.PlayCancel(gameObject);
+                return true;
             }
 
             if (this.heldItem != null)
             {
                 TryPlace();
-                return;
+                return true;
             }
 
-            if (this.tabManager != null)
-                this.tabManager.EnterTabBar();
-            else
-                OnCloseRequested?.Invoke();
+            return false;
         }
 
         public void RequestClose() => OnCloseRequested?.Invoke();
 
         void OnPickup(InputAction.CallbackContext ctx)
         {
+            if (this.onMeleeSlot) return;
             if (this.contextMenu  != null && this.contextMenu.IsOpen)  return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
             if (this.heldItem == null)
+            {
                 TryPickUp();
-            else
-                TryPlace();
+                return;
+            }
+
+            this.heldItem.Rotate();
+            this.sfx?.PlayCursor(gameObject);
+            UpdateHeldItemVisual();
+            PlaceSelectorAt(this.currentCell);
         }
 
         void OnMenuClosed()
@@ -343,7 +389,12 @@ namespace CrimsonDraft.UI
         {
             this.holding = false;
             this.lastDir = Vector2Int.zero;
-            PlaceSelectorAt(this.currentCell);
+
+            OperatorWidgetView? widget = this.onMeleeSlot && this.partyPanel != null
+                ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+
+            if (widget != null) PlaceMeleeSelector(widget);
+            else                PlaceSelectorAt(this.currentCell);
         }
 
         // ── Pick Up / Place ──────────────────────────────────────────────────
@@ -368,6 +419,18 @@ namespace CrimsonDraft.UI
 
             CurrentGrid.RemoveItem(item);
             item.transform.SetAsLastSibling();
+            UpdateHeldItemVisual();
+        }
+
+        public void BeginHoldingSplitItem(InventoryItemView view, InventoryGrid fromGrid)
+        {
+            this.heldFromGrid       = fromGrid;
+            this.heldItem           = view;
+            this.isSplitPhantomHeld = true;
+
+            view.SetGridOrigin(this.currentCell);
+            view.transform.SetAsLastSibling();
+            PlaceSelectorAt(this.currentCell);
             UpdateHeldItemVisual();
         }
 
@@ -441,8 +504,9 @@ namespace CrimsonDraft.UI
 
             OnItemPlaced?.Invoke(this.heldItem);
 
-            this.heldItem     = null;
-            this.heldFromGrid = null;
+            this.heldItem           = null;
+            this.heldFromGrid       = null;
+            this.isSplitPhantomHeld = false;
 
             PlaceSelectorAt(this.currentCell);
         }
@@ -450,6 +514,19 @@ namespace CrimsonDraft.UI
         void CancelPickup()
         {
             if (this.heldItem == null) return;
+
+            if (this.isSplitPhantomHeld)
+            {
+                InventoryItemView phantom = this.heldItem;
+
+                this.heldItem           = null;
+                this.heldFromGrid       = null;
+                this.isSplitPhantomHeld = false;
+
+                OnSplitCancelled?.Invoke(phantom);
+                PlaceSelectorAt(this.currentCell);
+                return;
+            }
 
             this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
 
@@ -473,6 +550,25 @@ namespace CrimsonDraft.UI
             if (item.Rotation == 1)
                 pos.x += item.GetComponent<RectTransform>().sizeDelta.y;
             return pos;
+        }
+
+        // Item RectTransforms use a top-left pivot (grid-placement math is written around it),
+        // so scaling them directly grows the box only right/down instead of from its visual
+        // center. Recomputing the rest position fresh and offsetting by the pivot-to-center
+        // vector (scaled by how much we're growing) keeps the visible center fixed instead.
+        void ApplyItemHoverScale(InventoryItemView item)
+        {
+            var rt       = item.GetComponent<RectTransform>();
+            Vector2 basePos = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
+            rt.anchoredPosition = basePos + (1f - this.hoverScaleMultiplier) * rt.rect.center;
+            rt.localScale       = Vector3.one * this.hoverScaleMultiplier;
+        }
+
+        void ResetItemHoverScale(InventoryItemView item)
+        {
+            var rt = item.GetComponent<RectTransform>();
+            rt.anchoredPosition = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
+            rt.localScale       = Vector3.one;
         }
 
         void UpdateHeldItemVisual()
@@ -508,6 +604,72 @@ namespace CrimsonDraft.UI
             this.heldItem.GetComponent<Image>().color = tint;
         }
 
+        // ── Melee Slot ───────────────────────────────────────────────────────
+
+        bool TryEnterMeleeSlot()
+        {
+            OperatorWidgetView? widget = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
+            if (widget == null || !widget.HasMeleeWeapon) return false;
+
+            this.onMeleeSlot = true;
+            PlaceMeleeSelector(widget);
+            return true;
+        }
+
+        void ExitMeleeSlotToGrid()
+        {
+            this.onMeleeSlot = false;
+
+            if (this.hoveredMeleeIcon != null)
+            {
+                this.hoveredMeleeIcon.anchoredPosition = Vector2.zero;
+                this.hoveredMeleeIcon.localScale       = Vector3.one;
+                this.hoveredMeleeIcon = null;
+            }
+
+            AttachSelectorToGrid(CurrentGrid);
+            PlaceSelectorAt(this.currentCell);
+        }
+
+        void PlaceMeleeSelector(OperatorWidgetView widget)
+        {
+            RectTransform slot = widget.MeleeSlotRoot;
+            this.selectorRect.SetParent(slot.parent, false);
+            this.selectorRect.pivot            = slot.pivot;
+            this.selectorRect.anchorMin        = slot.anchorMin;
+            this.selectorRect.anchorMax        = slot.anchorMax;
+            Vector2 selectorBasePos            = slot.anchoredPosition;
+            this.selectorRect.sizeDelta        = slot.sizeDelta + new Vector2(this.selectorPadding, this.selectorPadding) * 2f;
+
+            // Same pivot-to-center compensation as the grid's item/selector hover scale --
+            // the melee slot's own pivot isn't necessarily centered, so scaling it directly
+            // would grow it off to one side instead of from its visual middle.
+            this.selectorRect.anchoredPosition = selectorBasePos + (1f - this.hoverScaleMultiplier) * this.selectorRect.rect.center;
+            this.selectorRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
+
+            if (this.selectorImage != null)
+            {
+                this.selectorImage.color = ColorSelectorOnItem;
+                if (this.selectorSpriteNormal != null)
+                    this.selectorImage.sprite = this.selectorSpriteNormal;
+            }
+
+            MeleeWeaponData? meleeData = widget.MeleeData;
+            if (this.tooltip != null && meleeData != null)
+                this.tooltip.ShowAtItem(meleeData.DisplayName, slot);
+
+            RectTransform? iconRect = widget.MeleeIconRect;
+            if (iconRect != null)
+            {
+                // The icon is anchored right-middle with anchoredPosition always Vector2.zero
+                // (see OperatorWidgetView.AnchorIconToGridSize), so zero is always its true
+                // unscaled rest position -- no need to read it back before offsetting.
+                iconRect.anchoredPosition = (1f - this.hoverScaleMultiplier) * iconRect.rect.center;
+                iconRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
+                this.hoveredMeleeIcon     = iconRect;
+            }
+        }
+
         // ── Visual ───────────────────────────────────────────────────────────
 
         void AttachSelectorToGrid(InventoryGrid grid)
@@ -540,12 +702,35 @@ namespace CrimsonDraft.UI
                               : item          != null ? item.GridOrigin
                               : cell;
 
-            this.selectorRect.anchoredPosition = CurrentGrid.CellToLocal(origin)
+            Vector2 selectorBasePos = CurrentGrid.CellToLocal(origin)
                 + new Vector2(this.selectorPadding, -this.selectorPadding);
+            this.selectorRect.anchoredPosition = selectorBasePos;
 
             this.selectorRect.sizeDelta = new Vector2(
                 size.x * CurrentGrid.CellSize - this.selectorPadding * 2f,
                 size.y * CurrentGrid.CellSize - this.selectorPadding * 2f);
+
+            bool highlightItem = !isHolding && item != null;
+
+            if (this.hoveredItem != null && this.hoveredItem != item)
+            {
+                ResetItemHoverScale(this.hoveredItem);
+                this.hoveredItem = null;
+            }
+
+            if (highlightItem)
+            {
+                ApplyItemHoverScale(item!);
+                this.hoveredItem = item;
+            }
+
+            // selectorRect's pivot is top-left (0,1), so scaling it directly would grow the
+            // box only right/down instead of from its visual center -- offset the position by
+            // the pivot-to-center vector, scaled by how much we're shrinking/growing it, to
+            // compensate (same trick as Apply/ResetItemHoverScale below).
+            float selectorScale = highlightItem ? this.hoverScaleMultiplier : 1f;
+            this.selectorRect.anchoredPosition = selectorBasePos + (1f - selectorScale) * this.selectorRect.rect.center;
+            this.selectorRect.localScale = Vector3.one * selectorScale;
 
             if (this.tooltip != null && (this.contextMenu == null || !this.contextMenu.IsOpen))
             {
@@ -591,6 +776,7 @@ namespace CrimsonDraft.UI
             this.currentGridIndex = 0;
             this.holding          = false;
             this.lastDir          = Vector2Int.zero;
+            this.onMeleeSlot      = false;
             AttachSelectorToGrid(CurrentGrid);
             this.selectorRect.gameObject.SetActive(true);
             PlaceSelectorAt(this.currentCell);
@@ -617,6 +803,7 @@ namespace CrimsonDraft.UI
             if (this.heldItem != null)                                    CancelPickup();
             if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();
+            if (this.onMeleeSlot)                                         ExitMeleeSlotToGrid();
             this.tabManager?.ResetTabBar();
             this.tooltip?.Hide();
             this.holding = false;
@@ -625,6 +812,9 @@ namespace CrimsonDraft.UI
 
         public int GetOperatorOf(InventoryItemView view)
             => view.OwnerGrid != null ? this.gridGroup.IndexOf(view.OwnerGrid) : -1;
+
+        public InventoryGrid? GetGridForOperator(int operatorIndex)
+            => this.gridGroup.GetGrid(operatorIndex);
 
         public InventoryItemView? FindView(InventoryItem item)
         {

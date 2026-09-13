@@ -18,6 +18,7 @@ namespace CrimsonDraft.Combat
         private CombatActionQueue                            actionQueue        = null!;
         private IPublisher<ShootConfigurationRequestedEvent> shootPublisher     = null!;
         private IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher = null!;
+        private IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher = null!;
         private IPublisher<CombatEndedEvent>                 combatEndPublisher = null!;
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
@@ -26,14 +27,35 @@ namespace CrimsonDraft.Combat
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
+        // Provisional animation-lock duration used the instant an attack starts (before the
+        // real Attack clip length is known) and the fallback if it never resolves (e.g. no
+        // Animator on a placeholder enemy). See enemyAttackLockCorrected in ProcessQueueHead.
         [SerializeField] private float defaultEnemyAttackDurSec       = 1.2f;
         [SerializeField] private float atbGaugeDivisor                = 100f;
         [SerializeField] private bool  freezeOperatorWhenActionQueued = false;
+        // While a synced-shot group is mid-setup, whoever's still unmarked has to survive to
+        // select Shoot and trigger it, or the group gets silently cancelled (see
+        // SyncFocusFireDeadlock). Weighting enemy target rolls against picking them (relative
+        // to a marked operator's weight of 1) makes that survive-to-trigger window a bit more
+        // reliable without making it guaranteed -- 1 = no bias, 0 = never targeted.
+        [SerializeField, Range(0f, 1f)] private float pendingFocusFireTriggerTargetWeight = 0.35f;
+
+        // An operator in Mercy (0 HP, still alive -- one more hit from KIA) is weighted down
+        // as an enemy target, mirroring RE2's mercy invincibility: it doesn't stop them from
+        // being finished off, but it buys the player a better chance to land a heal first.
+        // 1 = no bias, 0 = never targeted while in Mercy.
+        [SerializeField, Range(0f, 1f)] private float mercyTargetWeight = 0.35f;
 
         private readonly IRandomSource  random               = new UnityRandomSource();
         private readonly HashSet<int>   knownAliveEnemySlots = new();
         private readonly HashSet<int>   syncAliveSet         = new();
         private readonly List<int>      syncDeadBuf          = new();
+        private readonly List<int>      focusFireMarkedSlots = new();
+        private readonly Dictionary<int, float> rolledEnemyAttackBaseSec = new();
+        private float enemyAttackStartedAt;
+        private bool  enemyAttackLockCorrected;
+
+        private const float DefaultAttackBaseSec = 7f;
 
         private float          animationLockUntil;
         private float          animationLockDuration;
@@ -52,6 +74,7 @@ namespace CrimsonDraft.Combat
             CombatActionQueue                            actionQueue,
             IPublisher<ShootConfigurationRequestedEvent> shootPublisher,
             IPublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher,
+            IPublisher<FocusFireCancelledEvent>          focusFireCancelledPublisher,
             IPublisher<CombatEndedEvent>                 combatEndPublisher,
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
@@ -63,6 +86,7 @@ namespace CrimsonDraft.Combat
             this.actionQueue        = actionQueue;
             this.shootPublisher     = shootPublisher;
             this.focusFirePublisher = focusFirePublisher;
+            this.focusFireCancelledPublisher = focusFireCancelledPublisher;
             this.combatEndPublisher = combatEndPublisher;
             this.battlefieldView    = battlefieldView;
             this.roster             = roster;
@@ -83,7 +107,11 @@ namespace CrimsonDraft.Combat
                 this.atbSystem.FillOperatorGauges();
 
             for (int i = 0; i < this.roster.Count; i++)
+            {
                 this.menuView.SetOperatorDimmed(i, true);
+                if (!this.roster[i].IsAlive)
+                    this.atbSystem.MarkDead(i, ATBActorKind.Operator);
+            }
 
             this.knownAliveEnemySlots.Clear();
             for (int i = 0; i < this.encounter.EnemySlots.Length; i++)
@@ -102,10 +130,23 @@ namespace CrimsonDraft.Combat
             if (!this.initialized) return;
 
             SyncDeadEnemies();
+            SyncOperatorWipe();
+            SyncFocusFireDeadlock();
             this.atbSystem.Tick(Time.deltaTime, this.waitModeActive);
+            SyncOperatorGauges();
             NotifyReadyOperators();
             EnqueueReadyEnemyAttacks();
             ProcessQueueHead();
+        }
+
+        private void SyncOperatorGauges()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Operator);
+                if (actor == null) continue;
+                this.menuView.SetOperatorGauge(i, actor.Gauge);
+            }
         }
 
         private void LateUpdate()
@@ -121,6 +162,33 @@ namespace CrimsonDraft.Combat
             if (this.freezeOperatorWhenActionQueued)
                 this.atbSystem.FreezeActor(action.SlotIndex, ATBActorKind.Operator);
             this.menuView.SetOperatorDimmed(action.SlotIndex, true);
+            SetActionPendingIcon(action, true);
+
+            // The marked group is now owned by the queued action itself -- stop tracking it
+            // against the SyncFocusFireDeadlock() invariant below.
+            if (action.Type == PendingActionType.FocusFire)
+                this.focusFireMarkedSlots.Clear();
+        }
+
+        // Only Shoot/UseItem/FocusFire carry an operator slot meaningful to the roster UI --
+        // EnemyAttack/EnemyRecover's SlotIndex is an enemy slot, and they're enqueued directly
+        // via actionQueue.Enqueue(), never through the public EnqueueAction above, so this only
+        // ever runs for operator-originated actions. FocusFire also lights up every marked
+        // participant, not just the operator who triggered it, since they're all waiting on it.
+        private void SetActionPendingIcon(PendingAction action, bool pending)
+        {
+            switch (action.Type)
+            {
+                case PendingActionType.Shoot:
+                case PendingActionType.UseItem:
+                    this.menuView.SetOperatorActionPending(action.SlotIndex, pending);
+                    break;
+                case PendingActionType.FocusFire:
+                    this.menuView.SetOperatorActionPending(action.SlotIndex, pending);
+                    for (int i = 0; i < action.FocusFireParticipants.Length; i++)
+                        this.menuView.SetOperatorActionPending(action.FocusFireParticipants[i], pending);
+                    break;
+            }
         }
 
         public void SetWaitMode(bool paused) => this.waitModeActive = paused;
@@ -128,7 +196,7 @@ namespace CrimsonDraft.Combat
         public bool IsOperatorReady(int slotIndex)
         {
             ATBActorState? actor = this.atbSystem.GetActor(slotIndex, ATBActorKind.Operator);
-            return actor != null && actor.IsReady && actor.IsAwaitingCommand;
+            return actor != null && !actor.IsDead && actor.IsReady && actor.IsAwaitingCommand;
         }
 
         public void NotifyEnemyStaggered(int enemySlot)
@@ -148,6 +216,7 @@ namespace CrimsonDraft.Combat
             // NotifyReadyOperators() would offer it a command panel again.
             this.atbSystem.ResetActor(operatorSlot, ATBActorKind.Operator);
             this.atbSystem.FreezeActor(operatorSlot, ATBActorKind.Operator);
+            this.focusFireMarkedSlots.Add(operatorSlot);
         }
 
         public void NotifyShootCompleted()
@@ -176,7 +245,9 @@ namespace CrimsonDraft.Combat
         // IBattlefieldView) without duplicating that bookkeeping at each call site.
         private void DequeueAction()
         {
-            this.actionQueue.Dequeue();
+            PendingAction dequeued = this.actionQueue.Dequeue();
+            SetActionPendingIcon(dequeued, false);
+
             int[] readySlots = this.battlefieldView.NotifyActionDequeued();
             for (int i = 0; i < readySlots.Length; i++)
                 this.actionQueue.Enqueue(PendingAction.EnemyRecover(readySlots[i]));
@@ -221,16 +292,66 @@ namespace CrimsonDraft.Combat
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
 
-                int targetIndex = this.random.NextInt(0, aliveOperatorSlots.Count);
-                int targetSlot  = aliveOperatorSlots[targetIndex];
+                int targetSlot = SelectEnemyTargetSlot(aliveOperatorSlots);
 
                 this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, targetSlot, data.AttackDamage));
 
-                float nextSec = Mathf.Max(0.1f, data.AttackBaseSec);
+                float nextSec = Mathf.Max(0.1f, GetOrRollAttackBaseSec(i, data));
                 this.atbSystem.ResetActor(i, ATBActorKind.Enemy);
                 this.atbSystem.FreezeActor(i, ATBActorKind.Enemy);
                 this.atbSystem.UpdateActorGaugeRate(i, ATBActorKind.Enemy, 1f / nextSec);
             }
+        }
+
+        // Uniform pick, except when weighting is actually in play: while a synced-shot group
+        // is pending, operators not yet marked (i.e. candidates to trigger it) are weighted
+        // down instead of excluded, so an enemy can still choose them -- just less often --
+        // which cuts down on SyncFocusFireDeadlock having to cancel the group because its
+        // would-be trigger died first. Independently, anyone in Mercy is weighted down too
+        // (see GetTargetWeight). The fast uniform path is only taken when neither applies, so
+        // the common case (no focus-fire setup, nobody in Mercy) skips the weighted-roll math.
+        private int SelectEnemyTargetSlot(IReadOnlyList<int> aliveOperatorSlots)
+        {
+            bool hasPendingFocusFireTrigger =
+                this.focusFireMarkedSlots.Count > 0 && this.focusFireMarkedSlots.Count < aliveOperatorSlots.Count;
+
+            bool anyMercy = false;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+            {
+                if (this.roster[aliveOperatorSlots[i]].IsMercy)
+                {
+                    anyMercy = true;
+                    break;
+                }
+            }
+
+            if (!hasPendingFocusFireTrigger && !anyMercy)
+                return aliveOperatorSlots[this.random.NextInt(0, aliveOperatorSlots.Count)];
+
+            float totalWeight = 0f;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+                totalWeight += GetTargetWeight(aliveOperatorSlots[i], hasPendingFocusFireTrigger);
+
+            float roll       = this.random.NextFloat01() * totalWeight;
+            float cumulative = 0f;
+            for (int i = 0; i < aliveOperatorSlots.Count; i++)
+            {
+                cumulative += GetTargetWeight(aliveOperatorSlots[i], hasPendingFocusFireTrigger);
+                if (roll < cumulative) return aliveOperatorSlots[i];
+            }
+            return aliveOperatorSlots[aliveOperatorSlots.Count - 1];
+        }
+
+        private float GetTargetWeight(int operatorSlot, bool hasPendingFocusFireTrigger)
+        {
+            float weight = hasPendingFocusFireTrigger && !this.focusFireMarkedSlots.Contains(operatorSlot)
+                ? this.pendingFocusFireTriggerTargetWeight
+                : 1f;
+
+            if (this.roster[operatorSlot].IsMercy)
+                weight *= this.mercyTargetWeight;
+
+            return weight;
         }
 
         private bool IsActorDead(PendingAction action)
@@ -297,11 +418,21 @@ namespace CrimsonDraft.Combat
                     this.enemyAttackInProgress = true;
                     ApplyEnemyAttack(head);
                 }
-                else if (Time.time >= this.animationLockUntil)
+                else
                 {
-                    this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
-                    this.DequeueAction();
-                    this.enemyAttackInProgress = false;
+                    if (!this.enemyAttackLockCorrected &&
+                        this.battlefieldView.TryGetResolvedEnemyAttackDuration(head.SlotIndex, out float realDuration))
+                    {
+                        this.animationLockUntil = this.enemyAttackStartedAt + realDuration;
+                        this.enemyAttackLockCorrected = true;
+                    }
+
+                    if (Time.time >= this.animationLockUntil)
+                    {
+                        this.atbSystem.UnfreezeActor(head.SlotIndex, ATBActorKind.Enemy);
+                        this.DequeueAction();
+                        this.enemyAttackInProgress = false;
+                    }
                 }
                 return;
             }
@@ -356,16 +487,49 @@ namespace CrimsonDraft.Combat
         {
             if (action.TargetOperatorSlot >= this.roster.Count) return;
 
-            this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
-            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex);
+            OperatorDamageResult result = this.roster[action.TargetOperatorSlot].ApplyDamage(action.Damage);
+
+            if (result.IsDead)
+            {
+                this.atbSystem.MarkDead(action.TargetOperatorSlot, ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(action.TargetOperatorSlot, true);
+
+                if (this.menuView.IsOperatorFocused(action.TargetOperatorSlot))
+                {
+                    IReadOnlyList<int> aliveSlots = this.roster.GetAliveSlots();
+                    if (aliveSlots.Count > 0)
+                        this.menuView.FocusOperator(aliveSlots[0]);
+                    else
+                        this.menuView.ClearFocus();
+                }
+            }
+
+            // Damage/ATB/dimming apply immediately (state must stay authoritative), but the
+            // operator's visual reaction waits for the Animation Event fired from the
+            // enemy's Attack clip at the moment the hit actually connects.
+            this.battlefieldView.PlayEnemyAttackFeedback(action.SlotIndex, () => this.OnEnemyAttackImpact(action, result));
+
+            this.enemyAttackStartedAt     = Time.time;
+            this.enemyAttackLockCorrected = false;
+            SetAnimationLock(this.defaultEnemyAttackDurSec);
+        }
+
+        private void OnEnemyAttackImpact(PendingAction action, OperatorDamageResult result)
+        {
             this.battlefieldView.ShowOperatorDamage(action.TargetOperatorSlot, action.Damage);
+            this.battlefieldView.PlayOperatorHitFx(action.TargetOperatorSlot);
+            this.menuView.PlayOperatorDamageShake(action.TargetOperatorSlot);
+            this.menuView.PlayOperatorDamageGlitch(action.TargetOperatorSlot);
             this.ecgFeedback?.FlashOperatorDamage(action.TargetOperatorSlot);
             this.ecgFeedback?.SetOperatorHealthState(
                 action.TargetOperatorSlot,
                 this.roster[action.TargetOperatorSlot].HpRatio,
                 this.roster[action.TargetOperatorSlot].IsAlive);
 
-            SetAnimationLock(this.defaultEnemyAttackDurSec);
+            if (result.IsDead)
+                this.battlefieldView.PlayOperatorDeath(action.TargetOperatorSlot);
+            else
+                this.battlefieldView.PlayOperatorFlinch(action.TargetOperatorSlot);
         }
 
         private void SyncDeadEnemies()
@@ -392,11 +556,109 @@ namespace CrimsonDraft.Combat
             if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0 && !this.combatEnded)
             {
                 this.combatEnded = true;
+                ReviveMercyOperatorsOnCombatEnd();
                 this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
             }
         }
 
-        private static List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster, float divisor)
+        // Mercy (0 HP, still alive) is only a mid-combat threat window -- whoever survives
+        // the fight while still at death's door gets patched up to 1 HP instead of being
+        // finished off, mirroring RE2's own mercy rule. Healing here (before CombatEndedEvent
+        // goes out) also keeps the "Hp<=0 always means confirmed KIA" invariant intact for
+        // RestoreHp -- the roster's HP snapshot (NavigationScope reloads, save/load) has no
+        // separate alive/dead bit, so a Mercy survivor persisting at literal 0 HP would read
+        // back as dead the next time that snapshot is restored.
+        private void ReviveMercyOperatorsOnCombatEnd()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                OperatorRuntime op = this.roster[i];
+                if (!op.IsMercy) continue;
+
+                op.Heal(1);
+                this.ecgFeedback?.SetOperatorHealthState(i, op.HpRatio, op.IsAlive);
+                this.menuView.SetOperatorHealth(i, op.HpRatio, op.IsAlive);
+            }
+        }
+
+        // Mirrors SyncDeadEnemies: roster HP/alive state updates immediately when an operator
+        // is hit, but defeat is only declared once every present-and-dead slot's death
+        // animation has settled (BattlefieldView.HasOperatorDeathSettled), so combat can never
+        // end while a death animation is still playing.
+        private void SyncOperatorWipe()
+        {
+            if (this.combatEnded) return;
+
+            bool anyPresent = false;
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                if (!this.roster[i].IsPresent) continue;
+                anyPresent = true;
+
+                if (this.roster[i].IsAlive) return;
+                if (!this.battlefieldView.HasOperatorDeathSettled(i)) return;
+            }
+
+            if (!anyPresent) return;
+
+            this.combatEnded = true;
+            this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = false });
+        }
+
+        // A synced-shot group freezes its marked operators until whoever is left unmarked
+        // selects Shoot to trigger it (see CommandPanelState.OnCommandSelected). That last
+        // trigger role isn't guaranteed to survive: if they die (or enough marked operators
+        // die that no one is left outside the group), the remaining marked operators would
+        // otherwise stay frozen forever, waiting on a command nobody can send -- a hard lock.
+        // Polled every frame, the same way SyncOperatorWipe/SyncDeadEnemies watch for their
+        // own invariants, since death can happen at any time, not just on a state transition.
+        private void SyncFocusFireDeadlock()
+        {
+            if (this.combatEnded) return;
+            if (this.focusFireMarkedSlots.Count == 0) return;
+
+            for (int i = this.focusFireMarkedSlots.Count - 1; i >= 0; i--)
+            {
+                int slot = this.focusFireMarkedSlots[i];
+                if (slot >= this.roster.Count || !this.roster[slot].IsAlive)
+                    this.focusFireMarkedSlots.RemoveAt(i);
+            }
+
+            if (this.focusFireMarkedSlots.Count == 0) return;
+            if (this.focusFireMarkedSlots.Count < this.roster.GetAliveSlots().Count) return;
+
+            int[] released = this.focusFireMarkedSlots.ToArray();
+            this.focusFireMarkedSlots.Clear();
+            for (int i = 0; i < released.Length; i++)
+            {
+                this.atbSystem.UnfreezeActor(released[i], ATBActorKind.Operator);
+                this.menuView.SetOperatorDimmed(released[i], false);
+            }
+            this.focusFireCancelledPublisher.Publish(new FocusFireCancelledEvent(released));
+        }
+
+        private float GetOrRollAttackBaseSec(int slotIndex, EnemyData data)
+        {
+            if (this.rolledEnemyAttackBaseSec.TryGetValue(slotIndex, out float cached))
+                return cached;
+
+            float[] pool = data.AttackBaseSecPool;
+            float rolled;
+            if (pool == null || pool.Length == 0)
+            {
+                Debug.LogWarning($"[CombatOrchestrator] {data.name} has no AttackBaseSecPool configured; using default {DefaultAttackBaseSec}.", data);
+                rolled = DefaultAttackBaseSec;
+            }
+            else
+            {
+                rolled = pool[this.random.NextInt(0, pool.Length)];
+            }
+
+            this.rolledEnemyAttackBaseSec[slotIndex] = rolled;
+            return rolled;
+        }
+
+        private List<ATBActorConfig> BuildATBConfigs(EncounterData encounter, IOperatorRoster roster, float divisor)
         {
             var configs = new List<ATBActorConfig>();
 
@@ -410,7 +672,8 @@ namespace CrimsonDraft.Combat
             {
                 EnemyData? data = encounter.EnemySlots[i];
                 if (data == null) continue;
-                float gps          = data.AttackBaseSec > 0f ? 1f / data.AttackBaseSec : 1f;
+                float attackBaseSec = GetOrRollAttackBaseSec(i, data);
+                float gps          = attackBaseSec > 0f ? 1f / attackBaseSec : 1f;
                 float initialGauge = data.InitialGaugePct / 100f;
                 configs.Add(new ATBActorConfig(i, ATBActorKind.Enemy, gps, initialGauge));
             }
@@ -438,7 +701,7 @@ namespace CrimsonDraft.Combat
                 bool  isAlive   = isPresent && this.roster[i].IsAlive;
 
                 this.ecgFeedback?.SetOperatorHealthState(i, hpRatio, isAlive);
-                this.menuView.SetOperatorHealth(i, hpRatio);
+                this.menuView.SetOperatorHealth(i, hpRatio, isAlive);
             }
         }
     }
