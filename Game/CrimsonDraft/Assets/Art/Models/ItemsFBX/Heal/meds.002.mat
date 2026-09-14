@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6161572480449547315
+--- !u!114 &-3300334551929172854
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20,12 +20,12 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Material
+  m_Name: meds.002
   m_Shader: {fileID: -6465566751694194690, guid: 8b8b697340fa16848ba72c93c8de257b, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _LIGHTINGMETHOD_TEXEL_LIT
+  - _LIGHTINGMETHOD_UNLIT
   - _TEXTURESAMPLEMODE_POINT
   - _VERTEXJITTERMODE_VIEW_SPACE
   m_InvalidKeywords: []
@@ -42,7 +42,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 1829008ba287e82458161cca91639c74, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
@@ -66,7 +66,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 965eaf575b9121840bfbb9685b2d24f0, type: 3}
+        m_Texture: {fileID: 2800000, guid: a7abf42e252c80c4db38df9e8bd03093, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -110,7 +110,7 @@ Material:
     - _CastShadows: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _ColorDepth: 128
+    - _ColorDepth: 64
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -122,11 +122,11 @@ Material:
     - _EnableTextureDownsampling: 0
     - _EnvironmentReflections: 1
     - _GlossMapScale: 1
-    - _Glossiness: 0.031645536
+    - _Glossiness: 0
     - _GlossyReflections: 1
-    - _HueShift: 1
-    - _LIGHTINGMETHOD: 2
-    - _LightnessMultiplier: 1.1
+    - _HueShift: 0
+    - _LIGHTINGMETHOD: 0
+    - _LightnessMultiplier: 1
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
@@ -134,10 +134,10 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _SaturationMultiplier: 0
+    - _SaturationMultiplier: 1
     - _ShadowDistCutoff: 100
     - _ShadowOffset: 0.01
-    - _Smoothness: 0.031645536
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -150,7 +150,7 @@ Material:
     - _UseSpecular: 0
     - _UseVertexColor: 0
     - _VERTEXJITTERMODE: 1
-    - _VertexPrecision: 60
+    - _VertexPrecision: 80
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZTest: 4
@@ -159,7 +159,7 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0.9063317, g: 0.9063317, b: 0.9063317, a: 1}
     - _Color: {r: 0.9063317, g: 0.9063317, b: 0.9063317, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
     - _Offset: {r: 0, g: 0, b: 0, a: 0}
     - _ShadowTint: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
