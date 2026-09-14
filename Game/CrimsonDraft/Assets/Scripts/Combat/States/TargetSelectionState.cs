@@ -51,6 +51,11 @@ namespace CrimsonDraft.Combat
 
         public void OnCancel()
         {
+            // Melee has no shot-count step to back up to -- once TargetSelectionState is
+            // reached for a melee swing, the action is already committed (same invariant as
+            // ShotCountSelectionState.OnCancel being a no-op once Shoot's configuration begins).
+            if (this.context.IsMeleeAttack) return;
+
             this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
             this.battlefieldView.HideEnemyTargetIndicator();
             this.context.TransitionTo(this.context.ShotCountState);
@@ -63,8 +68,16 @@ namespace CrimsonDraft.Combat
             this.context.CurrentTargetSlot = this.occupiedSlots.Length > 0
                 ? this.occupiedSlots[this.cursor] : -1;
             int op = this.context.SelectedOperator;
-            WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
-            this.aimView.ConfigureWeapon(weaponData);
+            if (this.context.IsMeleeAttack)
+            {
+                MeleeWeaponData? meleeData = this.roster.Count > op ? this.roster[op].MeleeWeapon as MeleeWeaponData : null;
+                this.aimView.ConfigureMeleeWeapon(meleeData);
+            }
+            else
+            {
+                WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
+                this.aimView.ConfigureWeapon(weaponData);
+            }
             this.aimView.ConfigureHitMask(
                 this.context.CurrentTargetSlot >= 0
                     ? this.battlefieldView.GetEnemyHitMaskProfile(this.context.CurrentTargetSlot)

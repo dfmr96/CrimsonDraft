@@ -22,6 +22,7 @@ namespace CrimsonDraft.Combat
         void PlayOperatorDamageShake(int index);
         void PlayOperatorDamageGlitch(int index);
         void SetOperatorActionPending(int index, bool pending);
+        void SetOperatorTurnOrder(int index, int position);
         void SetOperatorGauge(int index, float gauge01);
         void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null);
         void SetOperatorWeapon(int index, WeaponItem? weapon);

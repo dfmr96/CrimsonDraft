@@ -14,11 +14,14 @@ namespace CrimsonDraft.Infrastructure.UI
 {
     public sealed class ScreenFader : IInitializable
     {
-        private const float FadeDuration = 0.4f;
+        private const float FadeDuration        = 0.4f;
+        private const float MinLoadingDuration  = 0.6f; // Floor so the "Cargando..." screen never just flashes on a fast/cached load.
+        private const float LoadingDotInterval  = 0.35f;
         private const string MainMenuSceneName = "MainMenu";
 
         private CanvasGroup? canvasGroup;
         private TMP_Text?    endMessageText;
+        private TMP_Text?    loadingText;
 
         [Preserve]
         public ScreenFader() { }
@@ -68,6 +71,64 @@ namespace CrimsonDraft.Infrastructure.UI
             textRect.offsetMax = Vector2.zero;
 
             textGo.SetActive(false);
+
+            var loadingGo = new GameObject("LoadingText");
+            loadingGo.transform.SetParent(overlay.transform, false);
+
+            this.loadingText = loadingGo.AddComponent<TextMeshProUGUI>();
+            this.loadingText.alignment     = TextAlignmentOptions.Center;
+            this.loadingText.fontSize      = 36f;
+            this.loadingText.color         = Color.white;
+            this.loadingText.raycastTarget = false;
+
+            var loadingRect = loadingGo.GetComponent<RectTransform>();
+            loadingRect.anchorMin = Vector2.zero;
+            loadingRect.anchorMax = Vector2.one;
+            loadingRect.offsetMin = Vector2.zero;
+            loadingRect.offsetMax = Vector2.zero;
+
+            loadingGo.SetActive(false);
+        }
+
+        /// <summary>
+        /// Fades to black, loads <paramref name="sceneName"/> as the only scene while showing an
+        /// animated "Cargando..." label, then fades back in. The fade-out hides the load's
+        /// GC/shader-warmup hitch behind a solid color instead of letting it read as a freeze,
+        /// and the dot animation plus MinLoadingDuration floor keep the screen visibly alive
+        /// even when the load itself is nearly instant.
+        /// </summary>
+        public async UniTask LoadSceneAsync(string sceneName)
+        {
+            await FadeOutAsync();
+
+            if (this.loadingText != null)
+                this.loadingText.gameObject.SetActive(true);
+
+            var operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+            operation.allowSceneActivation = false;
+
+            float elapsed = 0f;
+            while (operation.progress < 0.9f || elapsed < MinLoadingDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                UpdateLoadingText(elapsed);
+                await UniTask.Yield(PlayerLoopTiming.Update);
+            }
+
+            operation.allowSceneActivation = true;
+            await operation.ToUniTask();
+
+            if (this.loadingText != null)
+                this.loadingText.gameObject.SetActive(false);
+
+            await FadeInAsync();
+        }
+
+        private void UpdateLoadingText(float elapsed)
+        {
+            if (this.loadingText == null) return;
+            int dotCount = Mathf.FloorToInt(elapsed / LoadingDotInterval) % 4;
+            this.loadingText.text = "Cargando" + new string('.', dotCount);
         }
 
         public async UniTask FadeOutAsync()

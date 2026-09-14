@@ -48,14 +48,18 @@ namespace CrimsonDraft.UI
             {
                 background.color = colorDisabled;
                 label.color      = colorDisabled;
-                this.selectedImage?.SetActive(false);
+                // selectedImage is optional -- `?.` doesn't safely no-op on an unassigned
+                // UnityEngine.Object reference (it throws UnassignedReferenceException
+                // instead of skipping the call the way it does for a real null), so this
+                // must use an explicit null check.
+                if (this.selectedImage != null) this.selectedImage.SetActive(false);
                 this.transform.localScale = Vector3.one;
                 return;
             }
 
             background.color = selected ? colorSelected : colorNormal;
             label.color      = Color.white;
-            this.selectedImage?.SetActive(selected);
+            if (this.selectedImage != null) this.selectedImage.SetActive(selected);
             this.transform.localScale = selected ? Vector3.one * this.selectedScale : Vector3.one;
         }
     }

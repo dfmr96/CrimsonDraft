@@ -54,6 +54,8 @@ namespace CrimsonDraft.UI
         private Image       selectorImage = null!;
         private Action?     pendingUseCallback;
         private bool        useAnimationCompleted = true;
+        private InspectPanel? inspectPanel;
+        private bool        inputBound;
 
         private readonly List<InventoryItemView> spawnedViews = new();
 
@@ -79,18 +81,31 @@ namespace CrimsonDraft.UI
         {
             // InspectPanel lives in GAMEPLAYCORE (DontDestroyOnLoad), only available at runtime.
             // Wire it to the context menu here so Inspect works in combat.
-            if (this.contextMenu == null) return;
-            var field = typeof(ItemContextMenu).GetField(
-                "inspectPanel",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            if (field?.GetValue(this.contextMenu) != null) return;
-            var panel = FindObjectOfType<InspectPanel>(true);
-            if (panel != null) field?.SetValue(this.contextMenu, panel);
+            this.inspectPanel = FindObjectOfType<InspectPanel>(true);
+            if (this.inspectPanel != null)
+                this.inspectPanel.OnClose += OnInspectClosed;
+
+            if (this.contextMenu != null)
+            {
+                var field = typeof(ItemContextMenu).GetField(
+                    "inspectPanel",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (field?.GetValue(this.contextMenu) == null && this.inspectPanel != null)
+                    field?.SetValue(this.contextMenu, this.inspectPanel);
+            }
+
+            // OnEnable runs before VContainer injection at scene start — subscribe here if missed
+            OnEnable();
+        }
+
+        void OnInspectClosed()
+        {
+            this.lastDir = Vector2Int.zero;
         }
 
         void OnEnable()
         {
-            if (this.inputService == null) return;
+            if (this.inputService == null || this.inputBound) return;
             this.inputService.CombatConfirm.performed += OnConfirmInput;
             this.inputService.CombatCancel.performed  += OnCancelInput;
             if (this.contextMenu != null)
@@ -98,13 +113,14 @@ namespace CrimsonDraft.UI
                 this.contextMenu.OnUseRequested     += HandleUse;
                 this.contextMenu.OnCombineRequested += HandleCombine;
             }
+            this.inputBound = true;
         }
 
         void OnDisable()
         {
             this.pendingUseCallback    = null;
             this.useAnimationCompleted = true;
-            if (this.inputService == null) return;
+            if (!this.inputBound || this.inputService == null) return;
             this.inputService.CombatConfirm.performed -= OnConfirmInput;
             this.inputService.CombatCancel.performed  -= OnCancelInput;
             if (this.contextMenu != null)
@@ -112,11 +128,19 @@ namespace CrimsonDraft.UI
                 this.contextMenu.OnUseRequested     -= HandleUse;
                 this.contextMenu.OnCombineRequested -= HandleCombine;
             }
+            this.inputBound = false;
+        }
+
+        void OnDestroy()
+        {
+            if (this.inspectPanel != null)
+                this.inspectPanel.OnClose -= OnInspectClosed;
         }
 
         void Update()
         {
             if (!this.isActive) return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
             var dir = ReadDirection();
             if (this.contextMenu != null && this.contextMenu.IsOpen)
@@ -173,6 +197,8 @@ namespace CrimsonDraft.UI
             this.useAnimationCompleted = true;
             if (this.contextMenu != null && this.contextMenu.IsOpen)
                 this.contextMenu.Close();
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
+                this.inspectPanel.Close();
             ClearGrid();
             SetVisible(false);
         }
@@ -359,6 +385,7 @@ namespace CrimsonDraft.UI
         private void OnConfirmInput(InputAction.CallbackContext _)
         {
             if (!this.isActive) return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
@@ -391,12 +418,12 @@ namespace CrimsonDraft.UI
                 CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0,
                 CanCombine = slotIndex >= 0 && view.Data.ItemType == ItemType.AmmoBox,
                 CanEquip   = false,
-                CanInspect = true,
+                CanInspect = false,
             };
 
-            // Nothing this item can do (no Use, no Combine, no Inspect in this menu) —
+            // Nothing this item can do (no Use, no Combine in this menu) —
             // don't open an all-disabled submenu or let the turn be spent on it.
-            if (!options.CanUse && !options.CanCombine && !options.CanInspect)
+            if (!options.CanUse && !options.CanCombine)
             {
                 this.sfx?.PlayInvalidAction(gameObject);
                 return;
@@ -409,6 +436,11 @@ namespace CrimsonDraft.UI
         private void OnCancelInput(InputAction.CallbackContext _)
         {
             if (!this.isActive) return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
+            {
+                this.inspectPanel.Close();
+                return;
+            }
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx?.PlayCancel(gameObject);

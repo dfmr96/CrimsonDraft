@@ -12,6 +12,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private MenuOption[] options      = null!; // 0=Use, 1=Inspect, 2=Combine
         [SerializeField] private InspectPanel inspectPanel = null!;
 
+        private static readonly int[] DefaultSelectionPriority = { 0, 2, 1 };
+
         private int               selectedIndex = 0;
         private bool              isOpen        = false;
         private bool              currentCanSplit;
@@ -54,9 +56,13 @@ namespace CrimsonDraft.UI
             else
                 this.options[0].SetLabel("Use");
 
-            // Start on first selectable option
+            // Start on the first selectable action option, preferring Use/Equip/Split (0)
+            // then Combine (2) over Inspect (1) -- Inspect is available on virtually every
+            // item, so left in raw index order it would always steal default focus away
+            // from the action the player actually opened the menu for (e.g. Combine on an
+            // ammo box) the moment CanInspect is true.
             this.selectedIndex = 0;
-            for (int i = 0; i < this.options.Length; i++)
+            foreach (int i in DefaultSelectionPriority)
             {
                 if (!this.options[i].IsDisabled) { this.selectedIndex = i; break; }
             }

@@ -22,26 +22,29 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0.01f, 0.5f)] private float trailFraction = 0.18f;
         [SerializeField, Range(0.1f, 4f)] private float fadeExponent = 1f;
 
-        [Header("Health States (Normal x3, Mercy, KIA)")]
+        [Header("Health States (Normal x4, Mercy, KIA)")]
         [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
         [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
-        [SerializeField] private Sprite? stageSpriteWarning;  // 0-50%, alive
+        [SerializeField] private Sprite? stageSpriteWarning;  // 25-50%
+        [SerializeField] private Sprite? stageSpriteSevere;   // 0-25%, alive
         [SerializeField, FormerlySerializedAs("stageSpriteCritical")] private Sprite? stageSpriteMercy; // Mercy: 0 HP, alive, fast/erratic
         [SerializeField] private Sprite? stageSpriteDead;     // KIA: static flatline
 
-        [SerializeField] private float stageDurationStable = 3f;
+        [SerializeField] private float stageDurationStable  = 3f;
         [SerializeField] private float stageDurationCaution = 2f;
         [SerializeField] private float stageDurationWarning = 1.2f;
+        [SerializeField] private float stageDurationSevere   = 0.9f;
         [SerializeField, FormerlySerializedAs("stageDurationCritical")] private float stageDurationMercy = 0.6f;
 
         // Soft color-matched glow sitting behind the trace so the ECG's own backdrop isn't
         // flat black — a gradient sprite tinted per health band instead of a fixed color,
-        // so it reads at a glance which of the 4 stages is currently active.
+        // so it reads at a glance which of the 5 stages (4 normal + Mercy) is currently active.
         [Header("Background Effect (tints the gradient 'Effect' image behind the trace)")]
         [SerializeField] private Image? effectImage;
         [SerializeField] private Color effectColorStable   = new(0.4901961f, 0.7058824f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorCaution   = new(0.6901961f, 0.7058824f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorWarning   = new(0.6901961f, 0.5568628f, 0.29803923f, 0.55f);
+        [SerializeField] private Color effectColorSevere    = new(0.70980394f, 0.5019608f, 0.2862745f, 0.55f);
         [SerializeField, FormerlySerializedAs("effectColorCritical")] private Color effectColorMercy  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
 
         [Header("Damage Glitch (CRT signal-loss burst)")]
@@ -177,6 +180,7 @@ namespace CrimsonDraft.Combat
             Color effectColor;
 
             if (hpRatio <= 0f)         { sprite = this.stageSpriteMercy;    duration = this.stageDurationMercy;   effectColor = this.effectColorMercy;   }
+            else if (hpRatio <= 0.25f) { sprite = this.stageSpriteSevere;   duration = this.stageDurationSevere;   effectColor = this.effectColorSevere;   }
             else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  effectColor = this.effectColorWarning;  }
             else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  effectColor = this.effectColorCaution;  }
             else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   effectColor = this.effectColorStable;   }

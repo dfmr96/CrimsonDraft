@@ -29,6 +29,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
         [SerializeField] private Image[]          operatorFocusFireMarkers = Array.Empty<Image>();
         [SerializeField] private Image[]          operatorActionPendingIcons = Array.Empty<Image>();
+        [SerializeField] private TMP_Text[]       operatorTurnOrderLabels = Array.Empty<TMP_Text>();
         [SerializeField] private RectTransform    selectorMark   = null!;
         [SerializeField] private Image       dimmingOverlay = null!;
         [SerializeField] private CanvasGroup operatorsGroup = null!;
@@ -51,6 +52,7 @@ namespace CrimsonDraft.Combat
         private readonly Dictionary<int, (float hpRatio, bool isAlive)> pendingHealthByOperator = new();
         private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
         private readonly Dictionary<int, bool>                   pendingActionPendingByOperator = new();
+        private readonly Dictionary<int, int>                    pendingTurnOrderByOperator = new();
 
         #endregion
 
@@ -67,10 +69,12 @@ namespace CrimsonDraft.Combat
             this.TryAutoWireOperatorEcgAnimators();
             this.TryAutoWireOperatorWeaponIcons();
             this.TryAutoWireOperatorActionPendingIcons();
+            this.TryAutoWireOperatorTurnOrderLabels();
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
             this.ApplyPendingActionPendingIcons();
+            this.ApplyPendingTurnOrderLabels();
         }
 
         private void OnEnable()
@@ -81,6 +85,7 @@ namespace CrimsonDraft.Combat
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
             this.ApplyPendingActionPendingIcons();
+            this.ApplyPendingTurnOrderLabels();
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -314,6 +319,47 @@ namespace CrimsonDraft.Combat
                     continue;
 
                 this.operatorActionPendingIcons[i] = actionNode.GetComponent<Image>();
+            }
+        }
+
+        private void TryAutoWireOperatorTurnOrderLabels()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorTurnOrderLabels != null && this.operatorTurnOrderLabels.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorTurnOrderLabels[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorTurnOrderLabels = new TMP_Text[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var turnOrderNode = overview.Find("Action/turn-order");
+                if (turnOrderNode == null)
+                    continue;
+
+                this.operatorTurnOrderLabels[i] = turnOrderNode.GetComponent<TMP_Text>();
             }
         }
 
@@ -623,7 +669,10 @@ namespace CrimsonDraft.Combat
             if (icon == null)
                 return;
 
-            icon.enabled = pending;
+            // The "Action" node starts inactive in the prefab (it hosts both this icon and the
+            // turn-order number as a child) -- toggling just Image.enabled left the whole badge
+            // invisible forever since the GameObject itself never turned on.
+            icon.gameObject.SetActive(pending);
         }
 
         private void ApplyPendingActionPendingIcons()
@@ -638,9 +687,47 @@ namespace CrimsonDraft.Combat
                 if (icon == null)
                     continue;
 
-                icon.enabled = kvp.Value;
+                icon.gameObject.SetActive(kvp.Value);
             }
         }
+
+        // Shows the operator's 0-based position in CombatActionQueue (enemy actions ahead of
+        // it count too, e.g. 2 enemy actions queued before it makes this "2"; 0 means it's
+        // next) so the player can tell how long until a submitted command actually resolves.
+        // position < 0 means "not queued" and clears the label -- pushed every frame from
+        // CombatOrchestrator.RefreshTurnOrderLabels.
+        public void SetOperatorTurnOrder(int index, int position)
+        {
+            this.pendingTurnOrderByOperator[index] = position;
+
+            if (index < 0 || index >= this.operatorTurnOrderLabels.Length)
+                return;
+
+            var label = this.operatorTurnOrderLabels[index];
+            if (label == null)
+                return;
+
+            ApplyTurnOrderLabel(label, position);
+        }
+
+        private void ApplyPendingTurnOrderLabels()
+        {
+            foreach (var kvp in this.pendingTurnOrderByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorTurnOrderLabels.Length)
+                    continue;
+
+                var label = this.operatorTurnOrderLabels[index];
+                if (label == null)
+                    continue;
+
+                ApplyTurnOrderLabel(label, kvp.Value);
+            }
+        }
+
+        private static void ApplyTurnOrderLabel(TMP_Text label, int position) =>
+            label.text = position >= 0 ? position.ToString() : string.Empty;
 
         private void ApplyWeaponIcon(Image icon, WeaponItem? weapon)
         {

@@ -50,6 +50,11 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = false;
             this.isPlayingBurst  = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
+
+            int op = this.context.SelectedOperator;
+            float hpRatio = this.roster.Count > op ? this.roster[op].HpRatio : 1f;
+            this.aimView.SetOperatorHpRatio(hpRatio);
+
             this.aimView.Show();
         }
 
@@ -89,18 +94,31 @@ namespace CrimsonDraft.Combat
             }
 
             int op = this.context.SelectedOperator;
-            var weapon = this.roster.Count > op ? this.roster[op].ActiveWeapon : null;
-            int weaponPoiseDamage = weapon?.PoiseDamage ?? 0;
+            IWeaponSlot? weapon = null;
+            int weaponPoiseDamage;
+            if (this.context.IsMeleeAttack)
+            {
+                var melee = this.roster.Count > op ? this.roster[op].MeleeWeapon as MeleeWeaponData : null;
+                weaponPoiseDamage = melee?.PoiseDamage ?? 0;
+            }
+            else
+            {
+                weapon = this.roster.Count > op ? this.roster[op].ActiveWeapon : null;
+                weaponPoiseDamage = weapon?.PoiseDamage ?? 0;
+            }
 
             int totalDamage = 0;
             int totalPoiseDamage = 0;
             int headshotPellets = 0;
             int damagingPellets = 0;
+            bool anyMiss = false;
             foreach (var shot in this.pendingShots)
             {
                 totalDamage += Mathf.Max(0, shot.Damage);
                 if (shot.Zone != ShotZone.Miss)
                     totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                else
+                    anyMiss = true;
                 if (shot.Zone == ShotZone.Head)
                     headshotPellets++;
                 if (shot.Damage > 0)
@@ -119,6 +137,12 @@ namespace CrimsonDraft.Combat
 #endif
                 this.pendingStagger = result.IsStaggered;
                 this.pendingDeath   = result.IsDead;
+
+                // Whiffing even one point of a melee swing leaves the operator open -- a single
+                // counter-hit regardless of how many points missed, worth half that enemy's own
+                // attack damage (CombatOrchestrator.ApplyMeleeCounterDamage).
+                if (this.context.IsMeleeAttack && anyMiss)
+                    this.context.Orchestrator.ApplyMeleeCounterDamage(op, this.context.CurrentTargetSlot);
             }
 
             if (weapon != null)
@@ -215,6 +239,10 @@ namespace CrimsonDraft.Combat
                 this.context.FocusFireParticipants = Array.Empty<int>();
                 this.context.FocusFireShotCounts.Clear();
             }
+            else if (this.context.IsMeleeAttack)
+            {
+                this.context.Orchestrator.NotifyMeleeCompleted();
+            }
             else
             {
                 this.context.Orchestrator.NotifyShootCompleted();
@@ -222,6 +250,7 @@ namespace CrimsonDraft.Combat
 
             this.context.CurrentTargetSlot = -1;
             this.context.SelectedShotCount = 1;
+            this.context.IsMeleeAttack     = false;
             this.context.TransitionTo(this.context.OperatorSelState);
         }
     }
