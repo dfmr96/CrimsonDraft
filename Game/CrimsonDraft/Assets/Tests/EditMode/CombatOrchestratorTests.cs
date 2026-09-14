@@ -370,6 +370,8 @@ namespace CrimsonDraft.Tests
             public void PlayOperatorDamageShake(int index) { }
             public void PlayOperatorDamageGlitch(int index) { }
             public void SetOperatorActionPending(int index, bool pending) { }
+            public readonly Dictionary<int, int> TurnOrderByIndex = new();
+            public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
             public void SetOperatorGauge(int index, float gauge01) { }
             public void ExpandOperatorBorder(int index, bool expanded, System.Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }

@@ -140,6 +140,41 @@ namespace CrimsonDraft.Combat
             NotifyReadyOperators();
             EnqueueReadyEnemyAttacks();
             ProcessQueueHead();
+            RefreshTurnOrderLabels();
+        }
+
+        // Shows every operator with a pending action their 0-based position in the mixed
+        // operator/enemy queue -- 0 means it's at the head (resolving next), a submitted
+        // Shoot behind 2 already-queued enemy attacks shows "2" -- so the player can tell
+        // how long until it resolves instead of just seeing the action-pending icon light
+        // up. Resets everyone to "not queued" first so an operator whose action just left
+        // the queue -- from any of the several DequeueAction call sites -- doesn't keep
+        // showing its last number.
+        private void RefreshTurnOrderLabels()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+                this.menuView.SetOperatorTurnOrder(i, -1);
+
+            PendingAction[] snapshot = this.actionQueue.ToArray();
+            for (int i = 0; i < snapshot.Length; i++)
+            {
+                PendingAction action = snapshot[i];
+                int position = i;
+
+                switch (action.Type)
+                {
+                    case PendingActionType.Shoot:
+                    case PendingActionType.UseItem:
+                    case PendingActionType.Melee:
+                        this.menuView.SetOperatorTurnOrder(action.SlotIndex, position);
+                        break;
+                    case PendingActionType.FocusFire:
+                        this.menuView.SetOperatorTurnOrder(action.SlotIndex, position);
+                        for (int p = 0; p < action.FocusFireParticipants.Length; p++)
+                            this.menuView.SetOperatorTurnOrder(action.FocusFireParticipants[p], position);
+                        break;
+                }
+            }
         }
 
         private void SyncOperatorGauges()
@@ -173,17 +208,19 @@ namespace CrimsonDraft.Combat
                 this.focusFireMarkedSlots.Clear();
         }
 
-        // Only Shoot/UseItem/FocusFire carry an operator slot meaningful to the roster UI --
-        // EnemyAttack/EnemyRecover's SlotIndex is an enemy slot, and they're enqueued directly
-        // via actionQueue.Enqueue(), never through the public EnqueueAction above, so this only
-        // ever runs for operator-originated actions. FocusFire also lights up every marked
-        // participant, not just the operator who triggered it, since they're all waiting on it.
+        // Only Shoot/UseItem/Melee/FocusFire carry an operator slot meaningful to the roster UI
+        // -- EnemyAttack/EnemyRecover's SlotIndex is an enemy slot, and they're enqueued
+        // directly via actionQueue.Enqueue(), never through the public EnqueueAction above, so
+        // this only ever runs for operator-originated actions. FocusFire also lights up every
+        // marked participant, not just the operator who triggered it, since they're all
+        // waiting on it.
         private void SetActionPendingIcon(PendingAction action, bool pending)
         {
             switch (action.Type)
             {
                 case PendingActionType.Shoot:
                 case PendingActionType.UseItem:
+                case PendingActionType.Melee:
                     this.menuView.SetOperatorActionPending(action.SlotIndex, pending);
                     break;
                 case PendingActionType.FocusFire:

@@ -1007,6 +1007,8 @@ namespace CrimsonDraft.Tests
             public void PlayOperatorDamageGlitch(int index) { }
             public readonly Dictionary<int, bool> ActionPendingByIndex = new();
             public void SetOperatorActionPending(int index, bool pending) => this.ActionPendingByIndex[index] = pending;
+            public readonly Dictionary<int, int> TurnOrderByIndex = new();
+            public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
             // Synchronous, like the real card's animation eventually completing —
             // keeps existing tests' flow (which expect the reveal to have happened by
             // the time Enter() returns) working without needing to await anything.
