@@ -22,6 +22,12 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0f, 100f)] private float staggerHpThresholdPct = 40f;
         [SerializeField, Min(0)] private int   staggerRecoveryActionCount = 2;
 
+        // How many pellets/points need to land on ShotZone.Head within a single resolved
+        // action (one shotgun blast, one melee swing) to decapitate this enemy outright,
+        // regardless of remaining HP. Weapon-agnostic by design -- 0 disables it (e.g. for
+        // bosses that shouldn't die to a lucky point-blank shot).
+        [SerializeField, Min(0)] private int   decapitationPelletThreshold = 4;
+
         public string EnemyId                    => this.enemyId;
         public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
         public Sprite Sprite                     => this.sprite;
@@ -36,5 +42,6 @@ namespace CrimsonDraft.Combat
         public int   MaxPoise                    => this.maxPoise;
         public float StaggerHpThresholdPct       => this.staggerHpThresholdPct;
         public int   StaggerRecoveryActionCount  => this.staggerRecoveryActionCount;
+        public int   DecapitationPelletThreshold => this.decapitationPelletThreshold;
     }
 }
