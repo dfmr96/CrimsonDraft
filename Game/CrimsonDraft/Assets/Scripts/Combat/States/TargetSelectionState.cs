@@ -38,7 +38,12 @@ namespace CrimsonDraft.Combat
         public void Enter()
         {
             this.context.Orchestrator.SetWaitMode(true);
-            this.occupiedSlots = this.battlefieldView.GetOccupiedEnemySlots();
+            // GetOccupiedEnemySlots() only drops a slot once its death animation finishes
+            // (FinalizeEnemyDeath), but IsEnemyDead() flips the instant HP hits 0 -- filter
+            // here too so a still-animating corpse can never be selected as a target.
+            this.occupiedSlots = System.Array.FindAll(
+                this.battlefieldView.GetOccupiedEnemySlots(),
+                slot => !this.battlefieldView.IsEnemyDead(slot));
             this.cursor        = 0;
             if (this.occupiedSlots.Length > 0)
                 this.battlefieldView.SetEnemyTargetIndicator(this.occupiedSlots[0]);
