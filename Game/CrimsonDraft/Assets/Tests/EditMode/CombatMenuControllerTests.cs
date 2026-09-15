@@ -532,6 +532,28 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void TargetSelection_excludesEnemyDeadButStillPlayingDeathAnimation()
+        {
+            // Slot 0's HP has already hit 0 (IsEnemyDead == true) but it's still mid death
+            // animation, so BattlefieldView hasn't dropped it from occupiedEnemySlots yet
+            // (that only happens once FinalizeEnemyDeath's fall/blood-pool sequence finishes).
+            // TargetSelectionState must not offer it as a target despite it still being
+            // "occupied".
+            this.battlefieldView.SetOccupiedSlots(new[] { 0, 2 });
+            this.battlefieldView.SetEnemyHp(0, 0);
+            var expected = ScriptableObject.CreateInstance<AimHitMaskProfile>();
+            this.battlefieldView.SetMaskProfile(2, expected);
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // ShotCount -> TargetSelection, cursor defaults to first alive slot
+            InvokeConfirm(c); // confirm default target
+
+            Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
+        }
+
+        [Test]
         public void ComputeShotDamage_head_normalPrecision_returns40()
         {
             Assert.AreEqual(40, CombatMenuController.ComputeShotDamage(ShotZone.Head, 1f));
