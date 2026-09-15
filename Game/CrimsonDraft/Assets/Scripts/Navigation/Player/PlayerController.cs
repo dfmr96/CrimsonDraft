@@ -143,11 +143,14 @@ namespace CrimsonDraft.Navigation.Player
 
             Vector3 xOnly = new Vector3(origin.x + moveDir.x * step, sampleY, origin.z);
             if (NavMesh.SamplePosition(xOnly, out _, this.navMeshTolerance, NavMesh.AllAreas))
-                return new Vector3(moveDir.x, 0f, 0f).normalized;
+                // Keep moveDir's original per-axis magnitude here -- renormalizing to a unit
+                // vector would boost the player back up to full speed on every NavMesh edge,
+                // which is the "runs faster and slides at edges" bug.
+                return new Vector3(moveDir.x, 0f, 0f);
 
             Vector3 zOnly = new Vector3(origin.x, sampleY, origin.z + moveDir.z * step);
             if (NavMesh.SamplePosition(zOnly, out _, this.navMeshTolerance, NavMesh.AllAreas))
-                return new Vector3(0f, 0f, moveDir.z).normalized;
+                return new Vector3(0f, 0f, moveDir.z);
 
             return Vector3.zero;
         }
