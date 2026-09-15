@@ -336,7 +336,7 @@ namespace CrimsonDraft.Tests
             public void HideEnemyTargetIndicator() { }
             public int[] GetOccupiedEnemySlots() => System.Array.Empty<int>();
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) => null;
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage) =>
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets) =>
                 new EnemyDamageResult(slotIndex, 0, 0, false, false);
             public void TriggerEnemyStagger(int slotIndex) { }
             public void RecoverEnemyStagger(int slotIndex) { }

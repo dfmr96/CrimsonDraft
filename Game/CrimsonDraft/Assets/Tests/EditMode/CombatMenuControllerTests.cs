@@ -188,16 +188,18 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotCount_cancel_returnsToCommandPanel()
+        public void ShotCount_cancel_isNoOp_onceShootConfigurationBegins()
         {
+            // ShotCountSelectionState.OnCancel is intentionally a no-op (see its source) --
+            // once Shoot's configuration begins there's no backing out of it, same invariant
+            // TargetSelectionState documents for melee. Cancel here must change nothing.
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             c.BeginShootConfiguration(0);
 
             c.HandleCancelPressed();
 
-            Assert.IsFalse(this.shotCountView.IsVisible);
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.shotCountView.IsVisible);
         }
 
         [Test]
@@ -229,15 +231,19 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotFired_keepsCommandPanelVisibleUntilExtraConfirm()
+        public void ShotFired_commandPanelStaysHidden_throughoutAiming()
         {
+            // commandPanel was already hidden back when Shoot was selected/enqueued
+            // (CommandPanelState.OnCommandSelected) and BeginShootConfiguration never reshows
+            // it -- it plays no part in the ShotCount/TargetSelection/Aiming sub-flow, unlike
+            // aimView (see the sibling ShotFired_keepsAimViewVisibleUntilExtraConfirm).
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
         [Test]
@@ -490,8 +496,14 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Cancel_inTargetSelection_hidesIndicator_returnsToCommandPanel()
+        public void Cancel_inTargetSelection_hidesIndicator_returnsToShotCountSelection()
         {
+            // Shoot's configuration is a linear back-stack once queued: TargetSelection ->
+            // (Cancel) -> ShotCountSelection. It never returns to CommandPanelState -- that
+            // panel was already hidden and the action already enqueued back when Shoot was
+            // originally selected (CommandPanelState.OnCommandSelected), so there's nothing
+            // to reopen here (see ForceCloseInterruptedUI, which treats commandPanel as just
+            // another sub-panel of this flow, not a persistent backdrop).
             this.battlefieldView.SetOccupiedSlots(new[] { 0 });
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
@@ -499,7 +511,8 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             c.HandleCancelPressed();
             Assert.IsFalse(this.battlefieldView.EnemyTargetVisible);
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.shotCountView.IsVisible);
+            Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
         [Test]
@@ -618,6 +631,36 @@ namespace CrimsonDraft.Tests
         public void ShouldStagger_hpExactlyAtThreshold_returnsFalse()
         {
             Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 40, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsAtThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldDecapitate(decapitationPellets: 4, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsAboveThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldDecapitate(decapitationPellets: 8, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsBelowThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 3, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_zeroPellets_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 0, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_thresholdDisabled_neverReturnsTrue()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 999, decapitationPelletThreshold: 0));
         }
 
         [Test]
@@ -1175,6 +1218,7 @@ namespace CrimsonDraft.Tests
             private UniTaskCompletionSource? pendingBurstSource;
             private bool forceNextResultStaggered;
             public int LastPoiseDamageApplied { get; private set; }
+            public int LastDecapitationPelletsApplied { get; private set; }
 
             public void SetOccupiedSlots(int[] slots)
             {
@@ -1242,9 +1286,10 @@ namespace CrimsonDraft.Tests
                 this.occupiedSlots = next.ToArray();
             }
 
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets)
             {
                 this.LastPoiseDamageApplied = poiseDamage;
+                this.LastDecapitationPelletsApplied = decapitationPellets;
                 bool staggeredThisHit = this.forceNextResultStaggered;
                 this.forceNextResultStaggered = false;
 

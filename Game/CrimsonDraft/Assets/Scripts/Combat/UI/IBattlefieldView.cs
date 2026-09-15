@@ -12,14 +12,16 @@ namespace CrimsonDraft.Combat
         public int RemainingHp    { get; }
         public bool IsDead        { get; }
         public bool IsStaggered   { get; }
+        public bool IsDecapitated { get; }
 
-        public EnemyDamageResult(int slotIndex, int damageApplied, int remainingHp, bool isDead, bool isStaggered)
+        public EnemyDamageResult(int slotIndex, int damageApplied, int remainingHp, bool isDead, bool isStaggered, bool isDecapitated = false)
         {
             this.SlotIndex     = slotIndex;
             this.DamageApplied = damageApplied;
             this.RemainingHp   = remainingHp;
             this.IsDead        = isDead;
             this.IsStaggered   = isStaggered;
+            this.IsDecapitated = isDecapitated;
         }
     }
 
@@ -39,7 +41,7 @@ namespace CrimsonDraft.Combat
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
-        EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage);
+        EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets);
         void TriggerEnemyStagger(int slotIndex);
         void RecoverEnemyStagger(int slotIndex);
         void FinalizeEnemyDeath(int slotIndex);

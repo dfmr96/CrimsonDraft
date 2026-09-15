@@ -128,12 +128,12 @@ namespace CrimsonDraft.Combat
             if (this.context.CurrentTargetSlot >= 0)
             {
                 var result = this.battlefieldView.ApplyDamageToEnemy(
-                    this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage);
+                    this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage, headshotPellets);
 #if UNITY_EDITOR
                 // pellets == bullets for non-shotgun weapons (1 pellet each); headshots/damaging
                 // are only interesting when a shotgun's PelletSpreadStrategy fired several per bullet.
                 Debug.Log(
-                    $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} pellets={this.pendingShots.Length} headshotPellets={headshotPellets} damagingPellets={damagingPellets} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead}");
+                    $"[Combat] Enemy slot={this.context.CurrentTargetSlot} bullets={this.context.SelectedShotCount} pellets={this.pendingShots.Length} headshotPellets={headshotPellets} damagingPellets={damagingPellets} damage={result.DamageApplied} hp={result.RemainingHp} dead={result.IsDead} decapitated={result.IsDecapitated}");
 #endif
                 this.pendingStagger = result.IsStaggered;
                 this.pendingDeath   = result.IsDead;
@@ -170,17 +170,20 @@ namespace CrimsonDraft.Combat
 
                 int totalDamage = 0;
                 int totalPoiseDamage = 0;
+                int headshotPellets = 0;
                 foreach (var shot in participantShots)
                 {
                     totalDamage += Mathf.Max(0, shot.Damage);
                     if (shot.Zone != ShotZone.Miss)
                         totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                    if (shot.Zone == ShotZone.Head)
+                        headshotPellets++;
                 }
 
                 if (this.context.CurrentTargetSlot >= 0)
                 {
                     var result = this.battlefieldView.ApplyDamageToEnemy(
-                        this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage);
+                        this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage, headshotPellets);
                     this.pendingStagger = result.IsStaggered;
                     this.pendingDeath   = result.IsDead;
                 }

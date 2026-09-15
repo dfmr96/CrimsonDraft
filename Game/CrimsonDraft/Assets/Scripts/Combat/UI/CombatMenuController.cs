@@ -322,6 +322,11 @@ namespace CrimsonDraft.Combat
             return hpPct < staggerHpThresholdPct;
         }
 
+        // decapitationPelletThreshold <= 0 means this enemy can never be decapitated (e.g. a
+        // boss), regardless of how many pellets/points land on the head in one action.
+        internal static bool ShouldDecapitate(int decapitationPellets, int decapitationPelletThreshold) =>
+            decapitationPelletThreshold > 0 && decapitationPellets >= decapitationPelletThreshold;
+
         #endregion
 
         #region Event handlers (forward to current state)
