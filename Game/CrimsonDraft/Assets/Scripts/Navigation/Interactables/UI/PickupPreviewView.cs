@@ -13,6 +13,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private GameObject  root            = null!;
         [SerializeField] private Transform   mountPoint       = null!;
         [SerializeField] private float       rotationSpeed    = 60f;
+        [SerializeField] private bool        autoRotate       = true;
         [SerializeField] private string      previewLayerName = "ItemPreview";
 
         // Optional -- only the standalone world pickup-preview panel wires this (InspectPanel's
@@ -42,6 +43,8 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         private bool        highlightRotated;
         private float       rotateTimer;
         private Image?      highlightImage;
+        private Camera?     previewCamera;
+        private Quaternion  initialMountRotation;
 
         void Awake()
         {
@@ -61,13 +64,19 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             // descendant, like this preview camera, to zero size/offset. Detach the camera rig
             // to the scene root so it always renders at its authored world-space position.
             this.mountPoint.parent.SetParent(null, worldPositionStays: false);
+
+            // mountPoint's own parent is the preview camera rig (see manage_gameobject hierarchy:
+            // MountPoint is a direct child of PreviewCamera) -- used to rotate relative to what
+            // the player actually sees instead of world axes.
+            this.previewCamera        = this.mountPoint.parent.GetComponent<Camera>();
+            this.initialMountRotation = this.mountPoint.rotation;
         }
 
         void Update()
         {
             // Unscaled time -- inventory/inspect UI pauses gameplay via Time.timeScale = 0,
             // but this preview should keep spinning/pulsing while that's shown.
-            if (this.currentInstance != null)
+            if (this.currentInstance != null && this.autoRotate)
                 this.currentInstance.transform.Rotate(Vector3.up, this.rotationSpeed * Time.unscaledDeltaTime, Space.World);
 
             if (this.highlightRect == null) return;
@@ -95,6 +104,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         public void Show(ItemData item)
         {
             ClearInstance();
+            this.mountPoint.rotation = this.initialMountRotation;
 
             // Highlight the item's footprint from the grid's top-left cell (0,0),
             // same convention as InventoryGrid.CellToLocal for a center-pivoted grid.
@@ -129,6 +139,23 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             ClearInstance();
             this.root.SetActive(false);
             FadeVolume(0f);
+        }
+
+        // Used instead of the auto-rotate (autoRotate = false) by callers that let the player
+        // spin the model themselves, e.g. InspectPanel feeding its InventoryNavigate axis.
+        // Rotates mountPoint (not the model instance) around the preview camera's own up/right
+        // so left/right and up/down always match what the player sees on screen, regardless of
+        // how the camera rig itself is oriented.
+        public void SetRotationInput(Vector2 axis)
+        {
+            if (this.currentInstance == null || axis == Vector2.zero) return;
+
+            float   delta    = this.rotationSpeed * Time.unscaledDeltaTime;
+            Vector3 camUp    = this.previewCamera != null ? this.previewCamera.transform.up    : Vector3.up;
+            Vector3 camRight = this.previewCamera != null ? this.previewCamera.transform.right : Vector3.right;
+
+            if (axis.x != 0f) this.mountPoint.Rotate(camUp,     axis.x  * delta, Space.World);
+            if (axis.y != 0f) this.mountPoint.Rotate(camRight, -axis.y * delta, Space.World);
         }
 
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);

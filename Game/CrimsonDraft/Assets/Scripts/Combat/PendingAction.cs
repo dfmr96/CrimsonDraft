@@ -2,7 +2,7 @@
 
 namespace CrimsonDraft.Combat
 {
-    public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover, FocusFire }
+    public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover, FocusFire, Melee }
 
     public readonly struct PendingAction
     {
@@ -44,5 +44,8 @@ namespace CrimsonDraft.Combat
 
         public static PendingAction FocusFire(int triggerOperatorSlot, int[] participants) =>
             new PendingAction(PendingActionType.FocusFire, triggerOperatorSlot, focusFireParticipants: participants);
+
+        public static PendingAction Melee(int operatorSlot) =>
+            new PendingAction(PendingActionType.Melee, operatorSlot);
     }
 }

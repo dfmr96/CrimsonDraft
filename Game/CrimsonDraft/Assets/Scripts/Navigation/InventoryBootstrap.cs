@@ -5,6 +5,7 @@ using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation
 {
@@ -13,23 +14,31 @@ namespace CrimsonDraft.Navigation
         private readonly StartingLoadout        loadout;
         private readonly IInventoryService      inventory;
         private readonly InventoryStateRegistry registry;
+        private readonly IOperatorRoster        roster;
         private bool initialized;
 
         [Preserve]
         public InventoryBootstrap(
             StartingLoadout        loadout,
             IInventoryService      inventory,
-            InventoryStateRegistry registry)
+            InventoryStateRegistry registry,
+            IOperatorRoster        roster)
         {
             this.loadout   = loadout;
             this.inventory = inventory;
             this.registry  = registry;
+            this.roster    = roster;
         }
 
         public void Initialize()
         {
             if (this.initialized) return;
             this.initialized = true;
+
+            // Melee is permanently equipped and never stored in inventory slots, so it isn't
+            // part of the saved-state below -- apply it unconditionally on every load.
+            for (int slot = 0; slot < this.loadout.DefaultMelee.Length; slot++)
+                this.roster[slot].SetMeleeWeapon(this.loadout.DefaultMelee[slot]);
 
             var saved = this.registry.Load<InventorySlot[]>();
             if (saved != null)

@@ -114,6 +114,11 @@ namespace CrimsonDraft.Navigation
             this.view.SetControlToggle(this.controlScheme.CurrentScheme == ControlScheme.Classic);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);
+
+            // Open() suppresses gamma so the dimmed pause backdrop stays neutral -- but that
+            // also hides the live effect of this exact slider. Lift it while Options is up so
+            // moving the slider is visible immediately instead of only after Resume().
+            this.graphicsSettings.PopGammaSuppression();
         }
 
         private void CloseOptions()
@@ -121,6 +126,9 @@ namespace CrimsonDraft.Navigation
             this.state = PauseState.Main;
             this.view.ShowMain();
             EventSystem.current.SetSelectedGameObject(this.view.OptionsButton.gameObject);
+
+            // Restore the neutral backdrop for the Main panel -- balances the Pop in OpenOptions.
+            this.graphicsSettings.PushGammaSuppression();
         }
 
         private async UniTaskVoid QuitToMenuAsync()

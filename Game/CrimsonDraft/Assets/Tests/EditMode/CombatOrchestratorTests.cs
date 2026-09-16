@@ -29,6 +29,7 @@ namespace CrimsonDraft.Tests
         private FakeInventoryService     inventory        = null!;
         private FakeEncounterContext     encounterContext = null!;
         private FakePublisher<ShootConfigurationRequestedEvent>     shootPublisher               = null!;
+        private FakePublisher<MeleeConfigurationRequestedEvent>     meleePublisher               = null!;
         private FakePublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher           = null!;
         private FakePublisher<FocusFireCancelledEvent>              focusFireCancelledPublisher  = null!;
         private FakePublisher<CombatEndedEvent>                     combatEndPublisher           = null!;
@@ -45,6 +46,7 @@ namespace CrimsonDraft.Tests
             this.inventory        = new FakeInventoryService();
             this.encounterContext = new FakeEncounterContext();
             this.shootPublisher              = new FakePublisher<ShootConfigurationRequestedEvent>();
+            this.meleePublisher              = new FakePublisher<MeleeConfigurationRequestedEvent>();
             this.focusFirePublisher          = new FakePublisher<FocusFireConfigurationRequestedEvent>();
             this.focusFireCancelledPublisher = new FakePublisher<FocusFireCancelledEvent>();
             this.combatEndPublisher          = new FakePublisher<CombatEndedEvent>();
@@ -54,7 +56,7 @@ namespace CrimsonDraft.Tests
             this.orchestrator = new GameObject("CombatOrchestrator").AddComponent<CombatOrchestrator>();
             this.orchestrator.Construct(
                 this.atbSystem, this.actionQueue,
-                this.shootPublisher, this.focusFirePublisher, this.focusFireCancelledPublisher, this.combatEndPublisher,
+                this.shootPublisher, this.meleePublisher, this.focusFirePublisher, this.focusFireCancelledPublisher, this.combatEndPublisher,
                 this.battlefield, this.roster, this.encounterContext, this.inventory, this.menuView);
             ((IInitializable)this.orchestrator).Initialize();
         }
@@ -334,7 +336,7 @@ namespace CrimsonDraft.Tests
             public void HideEnemyTargetIndicator() { }
             public int[] GetOccupiedEnemySlots() => System.Array.Empty<int>();
             public AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex) => null;
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage) =>
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets) =>
                 new EnemyDamageResult(slotIndex, 0, 0, false, false);
             public void TriggerEnemyStagger(int slotIndex) { }
             public void RecoverEnemyStagger(int slotIndex) { }
@@ -368,6 +370,8 @@ namespace CrimsonDraft.Tests
             public void PlayOperatorDamageShake(int index) { }
             public void PlayOperatorDamageGlitch(int index) { }
             public void SetOperatorActionPending(int index, bool pending) { }
+            public readonly Dictionary<int, int> TurnOrderByIndex = new();
+            public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
             public void SetOperatorGauge(int index, float gauge01) { }
             public void ExpandOperatorBorder(int index, bool expanded, System.Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }

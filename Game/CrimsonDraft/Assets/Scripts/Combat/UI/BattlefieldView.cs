@@ -214,7 +214,7 @@ namespace CrimsonDraft.Combat
             return enemy.HitMaskProfile;
         }
 
-        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
+        public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets)
         {
             if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state))
                 return new EnemyDamageResult(slotIndex, 0, 0, false, false);
@@ -222,9 +222,19 @@ namespace CrimsonDraft.Combat
             if (state.IsDead)
                 return new EnemyDamageResult(slotIndex, 0, 0, true, false);
 
+            EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
+                ? this.currentEnemySlots[slotIndex]
+                : null;
+
             int appliedDamage = Mathf.Max(0, hpDamage);
             state.CurrentHp = Mathf.Max(0, state.CurrentHp - appliedDamage);
-            bool isDead = state.CurrentHp <= 0;
+
+            // Decapitation is a guaranteed kill independent of remaining HP -- enough
+            // pellets/points to the head in one action ends the fight regardless of how
+            // tanky the enemy still is.
+            bool isDecapitated = enemyData != null
+                && CombatMenuController.ShouldDecapitate(decapitationPellets, enemyData.DecapitationPelletThreshold);
+            bool isDead = state.CurrentHp <= 0 || isDecapitated;
             if (isDead)
             {
                 // Only the HP/flag state is set here — the fade-out and removal from
@@ -232,7 +242,7 @@ namespace CrimsonDraft.Combat
                 // off) are deferred to FinalizeEnemyDeath(), called once the operator's
                 // shoot animation finishes playing, so combat can never end mid-burst.
                 state.IsDead = true;
-                return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false);
+                return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false, isDecapitated);
             }
 
             bool willStagger = false;
@@ -241,10 +251,6 @@ namespace CrimsonDraft.Combat
             if (!state.IsStaggered)
             {
                 state.CurrentPoise -= Mathf.Max(0, poiseDamage);
-
-                EnemyData? enemyData = slotIndex >= 0 && slotIndex < this.currentEnemySlots.Length
-                    ? this.currentEnemySlots[slotIndex]
-                    : null;
 
                 if (enemyData != null && state.CurrentPoise <= 0)
                 {

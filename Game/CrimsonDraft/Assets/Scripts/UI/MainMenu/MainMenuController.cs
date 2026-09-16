@@ -1,14 +1,15 @@
 #nullable enable
 
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Save.UI;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.UI.MainMenu
 {
@@ -27,20 +28,24 @@ namespace CrimsonDraft.UI.MainMenu
         private ISaveGameService      saveGameService      = null!;
         private IGameStateResetter    gameStateResetter    = null!;
         private IControlSchemeService controlSchemeService = null!;
+        private ScreenFader           screenFader          = null!;
         private SaveSlotNavigator     loadNavigator        = null!;
         private bool                  isLoadingSlot;
+        private bool                  isStartingNewGame;
 
         [Inject]
         public void Construct(
             IInputService          inputService,
             ISaveGameService       saveGameService,
             IGameStateResetter     gameStateResetter,
-            IControlSchemeService  controlSchemeService)
+            IControlSchemeService  controlSchemeService,
+            ScreenFader            screenFader)
         {
             this.inputService         = inputService;
             this.saveGameService      = saveGameService;
             this.gameStateResetter    = gameStateResetter;
             this.controlSchemeService = controlSchemeService;
+            this.screenFader          = screenFader;
 
             this.loadNavigator = new SaveSlotNavigator(
                 this.loadListView,
@@ -90,9 +95,14 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnNewGameClicked()
         {
+            if (this.isStartingNewGame) return;
+            this.isStartingNewGame = true;
+
             this.gameStateResetter.ResetAll();
-            SceneManager.LoadScene(this.newGameSceneName, LoadSceneMode.Single);
+            StartNewGameAsync().Forget();
         }
+
+        private async UniTaskVoid StartNewGameAsync() => await this.screenFader.LoadSceneAsync(this.newGameSceneName);
 
         private void SelectScheme(ControlScheme scheme)
         {

@@ -21,6 +21,7 @@ namespace CrimsonDraft.Combat
         internal int   SelectedOperator      { get; set; } = 0;
         internal int   SelectedShotCount     { get; set; } = 1;
         internal int   CurrentTargetSlot     { get; set; } = -1;
+        internal bool  IsMeleeAttack         { get; set; }
         internal ICombatOrchestrator Orchestrator { get; private set; } = null!;
         internal List<int> FocusFireMarked { get; } = new();
         internal int[] FocusFireParticipants     { get; set; } = Array.Empty<int>();
@@ -66,10 +67,12 @@ namespace CrimsonDraft.Combat
         private readonly IInventoryService             inventory;
         private readonly ICombatOrchestrator                           orchestrator;
         private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
+        private readonly ISubscriber<MeleeConfigurationRequestedEvent> meleeSubscriber;
         private readonly ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber;
         private readonly ISubscriber<FocusFireCancelledEvent>          focusFireCancelledSubscriber;
         private readonly CombatSfxData?                                sfx;
         private IDisposable? shootSubscription;
+        private IDisposable? meleeSubscription;
         private IDisposable? focusFireSubscription;
         private IDisposable? focusFireCancelledSubscription;
 
@@ -88,6 +91,7 @@ namespace CrimsonDraft.Combat
             ICombatOrchestrator                            orchestrator,
             CombatSfxData                                  sfx,
             ISubscriber<ShootConfigurationRequestedEvent>  shootSubscriber,
+            ISubscriber<MeleeConfigurationRequestedEvent>  meleeSubscriber,
             ISubscriber<FocusFireConfigurationRequestedEvent> focusFireSubscriber,
             ISubscriber<FocusFireCancelledEvent>           focusFireCancelledSubscriber)
         {
@@ -104,6 +108,7 @@ namespace CrimsonDraft.Combat
             this.orchestrator         = orchestrator;
             this.sfx                  = sfx;
             this.shootSubscriber      = shootSubscriber;
+            this.meleeSubscriber      = meleeSubscriber;
             this.focusFireSubscriber  = focusFireSubscriber;
             this.focusFireCancelledSubscriber = focusFireCancelledSubscriber;
         }
@@ -121,6 +126,7 @@ namespace CrimsonDraft.Combat
             IInventoryService            inventory,
             ICombatOrchestrator?         orchestrator    = null,
             ISubscriber<ShootConfigurationRequestedEvent>? shootSubscriber = null,
+            ISubscriber<MeleeConfigurationRequestedEvent>? meleeSubscriber = null,
             ISubscriber<FocusFireConfigurationRequestedEvent>? focusFireSubscriber = null,
             ISubscriber<FocusFireCancelledEvent>? focusFireCancelledSubscriber = null,
             CombatSfxData?               sfx             = null)
@@ -136,6 +142,7 @@ namespace CrimsonDraft.Combat
             this.inventory            = inventory;
             this.orchestrator         = orchestrator!;
             this.shootSubscriber      = shootSubscriber!;
+            this.meleeSubscriber      = meleeSubscriber!;
             this.focusFireSubscriber  = focusFireSubscriber!;
             this.focusFireCancelledSubscriber = focusFireCancelledSubscriber!;
             this.sfx                  = sfx;
@@ -168,6 +175,7 @@ namespace CrimsonDraft.Combat
 
             this.Orchestrator      = this.orchestrator;
             this.shootSubscription     = this.shootSubscriber?.Subscribe(e => BeginShootConfiguration(e.OperatorSlot));
+            this.meleeSubscription     = this.meleeSubscriber?.Subscribe(e => BeginMeleeConfiguration(e.OperatorSlot));
             this.focusFireSubscription = this.focusFireSubscriber?.Subscribe(e => BeginFocusFireConfiguration(e.ParticipantSlots));
             this.focusFireCancelledSubscription = this.focusFireCancelledSubscriber?.Subscribe(e => HandleFocusFireCancelled(e.ReleasedSlots));
 
@@ -193,6 +201,7 @@ namespace CrimsonDraft.Combat
             }
 
             this.shootSubscription?.Dispose();
+            this.meleeSubscription?.Dispose();
             this.focusFireSubscription?.Dispose();
             this.focusFireCancelledSubscription?.Dispose();
         }
@@ -226,6 +235,17 @@ namespace CrimsonDraft.Combat
             RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
+        }
+
+        internal void BeginMeleeConfiguration(int slot)
+        {
+            ForceCloseInterruptedUI();
+            this.SelectedOperator  = slot;
+            this.IsMeleeAttack     = true;
+            this.SelectedShotCount = 1;
+            RepositionCommandPanelToOperator(slot);
+            this.menuView.SetDimmed(true);
+            this.TransitionTo(this.TargetSelState);
         }
 
         internal void BeginFocusFireConfiguration(int[] participants)
@@ -301,6 +321,11 @@ namespace CrimsonDraft.Combat
             float hpPct = maxHp > 0 ? (float)currentHp / maxHp * 100f : 0f;
             return hpPct < staggerHpThresholdPct;
         }
+
+        // decapitationPelletThreshold <= 0 means this enemy can never be decapitated (e.g. a
+        // boss), regardless of how many pellets/points land on the head in one action.
+        internal static bool ShouldDecapitate(int decapitationPellets, int decapitationPelletThreshold) =>
+            decapitationPelletThreshold > 0 && decapitationPellets >= decapitationPelletThreshold;
 
         #endregion
 

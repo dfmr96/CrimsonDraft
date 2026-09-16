@@ -45,6 +45,27 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
 
+        // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
+        // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
+        // 1.0x -> 1.1x -> 1.2x -> 1.3x -> 1.4x, never a flat x2/x3/x4 jump.
+        [Header("Loop Speed Ramp")]
+        [SerializeField] private float speedRampStep      = 0.1f;
+        [SerializeField] private int   maxSpeedRampStages = 4;
+
+        // The whole panel pulses like a heartbeat instead of jittering with continuous noise --
+        // a "lub" thump followed by a weaker "dub" a moment later, then quiet until the next
+        // beat. There's always a faint pulse even at full HP; both how hard it hits
+        // (minPulseAmplitude -> maxPulseAmplitude) and how often it beats
+        // (calmBeatInterval -> panicBeatInterval) ramp up as HP drops, like a racing heart.
+        [Header("HP Heartbeat Shake")]
+        [SerializeField] private float calmBeatInterval    = 1.0f;  // seconds/beat at full HP (~60 BPM)
+        [SerializeField] private float panicBeatInterval   = 0.45f; // seconds/beat at 0 HP (~130 BPM)
+        [SerializeField] private float minPulseAmplitude   = 1.5f;  // px, always present
+        [SerializeField] private float maxPulseAmplitude   = 6f;    // px, at 0 HP
+        [SerializeField] private float pulseDecay          = 14f;   // higher = thump fades faster
+        [SerializeField, Range(0f, 1f)] private float dubStrength       = 0.55f; // "dub" vs "lub" strength
+        [SerializeField, Range(0f, 1f)] private float dubOffsetFraction = 0.16f; // "dub" timing within the beat
+
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
         private int               shotCount              = 1;
@@ -62,6 +83,16 @@ namespace CrimsonDraft.Combat
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
         private readonly List<GameObject> activeFeedback = new List<GameObject>();
+
+        private Tween? verticalTween;
+        private Tween? horizontalTween;
+        private int    verticalLoopLegs;
+        private int    verticalRampStage;
+        private int    horizontalLoopLegs;
+        private int    horizontalRampStage;
+        private float  shakeIntensity01; // 0 = full HP, 1 = 0 HP
+        private float  shakeSeedV; // per-QTE seed for the heartbeat's per-beat punch direction
+        private Vector3 basePanelLocalPos;
 #if UNITY_EDITOR
         private bool       hasLastSample;
         private Vector3    lastSampleWorldPos;
@@ -111,14 +142,35 @@ namespace CrimsonDraft.Combat
                 : new SingleShotStrategy();
         }
 
+        public void ConfigureMeleeWeapon(MeleeWeaponData? meleeData)
+        {
+            this.activeBaseDamage       = meleeData?.Damage ?? CombatMenuController.BaseDamage;
+            this.activeDispersionSprite = null;
+            this.activeBurstPattern     = meleeData?.SlashPattern;
+            this.activePelletCount      = Mathf.Max(2, meleeData?.SlashPointCount ?? 5);
+            float slashLength           = meleeData?.SlashLength ?? 40f;
+            this.activeDispersionRadius = Mathf.Max(1, Mathf.RoundToInt(slashLength * 0.5f));
+            this.activeShotStrategy     = new SlashStrategy(
+                slashLength,
+                meleeData?.SlashAngleDegrees ?? 45f,
+                meleeData?.SlashAngleJitterDegrees ?? 15f);
+        }
+
         public void SetShotCount(int shotCount)
         {
             this.shotCount = Mathf.Max(1, shotCount);
         }
 
+        public void SetOperatorHpRatio(float hpRatio)
+        {
+            this.shakeIntensity01 = 1f - Mathf.Clamp01(hpRatio);
+        }
+
         public void Show()
         {
             this.gameObject.SetActive(true);
+            this.basePanelLocalPos = this.transform.localPosition;
+            this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
             this.StartVerticalOscillation();
             this.phase = AimPhase.VerticalAiming;
             this.pendingResolvedShots = Array.Empty<ResolvedShot>();
@@ -200,6 +252,9 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOKill();
             this.horizontalSelector.rectTransform.DOKill();
+            this.verticalTween   = null;
+            this.horizontalTween = null;
+            this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
             this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
@@ -221,10 +276,13 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.rectTransform.DOKill();
             this.verticalSelector.DOFade(1f, 0f);
             this.verticalSelector.rectTransform.localPosition = new Vector3(0f, -halfH, 0f);
-            this.verticalSelector.rectTransform
+            this.verticalLoopLegs  = 0;
+            this.verticalRampStage = 0;
+            this.verticalTween = this.verticalSelector.rectTransform
                 .DOLocalMoveY(halfH, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
-                .SetEase(Ease.InOutSine);
+                .SetEase(Ease.InOutSine)
+                .OnStepComplete(HandleVerticalLoopLeg);
         }
 
         private void StartHorizontalOscillation()
@@ -234,11 +292,75 @@ namespace CrimsonDraft.Combat
             this.horizontalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOFade(1f, 0f);
             this.horizontalSelector.rectTransform.localPosition = new Vector3(-halfW, 0f, 0f);
-            this.horizontalSelector.rectTransform
+            this.horizontalLoopLegs  = 0;
+            this.horizontalRampStage = 0;
+            this.horizontalTween = this.horizontalSelector.rectTransform
                 .DOLocalMoveX(halfW, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
-                .SetEase(Ease.InOutSine);
+                .SetEase(Ease.InOutSine)
+                .OnStepComplete(HandleHorizontalLoopLeg);
         }
+
+        // OnStepComplete fires once per Yoyo leg (there, then back) -- a full "start, reach the
+        // end, and return to start" loop is 2 legs, so only every 2nd firing counts as one lap
+        // and nudges timeScale up a notch, capped at maxSpeedRampStages.
+        private void HandleVerticalLoopLeg()
+        {
+            this.verticalLoopLegs++;
+            if (this.verticalLoopLegs % 2 != 0) return;
+            if (this.verticalRampStage >= this.maxSpeedRampStages) return;
+            this.verticalRampStage++;
+            if (this.verticalTween != null)
+                this.verticalTween.timeScale = 1f + this.verticalRampStage * this.speedRampStep;
+        }
+
+        private void HandleHorizontalLoopLeg()
+        {
+            this.horizontalLoopLegs++;
+            if (this.horizontalLoopLegs % 2 != 0) return;
+            if (this.horizontalRampStage >= this.maxSpeedRampStages) return;
+            this.horizontalRampStage++;
+            if (this.horizontalTween != null)
+                this.horizontalTween.timeScale = 1f + this.horizontalRampStage * this.speedRampStep;
+        }
+
+        // HP-heartbeat: pulses the whole QTE panel (bars, silhouette, everything --
+        // AimViewController sits on the panel's own root RectTransform) on a "lub-dub" rhythm
+        // instead of continuous noise, so it reads as a heartbeat rather than a twitch. Offset is
+        // added on top of the panel's own configured resting position, captured once in Show(),
+        // so it never drifts and always resolves back to the same anchor between beats.
+        private void Update()
+        {
+            var rt = (RectTransform)this.transform;
+            bool activePhase = this.phase == AimPhase.VerticalAiming || this.phase == AimPhase.HorizontalAiming;
+
+            if (!activePhase)
+            {
+                rt.localPosition = this.basePanelLocalPos;
+                return;
+            }
+
+            float beatInterval = Mathf.Max(0.05f, Mathf.Lerp(this.calmBeatInterval, this.panicBeatInterval, this.shakeIntensity01));
+            int   beatIndex    = Mathf.FloorToInt(Time.time / beatInterval);
+            float cycleT       = Time.time - beatIndex * beatInterval;
+
+            float lub = PulseEnvelope(cycleT, this.pulseDecay);
+            float dub = PulseEnvelope(cycleT - beatInterval * this.dubOffsetFraction, this.pulseDecay) * this.dubStrength;
+            float envelope = Mathf.Max(lub, dub);
+
+            // A new pseudo-random punch direction each beat (stable for the beat's whole
+            // duration) keeps consecutive thumps from looking identical without ever being
+            // incoherent noise mid-beat.
+            float angle = Mathf.PerlinNoise(beatIndex * 0.37f + this.shakeSeedV, 0.5f) * Mathf.PI * 2f;
+            Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+
+            float amplitude = Mathf.Lerp(this.minPulseAmplitude, this.maxPulseAmplitude, this.shakeIntensity01);
+            var offset = new Vector3(dir.x, dir.y, 0f) * (envelope * amplitude);
+
+            rt.localPosition = this.basePanelLocalPos + offset;
+        }
+
+        private static float PulseEnvelope(float t, float decay) => t < 0f ? 0f : Mathf.Exp(-decay * t);
 
         private ResolvedShot[] BuildResolvedShots(Vector2 firstShotLocal, int count)
         {

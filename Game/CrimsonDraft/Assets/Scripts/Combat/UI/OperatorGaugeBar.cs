@@ -24,16 +24,19 @@ namespace CrimsonDraft.Combat
             bool isFull        = overall01 >= 1f - 0.001f; // tolerance: float division can land a hair under 1
             bool justCompleted = isFull && !this.wasFull;
 
-            // On the exact call the whole bar completes, the last segment(s) reaching
-            // their own 100% would otherwise start an olive-ending pulse the same frame
-            // PlayCompletionFlicker below kills and replaces it with the white one —
-            // suppress that individual pulse here so there's nothing to race against.
+            // While the bar is registered full, no segment may run its own olive-ending
+            // pulse -- suppressing only on the justCompleted frame let the last segment's
+            // OWN 1/N-scale tolerance check lag a frame behind the bar's (a per-segment
+            // local value only reaches ITS "isFull" once overall01 is even closer to 1 than
+            // the bar's own -0.001f tolerance needs), so it could fire PlayFillPulse() a
+            // frame after PlayCompletionFlicker already painted every segment white,
+            // killing that sequence and settling back on the rest color permanently.
             float perSegment = 1f / this.segments.Length;
             for (int i = 0; i < this.segments.Length; i++)
             {
                 float segmentStart = i * perSegment;
                 float local = Mathf.Clamp01((overall01 - segmentStart) / perSegment);
-                this.segments[i]?.SetFill(local, suppressPulse: justCompleted);
+                this.segments[i]?.SetFill(local, suppressPulse: isFull);
             }
 
             if (justCompleted)

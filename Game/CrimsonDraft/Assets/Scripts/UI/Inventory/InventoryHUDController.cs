@@ -165,9 +165,7 @@ namespace CrimsonDraft.UI
                 if (operatorSlot < 0) return;
                 int targetWeaponSlot = (int)weaponItem.Data.WeaponSlot;
 
-                IWeaponSlot? prev = targetWeaponSlot == 0
-                    ? this.roster[operatorSlot].PrimaryWeapon
-                    : this.roster[operatorSlot].SecondaryWeapon;
+                IWeaponSlot? prev = this.roster[operatorSlot].PrimaryWeapon;
                 if (prev is InventoryItem prevItem)
                 {
                     prevItem.ClearEquipped();

@@ -188,16 +188,18 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotCount_cancel_returnsToCommandPanel()
+        public void ShotCount_cancel_isNoOp_onceShootConfigurationBegins()
         {
+            // ShotCountSelectionState.OnCancel is intentionally a no-op (see its source) --
+            // once Shoot's configuration begins there's no backing out of it, same invariant
+            // TargetSelectionState documents for melee. Cancel here must change nothing.
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             c.BeginShootConfiguration(0);
 
             c.HandleCancelPressed();
 
-            Assert.IsFalse(this.shotCountView.IsVisible);
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.shotCountView.IsVisible);
         }
 
         [Test]
@@ -229,15 +231,19 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ShotFired_keepsCommandPanelVisibleUntilExtraConfirm()
+        public void ShotFired_commandPanelStaysHidden_throughoutAiming()
         {
+            // commandPanel was already hidden back when Shoot was selected/enqueued
+            // (CommandPanelState.OnCommandSelected) and BeginShootConfiguration never reshows
+            // it -- it plays no part in the ShotCount/TargetSelection/Aiming sub-flow, unlike
+            // aimView (see the sibling ShotFired_keepsAimViewVisibleUntilExtraConfirm).
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
             c.BeginShootConfiguration(0);
             InvokeConfirm(c);
 
             this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
         [Test]
@@ -490,8 +496,14 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Cancel_inTargetSelection_hidesIndicator_returnsToCommandPanel()
+        public void Cancel_inTargetSelection_hidesIndicator_returnsToShotCountSelection()
         {
+            // Shoot's configuration is a linear back-stack once queued: TargetSelection ->
+            // (Cancel) -> ShotCountSelection. It never returns to CommandPanelState -- that
+            // panel was already hidden and the action already enqueued back when Shoot was
+            // originally selected (CommandPanelState.OnCommandSelected), so there's nothing
+            // to reopen here (see ForceCloseInterruptedUI, which treats commandPanel as just
+            // another sub-panel of this flow, not a persistent backdrop).
             this.battlefieldView.SetOccupiedSlots(new[] { 0 });
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
@@ -499,7 +511,8 @@ namespace CrimsonDraft.Tests
             InvokeConfirm(c);
             c.HandleCancelPressed();
             Assert.IsFalse(this.battlefieldView.EnemyTargetVisible);
-            Assert.IsTrue(this.commandPanel.IsVisible);
+            Assert.IsTrue(this.shotCountView.IsVisible);
+            Assert.IsFalse(this.commandPanel.IsVisible);
         }
 
         [Test]
@@ -514,6 +527,28 @@ namespace CrimsonDraft.Tests
             c.BeginShootConfiguration(0);
             InvokeConfirm(c);
             InvokeConfirm(c);
+
+            Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
+        }
+
+        [Test]
+        public void TargetSelection_excludesEnemyDeadButStillPlayingDeathAnimation()
+        {
+            // Slot 0's HP has already hit 0 (IsEnemyDead == true) but it's still mid death
+            // animation, so BattlefieldView hasn't dropped it from occupiedEnemySlots yet
+            // (that only happens once FinalizeEnemyDeath's fall/blood-pool sequence finishes).
+            // TargetSelectionState must not offer it as a target despite it still being
+            // "occupied".
+            this.battlefieldView.SetOccupiedSlots(new[] { 0, 2 });
+            this.battlefieldView.SetEnemyHp(0, 0);
+            var expected = ScriptableObject.CreateInstance<AimHitMaskProfile>();
+            this.battlefieldView.SetMaskProfile(2, expected);
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // ShotCount -> TargetSelection, cursor defaults to first alive slot
+            InvokeConfirm(c); // confirm default target
 
             Assert.AreSame(expected, this.aimView.LastConfiguredProfile);
         }
@@ -618,6 +653,36 @@ namespace CrimsonDraft.Tests
         public void ShouldStagger_hpExactlyAtThreshold_returnsFalse()
         {
             Assert.IsFalse(CombatMenuController.ShouldStagger(poiseAfterDamage: 0, currentHp: 40, maxHp: 100, staggerHpThresholdPct: 40f));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsAtThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldDecapitate(decapitationPellets: 4, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsAboveThreshold_returnsTrue()
+        {
+            Assert.IsTrue(CombatMenuController.ShouldDecapitate(decapitationPellets: 8, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_pelletsBelowThreshold_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 3, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_zeroPellets_returnsFalse()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 0, decapitationPelletThreshold: 4));
+        }
+
+        [Test]
+        public void ShouldDecapitate_thresholdDisabled_neverReturnsTrue()
+        {
+            Assert.IsFalse(CombatMenuController.ShouldDecapitate(decapitationPellets: 999, decapitationPelletThreshold: 0));
         }
 
         [Test]
@@ -1007,6 +1072,8 @@ namespace CrimsonDraft.Tests
             public void PlayOperatorDamageGlitch(int index) { }
             public readonly Dictionary<int, bool> ActionPendingByIndex = new();
             public void SetOperatorActionPending(int index, bool pending) => this.ActionPendingByIndex[index] = pending;
+            public readonly Dictionary<int, int> TurnOrderByIndex = new();
+            public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
             // Synchronous, like the real card's animation eventually completing —
             // keeps existing tests' flow (which expect the reveal to have happened by
             // the time Enter() returns) working without needing to await anything.
@@ -1121,7 +1188,10 @@ namespace CrimsonDraft.Tests
             public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
             public void ConfigureWeapon(CrimsonDraft.Inventory.WeaponData? weaponData) { }
+            public void ConfigureMeleeWeapon(CrimsonDraft.Inventory.MeleeWeaponData? meleeData) { }
             public void SetShotCount(int shotCount) => this.LastShotCount = shotCount;
+            public float LastOperatorHpRatio { get; private set; } = 1f;
+            public void SetOperatorHpRatio(float hpRatio) => this.LastOperatorHpRatio = hpRatio;
             public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss)
             {
                 this.ShowShotFeedbackCalled = true;
@@ -1170,6 +1240,7 @@ namespace CrimsonDraft.Tests
             private UniTaskCompletionSource? pendingBurstSource;
             private bool forceNextResultStaggered;
             public int LastPoiseDamageApplied { get; private set; }
+            public int LastDecapitationPelletsApplied { get; private set; }
 
             public void SetOccupiedSlots(int[] slots)
             {
@@ -1237,9 +1308,10 @@ namespace CrimsonDraft.Tests
                 this.occupiedSlots = next.ToArray();
             }
 
-            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage)
+            public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets)
             {
                 this.LastPoiseDamageApplied = poiseDamage;
+                this.LastDecapitationPelletsApplied = decapitationPellets;
                 bool staggeredThisHit = this.forceNextResultStaggered;
                 this.forceNextResultStaggered = false;
 
@@ -1289,9 +1361,20 @@ namespace CrimsonDraft.Tests
                 this.EnqueueCallCount++;
             }
             public int  NotifyShootCompletedCallCount  { get; private set; }
+            public int  NotifyMeleeCompletedCallCount  { get; private set; }
             public void SetWaitMode(bool paused)       { }
             public bool IsOperatorReady(int slotIndex) => true;
             public void NotifyShootCompleted()         => this.NotifyShootCompletedCallCount++;
+            public void NotifyMeleeCompleted()         => this.NotifyMeleeCompletedCallCount++;
+            public int  ApplyMeleeCounterDamageCallCount { get; private set; }
+            public int  LastCounterDamageOperatorSlot    { get; private set; } = -1;
+            public int  LastCounterDamageEnemySlot        { get; private set; } = -1;
+            public void ApplyMeleeCounterDamage(int operatorSlot, int enemySlot)
+            {
+                this.ApplyMeleeCounterDamageCallCount++;
+                this.LastCounterDamageOperatorSlot = operatorSlot;
+                this.LastCounterDamageEnemySlot    = enemySlot;
+            }
             public int NotifyEnemyStaggeredCallCount { get; private set; }
             public int LastStaggeredSlot             { get; private set; } = -1;
             public void NotifyEnemyStaggered(int enemySlot)

@@ -113,11 +113,6 @@ namespace CrimsonDraft.UI
                     this.cursor.FindView(w0)?.SetEquippedTint(true);
                     this.partyPanel.GetWidget(opIndex)?.SetEquippedWeapon(w0, 0);
                 }
-                if (op.SecondaryWeapon is WeaponItem w1)
-                {
-                    this.cursor.FindView(w1)?.SetEquippedTint(true);
-                    this.partyPanel.GetWidget(opIndex)?.SetEquippedWeapon(w1, 1);
-                }
             }
         }
 
