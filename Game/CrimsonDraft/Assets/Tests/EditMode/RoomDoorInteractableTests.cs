@@ -311,6 +311,12 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventory : IInventoryService
         {
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public KeyUseOutcome UseKeyResult    = new(KeyUseResult.NotFound, -1);
             public bool          RemoveItemCalled { get; private set; }
             public int           RemovedSlotIndex { get; private set; } = -1;

@@ -379,6 +379,51 @@ namespace CrimsonDraft.Tests
         // ── TryCombine ────────────────────────────────────────────────────────
 
         [Test]
+        public void TryCombine_registersUsableKey_andReturnsSameInstanceWithFullInventory()
+        {
+            var a = MakeKeyItemData("KI_08_PartA");
+            var b = MakeKeyItemData("KI_08_PartB");
+            var output = MakeKeyItemData("KI_08_Final", maxUses: 2);
+            var service = MakeService(new FakeRoster(MakeAlive(0)), new FakeCombineService(a, b, output));
+            service.AddItem(a, 0);
+            service.AddItem(b, 0);
+            service.AddItem(MakeConsumableData(), 0);
+            service.AddItem(MakeConsumableData(), 0);
+
+            Assert.IsTrue(service.TryCombine(0, 1, 1, out var result));
+            Assert.IsInstanceOf<KeyItem>(result);
+            Assert.AreSame(result, service.Slots[1].Item);
+            Assert.IsTrue(service.Slots[0].IsEmpty);
+            Assert.AreEqual(KeyUseResult.Success, service.TryUseKey("KI_08_Final").Result);
+            Assert.AreEqual(1, ((KeyItem)result!).UsesRemaining);
+        }
+
+        [TestCase(-1, 1, 0)]
+        [TestCase(0, 0, 0)]
+        [TestCase(0, 4, 0)]
+        [TestCase(0, 1, 2)]
+        [TestCase(0, 1, 4)]
+        public void TryCombine_invalidSlots_preserveInputs(int slotA, int slotB, int resultSlot)
+        {
+            var a = MakeKeyItemData("part-a");
+            var b = MakeKeyItemData("part-b");
+            var output = MakeKeyItemData("final");
+            var service = MakeService(new FakeRoster(MakeAlive(0)), new FakeCombineService(a, b, output));
+            service.AddItem(a, 0);
+            service.AddItem(b, 0);
+            service.AddItem(MakeConsumableData(), 0);
+            var originalA = service.Slots[0].Item;
+            var originalB = service.Slots[1].Item;
+            var occupant = service.Slots[2].Item;
+
+            Assert.IsFalse(service.TryCombine(slotA, slotB, resultSlot, out var result));
+            Assert.IsNull(result);
+            Assert.AreSame(originalA, service.Slots[0].Item);
+            Assert.AreSame(originalB, service.Slots[1].Item);
+            Assert.AreSame(occupant, service.Slots[2].Item);
+        }
+
+        [Test]
         public void TryCombine_returnsTrue_consumesBothInputs_addsResult()
         {
             var itemA   = MakeConsumableData("key");
