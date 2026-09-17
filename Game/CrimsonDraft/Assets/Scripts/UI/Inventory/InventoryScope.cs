@@ -35,6 +35,9 @@ namespace CrimsonDraft.UI
             if (FindFirstObjectByType<MapTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<MapTabController>();
 
+            if (FindFirstObjectByType<BeeperTabController>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<BeeperTabController>();
+
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.Register<InventorySceneInit>(Lifetime.Singleton);
         }
