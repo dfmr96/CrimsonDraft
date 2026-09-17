@@ -37,6 +37,12 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public int SlotCount { get; set; } = 4;
             public InventorySlot[]? LoadedSlots { get; private set; }
             public IReadOnlyList<InventorySlot> Slots => Array.Empty<InventorySlot>();

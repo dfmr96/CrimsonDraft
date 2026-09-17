@@ -372,9 +372,11 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            // Recipe combine — visual layer only
+            // Resolve both domain inputs before changing their views.
+            int slotA = FindSlotIndex(source.BoundItem);
+            int slotB = FindSlotIndex(target.BoundItem);
             var resultData = this.combineService.TryGetResult(source.Data, target.Data);
-            if (resultData == null)
+            if (resultData == null || slotA < 0 || slotB < 0 || slotA == slotB)
             {
                 this.sfx.PlayInvalidAction(this.cursor.gameObject);
                 ExitCombineMode();
@@ -382,30 +384,65 @@ namespace CrimsonDraft.UI
             }
 
             // Free cells first so HasSpace sees the space A and B would release
-            InventoryGrid? preferredGrid = source.OwnerGrid;
             InventoryGrid? sourceGrid    = source.OwnerGrid;
             InventoryGrid? targetGrid    = target.OwnerGrid;
 
             sourceGrid?.RemoveItem(source);
             targetGrid?.RemoveItem(target);
 
-            if (!this.itemSpawner.HasSpace(resultData))
+            if (!TryFindCombinePlacement(resultData, slotA, slotB,
+                    out int resultSlot, out InventoryGrid? resultGrid, out Vector2Int origin)
+                || !this.inventoryService.TryCombine(slotA, slotB, resultSlot, out var combinedItem))
             {
                 // No space even after freeing — restore both items and cancel
                 sourceGrid?.PlaceItem(source);
                 targetGrid?.PlaceItem(target);
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
                 ExitCombineMode();
                 return;
             }
 
             Object.Destroy(source.gameObject);
             Object.Destroy(target.gameObject);
-            this.itemSpawner.Spawn(resultData, preferredGrid);
+            this.itemSpawner.SpawnAt(combinedItem!, resultGrid!, origin.x, origin.y);
+            this.inventoryService.SetSlotPosition(resultSlot, origin.x, origin.y, 0);
             this.sfx.PlayDecide(this.cursor.gameObject);
             ExitCombineMode();
         }
 
         // ── Grid movement ───────────────────────────────────────────────────
+
+        private bool TryFindCombinePlacement(ItemData data, int slotA, int slotB,
+            out int resultSlot, out InventoryGrid? resultGrid, out Vector2Int origin)
+        {
+            int slotsPerOp = this.roster.Count > 0 ? this.inventoryService.SlotCount / this.roster.Count : 4;
+            int preferredOperator = slotA / slotsPerOp;
+            for (int pass = 0; pass < this.roster.Count; pass++)
+            {
+                int op = (preferredOperator + pass) % this.roster.Count;
+                var grid = this.cursor.GetGridForOperator(op);
+                if (grid == null) continue;
+                for (int i = op * slotsPerOp; i < (op + 1) * slotsPerOp; i++)
+                {
+                    if (!this.inventoryService.Slots[i].IsEmpty && i != slotA && i != slotB) continue;
+                    for (int row = 0; row <= grid.Rows - data.GridSize.y; row++)
+                        for (int col = 0; col <= grid.Columns - data.GridSize.x; col++)
+                        {
+                            var cell = new Vector2Int(col, row);
+                            if (!grid.CanPlace(cell, data.GridSize)) continue;
+                            resultSlot = i;
+                            resultGrid = grid;
+                            origin = cell;
+                            return true;
+                        }
+                    break;
+                }
+            }
+            resultSlot = -1;
+            resultGrid = null;
+            origin = default;
+            return false;
+        }
 
         private void HandleItemPlaced(InventoryItemView item)
         {
