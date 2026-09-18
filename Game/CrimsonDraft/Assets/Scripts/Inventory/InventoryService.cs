@@ -232,12 +232,39 @@ namespace CrimsonDraft.Inventory
         public bool TryCombine(int slotA, int slotB)
         {
             var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+                if (s[i].IsEmpty || i == slotA || i == slotB)
+                    return TryCombine(slotA, slotB, i, out _);
+            return false;
+        }
+
+        public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+        {
+            combinedItem = null;
+            var s = EnsureSlots();
+            if (slotA < 0 || slotA >= s.Length || slotB < 0 || slotB >= s.Length
+                || slotA == slotB || resultSlot < 0 || resultSlot >= s.Length) return false;
             if (s[slotA].IsEmpty || s[slotB].IsEmpty) return false;
+            if (resultSlot != slotA && resultSlot != slotB && !s[resultSlot].IsEmpty) return false;
+            if (s[slotA].Item!.IsEquipped || s[slotB].Item!.IsEquipped) return false;
             var result = this.combineService.TryGetResult(s[slotA].Item!.Data, s[slotB].Item!.Data);
             if (result == null) return false;
+            // Construct before consuming inputs so unsupported recipe outputs cannot lose items.
+            combinedItem = result switch
+            {
+                WeaponData wd => new WeaponItem(wd),
+                AmmoBoxData ad => new AmmoBoxItem(ad, 0),
+                ConsumableData cd => new ConsumableItem(cd),
+                KeyItemData kd => new KeyItem(kd),
+                SocketItemData sd => new SocketItem(sd),
+                _ => null
+            };
+            if (combinedItem == null) return false;
             RemoveItem(slotA);
             RemoveItem(slotB);
-            AddItemAuto(result);
+            s[resultSlot].Item = combinedItem;
+            s[resultSlot].Quantity = 1;
+            SetSlotPosition(resultSlot, -1, -1, 0);
             return true;
         }
 
