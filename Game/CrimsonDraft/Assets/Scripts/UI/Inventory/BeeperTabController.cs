@@ -16,10 +16,15 @@ namespace CrimsonDraft.UI
 {
     /// <summary>Drives the BEEPER tab's Morse key: Input (tap=dot, hold=dash) walks the
     /// MorseDecoder tree one node per press, lighting the matching LED-&lt;letter&gt; and
-    /// showing the live letter in CODE. 3s of inactivity locks the letter, relights START,
-    /// and moves on to the next of the three required letters. Once all three are locked,
-    /// Output (SEND) publishes the code via BeeperSignalRegistry/BeeperSignalSentEvent for
-    /// any level zone to read, then clears CODE so the player can start a new one.</summary>
+    /// showing the live letter in CODE's current slot. The next empty slot blinks a "-"
+    /// caret, like a text field waiting for input. 3s of inactivity locks the letter,
+    /// relights START, and moves the caret to the next of the three required letters.
+    /// Once all three are locked, Output (SEND) publishes the code via
+    /// BeeperSignalRegistry/BeeperSignalSentEvent for any level zone to read and flashes the
+    /// result LED red/green. CODE keeps showing the sent letters — and Output is locked out —
+    /// until that LED finishes its cycle, only then is CODE cleared. Switching away from the
+    /// BEEPER tab or closing the inventory always wipes CODE immediately regardless, so it
+    /// never reopens with stale letters.</summary>
     public sealed class BeeperTabController : MonoBehaviour
     {
         [SerializeField] private Transform     ledRoot      = null!; // parent of all LED-<Letter> children
@@ -27,9 +32,16 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image         inputButton  = null!;
         [SerializeField] private Image         outputButton = null!;
         [SerializeField] private RectTransform selectorRect = null!; // moves between inputButton/outputButton
-        [SerializeField] private TMP_Text      codeText     = null!;
+        [SerializeField] private TMP_Text[]    codeLetterSlots = null!; // one slot per required letter
         [SerializeField] private Image         chargeFill   = null!; // fills 0→1 over holdThreshold while holding Input
         [SerializeField] private Image         timeFill     = null!; // drains 1→0 over letterTimeout while a letter is active
+        [SerializeField] private Image?        signalLed;    // between CODE and Output; flashes the SEND result. Optional.
+
+        [SerializeField] private float cursorBlinkInterval = 0.5f; // blink rate of the "-" placeholder shown in the next empty slot
+
+        [SerializeField] private Color signalReceivedColor    = Color.green;
+        [SerializeField] private Color signalNotReceivedColor = Color.red;
+        [SerializeField] private float signalLedDuration      = 2f; // seconds visible after SEND before fading back to alpha 0
 
         [SerializeField] private Sprite dotOnSprite   = null!;
         [SerializeField] private Sprite dotOffSprite  = null!;
@@ -64,6 +76,12 @@ namespace CrimsonDraft.UI
         private float lastInputTime;
         private Vector2Int lastDir;
 
+        private char? liveLetter;
+        private float cursorBlinkTimer;
+        private bool  cursorVisible = true;
+
+        private float signalLedHideTime = -1f; // Time.unscaledTime at which to hide the LED; -1 = not showing
+
         // ── Lifecycle ────────────────────────────────────────────────────────
 
         void Awake()
@@ -79,6 +97,7 @@ namespace CrimsonDraft.UI
         void OnEnable()
         {
             ResetState();
+            HideSignalLed();
 
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.started  += OnPressStarted;
@@ -88,10 +107,18 @@ namespace CrimsonDraft.UI
 
         void OnDisable()
         {
-            if (!this.inputBound || this.inputService == null) return;
-            this.inputService.InventoryConfirm.started  -= OnPressStarted;
-            this.inputService.InventoryConfirm.canceled -= OnPressReleased;
-            this.inputBound = false;
+            if (this.inputBound && this.inputService != null)
+            {
+                this.inputService.InventoryConfirm.started  -= OnPressStarted;
+                this.inputService.InventoryConfirm.canceled -= OnPressReleased;
+                this.inputBound = false;
+            }
+
+            // Security: switching away from BEEPER (tab change or closing the inventory)
+            // always wipes whatever was typed or just sent — it must never come back with
+            // stale letters, even if the result LED was still showing.
+            ResetState();
+            HideSignalLed();
         }
 
         void Update()
@@ -100,6 +127,13 @@ namespace CrimsonDraft.UI
 
             HandleNavigate();
             UpdateChargeFill();
+            UpdateCursorBlink();
+
+            if (this.signalLedHideTime >= 0f && Time.unscaledTime >= this.signalLedHideTime)
+            {
+                HideSignalLed();
+                ResetState(); // only safe to clear CODE once the player has seen the result
+            }
 
             if (this.activeLetter != '\0')
             {
@@ -109,6 +143,19 @@ namespace CrimsonDraft.UI
                 if (remaining01 <= 0f)
                     LockCurrentLetter();
             }
+        }
+
+        // Blinks the "-" placeholder shown in the next empty CODE slot, like a text-input caret.
+        void UpdateCursorBlink()
+        {
+            this.cursorBlinkTimer += Time.unscaledDeltaTime;
+            if (this.cursorBlinkTimer < this.cursorBlinkInterval) return;
+
+            this.cursorBlinkTimer -= this.cursorBlinkInterval;
+            this.cursorVisible = !this.cursorVisible;
+
+            if (!this.liveLetter.HasValue)
+                RenderCodeSlots();
         }
 
         // ── Input: Press (dot/dash on Input, no-op on Output) ──────────────────
@@ -163,6 +210,13 @@ namespace CrimsonDraft.UI
 
         void HandleOutputPress()
         {
+            if (this.signalLedHideTime >= 0f)
+            {
+                // Still showing the result of the last send — CODE stays put until it clears.
+                this.sfx?.PlayInvalidAction(gameObject);
+                return;
+            }
+
             if (this.decoder.Word.Count < this.requiredLetters)
             {
                 this.sfx?.PlayInvalidAction(gameObject);
@@ -173,7 +227,13 @@ namespace CrimsonDraft.UI
             this.beeperSignalRegistry.SetSignal(code);
             this.beeperSignalPublisher.Publish(new BeeperSignalSentEvent { Code = code });
 
-            ResetState(); // clears CODE and lets the player start typing the next code
+            // MessagePipe publishes synchronously, so any receiver that accepted the code has
+            // already had the chance to call BeeperSignalRegistry.ClearSignal() by the time
+            // Publish() returns — that's how we tell "someone caught it" from "nobody did".
+            bool received = this.beeperSignalRegistry.CurrentSignal == null;
+            ShowSignalLed(received);
+
+            // CODE is left showing the sent letters — Update() clears it once the LED goes out.
             this.sfx?.PlayDecide(gameObject);
         }
 
@@ -281,10 +341,59 @@ namespace CrimsonDraft.UI
                 this.timeFill.fillAmount = value01;
         }
 
-        void RefreshCodeText(char? liveLetter)
+        // Flashes the LED red/green for signalLedDuration seconds, then fades back to alpha 0.
+        void ShowSignalLed(bool received)
+        {
+            if (this.signalLed == null) return;
+
+            Color color = received ? this.signalReceivedColor : this.signalNotReceivedColor;
+            color.a = 1f;
+            this.signalLed.color = color;
+
+            this.signalLedHideTime = Time.unscaledTime + this.signalLedDuration;
+        }
+
+        void HideSignalLed()
+        {
+            this.signalLedHideTime = -1f;
+
+            if (this.signalLed == null) return;
+
+            Color color = this.signalLed.color;
+            color.a = 0f;
+            this.signalLed.color = color;
+        }
+
+        void RefreshCodeText(char? newLiveLetter)
+        {
+            this.liveLetter = newLiveLetter;
+
+            // A fresh letter just started/locked — reset the blink so the cursor is always
+            // visible the instant it appears, instead of picking up mid-blink.
+            this.cursorBlinkTimer = 0f;
+            this.cursorVisible    = true;
+
+            RenderCodeSlots();
+        }
+
+        void RenderCodeSlots()
         {
             string confirmed = this.decoder.GetWord();
-            this.codeText.text = liveLetter.HasValue ? confirmed + liveLetter.Value : confirmed;
+
+            for (int i = 0; i < this.codeLetterSlots.Length; i++)
+            {
+                TMP_Text slot = this.codeLetterSlots[i];
+                if (slot == null) continue;
+
+                if (i < confirmed.Length)
+                    slot.text = confirmed[i].ToString();
+                else if (i > confirmed.Length)
+                    slot.text = string.Empty;
+                else // i == confirmed.Length: the slot currently being written
+                    slot.text = this.liveLetter.HasValue
+                        ? this.liveLetter.Value.ToString()
+                        : (this.cursorVisible ? "-" : string.Empty);
+            }
         }
 
         void ResetState()
