@@ -1,0 +1,12 @@
+title: socket_pipe_valve
+---
+<<if $insert_result == "success">>
+You inserted {$item_name}.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does not fit here.
+<<elseif $activated>>
+The valve handle is attached and the pipe is sealed.
+<<else>>
+Something seems to be missing to relieve the pressure in the pipe — steam is blocking my way.
+<<endif>>
+===

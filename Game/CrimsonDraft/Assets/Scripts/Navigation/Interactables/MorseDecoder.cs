@@ -18,6 +18,19 @@ namespace CrimsonDraft.Navigation.Interactables
             [".-.."] = 'L', ["..-."] = 'F', ["...-"] = 'V', ["...."] = 'H',
         };
 
+        private static readonly Dictionary<char, char> s_lastSymbol = BuildLastSymbolLookup();
+
+        private static Dictionary<char, char> BuildLastSymbolLookup()
+        {
+            var map = new Dictionary<char, char>();
+            foreach (var kv in s_table)
+                map[kv.Value] = kv.Key[^1];
+            return map;
+        }
+
+        /// <summary>Last dot/dash of a letter's code — which sprite (point/line) its LED uses.</summary>
+        public static bool TryGetLastSymbol(char letter, out char symbol) => s_lastSymbol.TryGetValue(letter, out symbol);
+
         private readonly StringBuilder _currentSequence = new();
         private readonly List<char>    _word            = new();
 
@@ -26,6 +39,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void InputDot()  => _currentSequence.Append('.');
         public void InputDash() => _currentSequence.Append('-');
+
+        /// <summary>What confirming CurrentSequence + symbol would decode to, without mutating state.</summary>
+        public bool TryPreview(char symbol, out char letter) => s_table.TryGetValue(_currentSequence.ToString() + symbol, out letter);
 
         public void Confirm()
         {

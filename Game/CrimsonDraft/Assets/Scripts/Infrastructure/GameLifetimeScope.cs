@@ -66,6 +66,7 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterMessageBroker<MeleeConfigurationRequestedEvent>(options);
             builder.RegisterMessageBroker<FocusFireConfigurationRequestedEvent>(options);
             builder.RegisterMessageBroker<FocusFireCancelledEvent>(options);
+            builder.RegisterMessageBroker<BeeperSignalSentEvent>(options);
 
             builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
@@ -82,6 +83,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<KnownMapsRegistry>(Lifetime.Singleton);
             builder.Register<PickupRegistry>(Lifetime.Singleton);
             builder.Register<NoteRegistry>(Lifetime.Singleton);
+            builder.Register<BeeperSignalRegistry>(Lifetime.Singleton);
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
             builder.Register<EnemyStateRegistry>(Lifetime.Singleton);

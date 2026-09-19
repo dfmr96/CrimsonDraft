@@ -14,10 +14,21 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private SocketItemData[] requiredItems = System.Array.Empty<SocketItemData>();
         [SerializeField] private UnityEvent       onActivated   = new();
         [SerializeField] private DialogueReference dialogueReference = new();
+        [SerializeField] private Collider?        blockingCollider; // optional physical barrier; disabled once the socket is fully activated
+        [SerializeField] private GameObject?      revealOnActivate; // optional visual (e.g. the inserted item's mesh); hidden until the socket is fully activated
+        [SerializeField] private GameObject?      hideOnActivate;   // optional visual (e.g. a steam/VFX blocker); switched off once the socket is fully activated
 
         private bool[] inserted = System.Array.Empty<bool>();
 
         public bool IsActivated { get; private set; }
+
+        void Awake()
+        {
+            // Defensive: make sure the "placed" visual isn't left visible by mistake in the
+            // editor before anything has actually been inserted.
+            if (this.revealOnActivate != null)
+                this.revealOnActivate.SetActive(false);
+        }
 
         public bool CanInsert(ItemData item)
         {
@@ -59,6 +70,16 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (IsComplete())
                 {
                     this.IsActivated = true;
+
+                    if (this.blockingCollider != null)
+                        this.blockingCollider.enabled = false;
+
+                    if (this.revealOnActivate != null)
+                        this.revealOnActivate.SetActive(true);
+
+                    if (this.hideOnActivate != null)
+                        this.hideOnActivate.SetActive(false);
+
                     this.onActivated.Invoke();
                 }
 
