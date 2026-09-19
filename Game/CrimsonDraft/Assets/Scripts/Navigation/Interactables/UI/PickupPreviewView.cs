@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using Yarn.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.UI;
 
@@ -156,6 +157,40 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
             if (axis.x != 0f) this.mountPoint.Rotate(camUp,     axis.x  * delta, Space.World);
             if (axis.y != 0f) this.mountPoint.Rotate(camRight, -axis.y * delta, Space.World);
+        }
+
+        // Returns null when the currently-shown item has no ItemExamineHotspots at all -- callers
+        // should fall back to that item's own default examine text in that case. A non-null result
+        // is always a valid, fully-resolved DialogueReference (hotspot-specific, or the component's
+        // own defaultDialogue when the raycast didn't hit a registered hotspot).
+        public DialogueReference? TryGetExamineDialogue()
+        {
+            if (this.currentInstance == null) return null;
+
+            var hotspots = this.currentInstance.GetComponentInChildren<ItemExamineHotspots>();
+            if (hotspots == null) return null;
+
+            Collider? hitCollider = null;
+            if (this.previewCamera != null)
+            {
+                // Player rotates the model via mountPoint.Rotate (SetRotationInput), a plain
+                // Transform op -- with autoSyncTransforms disabled project-wide and Time.timeScale
+                // at 0 while inspect is open (no physics step to pick it up naturally), PhysX
+                // would otherwise see a stale collider pose here.
+                Physics.SyncTransforms();
+
+                int mask = this.previewLayer >= 0 ? 1 << this.previewLayer : ~0;
+                if (Physics.Raycast(this.previewCamera.transform.position, this.previewCamera.transform.forward,
+                        out var hit, Mathf.Infinity, mask, QueryTriggerInteraction.Collide))
+                {
+                    hitCollider = hit.collider;
+                }
+            }
+
+            var dialogue = hotspots.GetDialogue(hitCollider);
+            // An unconfigured hotspot/default reference means "no answer" -- let the caller
+            // fall back to ItemData.ExamineDialogue rather than typing out an empty string.
+            return dialogue.IsValid ? dialogue : null;
         }
 
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);

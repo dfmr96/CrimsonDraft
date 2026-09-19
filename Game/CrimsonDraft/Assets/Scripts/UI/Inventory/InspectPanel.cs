@@ -151,7 +151,16 @@ namespace CrimsonDraft.UI
             // While typing, Confirm completes the text instantly. Only once finished does
             // Confirm replay it from the start.
             if (this.isTyping) { this.skipRequested = true; return; }
-            TypewriterRoutine(this.pendingExamineText).Forget();
+
+            // Hotspot items resolve their text fresh on every press (the player may have
+            // rotated the model between attempts); items without hotspots keep the text
+            // cached at Open() time.
+            var hotspotDialogue = this.modelPreview?.TryGetExamineDialogue();
+            string text = hotspotDialogue != null
+                ? ExtractExamineText(hotspotDialogue)
+                : this.pendingExamineText;
+
+            TypewriterRoutine(text).Forget();
         }
 
         async UniTaskVoid TypewriterRoutine(string text)
