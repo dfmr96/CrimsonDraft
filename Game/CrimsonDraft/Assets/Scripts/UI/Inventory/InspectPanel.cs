@@ -61,7 +61,10 @@ namespace CrimsonDraft.UI
 
         void Update()
         {
-            if (!IsOpen || this.modelPreview == null) return;
+            // Lock rotation while the examine text is being typed out -- otherwise the
+            // player could rotate onto/off a hotspot mid-reveal for text that was already
+            // resolved for a different aim.
+            if (!IsOpen || this.modelPreview == null || this.isTyping) return;
             this.modelPreview.SetRotationInput(this.input.InventoryNavigate.ReadValue<Vector2>());
         }
 

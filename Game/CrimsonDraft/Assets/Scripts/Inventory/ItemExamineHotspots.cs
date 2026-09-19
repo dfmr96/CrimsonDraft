@@ -31,7 +31,12 @@ namespace CrimsonDraft.Inventory
             return this.defaultDialogue;
         }
 
-        void OnDrawGizmosSelected()
+        void OnDrawGizmosSelected() => DrawGizmos();
+
+        // Exposed so other systems (PickupPreviewView's raycast debug gizmo) can draw
+        // these same wireframes against a live runtime instance without needing to
+        // separately select it in the hierarchy.
+        public void DrawGizmos()
         {
             Gizmos.color = Color.yellow;
             foreach (var h in this.hotspots)

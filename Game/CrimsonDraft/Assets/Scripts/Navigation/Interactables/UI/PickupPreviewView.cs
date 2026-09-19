@@ -126,7 +126,10 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             // just skip instantiating a 3D preview.
             if (modelPrefab != null)
             {
-                this.currentInstance = Instantiate(modelPrefab, this.mountPoint.position, this.mountPoint.rotation, this.mountPoint);
+                // Parent-only overload -- preserves the prefab's own authored local
+                // position/rotation/scale under mountPoint, instead of forcing world
+                // position/rotation to mountPoint's and discarding the prefab's offset.
+                this.currentInstance = Instantiate(modelPrefab, this.mountPoint);
                 if (this.previewLayer >= 0)
                     SetLayerRecursively(this.currentInstance.transform, this.previewLayer);
             }
@@ -216,6 +219,32 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             t.gameObject.layer = layer;
             for (int i = 0; i < t.childCount; i++)
                 SetLayerRecursively(t.GetChild(i), layer);
+        }
+
+        // Debug aid: draws the exact ray TryGetExamineDialogue() would cast right now
+        // (green if it hits something on the preview layer, red if not), plus the
+        // currently-shown instance's hotspot colliders, so both can be inspected together
+        // without separately selecting the spawned model in the hierarchy.
+        void OnDrawGizmosSelected()
+        {
+            if (this.previewCamera == null) return;
+
+            // Same reasoning as TryGetExamineDialogue(): without this, a script-driven
+            // rotation change may not be visible to Physics.Raycast yet.
+            Physics.SyncTransforms();
+
+            var origin  = this.previewCamera.transform.position;
+            var forward = this.previewCamera.transform.forward;
+            int mask    = this.previewLayer >= 0 ? 1 << this.previewLayer : ~0;
+
+            bool hasHit = Physics.Raycast(origin, forward, out var hit, Mathf.Infinity, mask, QueryTriggerInteraction.Collide);
+
+            Gizmos.color = hasHit ? Color.green : Color.red;
+            Gizmos.DrawLine(origin, origin + forward * (hasHit ? hit.distance : 10f));
+            if (hasHit) Gizmos.DrawWireSphere(hit.point, 0.03f);
+
+            if (this.currentInstance != null)
+                this.currentInstance.GetComponentInChildren<ItemExamineHotspots>()?.DrawGizmos();
         }
     }
 }
