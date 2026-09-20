@@ -1,5 +1,6 @@
 #nullable enable
 
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
@@ -9,6 +10,7 @@ using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Player.Movement;
 using CrimsonDraft.Operators;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Pushables;
 
 namespace CrimsonDraft.Navigation.Player
 {
@@ -23,6 +25,11 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private float footOffset        = 1f;   // distancia del pivot del Rigidbody al suelo
         [SerializeField] private float navMeshTolerance  = 0.3f; // tolerancia horizontal para considerar "en NavMesh"
 
+        [Header("Pushable Objects")]
+        [SerializeField] private float pushDotThreshold   = 0.5f; // ~60 deg tolerance around the push axis
+        [SerializeField] private float pushStrideInterval = 0.5f; // placeholder -- tiempo entre zancadas (tambien vale como la espera inicial antes de la primera)
+        [SerializeField] private float pushStrideDistance = 0.5f; // placeholder -- distancia que avanza cada zancada, pendiente de pasada de feel
+
         [Header("Health Speed Steps (REmake-based)")]
         [SerializeField, Range(0f, 1f)] private float yellowCautionThreshold  = 0.75f;
         [SerializeField, Range(0f, 1f)] private float orangeCautionThreshold  = 0.50f;
@@ -31,10 +38,11 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField, Range(0f, 1f)] private float orangeCautionSpeedRatio = 0.86f;
         [SerializeField, Range(0f, 1f)] private float dangerSpeedRatio        = 0.72f;
 
-        private static readonly int ArmedHash = Animator.StringToHash("Armed");
-        private static readonly int IdleHash  = Animator.StringToHash("Idle");
-        private static readonly int WalkHash  = Animator.StringToHash("Walk");
-        private static readonly int RunHash   = Animator.StringToHash("Run");
+        private static readonly int ArmedHash   = Animator.StringToHash("Armed");
+        private static readonly int IdleHash    = Animator.StringToHash("Idle");
+        private static readonly int WalkHash    = Animator.StringToHash("Walk");
+        private static readonly int RunHash     = Animator.StringToHash("Run");
+        private static readonly int PushingHash = Animator.StringToHash("Pushing");
 
         private IInputService         inputService         = null!;
         private IInventoryService     inventoryService     = null!;
@@ -43,6 +51,9 @@ namespace CrimsonDraft.Navigation.Player
         private IPlayerMovementStrategy classicStrategy = null!;
         private IOperatorRoster?      roster;
         private InputDevice?          lastDevice;
+        private PushableObject?       touchingPushable;
+        private Vector3               touchingPushDirection;
+        private float                 pushStrideTimer;
 
         public bool IsAiming { get; private set; }
 
@@ -86,6 +97,21 @@ namespace CrimsonDraft.Navigation.Player
             this.lastDevice = ctx.control.device;
         }
 
+        // Called by PushableObjectSide (one per face) when the player enters/exits its trigger.
+        // The push direction is fixed by the side, not recomputed here -- see
+        // PushableObjectSide.Awake.
+        internal void SetTouchingPushable(PushableObject pushable, Vector3 direction)
+        {
+            this.touchingPushable      = pushable;
+            this.touchingPushDirection = direction;
+        }
+
+        internal void ClearTouchingPushable(PushableObject pushable)
+        {
+            if (this.touchingPushable == pushable)
+                this.touchingPushable = null;
+        }
+
         private void FixedUpdate()
         {
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
@@ -104,6 +130,7 @@ namespace CrimsonDraft.Navigation.Player
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;
+                this.pushStrideTimer = 0f;
                 return;
             }
 
@@ -111,8 +138,47 @@ namespace CrimsonDraft.Navigation.Player
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetTrigger(IdleHash);
+                this.animator.SetBool(PushingHash, false);
+                this.pushStrideTimer = 0f;
                 return;
             }
+
+            if (this.TryResolvePush(result.Direction, out var pushable, out var pushAxis))
+            {
+                // Locked in push mode: normal movement (and the sprint/health-speed path below)
+                // is fully suppressed for as long as this holds -- the player can only move
+                // together with the box, in discrete strides, never independently of it.
+                this.pushStrideTimer += Time.fixedDeltaTime;
+                transform.forward = pushAxis;
+                this.animator.SetBool(PushingHash, true);
+                this.rb.linearVelocity = Vector3.zero;
+
+                if (this.pushStrideTimer < this.pushStrideInterval)
+                {
+                    // Between strides (this also covers the initial windup before the first
+                    // stride): straining against it, box hasn't budged yet this stride.
+                    this.animator.SetTrigger(IdleHash);
+                    return;
+                }
+
+                this.pushStrideTimer = 0f;
+                bool moved = pushable.TryStep(pushAxis, this.pushStrideDistance);
+                this.animator.SetTrigger(moved ? WalkHash : IdleHash);
+
+                // Tween the player the exact same distance and the exact same duration as the
+                // box (read from the box, not a separately-tuned value here) -- keeps them glued
+                // together with no gap a mismatch between two independently-driven bodies could
+                // open. rb.DOMove (not a plain transform tween) keeps this MovePosition-safe for
+                // the player's still-active, non-kinematic Rigidbody.
+                if (moved)
+                {
+                    this.rb.DOKill();
+                    this.rb.DOMove(this.rb.position + pushAxis * this.pushStrideDistance, pushable.StrideTweenDuration).SetEase(Ease.OutQuad);
+                }
+                return;
+            }
+            this.pushStrideTimer = 0f;
+            this.animator.SetBool(PushingHash, false);
 
             var isSprinting     = this.inputService.Sprint.IsPressed() && result.AllowSprint;
             var speedMultiplier = this.GetSpeedMultiplier();
@@ -129,6 +195,21 @@ namespace CrimsonDraft.Navigation.Player
             }
 
             this.rb.linearVelocity = resolvedDir * speed;
+        }
+
+        // Contact-only activation: no dedicated input, no IInteractable raycast+button path.
+        // touchingPushable/touchingPushDirection come from PushableObjectSide's trigger, not a
+        // physics contact or a probe -- moveDir only gates *whether* this counts as pushing into
+        // it versus grazing past it tangentially.
+        private bool TryResolvePush(Vector3 moveDir, out PushableObject pushable, out Vector3 axis)
+        {
+            pushable = this.touchingPushable!;
+            axis     = this.touchingPushDirection;
+
+            if (this.touchingPushable == null)
+                return false;
+
+            return Vector3.Dot(moveDir, axis) >= this.pushDotThreshold;
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
