@@ -38,8 +38,13 @@ namespace CrimsonDraft.UI
         [SerializeField] private Sprite? selectorSpriteNormal;
         [SerializeField] private Sprite? selectorSpriteHold; // shown while moving/combining
 
-        [Inject] private IInputService    inputService = null!;
-        [Inject] private InventorySfxData sfx          = null!;
+        [Inject] private IInputService     inputService = null!;
+        [Inject] private InventorySfxData  sfx          = null!;
+
+        // Resolved lazily via the container instead of [Inject] -- InventorySceneInit's own
+        // constructor takes a GridCursor param (for FindView), so field-injecting it directly
+        // here creates a circular resolution VContainer can't build (Lazy<T> reentrancy).
+        [Inject] private IObjectResolver  resolver     = null!;
         private bool inputBound;
 
         // Combine mode — set by InventoryHUDController
@@ -385,10 +390,19 @@ namespace CrimsonDraft.UI
             this.lastDir = Vector2Int.zero;
         }
 
-        void OnInspectClosed()
+        void OnInspectClosed(string? selectItemId)
         {
             this.holding = false;
             this.lastDir = Vector2Int.zero;
+
+            // A hotspot's onUsed/reward can add or remove items via IInventoryService while
+            // InspectPanel was open, without going through the normal open-time sync -- catch
+            // those up (stale views for consumed items, missing views for granted ones) before
+            // trying to select anything.
+            this.resolver.Resolve<InventorySceneInit>().EnsureSynced();
+
+            if (selectItemId != null && SelectItemById(selectItemId))
+                return;
 
             OperatorWidgetView? widget = this.onMeleeSlot && this.partyPanel != null
                 ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
@@ -836,6 +850,30 @@ namespace CrimsonDraft.UI
                     }
             }
             return null;
+        }
+
+        // Moves the cursor to the first grid cell holding an item with the given itemId --
+        // used after InspectPanel grants a reward so the player lands right on it.
+        public bool SelectItemById(string itemId)
+        {
+            for (int g = 0; g < this.gridGroup.Count; g++)
+            {
+                var grid = this.gridGroup.GetGrid(g);
+                if (grid == null) continue;
+                for (int c = 0; c < grid.Columns; c++)
+                    for (int r = 0; r < grid.Rows; r++)
+                    {
+                        var view = grid.GetItemAt(new Vector2Int(c, r));
+                        if (view == null || view.Data.ItemId != itemId) continue;
+
+                        this.currentGridIndex = g;
+                        this.currentCell      = view.GridOrigin;
+                        AttachSelectorToGrid(grid);
+                        PlaceSelectorAt(this.currentCell);
+                        return true;
+                    }
+            }
+            return false;
         }
     }
 }

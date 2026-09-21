@@ -70,6 +70,13 @@ namespace CrimsonDraft.Inventory
         /// </summary>
         KeyUseOutcome TryUseKey(string keyItemId);
 
+        /// <summary>Returns true if any slot holds an item with the given itemId.</summary>
+        bool HasItem(string itemId);
+
+        /// <summary>Finds and clears the first slot holding an item with the given
+        /// itemId. Returns false (no mutation) if not found.</summary>
+        bool TryRemoveItem(string itemId);
+
         /// <summary>
         /// Replaces the internal slot array and re-wires equipped weapons to the roster.
         /// Used by InventoryBootstrap to restore saved state across scene transitions.

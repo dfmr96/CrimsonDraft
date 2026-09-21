@@ -15,25 +15,87 @@ namespace CrimsonDraft.Editor
     [CustomPropertyDrawer(typeof(ItemExamineHotspots.Hotspot))]
     public sealed class HotspotDrawer : PropertyDrawer
     {
+        private const float Spacing = 4f; // extra breathing room between this Hotspot's fields and the next one in the array
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
 
-            var colliderProp = property.FindPropertyRelative("collider");
-            var dialogueProp = property.FindPropertyRelative("dialogue");
+            var colliderProp       = property.FindPropertyRelative("collider");
+            var dialogueProp       = property.FindPropertyRelative("dialogue");
+            var requiredItemProp   = property.FindPropertyRelative("requiredItem");
+            var promptDialogueProp = property.FindPropertyRelative("promptDialogue");
+            var onUsedProp         = property.FindPropertyRelative("onUsed");
+            var activationTransformProp = property.FindPropertyRelative("activationTransform");
+            var rewardItemProp          = property.FindPropertyRelative("rewardItem");
+            var rewardDialogueProp      = property.FindPropertyRelative("rewardDialogue");
+            var rewardAnimationClipProp = property.FindPropertyRelative("rewardAnimationClip");
 
-            var colliderRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            float y = position.y;
+            float lineH = EditorGUIUtility.singleLineHeight;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            var colliderRect = new Rect(position.x, y, position.width, lineH);
             EditorGUI.PropertyField(colliderRect, colliderProp);
+            y = colliderRect.yMax + vSpace;
 
-            var dialogueRect = new Rect(position.x, colliderRect.yMax + EditorGUIUtility.standardVerticalSpacing,
-                position.width, ExamineDialogueField.Height);
+            var dialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
             ExamineDialogueField.Draw(dialogueRect, dialogueProp, new GUIContent("Dialogue"));
+            y = dialogueRect.yMax + vSpace * 2;
+
+            var requiredItemRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(requiredItemRect, requiredItemProp,
+                new GUIContent("Required Item", "Optional. If set and present in the player's inventory, examining this hotspot runs Prompt Dialogue (a Yes/No Yarn node) instead of Dialogue above."));
+            y = requiredItemRect.yMax + vSpace;
+
+            var promptDialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
+            ExamineDialogueField.Draw(promptDialogueRect, promptDialogueProp, new GUIContent("Prompt Dialogue"));
+            y = promptDialogueRect.yMax + vSpace;
+
+            var activationTransformRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(activationTransformRect, activationTransformProp,
+                new GUIContent("Activation Transform", "Optional. A child of this model's root -- before On Used fires, the preview rotates to match its localRotation, so the reveal always plays from the same angle regardless of how the player had the model rotated."));
+            y = activationTransformRect.yMax + vSpace;
+
+            float onUsedHeight = EditorGUI.GetPropertyHeight(onUsedProp, true);
+            var onUsedRect = new Rect(position.x, y, position.width, onUsedHeight);
+            EditorGUI.PropertyField(onUsedRect, onUsedProp,
+                new GUIContent("On Used", "Fires after Required Item is consumed via the \"Sí\" branch of Prompt Dialogue's use_required_item command."), true);
+            y = onUsedRect.yMax + vSpace * 2;
+
+            var rewardItemRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(rewardItemRect, rewardItemProp,
+                new GUIContent("Reward Item", "Optional. Granted after Reward Animation Clip finishes playing (if set) -- the item being inspected is consumed first to free up space, then this is added."));
+            y = rewardItemRect.yMax + vSpace;
+
+            var rewardDialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
+            ExamineDialogueField.Draw(rewardDialogueRect, rewardDialogueProp, new GUIContent("Reward Dialogue"));
+            y = rewardDialogueRect.yMax + vSpace;
+
+            var rewardAnimationClipRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(rewardAnimationClipRect, rewardAnimationClipProp,
+                new GUIContent("Reward Animation Clip", "Optional. The clip On Used's Animator plays -- its length is how long InspectPanel waits before granting Reward Item, so it doesn't appear mid-animation."));
 
             EditorGUI.EndProperty();
         }
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
-            EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing + ExamineDialogueField.Height;
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            var onUsedProp = property.FindPropertyRelative("onUsed");
+            float lineH = EditorGUIUtility.singleLineHeight;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            return lineH + vSpace                                  // collider
+                 + ExamineDialogueField.Height + vSpace * 2          // dialogue
+                 + lineH + vSpace                                   // requiredItem
+                 + ExamineDialogueField.Height + vSpace              // promptDialogue
+                 + lineH + vSpace                                   // activationTransform
+                 + EditorGUI.GetPropertyHeight(onUsedProp, true) + vSpace * 2 // onUsed
+                 + lineH + vSpace                                   // rewardItem
+                 + ExamineDialogueField.Height + vSpace              // rewardDialogue
+                 + lineH                                            // rewardAnimationClip
+                 + Spacing;
+        }
     }
 
     // defaultDialogue lives directly on the component (not inside Hotspot), so it needs

@@ -2,6 +2,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using Yarn.Unity;
 
 namespace CrimsonDraft.Inventory
@@ -16,19 +17,73 @@ namespace CrimsonDraft.Inventory
         {
             public Collider collider;
             public DialogueReference dialogue;
+
+            // Optional item-use prompt. If requiredItem is null, this hotspot behaves
+            // exactly as if these fields didn't exist.
+            public ItemData?         requiredItem;
+            public DialogueReference promptDialogue;
+            public UnityEvent?       onUsed;
+
+            // Optional. A child of this model's root with a specific localRotation -- when
+            // set, the preview rotates to match that rotation (see
+            // PickupPreviewView.RotateMountPointTo) before onUsed fires, so a reveal
+            // animation always plays from the same camera-friendly angle regardless of how
+            // the player had the model rotated. Author it by rotating a child Transform in
+            // Prefab Mode (where the root sits at identity) until it looks right.
+            public Transform? activationTransform;
+
+            // Optional reward granted once onUsed's reveal animation finishes. If rewardItem
+            // is null, activation stops after onUsed fires (unchanged behavior).
+            public ItemData?         rewardItem;
+            public DialogueReference rewardDialogue;
+
+            // The clip onUsed's animation plays -- its length is how long InspectPanel waits
+            // before consuming the inspected item and granting rewardItem, so the reward
+            // doesn't appear mid-animation. Assign the same clip wired into onUsed's Animator
+            // (e.g. the suitcase's "Open" state's motion).
+            public AnimationClip? rewardAnimationClip;
         }
 
         [SerializeField] private Hotspot[] hotspots = Array.Empty<Hotspot>();
         [SerializeField] private DialogueReference defaultDialogue = new();
 
-        public DialogueReference GetDialogue(Collider? hitCollider)
+        private Hotspot? FindHotspot(Collider? hitCollider)
         {
-            if (hitCollider != null)
+            if (hitCollider == null) return null;
+            foreach (var h in this.hotspots)
+                if (h.collider == hitCollider) return h;
+            return null;
+        }
+
+        public DialogueReference GetDialogue(Collider? hitCollider) =>
+            FindHotspot(hitCollider)?.dialogue ?? this.defaultDialogue;
+
+        // Takes IInventoryService as a parameter, not injected -- this component lives on
+        // a prefab instantiated at runtime via Instantiate(), outside VContainer's build
+        // graph (same reasoning as PickupPreviewView's own lack of injection).
+        //
+        // Returns null when nothing usable resolves at all (no matched hotspot and no
+        // valid defaultDialogue, or a matched hotspot with an invalid dialogue and no
+        // valid defaultDialogue either) -- callers fall back to ItemData.ExamineDialogue
+        // in that case, same contract PickupPreviewView.TryGetExamineDialogue() already
+        // documented before this method existed.
+        public ExamineResolution? Resolve(Collider? hitCollider, IInventoryService inventory)
+        {
+            var hotspot = FindHotspot(hitCollider);
+
+            if (hotspot is { } h
+                && h.requiredItem != null
+                && inventory.HasItem(h.requiredItem.ItemId)
+                && h.promptDialogue.IsValid)
             {
-                foreach (var h in this.hotspots)
-                    if (h.collider == hitCollider) return h.dialogue;
+                return ExamineResolution.ForPrompt(
+                    new ExaminePrompt(h.dialogue, h.promptDialogue, h.requiredItem, h.onUsed, h.activationTransform,
+                        h.rewardItem, h.rewardDialogue, h.rewardAnimationClip));
             }
-            return this.defaultDialogue;
+
+            var candidate = hotspot?.dialogue;
+            var text = (candidate != null && candidate.IsValid) ? candidate : this.defaultDialogue;
+            return text.IsValid ? ExamineResolution.ForText(text) : null;
         }
 
         void OnDrawGizmosSelected() => DrawGizmos();
@@ -57,6 +112,50 @@ namespace CrimsonDraft.Inventory
                 }
             }
             Gizmos.matrix = Matrix4x4.identity;
+        }
+    }
+
+    public readonly struct ExaminePrompt
+    {
+        // The hotspot's ordinary examine text -- InspectPanel shows this first (same as any
+        // plain hotspot) before advancing to Dialogue (the Yes/No prompt) on the next Confirm.
+        public readonly DialogueReference FlavorDialogue;
+        public readonly DialogueReference Dialogue;
+        public readonly ItemData          RequiredItem;
+        public readonly UnityEvent?       OnUsed;
+        public readonly Transform?        ActivationTransform;
+        public readonly ItemData?         RewardItem;
+        public readonly DialogueReference RewardDialogue;
+        public readonly AnimationClip?    RewardAnimationClip;
+
+        public ExaminePrompt(
+            DialogueReference flavorDialogue, DialogueReference dialogue, ItemData requiredItem, UnityEvent? onUsed,
+            Transform? activationTransform, ItemData? rewardItem, DialogueReference rewardDialogue,
+            AnimationClip? rewardAnimationClip)
+        {
+            this.FlavorDialogue       = flavorDialogue;
+            this.Dialogue             = dialogue;
+            this.RequiredItem         = requiredItem;
+            this.OnUsed               = onUsed;
+            this.ActivationTransform  = activationTransform;
+            this.RewardItem           = rewardItem;
+            this.RewardDialogue       = rewardDialogue;
+            this.RewardAnimationClip  = rewardAnimationClip;
+        }
+    }
+
+    public readonly struct ExamineResolution
+    {
+        public readonly DialogueReference? Text;
+        public readonly ExaminePrompt?     Prompt;
+
+        public static ExamineResolution ForText(DialogueReference text) => new(text, null);
+        public static ExamineResolution ForPrompt(ExaminePrompt prompt) => new(null, prompt);
+
+        private ExamineResolution(DialogueReference? text, ExaminePrompt? prompt)
+        {
+            this.Text   = text;
+            this.Prompt = prompt;
         }
     }
 }

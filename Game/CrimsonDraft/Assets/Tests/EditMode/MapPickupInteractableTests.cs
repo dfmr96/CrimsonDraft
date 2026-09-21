@@ -121,6 +121,9 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventory : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
             public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
             {
                 combinedItem = null;
