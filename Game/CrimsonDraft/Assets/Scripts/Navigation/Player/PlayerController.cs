@@ -43,6 +43,7 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int WalkHash    = Animator.StringToHash("Walk");
         private static readonly int RunHash     = Animator.StringToHash("Run");
         private static readonly int PushingHash = Animator.StringToHash("Pushing");
+        private static readonly int GunTypeHash = Animator.StringToHash("GunType");
 
         private IInputService         inputService         = null!;
         private IInventoryService     inventoryService     = null!;
@@ -116,6 +117,12 @@ namespace CrimsonDraft.Navigation.Player
         {
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
             this.animator.SetBool(ArmedHash, isArmed);
+
+            // GunType.Pistols is int 0, which also doubles as "nothing equipped" here --
+            // fine since the Blend Tree/animator branch on GunType is only ever read while
+            // Armed is also true.
+            var activeWeapon = this.roster?[PlayerOperatorSlot].ActiveWeapon;
+            this.animator.SetInteger(GunTypeHash, activeWeapon != null ? (int)activeWeapon.GunType : 0);
 
             var raw = this.inputService.Move.ReadValue<Vector2>();
 
