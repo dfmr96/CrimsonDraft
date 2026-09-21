@@ -31,6 +31,20 @@ namespace CrimsonDraft.Navigation.Interactables
         /// <summary>Last dot/dash of a letter's code — which sprite (point/line) its LED uses.</summary>
         public static bool TryGetLastSymbol(char letter, out char symbol) => s_lastSymbol.TryGetValue(letter, out symbol);
 
+        private static readonly Dictionary<char, string> s_reverseTable = BuildReverseLookup();
+
+        private static Dictionary<char, string> BuildReverseLookup()
+        {
+            var map = new Dictionary<char, string>();
+            foreach (var kv in s_table)
+                map[kv.Value] = kv.Key;
+            return map;
+        }
+
+        /// <summary>The dot/dash pattern (e.g. "...") that encodes a decoded letter — used to
+        /// play back a sent word as real Morse tones.</summary>
+        public static bool TryGetCode(char letter, out string code) => s_reverseTable.TryGetValue(letter, out code!);
+
         private readonly StringBuilder _currentSequence = new();
         private readonly List<char>    _word            = new();
 
