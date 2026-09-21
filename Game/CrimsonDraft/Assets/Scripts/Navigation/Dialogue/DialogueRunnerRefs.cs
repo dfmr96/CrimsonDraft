@@ -27,4 +27,16 @@ namespace CrimsonDraft.Navigation.Dialogue
             Storage = storage;
         }
     }
+
+    public sealed class InspectDialogueRunnerRef
+    {
+        public readonly DialogueRunner          Runner;
+        public readonly InMemoryVariableStorage Storage;
+
+        public InspectDialogueRunnerRef(DialogueRunner runner, InMemoryVariableStorage storage)
+        {
+            Runner  = runner;
+            Storage = storage;
+        }
+    }
 }

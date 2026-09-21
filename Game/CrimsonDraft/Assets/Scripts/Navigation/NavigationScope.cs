@@ -45,6 +45,8 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
         [SerializeField] private DialogueRunner          pickupRunner     = null!;
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
+        [SerializeField] private DialogueRunner          inspectPromptRunner  = null!;
+        [SerializeField] private InMemoryVariableStorage inspectPromptStorage = null!;
 
         // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
         // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
@@ -104,8 +106,10 @@ namespace CrimsonDraft.Navigation
 #endif
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
+            builder.RegisterInstance(new InspectDialogueRunnerRef(this.inspectPromptRunner, this.inspectPromptStorage));
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
+            builder.Register<InspectDialogueService>(Lifetime.Scoped).As<IInspectDialogueService>();
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
             builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();

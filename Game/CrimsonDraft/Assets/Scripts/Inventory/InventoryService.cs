@@ -229,6 +229,26 @@ namespace CrimsonDraft.Inventory
             return new KeyUseOutcome(KeyUseResult.NotFound, -1);
         }
 
+        public bool HasItem(string itemId)
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+                if (!s[i].IsEmpty && s[i].Item!.Data.ItemId == itemId) return true;
+            return false;
+        }
+
+        public bool TryRemoveItem(string itemId)
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i].IsEmpty || s[i].Item!.Data.ItemId != itemId) continue;
+                RemoveItem(i);
+                return true;
+            }
+            return false;
+        }
+
         public bool TryCombine(int slotA, int slotB)
         {
             var s = EnsureSlots();

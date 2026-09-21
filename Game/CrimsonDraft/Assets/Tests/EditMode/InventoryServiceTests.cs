@@ -573,6 +573,50 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void HasItem_returnsTrue_whenItemPresent()
+        {
+            var data    = MakeKeyItemData(id: "key-f");
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+
+            Assert.IsTrue(service.HasItem("key-f"));
+        }
+
+        [Test]
+        public void HasItem_returnsFalse_whenItemAbsent()
+        {
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+
+            Assert.IsFalse(service.HasItem("nonexistent"));
+        }
+
+        [Test]
+        public void TryRemoveItem_removesFirstMatch_andReturnsTrue()
+        {
+            var data    = MakeKeyItemData(id: "key-g");
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+
+            bool result = service.TryRemoveItem("key-g");
+
+            Assert.IsTrue(result);
+            Assert.IsTrue(service.Slots[0].IsEmpty);
+        }
+
+        [Test]
+        public void TryRemoveItem_returnsFalse_withoutMutation_whenItemAbsent()
+        {
+            var data    = MakeKeyItemData(id: "key-h");
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(data, operatorSlot: 0);
+
+            bool result = service.TryRemoveItem("nonexistent");
+
+            Assert.IsFalse(result);
+            Assert.IsFalse(service.Slots[0].IsEmpty, "unrelated slot must be untouched");
+        }
+
+        [Test]
         public void AddItem_keyItem_placesKeyItemInSlot()
         {
             var data    = MakeKeyItemData(id: "key-e", maxUses: 2);

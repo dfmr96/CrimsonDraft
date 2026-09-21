@@ -162,11 +162,11 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             if (axis.y != 0f) this.mountPoint.Rotate(camRight, -axis.y * delta, Space.World);
         }
 
-        // Returns null when the currently-shown item has no ItemExamineHotspots at all -- callers
-        // should fall back to that item's own default examine text in that case. A non-null result
-        // is always a valid, fully-resolved DialogueReference (hotspot-specific, or the component's
-        // own defaultDialogue when the raycast didn't hit a registered hotspot).
-        public DialogueReference? TryGetExamineDialogue()
+        // Returns null when the currently-shown item has no ItemExamineHotspots at all, or
+        // when nothing usable resolves -- callers should fall back to that item's own
+        // default examine text in that case. A non-null result is either text to type or a
+        // prompt to run -- see ExamineResolution.
+        public ExamineResolution? TryGetExamineDialogue(IInventoryService inventory)
         {
             if (this.currentInstance == null) return null;
 
@@ -190,10 +190,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
                 }
             }
 
-            var dialogue = hotspots.GetDialogue(hitCollider);
-            // An unconfigured hotspot/default reference means "no answer" -- let the caller
-            // fall back to ItemData.ExamineDialogue rather than typing out an empty string.
-            return dialogue.IsValid ? dialogue : null;
+            return hotspots.Resolve(hitCollider, inventory);
         }
 
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);

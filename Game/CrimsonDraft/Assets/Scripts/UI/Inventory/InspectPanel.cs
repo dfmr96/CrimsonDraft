@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -10,6 +12,7 @@ using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables.UI;
 
 namespace CrimsonDraft.UI
@@ -28,6 +31,8 @@ namespace CrimsonDraft.UI
 
         [Inject] private InventorySfxData sfx   = null!;
         [Inject] private IInputService    input = null!;
+        [Inject] private IInventoryService        inventoryService       = null!;
+        [Inject] private IInspectDialogueService  inspectDialogueService = null!;
 
         private InventoryItemView? currentItem;
 
@@ -61,10 +66,10 @@ namespace CrimsonDraft.UI
 
         void Update()
         {
-            // Lock rotation while the examine text is being typed out -- otherwise the
-            // player could rotate onto/off a hotspot mid-reveal for text that was already
-            // resolved for a different aim.
-            if (!IsOpen || this.modelPreview == null || this.isTyping) return;
+            // Lock rotation while the examine text is being typed out, or while a hotspot's
+            // item-use prompt dialogue is running -- otherwise the player could rotate
+            // onto/off a hotspot mid-interaction.
+            if (!IsOpen || this.modelPreview == null || this.isTyping || this.inspectDialogueService.IsRunning) return;
             this.modelPreview.SetRotationInput(this.input.InventoryNavigate.ReadValue<Vector2>());
         }
 
@@ -151,6 +156,11 @@ namespace CrimsonDraft.UI
             // same InventoryConfirm.performed dispatch within the same frame.
             if (Time.frameCount == this.openedFrame) return;
 
+            // A hotspot's item-use prompt is a separate input context (PickupNavigate/
+            // PickupConfirm via SwitchToPickupPrompt()), but guard defensively in case
+            // InventoryConfirm is still wired while it's running.
+            if (this.inspectDialogueService.IsRunning) return;
+
             // While typing, Confirm completes the text instantly. Only once finished does
             // Confirm replay it from the start.
             if (this.isTyping) { this.skipRequested = true; return; }
@@ -158,12 +168,37 @@ namespace CrimsonDraft.UI
             // Hotspot items resolve their text fresh on every press (the player may have
             // rotated the model between attempts); items without hotspots keep the text
             // cached at Open() time.
-            var hotspotDialogue = this.modelPreview?.TryGetExamineDialogue();
-            string text = hotspotDialogue != null
-                ? ExtractExamineText(hotspotDialogue)
+            var resolution = this.modelPreview?.TryGetExamineDialogue(this.inventoryService);
+
+            if (resolution?.Prompt is { } prompt)
+            {
+                this.inspectDialogueService.StartDialogue(
+                    prompt.Dialogue.nodeName ?? string.Empty,
+                    variables: new Dictionary<string, object>
+                    {
+                        ["$item_name"] = prompt.RequiredItem.DisplayName
+                    },
+                    commands: new Dictionary<string, Action>
+                    {
+                        ["use_required_item"] = () => UseRequiredItem(prompt)
+                    });
+                return;
+            }
+
+            string text = resolution?.Text != null
+                ? ExtractExamineText(resolution.Value.Text)
                 : this.pendingExamineText;
 
             TypewriterRoutine(text).Forget();
+        }
+
+        // Registered as the "use_required_item" Yarn command for the duration of a
+        // hotspot's prompt dialogue (see above) -- every prompt node's "Sí" branch calls
+        // this same fixed command name.
+        void UseRequiredItem(ExaminePrompt prompt)
+        {
+            if (this.inventoryService.TryRemoveItem(prompt.RequiredItem.ItemId))
+                prompt.OnUsed?.Invoke();
         }
 
         async UniTaskVoid TypewriterRoutine(string text)

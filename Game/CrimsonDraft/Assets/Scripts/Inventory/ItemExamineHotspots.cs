@@ -2,6 +2,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using Yarn.Unity;
 
 namespace CrimsonDraft.Inventory
@@ -16,19 +17,53 @@ namespace CrimsonDraft.Inventory
         {
             public Collider collider;
             public DialogueReference dialogue;
+
+            // Optional item-use prompt. If requiredItem is null, this hotspot behaves
+            // exactly as if these three fields didn't exist.
+            public ItemData?         requiredItem;
+            public DialogueReference promptDialogue;
+            public UnityEvent?       onUsed;
         }
 
         [SerializeField] private Hotspot[] hotspots = Array.Empty<Hotspot>();
         [SerializeField] private DialogueReference defaultDialogue = new();
 
-        public DialogueReference GetDialogue(Collider? hitCollider)
+        private Hotspot? FindHotspot(Collider? hitCollider)
         {
-            if (hitCollider != null)
+            if (hitCollider == null) return null;
+            foreach (var h in this.hotspots)
+                if (h.collider == hitCollider) return h;
+            return null;
+        }
+
+        public DialogueReference GetDialogue(Collider? hitCollider) =>
+            FindHotspot(hitCollider)?.dialogue ?? this.defaultDialogue;
+
+        // Takes IInventoryService as a parameter, not injected -- this component lives on
+        // a prefab instantiated at runtime via Instantiate(), outside VContainer's build
+        // graph (same reasoning as PickupPreviewView's own lack of injection).
+        //
+        // Returns null when nothing usable resolves at all (no matched hotspot and no
+        // valid defaultDialogue, or a matched hotspot with an invalid dialogue and no
+        // valid defaultDialogue either) -- callers fall back to ItemData.ExamineDialogue
+        // in that case, same contract PickupPreviewView.TryGetExamineDialogue() already
+        // documented before this method existed.
+        public ExamineResolution? Resolve(Collider? hitCollider, IInventoryService inventory)
+        {
+            var hotspot = FindHotspot(hitCollider);
+
+            if (hotspot is { } h
+                && h.requiredItem != null
+                && inventory.HasItem(h.requiredItem.ItemId)
+                && h.promptDialogue.IsValid)
             {
-                foreach (var h in this.hotspots)
-                    if (h.collider == hitCollider) return h.dialogue;
+                return ExamineResolution.ForPrompt(
+                    new ExaminePrompt(h.promptDialogue, h.requiredItem, h.onUsed));
             }
-            return this.defaultDialogue;
+
+            var candidate = hotspot?.dialogue;
+            var text = (candidate != null && candidate.IsValid) ? candidate : this.defaultDialogue;
+            return text.IsValid ? ExamineResolution.ForText(text) : null;
         }
 
         void OnDrawGizmosSelected() => DrawGizmos();
@@ -57,6 +92,35 @@ namespace CrimsonDraft.Inventory
                 }
             }
             Gizmos.matrix = Matrix4x4.identity;
+        }
+    }
+
+    public readonly struct ExaminePrompt
+    {
+        public readonly DialogueReference Dialogue;
+        public readonly ItemData          RequiredItem;
+        public readonly UnityEvent?       OnUsed;
+
+        public ExaminePrompt(DialogueReference dialogue, ItemData requiredItem, UnityEvent? onUsed)
+        {
+            this.Dialogue     = dialogue;
+            this.RequiredItem = requiredItem;
+            this.OnUsed       = onUsed;
+        }
+    }
+
+    public readonly struct ExamineResolution
+    {
+        public readonly DialogueReference? Text;
+        public readonly ExaminePrompt?     Prompt;
+
+        public static ExamineResolution ForText(DialogueReference text) => new(text, null);
+        public static ExamineResolution ForPrompt(ExaminePrompt prompt) => new(null, prompt);
+
+        private ExamineResolution(DialogueReference? text, ExaminePrompt? prompt)
+        {
+            this.Text   = text;
+            this.Prompt = prompt;
         }
     }
 }

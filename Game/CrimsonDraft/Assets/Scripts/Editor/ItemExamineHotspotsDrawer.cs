@@ -15,25 +15,60 @@ namespace CrimsonDraft.Editor
     [CustomPropertyDrawer(typeof(ItemExamineHotspots.Hotspot))]
     public sealed class HotspotDrawer : PropertyDrawer
     {
+        private const float Spacing = 4f; // extra breathing room between this Hotspot's fields and the next one in the array
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
 
-            var colliderProp = property.FindPropertyRelative("collider");
-            var dialogueProp = property.FindPropertyRelative("dialogue");
+            var colliderProp       = property.FindPropertyRelative("collider");
+            var dialogueProp       = property.FindPropertyRelative("dialogue");
+            var requiredItemProp   = property.FindPropertyRelative("requiredItem");
+            var promptDialogueProp = property.FindPropertyRelative("promptDialogue");
+            var onUsedProp         = property.FindPropertyRelative("onUsed");
 
-            var colliderRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            float y = position.y;
+            float lineH = EditorGUIUtility.singleLineHeight;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            var colliderRect = new Rect(position.x, y, position.width, lineH);
             EditorGUI.PropertyField(colliderRect, colliderProp);
+            y = colliderRect.yMax + vSpace;
 
-            var dialogueRect = new Rect(position.x, colliderRect.yMax + EditorGUIUtility.standardVerticalSpacing,
-                position.width, ExamineDialogueField.Height);
+            var dialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
             ExamineDialogueField.Draw(dialogueRect, dialogueProp, new GUIContent("Dialogue"));
+            y = dialogueRect.yMax + vSpace * 2;
+
+            var requiredItemRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(requiredItemRect, requiredItemProp,
+                new GUIContent("Required Item", "Optional. If set and present in the player's inventory, examining this hotspot runs Prompt Dialogue (a Yes/No Yarn node) instead of Dialogue above."));
+            y = requiredItemRect.yMax + vSpace;
+
+            var promptDialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
+            ExamineDialogueField.Draw(promptDialogueRect, promptDialogueProp, new GUIContent("Prompt Dialogue"));
+            y = promptDialogueRect.yMax + vSpace;
+
+            float onUsedHeight = EditorGUI.GetPropertyHeight(onUsedProp, true);
+            var onUsedRect = new Rect(position.x, y, position.width, onUsedHeight);
+            EditorGUI.PropertyField(onUsedRect, onUsedProp,
+                new GUIContent("On Used", "Fires after Required Item is consumed via the \"Sí\" branch of Prompt Dialogue's use_required_item command."), true);
 
             EditorGUI.EndProperty();
         }
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
-            EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing + ExamineDialogueField.Height;
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            var onUsedProp = property.FindPropertyRelative("onUsed");
+            float lineH = EditorGUIUtility.singleLineHeight;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            return lineH + vSpace                                  // collider
+                 + ExamineDialogueField.Height + vSpace * 2          // dialogue
+                 + lineH + vSpace                                   // requiredItem
+                 + ExamineDialogueField.Height + vSpace              // promptDialogue
+                 + EditorGUI.GetPropertyHeight(onUsedProp, true)     // onUsed
+                 + Spacing;
+        }
     }
 
     // defaultDialogue lives directly on the component (not inside Hotspot), so it needs
