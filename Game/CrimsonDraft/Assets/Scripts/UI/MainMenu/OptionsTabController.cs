@@ -55,6 +55,7 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private float repeatInterval     = 0.08f;
 
         private IInputService        inputService = null!;
+        private MainMenuSfxData      sfx          = null!;
         private TabButton[]          buttons      = null!;
         private GameObject[]         groups       = null!;
         private GameObject[]         knobGroups   = null!;
@@ -70,9 +71,10 @@ namespace CrimsonDraft.UI.MainMenu
         private float horizontalRepeatTimer;
 
         [Inject]
-        public void Construct(IInputService inputService)
+        public void Construct(IInputService inputService, MainMenuSfxData sfx)
         {
             this.inputService = inputService;
+            this.sfx          = sfx;
             this.inputService.UINavigate.performed += OnNavigate;
             this.inputService.UIConfirm.performed  += OnConfirm;
         }
@@ -189,6 +191,7 @@ namespace CrimsonDraft.UI.MainMenu
             int currentSlot  = this.onButtonRow ? contentCount : this.contentIndex;
             int nextSlot     = (currentSlot + delta + totalSlots) % totalSlots;
 
+            this.sfx.PlayCursor(gameObject);
             this.heldHorizontalDirection = 0;
 
             if (nextSlot == contentCount)
@@ -218,6 +221,7 @@ namespace CrimsonDraft.UI.MainMenu
                 this.buttons[this.buttonCursor].outline.SetActive(false);
                 this.buttonCursor = (this.buttonCursor + delta + this.buttons.Length) % this.buttons.Length;
                 this.buttons[this.buttonCursor].outline.SetActive(true);
+                this.sfx.PlayCursor(gameObject);
                 return;
             }
 
@@ -229,6 +233,7 @@ namespace CrimsonDraft.UI.MainMenu
         private void OnConfirm(InputAction.CallbackContext _)
         {
             if (!this.isOpen || !this.onButtonRow) return;
+            this.sfx.PlayDecide(gameObject);
             SwitchTab(this.buttonCursor);
         }
 

@@ -1,6 +1,8 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using MessagePipe;
 using TMPro;
 using UnityEngine;
@@ -58,6 +60,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private float holdThreshold   = 0.3f;
         [SerializeField] private float letterTimeout   = 2.3f;
         [SerializeField] private int   requiredLetters = 3;
+
+        [SerializeField] private float morseUnitSeconds = 0.11f; // dot=1 unit, dash=3 units, gaps below
 
         [Inject] private IInputService                      inputService          = null!;
         [Inject] private TabManager                         tabManager            = null!;
@@ -237,7 +241,34 @@ namespace CrimsonDraft.UI
             ShowSignalLed(received);
 
             // CODE is left showing the sent letters — Update() clears it once the LED goes out.
-            this.sfx?.PlayDecide(gameObject);
+            // No button/Decide sound here on purpose -- SEND should be heard as the Morse
+            // pattern of the code itself, not a generic confirm click on top of it.
+            PlayMorseSequenceAsync(code).Forget();
+        }
+
+        // Plays the sent word back as real Morse tones (dot=1 unit held, dash=3 units held,
+        // 1 unit gap between symbols in a letter, 3 unit gap between letters) so the SEND is
+        // audibly the code that was actually typed, not just a generic confirm sound.
+        private async UniTaskVoid PlayMorseSequenceAsync(string code)
+        {
+            for (int i = 0; i < code.Length; i++)
+            {
+                if (!MorseDecoder.TryGetCode(code[i], out string pattern)) continue;
+
+                for (int s = 0; s < pattern.Length; s++)
+                {
+                    this.sfx?.PlayBeeperMorseStart(gameObject);
+                    int units = pattern[s] == '-' ? 3 : 1;
+                    await UniTask.Delay(TimeSpan.FromSeconds(this.morseUnitSeconds * units), DelayType.UnscaledDeltaTime);
+                    this.sfx?.StopBeeperMorse(gameObject);
+
+                    if (s < pattern.Length - 1)
+                        await UniTask.Delay(TimeSpan.FromSeconds(this.morseUnitSeconds), DelayType.UnscaledDeltaTime);
+                }
+
+                if (i < code.Length - 1)
+                    await UniTask.Delay(TimeSpan.FromSeconds(this.morseUnitSeconds * 3), DelayType.UnscaledDeltaTime);
+            }
         }
 
         // ── Navigation between Input / Output ───────────────────────────────────

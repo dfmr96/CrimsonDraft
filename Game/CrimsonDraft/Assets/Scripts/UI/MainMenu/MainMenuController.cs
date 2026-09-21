@@ -29,9 +29,11 @@ namespace CrimsonDraft.UI.MainMenu
         private IGameStateResetter    gameStateResetter    = null!;
         private IControlSchemeService controlSchemeService = null!;
         private ScreenFader           screenFader          = null!;
+        private MainMenuSfxData       sfx                  = null!;
         private SaveSlotNavigator     loadNavigator        = null!;
         private bool                  isLoadingSlot;
         private bool                  isStartingNewGame;
+        private GameObject?           lastSelected;
 
         [Inject]
         public void Construct(
@@ -39,13 +41,15 @@ namespace CrimsonDraft.UI.MainMenu
             ISaveGameService       saveGameService,
             IGameStateResetter     gameStateResetter,
             IControlSchemeService  controlSchemeService,
-            ScreenFader            screenFader)
+            ScreenFader            screenFader,
+            MainMenuSfxData        sfx)
         {
             this.inputService         = inputService;
             this.saveGameService      = saveGameService;
             this.gameStateResetter    = gameStateResetter;
             this.controlSchemeService = controlSchemeService;
             this.screenFader          = screenFader;
+            this.sfx                  = sfx;
 
             this.loadNavigator = new SaveSlotNavigator(
                 this.loadListView,
@@ -77,6 +81,21 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.SwitchToUI();
         }
 
+        // Watches the EventSystem's own selection instead of hooking every Selectable's
+        // OnSelect individually -- catches New Game/Load Game/Exit and the Modern/Classic
+        // picker uniformly. Skips transitions into/out of null (screen opens/closes already
+        // get their own Decide/Cancel/PanelTravel) so only an actual move between two real
+        // selectables plays the cursor sound.
+        private void Update()
+        {
+            var current = EventSystem.current?.currentSelectedGameObject;
+            if (current == this.lastSelected) return;
+
+            if (this.lastSelected != null && current != null)
+                this.sfx.PlayCursor(gameObject);
+            this.lastSelected = current;
+        }
+
         private void OnDestroy()
         {
             if (this.inputService == null) return;
@@ -98,6 +117,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.isStartingNewGame) return;
             this.isStartingNewGame = true;
 
+            this.sfx.PlayDecide(gameObject);
             this.gameStateResetter.ResetAll();
             StartNewGameAsync().Forget();
         }
@@ -106,6 +126,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void SelectScheme(ControlScheme scheme)
         {
+            this.sfx.PlayDecide(gameObject);
             this.controlSchemeService.SetScheme(scheme);
             this.newGamePromptView.SetSelectedScheme(scheme == ControlScheme.Classic);
         }
@@ -129,6 +150,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnSlotConfirmed(int slot)
         {
+            this.sfx.PlayDecide(gameObject);
             this.isLoadingSlot = true;
 
             // The registries GameStateResetter clears are root-scoped singletons that
@@ -163,9 +185,15 @@ namespace CrimsonDraft.UI.MainMenu
             // itself ignores Navigate entirely while confirming.
             if (this.loadNavigator.IsConfirming)
             {
-                if (direction.x > 0.5f) this.loadListView.SetConfirmSelection(yesSelected: true);
-                else if (direction.x < -0.5f) this.loadListView.SetConfirmSelection(yesSelected: false);
+                if (direction.x > 0.5f) { this.loadListView.SetConfirmSelection(yesSelected: true); this.sfx.PlayCursor(gameObject); }
+                else if (direction.x < -0.5f) { this.loadListView.SetConfirmSelection(yesSelected: false); this.sfx.PlayCursor(gameObject); }
                 return;
+            }
+
+            if (this.loadNavigator.IsOpen)
+            {
+                int delta = direction.y > 0.5f ? -1 : direction.y < -0.5f ? 1 : 0;
+                if (delta != 0) this.sfx.PlayFilesChange(gameObject);
             }
 
             this.loadNavigator.HandleNavigate(direction);
@@ -177,18 +205,32 @@ namespace CrimsonDraft.UI.MainMenu
             // Confirm again while it's up executes whichever option is currently selected.
             if (this.loadNavigator.IsConfirming)
             {
-                if (this.loadListView.IsYesSelected) this.loadNavigator.HandleConfirm();
-                else this.loadNavigator.HandleBack();
+                if (this.loadListView.IsYesSelected)
+                {
+                    this.sfx.PlayDecide(gameObject);
+                    this.loadNavigator.HandleConfirm();
+                }
+                else
+                {
+                    this.sfx.PlayCancel(gameObject);
+                    this.loadNavigator.HandleBack();
+                }
                 return;
             }
 
+            if (this.loadNavigator.IsOpen) this.sfx.PlayDecide(gameObject);
             this.loadNavigator.HandleConfirm();
         }
 
-        private void OnBack(InputAction.CallbackContext _) => this.loadNavigator.HandleBack();
+        private void OnBack(InputAction.CallbackContext _)
+        {
+            if (this.loadNavigator.IsOpen) this.sfx.PlayCancel(gameObject);
+            this.loadNavigator.HandleBack();
+        }
 
         private void OnExitClicked()
         {
+            this.sfx.PlayDecide(gameObject);
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

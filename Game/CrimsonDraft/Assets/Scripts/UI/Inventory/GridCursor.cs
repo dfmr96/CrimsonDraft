@@ -449,7 +449,10 @@ namespace CrimsonDraft.UI
                 this.currentCell, this.heldItem.GridSize, out multipleItems);
 
             if (multipleItems)
+            {
+                this.sfx?.PlayCancel(gameObject);
                 return;
+            }
 
             if (overlapping != null && overlapping.BoundItem.IsEquipped)
             {
@@ -459,7 +462,11 @@ namespace CrimsonDraft.UI
 
             if (overlapping == null)
             {
-                this.sfx?.PlayDecide(gameObject);
+                // Decide plays once OnItemPlaced fully resolves (InventoryHUDController.
+                // HandleItemPlaced) -- placement can still be rejected there at the logical-slot
+                // layer (operator's 4 slots already full of distinct stacks) even when this
+                // visual/grid-space check passed, and that path plays InvalidAction + reverts.
+                // Playing Decide here unconditionally used to fire alongside that InvalidAction.
                 PlaceHeldItem(targetGrid, this.currentCell);
             }
             else
@@ -468,7 +475,6 @@ namespace CrimsonDraft.UI
 
                 if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
                 {
-                    this.sfx?.PlayDecide(gameObject);
                     Vector2Int    originBeforeSwap   = this.heldItem!.GridOrigin;
                     InventoryGrid fromGridBeforeSwap = this.heldFromGrid!;
                     PlaceHeldItem(targetGrid, this.currentCell);
