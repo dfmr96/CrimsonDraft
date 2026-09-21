@@ -98,7 +98,7 @@ namespace CrimsonDraft.UI
             OnEnable();
         }
 
-        void OnInspectClosed()
+        void OnInspectClosed(string? selectItemId)
         {
             this.lastDir = Vector2Int.zero;
         }

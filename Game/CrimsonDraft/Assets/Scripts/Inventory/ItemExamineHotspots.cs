@@ -19,10 +19,29 @@ namespace CrimsonDraft.Inventory
             public DialogueReference dialogue;
 
             // Optional item-use prompt. If requiredItem is null, this hotspot behaves
-            // exactly as if these three fields didn't exist.
+            // exactly as if these fields didn't exist.
             public ItemData?         requiredItem;
             public DialogueReference promptDialogue;
             public UnityEvent?       onUsed;
+
+            // Optional. A child of this model's root with a specific localRotation -- when
+            // set, the preview rotates to match that rotation (see
+            // PickupPreviewView.RotateMountPointTo) before onUsed fires, so a reveal
+            // animation always plays from the same camera-friendly angle regardless of how
+            // the player had the model rotated. Author it by rotating a child Transform in
+            // Prefab Mode (where the root sits at identity) until it looks right.
+            public Transform? activationTransform;
+
+            // Optional reward granted once onUsed's reveal animation finishes. If rewardItem
+            // is null, activation stops after onUsed fires (unchanged behavior).
+            public ItemData?         rewardItem;
+            public DialogueReference rewardDialogue;
+
+            // The clip onUsed's animation plays -- its length is how long InspectPanel waits
+            // before consuming the inspected item and granting rewardItem, so the reward
+            // doesn't appear mid-animation. Assign the same clip wired into onUsed's Animator
+            // (e.g. the suitcase's "Open" state's motion).
+            public AnimationClip? rewardAnimationClip;
         }
 
         [SerializeField] private Hotspot[] hotspots = Array.Empty<Hotspot>();
@@ -58,7 +77,8 @@ namespace CrimsonDraft.Inventory
                 && h.promptDialogue.IsValid)
             {
                 return ExamineResolution.ForPrompt(
-                    new ExaminePrompt(h.promptDialogue, h.requiredItem, h.onUsed));
+                    new ExaminePrompt(h.dialogue, h.promptDialogue, h.requiredItem, h.onUsed, h.activationTransform,
+                        h.rewardItem, h.rewardDialogue, h.rewardAnimationClip));
             }
 
             var candidate = hotspot?.dialogue;
@@ -97,15 +117,30 @@ namespace CrimsonDraft.Inventory
 
     public readonly struct ExaminePrompt
     {
+        // The hotspot's ordinary examine text -- InspectPanel shows this first (same as any
+        // plain hotspot) before advancing to Dialogue (the Yes/No prompt) on the next Confirm.
+        public readonly DialogueReference FlavorDialogue;
         public readonly DialogueReference Dialogue;
         public readonly ItemData          RequiredItem;
         public readonly UnityEvent?       OnUsed;
+        public readonly Transform?        ActivationTransform;
+        public readonly ItemData?         RewardItem;
+        public readonly DialogueReference RewardDialogue;
+        public readonly AnimationClip?    RewardAnimationClip;
 
-        public ExaminePrompt(DialogueReference dialogue, ItemData requiredItem, UnityEvent? onUsed)
+        public ExaminePrompt(
+            DialogueReference flavorDialogue, DialogueReference dialogue, ItemData requiredItem, UnityEvent? onUsed,
+            Transform? activationTransform, ItemData? rewardItem, DialogueReference rewardDialogue,
+            AnimationClip? rewardAnimationClip)
         {
-            this.Dialogue     = dialogue;
-            this.RequiredItem = requiredItem;
-            this.OnUsed       = onUsed;
+            this.FlavorDialogue       = flavorDialogue;
+            this.Dialogue             = dialogue;
+            this.RequiredItem         = requiredItem;
+            this.OnUsed               = onUsed;
+            this.ActivationTransform  = activationTransform;
+            this.RewardItem           = rewardItem;
+            this.RewardDialogue       = rewardDialogue;
+            this.RewardAnimationClip  = rewardAnimationClip;
         }
     }
 

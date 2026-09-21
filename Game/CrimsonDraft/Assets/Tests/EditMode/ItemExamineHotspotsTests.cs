@@ -175,16 +175,19 @@ namespace CrimsonDraft.Tests
         {
             var collider     = new GameObject().AddComponent<BoxCollider>();
             var requiredItem = MakeItemData("small_key");
+            var activationTransform = new GameObject("ActivationTarget").transform;
             // "examine_placeholder" is a real node already in the project's YarnProject,
             // already tagged `examine` -- used here only so DialogueReference.IsValid is
             // true; its actual text is irrelevant to this test.
             var prompt       = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var flavorDialogue = new DialogueReference { nodeName = "locked_node" };
             var hotspot = new ItemExamineHotspots.Hotspot
             {
-                collider       = collider,
-                dialogue       = new DialogueReference { nodeName = "locked_node" },
-                requiredItem   = requiredItem,
-                promptDialogue = prompt,
+                collider             = collider,
+                dialogue             = flavorDialogue,
+                requiredItem         = requiredItem,
+                promptDialogue       = prompt,
+                activationTransform  = activationTransform,
             };
             var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
 
@@ -192,8 +195,37 @@ namespace CrimsonDraft.Tests
 
             Assert.IsNotNull(result);
             Assert.IsNotNull(result!.Value.Prompt);
+            Assert.AreSame(flavorDialogue, result.Value.Prompt!.Value.FlavorDialogue);
             Assert.AreSame(prompt, result.Value.Prompt!.Value.Dialogue);
             Assert.AreSame(requiredItem, result.Value.Prompt.Value.RequiredItem);
+            Assert.AreSame(activationTransform, result.Value.Prompt.Value.ActivationTransform);
+        }
+
+        [Test]
+        public void Resolve_requiredItemPresent_validPrompt_returnsRewardFields()
+        {
+            var collider     = new GameObject().AddComponent<BoxCollider>();
+            var requiredItem = MakeItemData("small_key");
+            var rewardItem   = MakeItemData("reward_item");
+            var prompt       = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var rewardDialogue = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var hotspot = new ItemExamineHotspots.Hotspot
+            {
+                collider       = collider,
+                dialogue       = new DialogueReference { nodeName = "locked_node" },
+                requiredItem   = requiredItem,
+                promptDialogue = prompt,
+                rewardItem     = rewardItem,
+                rewardDialogue = rewardDialogue,
+            };
+            var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
+
+            var result = comp.Resolve(collider, new FakeInventoryService("small_key"));
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result!.Value.Prompt);
+            Assert.AreSame(rewardItem, result.Value.Prompt!.Value.RewardItem);
+            Assert.AreSame(rewardDialogue, result.Value.Prompt.Value.RewardDialogue);
         }
 
         [Test]

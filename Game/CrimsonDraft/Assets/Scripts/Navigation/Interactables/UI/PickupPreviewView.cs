@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
@@ -14,6 +16,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private GameObject  root            = null!;
         [SerializeField] private Transform   mountPoint       = null!;
         [SerializeField] private float       rotationSpeed    = 60f;
+        [SerializeField] private float       activationRotationSpeed = 240f;
         [SerializeField] private bool        autoRotate       = true;
         [SerializeField] private string      previewLayerName = "ItemPreview";
 
@@ -160,6 +163,23 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
             if (axis.x != 0f) this.mountPoint.Rotate(camUp,     axis.x  * delta, Space.World);
             if (axis.y != 0f) this.mountPoint.Rotate(camRight, -axis.y * delta, Space.World);
+        }
+
+        // Smoothly rotates mountPoint from whatever the player left it at to targetRotation,
+        // at activationRotationSpeed degrees/sec, using unscaled time (same reasoning as
+        // everywhere else in this class -- the inventory pauses the game while this is shown).
+        // Used to snap the model to a known, camera-friendly angle before playing a hotspot's
+        // reveal animation, regardless of how the player was aiming when they confirmed.
+        public async UniTask RotateMountPointTo(Quaternion targetRotation, CancellationToken cancellationToken = default)
+        {
+            const float doneThresholdDegrees = 0.5f;
+            while (Quaternion.Angle(this.mountPoint.rotation, targetRotation) > doneThresholdDegrees)
+            {
+                this.mountPoint.rotation = Quaternion.RotateTowards(
+                    this.mountPoint.rotation, targetRotation, this.activationRotationSpeed * Time.unscaledDeltaTime);
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+            }
+            this.mountPoint.rotation = targetRotation;
         }
 
         // Returns null when the currently-shown item has no ItemExamineHotspots at all, or

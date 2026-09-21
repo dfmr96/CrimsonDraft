@@ -26,6 +26,10 @@ namespace CrimsonDraft.Editor
             var requiredItemProp   = property.FindPropertyRelative("requiredItem");
             var promptDialogueProp = property.FindPropertyRelative("promptDialogue");
             var onUsedProp         = property.FindPropertyRelative("onUsed");
+            var activationTransformProp = property.FindPropertyRelative("activationTransform");
+            var rewardItemProp          = property.FindPropertyRelative("rewardItem");
+            var rewardDialogueProp      = property.FindPropertyRelative("rewardDialogue");
+            var rewardAnimationClipProp = property.FindPropertyRelative("rewardAnimationClip");
 
             float y = position.y;
             float lineH = EditorGUIUtility.singleLineHeight;
@@ -48,10 +52,29 @@ namespace CrimsonDraft.Editor
             ExamineDialogueField.Draw(promptDialogueRect, promptDialogueProp, new GUIContent("Prompt Dialogue"));
             y = promptDialogueRect.yMax + vSpace;
 
+            var activationTransformRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(activationTransformRect, activationTransformProp,
+                new GUIContent("Activation Transform", "Optional. A child of this model's root -- before On Used fires, the preview rotates to match its localRotation, so the reveal always plays from the same angle regardless of how the player had the model rotated."));
+            y = activationTransformRect.yMax + vSpace;
+
             float onUsedHeight = EditorGUI.GetPropertyHeight(onUsedProp, true);
             var onUsedRect = new Rect(position.x, y, position.width, onUsedHeight);
             EditorGUI.PropertyField(onUsedRect, onUsedProp,
                 new GUIContent("On Used", "Fires after Required Item is consumed via the \"Sí\" branch of Prompt Dialogue's use_required_item command."), true);
+            y = onUsedRect.yMax + vSpace * 2;
+
+            var rewardItemRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(rewardItemRect, rewardItemProp,
+                new GUIContent("Reward Item", "Optional. Granted after Reward Animation Clip finishes playing (if set) -- the item being inspected is consumed first to free up space, then this is added."));
+            y = rewardItemRect.yMax + vSpace;
+
+            var rewardDialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
+            ExamineDialogueField.Draw(rewardDialogueRect, rewardDialogueProp, new GUIContent("Reward Dialogue"));
+            y = rewardDialogueRect.yMax + vSpace;
+
+            var rewardAnimationClipRect = new Rect(position.x, y, position.width, lineH);
+            EditorGUI.PropertyField(rewardAnimationClipRect, rewardAnimationClipProp,
+                new GUIContent("Reward Animation Clip", "Optional. The clip On Used's Animator plays -- its length is how long InspectPanel waits before granting Reward Item, so it doesn't appear mid-animation."));
 
             EditorGUI.EndProperty();
         }
@@ -66,7 +89,11 @@ namespace CrimsonDraft.Editor
                  + ExamineDialogueField.Height + vSpace * 2          // dialogue
                  + lineH + vSpace                                   // requiredItem
                  + ExamineDialogueField.Height + vSpace              // promptDialogue
-                 + EditorGUI.GetPropertyHeight(onUsedProp, true)     // onUsed
+                 + lineH + vSpace                                   // activationTransform
+                 + EditorGUI.GetPropertyHeight(onUsedProp, true) + vSpace * 2 // onUsed
+                 + lineH + vSpace                                   // rewardItem
+                 + ExamineDialogueField.Height + vSpace              // rewardDialogue
+                 + lineH                                            // rewardAnimationClip
                  + Spacing;
         }
     }

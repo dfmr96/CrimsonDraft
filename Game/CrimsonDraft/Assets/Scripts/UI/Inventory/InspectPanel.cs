@@ -35,15 +35,22 @@ namespace CrimsonDraft.UI
         [Inject] private IInspectDialogueService  inspectDialogueService = null!;
 
         private InventoryItemView? currentItem;
+        private ItemData?          currentItemData;
 
         private string pendingExamineText = string.Empty;
         private int    typingGeneration;
         private bool   isTyping;
+        private bool   isActivating; // true while rotating to a hotspot's activationTransform before onUsed fires, and through the reward's animation wait
+        private string? pendingRewardItemId; // non-null while a reward's "You obtained X" text is shown, awaiting Confirm to close+select it
+        private ExaminePrompt? pendingPrompt; // non-null while a hotspot's flavor text is shown, awaiting Confirm to advance to its Yes/No prompt
         private bool   skipRequested;
         private int    openedFrame = -1;
 
         public bool IsOpen { get; private set; }
-        public System.Action? OnClose;
+
+        // The string carries the itemId of a just-granted reward to select in the grid
+        // (see GridCursor.SelectItemById) -- null for an ordinary close.
+        public System.Action<string?>? OnClose;
 
         void Awake()
         {
@@ -66,10 +73,13 @@ namespace CrimsonDraft.UI
 
         void Update()
         {
-            // Lock rotation while the examine text is being typed out, or while a hotspot's
-            // item-use prompt dialogue is running -- otherwise the player could rotate
-            // onto/off a hotspot mid-interaction.
-            if (!IsOpen || this.modelPreview == null || this.isTyping || this.inspectDialogueService.IsRunning) return;
+            // Lock rotation while the examine text is being typed out, while a hotspot's
+            // item-use prompt dialogue is running, or while the model is auto-rotating to
+            // its activation angle -- otherwise the player could fight that rotation or
+            // rotate onto/off a hotspot mid-interaction.
+            if (!IsOpen || this.modelPreview == null || this.isTyping
+                || this.inspectDialogueService.IsRunning || this.isActivating
+                || this.pendingRewardItemId != null || this.pendingPrompt != null) return;
             this.modelPreview.SetRotationInput(this.input.InventoryNavigate.ReadValue<Vector2>());
         }
 
@@ -90,6 +100,8 @@ namespace CrimsonDraft.UI
 
         void OpenInternal(ItemData data)
         {
+            this.currentItemData = data;
+
             if (data.PreviewModel != null && this.modelPreview != null)
             {
                 this.itemIcon.enabled = false;
@@ -108,6 +120,8 @@ namespace CrimsonDraft.UI
             this.typingGeneration++; // invalidate any in-flight typewriter from a previous item
             this.isTyping             = false;
             this.skipRequested        = false;
+            this.pendingRewardItemId  = null;
+            this.pendingPrompt        = null;
             this.openedFrame          = Time.frameCount;
 
             IsOpen = true;
@@ -115,14 +129,14 @@ namespace CrimsonDraft.UI
             this.sfx?.PlayDecide(gameObject);
         }
 
-        public void Close()
+        public void Close(string? selectItemId = null)
         {
             if (!IsOpen) return;
             IsOpen = false;
             Hide();
             this.modelPreview?.Hide();
             this.sfx?.PlayCancel(gameObject);
-            OnClose?.Invoke();
+            OnClose?.Invoke(selectItemId);
         }
 
         // Extracts the plain text of a Yarn node's lines without running the DialogueRunner --
@@ -161,9 +175,56 @@ namespace CrimsonDraft.UI
             // InventoryConfirm is still wired while it's running.
             if (this.inspectDialogueService.IsRunning) return;
 
+            // The dialogue itself has already finished by the time its "Sí" branch's
+            // use_required_item command returns (see UseRequiredItem/ActivateHotspot below),
+            // but the model may still be auto-rotating to its activation angle.
+            if (this.isActivating) return;
+
             // While typing, Confirm completes the text instantly. Only once finished does
             // Confirm replay it from the start.
             if (this.isTyping) { this.skipRequested = true; return; }
+
+            // The hotspot's flavor text (shown below, on the first press) has finished typing --
+            // this Confirm press advances straight to its Yes/No prompt. Deliberately checked
+            // before the general clear-gate below: this transition isn't "read text, clear,
+            // then decide what's next" -- the flavor text existing IS what led to the prompt, so
+            // going straight there is one continuous beat instead of an extra empty press.
+            if (this.pendingPrompt is { } readyPrompt)
+            {
+                this.pendingPrompt = null;
+                this.itemDescription.text = string.Empty; // prompt panel shares this text's rect
+                this.inspectDialogueService.StartDialogue(
+                    readyPrompt.Dialogue.nodeName ?? string.Empty,
+                    variables: new Dictionary<string, object>
+                    {
+                        ["$item_name"] = readyPrompt.RequiredItem.DisplayName
+                    },
+                    commands: new Dictionary<string, Action>
+                    {
+                        ["use_required_item"] = () => UseRequiredItem(readyPrompt)
+                    });
+                return;
+            }
+
+            // The reward's "You obtained X" text is fully shown and waiting -- same reasoning
+            // as pendingPrompt above: this Confirm press closes (and selects the reward in the
+            // grid) straight away instead of first requiring an extra empty press.
+            if (this.pendingRewardItemId != null)
+            {
+                string rewardedId = this.pendingRewardItemId;
+                this.pendingRewardItemId = null;
+                Close(rewardedId);
+                return;
+            }
+
+            // Text is fully shown (not blank) -- this press only clears it. Whatever comes
+            // next (retyped text, ...) waits for a separate Confirm press once the box is
+            // actually empty, below.
+            if (!string.IsNullOrEmpty(this.itemDescription.text))
+            {
+                this.itemDescription.text = string.Empty;
+                return;
+            }
 
             // Hotspot items resolve their text fresh on every press (the player may have
             // rotated the model between attempts); items without hotspots keep the text
@@ -172,16 +233,11 @@ namespace CrimsonDraft.UI
 
             if (resolution?.Prompt is { } prompt)
             {
-                this.inspectDialogueService.StartDialogue(
-                    prompt.Dialogue.nodeName ?? string.Empty,
-                    variables: new Dictionary<string, object>
-                    {
-                        ["$item_name"] = prompt.RequiredItem.DisplayName
-                    },
-                    commands: new Dictionary<string, Action>
-                    {
-                        ["use_required_item"] = () => UseRequiredItem(prompt)
-                    });
+                // Always show the hotspot's own examine text first, same as a plain hotspot --
+                // the Yes/No prompt only follows once the player confirms again (see the
+                // pendingPrompt branch above).
+                this.pendingPrompt = prompt;
+                TypewriterRoutine(ExtractExamineText(prompt.FlavorDialogue)).Forget();
                 return;
             }
 
@@ -194,11 +250,62 @@ namespace CrimsonDraft.UI
 
         // Registered as the "use_required_item" Yarn command for the duration of a
         // hotspot's prompt dialogue (see above) -- every prompt node's "Sí" branch calls
-        // this same fixed command name.
+        // this same fixed command name. Yarn commands here are synchronous (Action, not a
+        // YarnTask) so the node completes immediately after this returns; the rotate+onUsed
+        // sequence runs separately and isActivating (checked in Update/OnConfirmPressed)
+        // covers the gap between dialogue completion and that sequence finishing.
         void UseRequiredItem(ExaminePrompt prompt)
         {
             if (this.inventoryService.TryRemoveItem(prompt.RequiredItem.ItemId))
-                prompt.OnUsed?.Invoke();
+                ActivateHotspot(prompt).Forget();
+        }
+
+        async UniTaskVoid ActivateHotspot(ExaminePrompt prompt)
+        {
+            this.isActivating = true;
+
+            if (prompt.ActivationTransform != null && this.modelPreview != null)
+                await this.modelPreview.RotateMountPointTo(prompt.ActivationTransform.localRotation);
+
+            prompt.OnUsed?.Invoke();
+
+            // Waits out the reveal animation onUsed just fired, so the reward doesn't appear
+            // mid-animation -- still blocking input via isActivating, same as the rotation above.
+            if (prompt.RewardAnimationClip != null)
+                await UniTask.Delay(
+                    TimeSpan.FromSeconds(prompt.RewardAnimationClip.length), ignoreTimeScale: true);
+
+            this.isActivating = false;
+
+            if (prompt.RewardItem != null)
+                GrantReward(prompt);
+        }
+
+        // Consumes the item currently being inspected -- BEFORE granting the reward, to free up
+        // its grid space -- then types out "You obtained X" the same way ordinary examine text
+        // is shown. pendingRewardItemId gates OnConfirmPressed until the player acknowledges it,
+        // at which point Close() carries the reward's itemId so GridCursor selects it.
+        void GrantReward(ExaminePrompt prompt)
+        {
+            if (this.currentItemData != null)
+                this.inventoryService.TryRemoveItem(this.currentItemData.ItemId);
+            this.inventoryService.AddItemAuto(prompt.RewardItem!);
+
+            this.pendingRewardItemId = prompt.RewardItem!.ItemId;
+
+            // Reward items are freshly granted/unidentified, so the announcement uses
+            // SecondaryName -- same "not yet identified" naming GridCursor's tooltip shows for
+            // any item the player hasn't inspected yet -- falling back to DisplayName if unset.
+            string rewardName = !string.IsNullOrEmpty(prompt.RewardItem!.SecondaryName)
+                ? prompt.RewardItem!.SecondaryName
+                : prompt.RewardItem!.DisplayName;
+
+            // Yarn's compiled line text uses positional placeholders ({0}, {1}, ...) for
+            // interpolated expressions, not the literal "{$var}" source syntax -- string.Format
+            // fills it in the same way the DialogueRunner would if this line were run live.
+            string text = string.Format(ExtractExamineText(prompt.RewardDialogue), rewardName);
+
+            TypewriterRoutine(text).Forget();
         }
 
         async UniTaskVoid TypewriterRoutine(string text)
