@@ -13,8 +13,9 @@ namespace CrimsonDraft.UI.MainMenu
     public sealed class PressAnyButtonIntro : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private TMP_Text    pressAnyButtonText = null!;
-        [SerializeField] private CanvasGroup introGroup         = null!; // Fades text + logo together.
+        [SerializeField] private TMP_Text       pressAnyButtonText = null!;
+        [SerializeField] private CanvasGroup    introGroup         = null!; // Fades text + logo together.
+        [SerializeField] private MainMenuSfxData? sfx;
 
         [Header("Blink")]
         [Tooltip("Duracion de cada tramo del parpadeo (apagado->prendido o viceversa).")]
@@ -71,6 +72,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.confirmed) return;
             this.confirmed = true;
 
+            this.sfx?.PlayStart(gameObject);
             DOTween.Kill(this.pressAnyButtonText); // stop blinking, freeze fully visible
             this.pressAnyButtonText.alpha = 1f;
 

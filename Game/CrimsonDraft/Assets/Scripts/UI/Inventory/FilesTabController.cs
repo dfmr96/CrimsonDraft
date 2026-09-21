@@ -43,6 +43,8 @@ namespace CrimsonDraft.UI
         [Header("Voice Note Playback")]
         [SerializeField] private float voiceCharsPerSecond  = 18f;
         [SerializeField] private float voiceScrubMultiplier = 4f;
+        [Tooltip("Minimum real-time gap between typewriter ticks -- caps the tick rate independently of reveal speed, so holding right to scrub (voiceScrubMultiplier) never turns it into a machine-gun.")]
+        [SerializeField] private float voiceTypewriterMinInterval = 0.35f;
 
         [SerializeField] private YarnProject yarnProject = null!;
 
@@ -108,6 +110,8 @@ namespace CrimsonDraft.UI
         private int     voiceScrubDirection;
         private bool    voicePaused;
         private int     voiceLastDirX;
+        private int     voiceLastTypedChars; // last "shown" count a typewriter tick was played for
+        private float   voiceLastTypewriterTime = -999f; // Time.unscaledTime of the last tick
 
         private static readonly System.Text.RegularExpressions.Regex RichTagPattern =
             new(@"<[^>]+>", System.Text.RegularExpressions.RegexOptions.Compiled);
@@ -322,6 +326,9 @@ namespace CrimsonDraft.UI
             this.voiceScrubDirection = 0;
             this.voicePaused         = false;
             this.voiceLastDirX       = 0;
+            this.voiceLastTypedChars = 0;
+            this.voiceLastTypewriterTime = -999f;
+            this.sfx?.PlayVoiceStart(gameObject);
             ShowVoiceParagraph();
         }
 
@@ -363,6 +370,7 @@ namespace CrimsonDraft.UI
                     float overflow = this.voiceCharsShown - totalVisible;
                     this.voiceParagraphIndex++;
                     this.voiceCharsShown = overflow;
+                    this.voiceLastTypedChars = Mathf.FloorToInt(overflow);
                 }
                 else
                 {
@@ -377,6 +385,7 @@ namespace CrimsonDraft.UI
                     float overflow = this.voiceCharsShown;
                     this.voiceParagraphIndex--;
                     this.voiceCharsShown = CountVisibleChars(this.currentPages[this.voiceParagraphIndex]) + overflow;
+                    this.voiceLastTypedChars = Mathf.FloorToInt(this.voiceCharsShown);
                 }
                 else
                 {
@@ -403,6 +412,22 @@ namespace CrimsonDraft.UI
             string paragraph    = this.currentPages[this.voiceParagraphIndex];
             int    totalVisible = CountVisibleChars(paragraph);
             int    shown        = Mathf.Clamp(Mathf.FloorToInt(this.voiceCharsShown), 0, totalVisible);
+
+            // Typewriter tick: only past the furthest point ever revealed in this paragraph
+            // (voiceLastTypedChars only ever grows here, via Mathf.Max) -- otherwise rewinding
+            // and then scrubbing forward again over text that's already fully on screen would
+            // replay ticks for characters that aren't actually being "typed" anymore. Also
+            // gated by a minimum real-time interval rather than a character count -- a
+            // character-count gate still machine-guns while scrubbing (voiceScrubMultiplier
+            // reveals characters up to 4x faster), since more real ticks fit in the same
+            // second. A wall-clock cooldown keeps the tick rate constant regardless of speed.
+            if (shown > this.voiceLastTypedChars &&
+                Time.unscaledTime - this.voiceLastTypewriterTime >= this.voiceTypewriterMinInterval)
+            {
+                this.sfx?.PlayVoiceTypewriter(gameObject);
+                this.voiceLastTypewriterTime = Time.unscaledTime;
+            }
+            this.voiceLastTypedChars = Mathf.Max(this.voiceLastTypedChars, shown);
 
             float elapsedBefore = 0f;
             for (int i = 0; i < this.voiceParagraphIndex; i++)
