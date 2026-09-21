@@ -490,6 +490,11 @@ namespace CrimsonDraft.UI
                     break;
                 }
             }
+
+            // The one true "placement succeeded" point -- GridCursor no longer plays Decide
+            // itself, since its own check is visual/grid-space only and can still be reverted
+            // above once the logical-slot layer is checked.
+            this.sfx.PlayDecide(this.cursor.gameObject);
         }
 
         private int FindSlotIndex(InventoryItem item)
