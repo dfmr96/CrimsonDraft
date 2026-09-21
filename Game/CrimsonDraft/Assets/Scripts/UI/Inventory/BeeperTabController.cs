@@ -56,7 +56,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private float pressedScale     = 0.9f;
 
         [SerializeField] private float holdThreshold   = 0.3f;
-        [SerializeField] private float letterTimeout   = 3f;
+        [SerializeField] private float letterTimeout   = 2.3f;
         [SerializeField] private int   requiredLetters = 3;
 
         [Inject] private IInputService                      inputService          = null!;
@@ -219,7 +219,10 @@ namespace CrimsonDraft.UI
 
             if (this.decoder.Word.Count < this.requiredLetters)
             {
-                this.sfx?.PlayInvalidAction(gameObject);
+                // Not enough letters yet -- Output now doubles as a manual clear, so a mistyped
+                // letter doesn't force finishing all three before starting over.
+                ClearCode();
+                this.sfx?.PlayCancel(gameObject);
                 return;
             }
 
@@ -273,6 +276,21 @@ namespace CrimsonDraft.UI
 
             this.activeLetter = '\0';
             this.decoder.Confirm();
+            SetStartLit(true);
+            RefreshCodeText(null);
+            SetTimeFill(1f);
+        }
+
+        // Wipes whatever letters were typed/locked so far (used when Output is pressed before
+        // all requiredLetters are confirmed) without touching tab focus or navigation state --
+        // unlike ResetState(), which is only meant for a fresh panel open.
+        void ClearCode()
+        {
+            if (this.activeLetter != '\0' && this.ledLookup.TryGetValue(this.activeLetter, out var image))
+                SetLedOff(this.activeLetter, image);
+
+            this.decoder.Reset();
+            this.activeLetter = '\0';
             SetStartLit(true);
             RefreshCodeText(null);
             SetTimeFill(1f);
