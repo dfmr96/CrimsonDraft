@@ -22,6 +22,10 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public bool IsActivated { get; private set; }
 
+        // Lets other scripts (e.g. GeneratorSwitchPanel) subscribe in code instead of only via
+        // the Inspector's persistent-call list.
+        public UnityEvent OnActivated => this.onActivated;
+
         void Awake()
         {
             // Defensive: make sure the "placed" visual isn't left visible by mistake in the

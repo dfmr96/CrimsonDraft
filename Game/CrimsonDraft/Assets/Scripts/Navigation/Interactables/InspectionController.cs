@@ -1,0 +1,96 @@
+#nullable enable
+
+using System;
+using Unity.Cinemachine;
+using UnityEngine.InputSystem;
+using UnityEngine.Scripting;
+using VContainer.Unity;
+using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation.CamaraSystem;
+
+namespace CrimsonDraft.Navigation.Interactables
+{
+    // Drives the "examine → confirm → hard-cut to the object's own camera" flow shared by
+    // inspectable puzzle props (e.g. GeneratorInteractable). Mirrors PuzzleViewController:
+    // a scoped service that owns an input map switch and a UICancel subscription for the
+    // whole time the inspection view is open.
+    //
+    // Routes the cut through IFixedCameraZoneService -- the same mechanism the level's room
+    // shots use -- instead of swapping the physical Camera component (an earlier version did
+    // that via ICameraService, but it disabled the "Camera" GameObject entirely, which is the
+    // URP camera-stack Base that "UI CRT Camera" (an Overlay) is stacked onto; with Base gone
+    // the whole dialogue/UI canvas stack silently stopped rendering, even though the input map
+    // switch still worked -- the game looked "frozen" with no visible prompt). FixedCameraZone
+    // only ever toggles CinemachineCamera.enabled on vcams that all still feed the same
+    // physical Base camera via CinemachineBrain, so the camera stack is never touched.
+    public sealed class InspectionController : IInitializable, IDisposable
+    {
+        private readonly IInputService          inputService;
+        private readonly IFixedCameraZoneService zoneService;
+
+        private bool               isInspecting;
+        private Action?            onExit;
+        private CinemachineCamera? previousZoneCamera;
+
+        [Preserve]
+        public InspectionController(IInputService inputService, IFixedCameraZoneService zoneService)
+        {
+            this.inputService = inputService;
+            this.zoneService  = zoneService;
+        }
+
+        public bool IsInspecting => this.isInspecting;
+
+        void IInitializable.Initialize()
+        {
+            this.inputService.UICancel.performed += OnCancel;
+        }
+
+        // onExit lets a caller-specific object (e.g. GeneratorInteractable's switch-panel
+        // navigator) clean itself up whenever inspection ends, however it ends -- Cancel (B)
+        // here, or a future programmatic Exit() -- without InspectionController itself needing
+        // to know about anything puzzle-specific.
+        public void Enter(CinemachineCamera inspectCamera, Action? onExit = null)
+        {
+            if (this.isInspecting) return;
+
+            this.isInspecting       = true;
+            this.onExit             = onExit;
+            this.previousZoneCamera = this.zoneService.CurrentZoneCamera;
+            this.zoneService.ActivateZone(inspectCamera);
+            this.inputService.SwitchToUI();
+        }
+
+        private void OnCancel(InputAction.CallbackContext _)
+        {
+            if (!this.isInspecting) return;
+            Exit();
+        }
+
+        // Programmatic equivalent of pressing Cancel -- e.g. GeneratorSwitchPanel force-closing
+        // the view once the puzzle is solved.
+        public void ExitNow()
+        {
+            if (!this.isInspecting) return;
+            Exit();
+        }
+
+        private void Exit()
+        {
+            this.isInspecting = false;
+            if (this.previousZoneCamera != null)
+                this.zoneService.ActivateZone(this.previousZoneCamera);
+            this.previousZoneCamera = null;
+            this.inputService.SwitchToGameplay();
+
+            var callback = this.onExit;
+            this.onExit  = null;
+            callback?.Invoke();
+        }
+
+        void IDisposable.Dispose()
+        {
+            this.inputService.UICancel.performed -= OnCancel;
+        }
+    }
+}
