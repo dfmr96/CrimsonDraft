@@ -32,15 +32,16 @@ namespace CrimsonDraft.Inventory
             // Prefab Mode (where the root sits at identity) until it looks right.
             public Transform? activationTransform;
 
-            // Optional reward granted once onUsed's reveal animation finishes. If rewardItem
-            // is null, activation stops after onUsed fires (unchanged behavior).
-            public ItemData?         rewardItem;
-            public DialogueReference rewardDialogue;
+            // Optional reward granted once onUsed's reveal animation finishes. If reward is
+            // null, activation stops after onUsed fires (unchanged behavior). Polymorphic --
+            // right-click the field in the Inspector to pick a concrete kind (ItemHotspotReward,
+            // NoteHotspotReward, ...); see HotspotReward for why it's split this way.
+            [SerializeReference] public HotspotReward? reward;
 
             // The clip onUsed's animation plays -- its length is how long InspectPanel waits
-            // before consuming the inspected item and granting rewardItem, so the reward
-            // doesn't appear mid-animation. Assign the same clip wired into onUsed's Animator
-            // (e.g. the suitcase's "Open" state's motion).
+            // before consuming the inspected item and granting reward, so the reward doesn't
+            // appear mid-animation. Assign the same clip wired into onUsed's Animator (e.g.
+            // the suitcase's "Open" state's motion).
             public AnimationClip? rewardAnimationClip;
         }
 
@@ -71,14 +72,21 @@ namespace CrimsonDraft.Inventory
         {
             var hotspot = FindHotspot(hitCollider);
 
-            if (hotspot is { } h
-                && h.requiredItem != null
-                && inventory.HasItem(h.requiredItem.ItemId)
-                && h.promptDialogue.IsValid)
+            if (hotspot is { } h && (h.requiredItem != null || h.onUsed != null || h.reward != null))
             {
-                return ExamineResolution.ForPrompt(
-                    new ExaminePrompt(h.dialogue, h.promptDialogue, h.requiredItem, h.onUsed, h.activationTransform,
-                        h.rewardItem, h.rewardDialogue, h.rewardAnimationClip));
+                // requiredItem is optional gating, not a prerequisite for activating at all --
+                // a hotspot with no requiredItem activates unconditionally (e.g. a book that
+                // just opens itself); one with requiredItem still needs it present plus a valid
+                // Yes/No prompt, same as before.
+                bool canActivate = h.requiredItem == null
+                    || (inventory.HasItem(h.requiredItem.ItemId) && h.promptDialogue.IsValid);
+
+                if (canActivate)
+                {
+                    return ExamineResolution.ForPrompt(
+                        new ExaminePrompt(h.dialogue, h.promptDialogue, h.requiredItem, h.onUsed, h.activationTransform,
+                            h.reward, h.rewardAnimationClip));
+                }
             }
 
             var candidate = hotspot?.dialogue;
@@ -121,25 +129,22 @@ namespace CrimsonDraft.Inventory
         // plain hotspot) before advancing to Dialogue (the Yes/No prompt) on the next Confirm.
         public readonly DialogueReference FlavorDialogue;
         public readonly DialogueReference Dialogue;
-        public readonly ItemData          RequiredItem;
+        public readonly ItemData?         RequiredItem;
         public readonly UnityEvent?       OnUsed;
         public readonly Transform?        ActivationTransform;
-        public readonly ItemData?         RewardItem;
-        public readonly DialogueReference RewardDialogue;
+        public readonly HotspotReward?    Reward;
         public readonly AnimationClip?    RewardAnimationClip;
 
         public ExaminePrompt(
-            DialogueReference flavorDialogue, DialogueReference dialogue, ItemData requiredItem, UnityEvent? onUsed,
-            Transform? activationTransform, ItemData? rewardItem, DialogueReference rewardDialogue,
-            AnimationClip? rewardAnimationClip)
+            DialogueReference flavorDialogue, DialogueReference dialogue, ItemData? requiredItem, UnityEvent? onUsed,
+            Transform? activationTransform, HotspotReward? reward, AnimationClip? rewardAnimationClip)
         {
             this.FlavorDialogue       = flavorDialogue;
             this.Dialogue             = dialogue;
             this.RequiredItem         = requiredItem;
             this.OnUsed               = onUsed;
             this.ActivationTransform  = activationTransform;
-            this.RewardItem           = rewardItem;
-            this.RewardDialogue       = rewardDialogue;
+            this.Reward               = reward;
             this.RewardAnimationClip  = rewardAnimationClip;
         }
     }
