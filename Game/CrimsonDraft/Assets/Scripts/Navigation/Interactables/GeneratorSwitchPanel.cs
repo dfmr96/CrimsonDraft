@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -87,6 +88,11 @@ namespace CrimsonDraft.Navigation.Interactables
         // the top row just stays disabled forever (fine before the socket exists in-scene).
         [SerializeField] private ItemSocketInteractable? fuseSocket;
 
+        // Shown full-screen (via ScreenFader) once all three rows check out -- same demo-end
+        // beat PuzzleInteractable uses elsewhere, restored here since this panel replaced the
+        // older electric-box puzzle that used to trigger it.
+        [SerializeField, TextArea] private string demoEndMessage = "Hasta aquí llega la demo.\nGracias por jugar.";
+
         private Transform[][]     rows        = Array.Empty<Transform[]>();
         private TextMeshProUGUI[] rowDisplays = Array.Empty<TextMeshProUGUI>();
         // Per-switch on/off state, same shape as rows.
@@ -96,6 +102,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private IInputService       inputService        = null!;
         private IDialogueService    dialogueService      = null!;
         private InspectionController inspectionController = null!;
+        private ScreenFader          screenFader          = null!;
 
         private Renderer[] highlightedRenderers      = Array.Empty<Renderer>();
         private int[]      highlightedOriginalLayers = Array.Empty<int>();
@@ -115,11 +122,12 @@ namespace CrimsonDraft.Navigation.Interactables
         public bool IsSolved => this.isSolved;
 
         [Inject]
-        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController)
+        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ScreenFader screenFader)
         {
             this.inputService         = inputService;
             this.dialogueService      = dialogueService;
             this.inspectionController = inspectionController;
+            this.screenFader          = screenFader;
         }
 
         void Awake()
@@ -271,6 +279,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.inspectionController.ExitNow();
                 // Left verifying + the green flash on -- the panel is locked (Activate() now
                 // refuses) and the handle stays pulled down as a visible "already solved" cue.
+                this.screenFader.ShowEndScreenAsync(this.demoEndMessage).Forget();
                 return;
             }
 
