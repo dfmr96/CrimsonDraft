@@ -119,6 +119,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+            builder.Register<InspectionController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
             builder.RegisterInstance(this.saveSlotListView);
             builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
