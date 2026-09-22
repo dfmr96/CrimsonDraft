@@ -63,6 +63,13 @@ namespace CrimsonDraft.Navigation.Rooms
             }
         }
 
-        void IDisposable.Dispose() => this.subscription?.Dispose();
+        void IDisposable.Dispose()
+        {
+            // Same leftover-instance issue as MusicManagerController.Dispose(): destroying
+            // this GameObject doesn't stop Play_WeatherBC on its own, so the old ambience
+            // instance keeps playing alongside whatever the next scene posts.
+            this.weatherEvent.Stop(gameObject);
+            this.subscription?.Dispose();
+        }
     }
 }

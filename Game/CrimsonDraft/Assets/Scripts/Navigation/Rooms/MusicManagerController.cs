@@ -96,6 +96,13 @@ namespace CrimsonDraft.Navigation.Rooms
 
         void IDisposable.Dispose()
         {
+            // Destroying this GameObject (scene unload on quit/load-game) does NOT stop
+            // Play_MSC_Manager on its own -- Wwise keeps the Music Switch Container instance
+            // playing on the now-orphaned emitter. Without this, a leftover instance (e.g.
+            // SaveRoom sector, or Combat state) keeps playing underneath whatever the next
+            // scene's MusicManagerController posts, stacking further with every reload.
+            this.mscEvent.Stop(gameObject);
+
             this.startedSubscription?.Dispose();
             this.transitionedSubscription?.Dispose();
             this.combatStartedSubscription?.Dispose();
