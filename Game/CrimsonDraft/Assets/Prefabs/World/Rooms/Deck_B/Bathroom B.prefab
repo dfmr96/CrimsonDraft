@@ -1968,7 +1968,6 @@ GameObject:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
   - component: {fileID: 3435183381096001008}
-  - component: {fileID: 5501565568911817144}
   m_Layer: 0
   m_Name: Bathroom B
   m_TagString: Untagged
@@ -2060,32 +2059,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
   localPoints:
   - {x: -5.399895, y: 0.91078997}
-  - {x: 1.3595049, y: 0.86764896}
-  - {x: 1.3593818, y: -7.0353785}
-  - {x: -5.400002, y: -7.000001}
+  - {x: 2.023316, y: 0.91078997}
+  - {x: 2.023316, y: -6.996335}
+  - {x: -5.400002, y: -6.996335}
   mapOffset: {x: -47.03357, y: -8.578624}
   mapRotation: -90
-  mapScale: {x: 1, y: 1}
-  zOrder: 0
---- !u!114 &5501565568911817144
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5955768853396820527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
-  localPoints:
-  - {x: -5.400002, y: 0.49000597}
-  - {x: 2.0999978, y: 0.49000597}
-  - {x: 2.0999978, y: -7.000001}
-  - {x: -5.400002, y: -7.000001}
-  mapOffset: {x: -40.92939, y: -11.923387}
-  mapRotation: 90
   mapScale: {x: 1, y: 1}
   zOrder: 0
 --- !u!1 &6536059661548862970
@@ -5740,6 +5718,10 @@ PrefabInstance:
     - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: mapRotation
       value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: excludeFromMap
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
