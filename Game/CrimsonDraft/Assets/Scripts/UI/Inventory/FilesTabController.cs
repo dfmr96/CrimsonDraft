@@ -728,9 +728,9 @@ namespace CrimsonDraft.UI
 
         static string DisplayName(DocumentCategory cat) => cat switch
         {
-            DocumentCategory.Notes      => "Notas",
-            DocumentCategory.VoiceNotes => "Notas de Voz",
-            DocumentCategory.Posters    => "Carteles",
+            DocumentCategory.Notes      => "Notes",
+            DocumentCategory.VoiceNotes => "Voice Notes",
+            DocumentCategory.Posters    => "Posters",
             _                           => cat.ToString()
         };
 
