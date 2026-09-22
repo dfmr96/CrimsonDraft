@@ -119,7 +119,13 @@ namespace CrimsonDraft.Infrastructure.Scenes
             }
 
             this.gameOverView.Hide();
-            SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
+
+            // Async rather than the bare synchronous LoadScene(Single) this used to call --
+            // that tears the gameplay scene down and activates MainMenu in the same frame,
+            // with no gap for Wwise to unregister the old AkAudioListener before the new one
+            // registers, which drops all audio in the destination scene.
+            var operation = SceneManager.LoadSceneAsync(MainMenuSceneName, LoadSceneMode.Single);
+            await operation.ToUniTask();
             await this.screenFader.FadeInAsync();
         }
 

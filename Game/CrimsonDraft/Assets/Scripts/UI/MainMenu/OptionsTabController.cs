@@ -1,6 +1,7 @@
 #nullable enable
 
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Rendering.Outline;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -70,6 +71,8 @@ namespace CrimsonDraft.UI.MainMenu
         private int   heldHorizontalDirection;
         private float horizontalRepeatTimer;
 
+        private readonly SelectionOutlineHighlight highlight = new();
+
         [Inject]
         public void Construct(IInputService inputService, MainMenuSfxData sfx)
         {
@@ -92,7 +95,6 @@ namespace CrimsonDraft.UI.MainMenu
                 button.cube.Translate(this.pressLocalAxis.normalized * this.pressDepth, Space.Self);
                 button.pressedLocalPosition = button.cube.localPosition;
                 button.cube.localPosition   = button.raisedLocalPosition;
-                button.outline.SetActive(false);
             }
         }
 
@@ -126,8 +128,7 @@ namespace CrimsonDraft.UI.MainMenu
             SetPressedVisual(this.buttons[0], true);
             SetPressedVisual(this.buttons[1], false);
 
-            this.buttons[0].outline.SetActive(true);
-            this.buttons[1].outline.SetActive(false);
+            this.highlight.Show(this.buttons[0].cube);
         }
 
         public void Close()
@@ -140,10 +141,8 @@ namespace CrimsonDraft.UI.MainMenu
             foreach (var knobGroup in this.knobGroups)
                 knobGroup.SetActive(false);
             foreach (var button in this.buttons)
-            {
                 DOTween.Kill(button.cube);
-                button.outline.SetActive(false);
-            }
+            this.highlight.Clear();
         }
 
         private void Update()
@@ -199,14 +198,13 @@ namespace CrimsonDraft.UI.MainMenu
                 if (!this.onButtonRow) this.panels[this.activeTab].HideOutlines();
                 this.onButtonRow  = true;
                 this.buttonCursor = this.activeTab;
-                this.buttons[this.buttonCursor].outline.SetActive(true);
-                this.buttons[1 - this.buttonCursor].outline.SetActive(false);
+                this.highlight.Show(this.buttons[this.buttonCursor].cube);
             }
             else
             {
                 if (this.onButtonRow)
                 {
-                    this.buttons[this.buttonCursor].outline.SetActive(false);
+                    this.highlight.Clear();
                     this.onButtonRow = false;
                 }
                 this.contentIndex = nextSlot;
@@ -218,9 +216,8 @@ namespace CrimsonDraft.UI.MainMenu
         {
             if (this.onButtonRow)
             {
-                this.buttons[this.buttonCursor].outline.SetActive(false);
                 this.buttonCursor = (this.buttonCursor + delta + this.buttons.Length) % this.buttons.Length;
-                this.buttons[this.buttonCursor].outline.SetActive(true);
+                this.highlight.Show(this.buttons[this.buttonCursor].cube);
                 this.sfx.PlayCursor(gameObject);
                 return;
             }

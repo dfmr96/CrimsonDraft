@@ -19,8 +19,13 @@ namespace CrimsonDraft.Rendering.Outline
         [SerializeField] private float           outlineWidthPixels = 2f;
         [SerializeField] private RenderPassEvent renderEvent        = RenderPassEvent.BeforeRenderingPostProcessing;
 
-        private Shader?   maskShader;
-        private Shader?   compositeShader;
+        // Serialized (rather than found only via Shader.Find in Create()) so the Renderer Data
+        // asset itself references these shaders -- Shader.Find alone isn't enough for a build to
+        // include them, since nothing else in the project references these Hidden/ shaders from
+        // a Material, so the build stripper drops them and the outline silently no-ops (worked
+        // in the Editor, where every shader is available, invisible only in builds).
+        [SerializeField] private Shader? maskShader;
+        [SerializeField] private Shader? compositeShader;
         private Material? maskMaterial;
         private Material? compositeMaterial;
         private OutlinePass? pass;

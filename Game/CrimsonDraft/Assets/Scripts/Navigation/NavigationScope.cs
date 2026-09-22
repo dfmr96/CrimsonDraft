@@ -122,6 +122,20 @@ namespace CrimsonDraft.Navigation
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InspectionController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
+            // GeneratorSwitchPanel takes its dependencies via [Inject] Construct() but was
+            // never registered anywhere -- Activate() threw a NullReferenceException on
+            // this.inputService before ever reaching UpdateHighlight(), so the selection
+            // outline never got applied. Only the Generator's own scene has one, though --
+            // RegisterComponentInHierarchy uses FindComponentProvider, which THROWS at scope
+            // build time if the type isn't in the scene (unlike a plain FindObjectOfType
+            // null-check), which took down the whole container -- and everything after it in
+            // this method -- in every other scene sharing NavigationScope (e.g. Deck B on new
+            // game). Same optional-registration pattern as InventoryDebugPrinter/RadioInteractable
+            // below: only register it if this scene actually has one.
+            var generatorSwitchPanel = FindObjectOfType<GeneratorSwitchPanel>(true);
+            if (generatorSwitchPanel != null)
+                builder.RegisterComponent(generatorSwitchPanel);
+
             builder.RegisterInstance(this.saveSlotListView);
             builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 

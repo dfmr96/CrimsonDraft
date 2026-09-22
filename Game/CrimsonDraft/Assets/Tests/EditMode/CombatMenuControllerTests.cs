@@ -1067,6 +1067,11 @@ namespace CrimsonDraft.Tests
             public void ReleaseOperatorFocus(int index) { }
             public void PlayActionFeedback(int index) { }
             public void MoveSelectorTo(RectTransform anchor) { }
+            private readonly Dictionary<int, string> nameByOperator = new();
+            public void SetOperatorName(int index, string name) =>
+                this.nameByOperator[index] = name;
+            public bool TryGetName(int index, out string name) =>
+                this.nameByOperator.TryGetValue(index, out name);
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>
                 this.ammoByOperator[index] = (currentAmmo, maxAmmo);
             public bool TryGetAmmo(int index, out (int current, int max) ammo) =>

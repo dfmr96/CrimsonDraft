@@ -38,7 +38,7 @@ namespace CrimsonDraft.Navigation.UI
         {
             this.operatorSlotIndex = slotIndex;
             this.cachedOp          = op;
-            this.nameLabel.text    = op.Data?.DisplayName ?? $"Operator {slotIndex}";
+            this.nameLabel.text    = op.Data?.CombatName ?? $"Operator {slotIndex}";
 
             bool hasPortrait      = op.Data?.Portrait != null;
             this.portrait.sprite  = hasPortrait ? op.Data!.Portrait : null;

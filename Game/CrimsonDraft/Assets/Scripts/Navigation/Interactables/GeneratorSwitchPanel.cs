@@ -10,6 +10,7 @@ using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.Rendering.Outline;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -104,8 +105,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private InspectionController inspectionController = null!;
         private ScreenFader          screenFader          = null!;
 
-        private Renderer[] highlightedRenderers      = Array.Empty<Renderer>();
-        private int[]      highlightedOriginalLayers = Array.Empty<int>();
+        private readonly SelectionOutlineHighlight highlight = new();
 
         private int   currentRow;
         private int   currentCol;
@@ -464,28 +464,11 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private void UpdateHighlight()
         {
-            ClearHighlight();
-
             Transform target = this.onLever ? this.lever : this.rows[this.currentRow][this.currentCol];
-            this.highlightedRenderers     = target.GetComponentsInChildren<Renderer>();
-            this.highlightedOriginalLayers = new int[this.highlightedRenderers.Length];
-
-            int outlineLayer = LayerMask.NameToLayer("Outline");
-            for (int i = 0; i < this.highlightedRenderers.Length; i++)
-            {
-                this.highlightedOriginalLayers[i] = this.highlightedRenderers[i].gameObject.layer;
-                this.highlightedRenderers[i].gameObject.layer = outlineLayer;
-            }
+            this.highlight.Show(target);
         }
 
-        private void ClearHighlight()
-        {
-            for (int i = 0; i < this.highlightedRenderers.Length; i++)
-                this.highlightedRenderers[i].gameObject.layer = this.highlightedOriginalLayers[i];
-
-            this.highlightedRenderers      = Array.Empty<Renderer>();
-            this.highlightedOriginalLayers = Array.Empty<int>();
-        }
+        private void ClearHighlight() => this.highlight.Clear();
 
         void OnDestroy()
         {

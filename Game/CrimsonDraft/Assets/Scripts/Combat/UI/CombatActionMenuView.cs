@@ -24,6 +24,7 @@ namespace CrimsonDraft.Combat
         #region Fields
 
         [SerializeField] private ActionMenuItem[]    operators       = Array.Empty<ActionMenuItem>();
+        [SerializeField] private TMP_Text[]          operatorNameLabels = Array.Empty<TMP_Text>();
         [SerializeField] private TMP_Text[]          operatorAmmoLabels = Array.Empty<TMP_Text>();
         [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
@@ -48,6 +49,7 @@ namespace CrimsonDraft.Combat
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
         private int      focusedOperatorIndex = -1;
+        private readonly Dictionary<int, string>                 pendingNameByOperator  = new();
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
         private readonly Dictionary<int, (float hpRatio, bool isAlive)> pendingHealthByOperator = new();
         private readonly Dictionary<int, WeaponItem?>            pendingWeaponByOperator = new();
@@ -65,11 +67,13 @@ namespace CrimsonDraft.Combat
             le.ignoreLayout = true;
             this.selectorMarkImage = this.selectorMark.GetComponent<Image>();
             this.selectorMark.gameObject.SetActive(false);
+            this.TryAutoWireOperatorNameLabels();
             this.TryAutoWireOperatorAmmoLabels();
             this.TryAutoWireOperatorEcgAnimators();
             this.TryAutoWireOperatorWeaponIcons();
             this.TryAutoWireOperatorActionPendingIcons();
             this.TryAutoWireOperatorTurnOrderLabels();
+            this.ApplyPendingNameLabels();
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
@@ -81,6 +85,7 @@ namespace CrimsonDraft.Combat
         {
             this.submitHandlers   = new Action[this.operators.Length];
             this.selectedHandlers = new Action[this.operators.Length];
+            this.ApplyPendingNameLabels();
             this.ApplyPendingAmmoLabels();
             this.ApplyPendingHealthIcons();
             this.ApplyPendingWeaponIcons();
@@ -156,6 +161,47 @@ namespace CrimsonDraft.Combat
             if (index < 0 || index >= this.operators.Length) return null;
             var overview = this.operators[index].transform.parent;
             return overview == null ? null : overview.GetComponent<OperatorFocusBounce>();
+        }
+
+        private void TryAutoWireOperatorNameLabels()
+        {
+            if (this.operators.Length == 0)
+                return;
+
+            bool hasAssignedAll = this.operatorNameLabels != null && this.operatorNameLabels.Length >= this.operators.Length;
+            if (hasAssignedAll)
+            {
+                bool allFilled = true;
+                for (int i = 0; i < this.operators.Length; i++)
+                {
+                    if (this.operatorNameLabels[i] == null)
+                    {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (allFilled)
+                    return;
+            }
+
+            this.operatorNameLabels = new TMP_Text[this.operators.Length];
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var item = this.operators[i];
+                if (item == null)
+                    continue;
+
+                var overview = item.transform.parent;
+                if (overview == null)
+                    continue;
+
+                var nameNode = overview.Find("OperatorName/Label");
+                if (nameNode == null)
+                    continue;
+
+                this.operatorNameLabels[i] = nameNode.GetComponent<TMP_Text>();
+            }
         }
 
         private void TryAutoWireOperatorAmmoLabels()
@@ -527,6 +573,36 @@ namespace CrimsonDraft.Combat
             if (index < 0 || index >= this.operatorFocusFireMarkers.Length) return;
             var marker = this.operatorFocusFireMarkers[index];
             if (marker != null) marker.gameObject.SetActive(marked);
+        }
+
+        public void SetOperatorName(int index, string name)
+        {
+            this.pendingNameByOperator[index] = name;
+
+            if (index < 0 || index >= this.operatorNameLabels.Length)
+                return;
+
+            var label = this.operatorNameLabels[index];
+            if (label == null)
+                return;
+
+            label.text = name;
+        }
+
+        private void ApplyPendingNameLabels()
+        {
+            foreach (var kvp in this.pendingNameByOperator)
+            {
+                int index = kvp.Key;
+                if (index < 0 || index >= this.operatorNameLabels.Length)
+                    continue;
+
+                var label = this.operatorNameLabels[index];
+                if (label == null)
+                    continue;
+
+                label.text = kvp.Value;
+            }
         }
 
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)

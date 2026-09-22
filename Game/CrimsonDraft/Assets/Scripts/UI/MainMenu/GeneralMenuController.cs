@@ -2,6 +2,7 @@
 
 using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Rendering.Outline;
 using UnityEngine;
 using VContainer;
 
@@ -53,11 +54,16 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private float   sweepDegrees = 270f;
         [SerializeField] private int     stepPercent  = 5;
 
-        private GameObject[] outlines = null!;
+        // Language/Control have no rotating knob transform of their own (Adjust() no-ops or
+        // doesn't apply), only the legacy KnobOutline mesh -- its parent is always the physical
+        // knob mesh itself (same convention as the "Outline" child under Sound's own knobs), so
+        // that's what stands in for a direct knob reference here.
+        private Transform[] highlightTargets = null!;
         private int          gammaValue;
         private IGraphicsSettingsService graphicsSettingsService = null!;
         private IControlSchemeService    controlSchemeService    = null!;
         private MainMenuSfxData          sfx                     = null!;
+        private readonly SelectionOutlineHighlight highlight = new();
 
         public int ChannelCount => 3;
 
@@ -71,9 +77,12 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void Awake()
         {
-            this.outlines = new[] { this.language.outline, this.gamma.outline, this.control.outline };
-            foreach (var outline in this.outlines)
-                outline.SetActive(false);
+            this.highlightTargets = new[]
+            {
+                this.language.outline.transform.parent,
+                this.gamma.knob,
+                this.control.outline.transform.parent,
+            };
 
             this.gamma.baseRotation         = this.gamma.knob.localRotation;
             this.gamma.baseAnchoredPosition = this.gamma.fillBar.anchoredPosition;
@@ -89,17 +98,9 @@ namespace CrimsonDraft.UI.MainMenu
             ApplyGamma();
         }
 
-        public void ShowOutline(int index)
-        {
-            for (int i = 0; i < this.outlines.Length; i++)
-                this.outlines[i].SetActive(i == index);
-        }
+        public void ShowOutline(int index) => this.highlight.Show(this.highlightTargets[index]);
 
-        public void HideOutlines()
-        {
-            foreach (var outline in this.outlines)
-                outline.SetActive(false);
-        }
+        public void HideOutlines() => this.highlight.Clear();
 
         public void Adjust(int index, int direction)
         {

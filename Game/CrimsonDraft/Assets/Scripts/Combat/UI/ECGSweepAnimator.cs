@@ -72,6 +72,7 @@ namespace CrimsonDraft.Combat
         // tweak on the Image component survives entering Play instead of being clobbered
         // by the hardcoded 0.55f baked into effectColorStable/Caution/Warning/Mercy.
         private float effectBaseAlpha = 1f;
+        private bool  effectBaseAlphaCaptured;
 
         private RectTransform? glitchRect;
         private Vector2 glitchRestPosition;
@@ -88,8 +89,21 @@ namespace CrimsonDraft.Combat
         private void Awake()
         {
             this.sourceMaterial = this.traceImage.material;
-            if (this.effectImage != null)
-                this.effectBaseAlpha = this.effectImage.color.a;
+            this.EnsureEffectBaseAlphaCaptured();
+        }
+
+        // Unity doesn't guarantee Awake() order across different GameObjects -- if
+        // CombatActionMenuView reaches SetHealthState() on a freshly-instantiated card
+        // before this component's own Awake() has run, effectBaseAlpha was still sitting at
+        // its C# default (1f), and SetHealthState would paint the effect fully opaque with
+        // that default -- which Awake() would then read back as the "authored" alpha,
+        // permanently baking the bug in. Capturing lazily on first use (from whichever of
+        // Awake()/SetHealthState() runs first) makes the result independent of that order.
+        private void EnsureEffectBaseAlphaCaptured()
+        {
+            if (this.effectBaseAlphaCaptured || this.effectImage == null) return;
+            this.effectBaseAlpha = this.effectImage.color.a;
+            this.effectBaseAlphaCaptured = true;
         }
 
         private void OnEnable()
@@ -151,6 +165,7 @@ namespace CrimsonDraft.Combat
         // confirmed kill: hpRatio alone can't tell them apart since both sit at 0.
         public void SetHealthState(float hpRatio, bool isAlive)
         {
+            this.EnsureEffectBaseAlphaCaptured();
             hpRatio = Mathf.Clamp01(hpRatio);
 
             if (!isAlive)
