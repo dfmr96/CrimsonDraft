@@ -43,6 +43,9 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int WalkHash    = Animator.StringToHash("Walk");
         private static readonly int RunHash     = Animator.StringToHash("Run");
         private static readonly int PushingHash = Animator.StringToHash("Pushing");
+        private static readonly int GunTypeHash = Animator.StringToHash("GunType");
+        private static readonly int SpeedHash       = Animator.StringToHash("Speed");
+        private static readonly int HealthStateHash = Animator.StringToHash("HealthState");
 
         private IInputService         inputService         = null!;
         private IInventoryService     inventoryService     = null!;
@@ -117,6 +120,12 @@ namespace CrimsonDraft.Navigation.Player
             var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
             this.animator.SetBool(ArmedHash, isArmed);
 
+            // GunType.Pistols is int 0, which also doubles as "nothing equipped" here --
+            // fine since the Blend Tree/animator branch on GunType is only ever read while
+            // Armed is also true.
+            var activeWeapon = this.roster?[PlayerOperatorSlot].ActiveWeapon;
+            this.animator.SetInteger(GunTypeHash, activeWeapon != null ? (int)activeWeapon.GunType : 0);
+
             var raw = this.inputService.Move.ReadValue<Vector2>();
 
             var strategy = this.controlSchemeService.CurrentScheme == ControlScheme.Classic
@@ -138,6 +147,7 @@ namespace CrimsonDraft.Navigation.Player
             {
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetTrigger(IdleHash);
+                this.animator.SetFloat(SpeedHash, 0f);
                 this.animator.SetBool(PushingHash, false);
                 this.pushStrideTimer = 0f;
                 return;
@@ -182,9 +192,11 @@ namespace CrimsonDraft.Navigation.Player
 
             var isSprinting     = this.inputService.Sprint.IsPressed() && result.AllowSprint;
             var speedMultiplier = this.GetSpeedMultiplier();
+            this.animator.SetInteger(HealthStateHash, this.GetHealthStateTier());
             var speed           = (isSprinting ? this.runSpeed : this.walkSpeed) * speedMultiplier;
 
             this.animator.SetTrigger(isSprinting ? RunHash : WalkHash);
+            this.animator.SetFloat(SpeedHash, isSprinting ? 2f : 1f);
 
             var resolvedDir = ResolveNavMeshDirection(result.Direction, speed);
             if (resolvedDir == Vector3.zero)
@@ -253,6 +265,29 @@ namespace CrimsonDraft.Navigation.Player
             if (lowestHpRatio <= this.orangeCautionThreshold) return this.orangeCautionSpeedRatio;
             if (lowestHpRatio <= this.yellowCautionThreshold) return this.yellowCautionSpeedRatio;
             return 1f; // Fine
+        }
+
+        // Mirrors GetSpeedMultiplier's thresholds but reports the discrete tier for the
+        // Animator's Health Overlay layer (0=Normal,1=Yellow,2=Orange,3=Danger) instead of
+        // a speed ratio. Kept as its own read-only pass over the roster rather than folded
+        // into GetSpeedMultiplier, so existing speed behavior stays untouched.
+        private int GetHealthStateTier()
+        {
+            if (this.roster == null) return 0;
+
+            float lowestHpRatio = 1f;
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                OperatorRuntime op = this.roster[i];
+                if (!op.IsPresent || !op.IsAlive) continue;
+                if (op.HpRatio < lowestHpRatio)
+                    lowestHpRatio = op.HpRatio;
+            }
+
+            if (lowestHpRatio <= this.dangerThreshold)        return 3;
+            if (lowestHpRatio <= this.orangeCautionThreshold) return 2;
+            if (lowestHpRatio <= this.yellowCautionThreshold) return 1;
+            return 0;
         }
 
         private void OnDrawGizmosSelected()
