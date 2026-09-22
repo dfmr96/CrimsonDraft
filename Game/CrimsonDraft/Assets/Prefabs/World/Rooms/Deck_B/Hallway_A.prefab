@@ -13797,17 +13797,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
   localPoints:
   - {x: -1.9180367, y: -10.112243}
-  - {x: -1.9180374, y: -1.569365}
-  - {x: 1.8108449, y: -1.552702}
-  - {x: 1.8463681, y: -10.068007}
-  - {x: 14.620784, y: -10.0680065}
-  - {x: 14.61224, y: -14.248533}
-  - {x: -3.3826356, y: -14.242973}
-  - {x: -3.4036317, y: -20.917953}
-  - {x: -6.6019964, y: -20.93303}
-  - {x: -6.6017523, y: -14.340676}
-  - {x: -16.33796, y: -14.337938}
-  - {x: -16.337227, y: -10.109422}
+  - {x: -1.9180367, y: -1.569365}
+  - {x: 1.8108449, y: -1.569365}
+  - {x: 1.8108449, y: -10.068007}
+  - {x: 14.620784, y: -10.068007}
+  - {x: 14.620784, y: -14.248533}
+  - {x: -4.2478967, y: -14.248533}
+  - {x: -4.2478967, y: -20.869888}
+  - {x: -8.428657, y: -20.869888}
+  - {x: -8.428657, y: -14.436822}
+  - {x: -17.924274, y: -14.436822}
+  - {x: -17.924274, y: -10.109424}
   mapOffset: {x: -13.658227, y: -10.644477}
   mapRotation: 90
   mapScale: {x: 1, y: 1}
@@ -22509,6 +22509,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: DR_00
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.x
+      value: -2.0512328
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: mapOffset.y
+      value: 1.9486712
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: excludeFromMap
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.6042778
@@ -26316,6 +26328,10 @@ PrefabInstance:
       propertyPath: mapRotation
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: excludeFromMap
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.6042778
@@ -27980,11 +27996,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: mapOffset.x
-      value: 2.7066267
+      value: -28.14513
       objectReference: {fileID: 0}
     - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: mapOffset.y
-      value: 12.7003145
+      value: -0.70856416
       objectReference: {fileID: 0}
     - target: {fileID: 8881307395345709853, guid: 62901cf691bd705409ba7a6ee2fdf116, type: 3}
       propertyPath: mapRotation
@@ -28231,12 +28247,24 @@ PrefabInstance:
       value: Pickup_AM_9mm
       objectReference: {fileID: 0}
     - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.32
+      value: -0.239
       objectReference: {fileID: 0}
     - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
       propertyPath: m_LocalPosition.z
@@ -28269,6 +28297,10 @@ PrefabInstance:
     - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: -179.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 4106243735260080036, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5574847736224377423, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
       propertyPath: m_Size.x
@@ -28341,13 +28373,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3726621246531173662, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3300897179327615871}
   m_SourcePrefab: {fileID: 100100000, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
 --- !u!4 &641690859930166038 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7675037391499168755, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
   m_PrefabInstance: {fileID: 7089945336313456869}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5896080523797681659 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3726621246531173662, guid: f5c66bf78cbd02f4b95ec22419da74c2, type: 3}
+  m_PrefabInstance: {fileID: 7089945336313456869}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3300897179327615871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5896080523797681659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!1001 &7171151271196291925
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -28769,13 +28825,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5576138408242492416, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4111772912632279690}
   m_SourcePrefab: {fileID: 100100000, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
 --- !u!4 &2104140472321189229 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8376327867882062794, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
   m_PrefabInstance: {fileID: 7569945470956136103}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2625516234759623335 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5576138408242492416, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
+  m_PrefabInstance: {fileID: 7569945470956136103}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4111772912632279690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2625516234759623335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!1001 &7689027660071289015
 PrefabInstance:
   m_ObjectHideFlags: 0

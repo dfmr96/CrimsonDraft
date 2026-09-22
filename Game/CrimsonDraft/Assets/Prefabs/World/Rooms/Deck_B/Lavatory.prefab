@@ -1933,13 +1933,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5881206020605560084}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: -0.7071068}
-  m_LocalPosition: {x: 4.49, y: 1, z: -5.35}
+  m_LocalRotation: {x: -0, y: 0.000000119209275, z: -0, w: -1}
+  m_LocalPosition: {x: 4.351, y: 1, z: -5.436}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5657470409267998554}
-  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4644230840680658979
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2266,7 +2266,6 @@ GameObject:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
   - component: {fileID: 4010576101567958397}
-  - component: {fileID: 5864454842650621891}
   m_Layer: 0
   m_Name: Lavatory
   m_TagString: Untagged
@@ -2340,31 +2339,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
   localPoints:
   - {x: 1.5999987, y: -0.00999856}
-  - {x: 6.0999985, y: -0.00999856}
-  - {x: 6.0999985, y: -6.5000057}
-  - {x: 1.5999987, y: -6.5000057}
-  mapOffset: {x: -28.0189, y: 2.0359898}
-  mapRotation: 90
-  mapScale: {x: 1, y: 1}
-  zOrder: 0
---- !u!114 &5864454842650621891
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5955768853396820527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
-  localPoints:
-  - {x: 1.5999987, y: -0.00999856}
-  - {x: 6.0999985, y: -0.00999856}
-  - {x: 6.0999985, y: -6.5000057}
-  - {x: 1.5999987, y: -6.5000057}
-  mapOffset: {x: -26.08829, y: 0.43825367}
+  - {x: 6.6100473, y: -0.00999856}
+  - {x: 6.6100473, y: -6.295986}
+  - {x: 1.7020066, y: -6.295986}
+  mapOffset: {x: -28.200455, y: 4.298962}
   mapRotation: 90
   mapScale: {x: 1, y: 1}
   zOrder: 0
@@ -4574,6 +4552,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2314579652167016150, guid: 1ee1b50f5a472004fa58262503fdb3da, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3435942762427195019}
+    - targetCorrespondingSourceObject: {fileID: 2314579652167016150, guid: 1ee1b50f5a472004fa58262503fdb3da, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5942803649611420465}
   m_SourcePrefab: {fileID: 100100000, guid: 1ee1b50f5a472004fa58262503fdb3da, type: 3}
 --- !u!1 &1255162928387173269 stripped
 GameObject:
@@ -4615,6 +4596,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0035070702, y: 0.0062788306, z: 0.0032853347}
   m_Center: {x: 0.0000000022367261, y: 0.0013859186, z: 0.0004793507}
+--- !u!114 &5942803649611420465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255162928387173269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!4 &1777574821766774840 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3017133605422167419, guid: 1ee1b50f5a472004fa58262503fdb3da, type: 3}
@@ -4804,13 +4801,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5657470409267998554}
     m_Modifications:
-    - target: {fileID: 5424342066120687980, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
-      propertyPath: doorId
-      value: DR_28B
-      objectReference: {fileID: 0}
     - target: {fileID: 927771584863561453, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5424342066120687980, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: doorId
+      value: DR_28B
       objectReference: {fileID: 0}
     - target: {fileID: 6370351596623424388, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_Name
@@ -4818,15 +4815,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: mapOffset.x
-      value: -26.09063
+      value: 9.002029
       objectReference: {fileID: 0}
     - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: mapOffset.y
-      value: -3.3592947
+      value: 8.89559
       objectReference: {fileID: 0}
     - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: mapRotation
       value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6746053958042361450, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
+      propertyPath: excludeFromMap
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7532918456029886917, guid: 8be5788c3fc6d744398653583686aa0a, type: 3}
       propertyPath: m_LocalPosition.x
