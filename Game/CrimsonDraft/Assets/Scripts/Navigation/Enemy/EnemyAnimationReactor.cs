@@ -190,6 +190,12 @@ namespace CrimsonDraft.Navigation.Enemy
             twitchTimer = RandomTwitchInterval();
         }
 
+        // The Attack clip (ZombieRigged Zombie_Attack_37) is shared with Enemy_Combat_Controller v2,
+        // where its OnAttackImpact Animation Event drives the combat hit (EnemyAttackEventRelay).
+        // Navigation has no hit to resolve at that frame -- this no-op receiver just keeps Unity
+        // from logging "AnimationEvent 'OnAttackImpact' has no receiver" every nav attack.
+        public void OnAttackImpact() { }
+
         private float RandomTwitchInterval()
             => Random.Range(twitchIntervalRange.x, twitchIntervalRange.y);
 

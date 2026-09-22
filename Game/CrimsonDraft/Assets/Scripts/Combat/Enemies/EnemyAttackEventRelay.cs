@@ -17,6 +17,13 @@ namespace CrimsonDraft.Combat
         public void Bind(Action onAttackImpact) => this.onAttackImpact = onAttackImpact;
 
         // Called by Animation Event on the enemy's Attack clip.
-        public void OnAttackImpact() => this.onAttackImpact?.Invoke();
+        public void OnAttackImpact()
+        {
+            // One-shot: cleared before invoking so a replayed clip, or BattlefieldView's
+            // no-event fallback, can never deliver the same hit twice.
+            Action? callback = this.onAttackImpact;
+            this.onAttackImpact = null;
+            callback?.Invoke();
+        }
     }
 }

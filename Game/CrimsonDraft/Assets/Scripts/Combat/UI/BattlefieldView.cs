@@ -627,14 +627,52 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
         {
             this.enemyAttackResolvedDurationBySlot.Remove(enemySlotIndex);
 
+            // The impact callback is what plays the operator's hit reaction -- and, crucially,
+            // PlayOperatorDeath, which is the only thing that marks a dead operator's slot as
+            // settled for CombatOrchestrator.SyncOperatorWipe. If it never runs, a wiped party
+            // never triggers defeat and combat hard-locks. So it must fire exactly once per
+            // attack, whether it comes from the Attack clip's Animation Event (normal path) or
+            // from the fallback below (clip missing the event, no relay, no Animator, ...).
+            bool impactDelivered = false;
+            void DeliverImpactOnce()
+            {
+                if (impactDelivered) return;
+                impactDelivered = true;
+                onAttackImpact();
+            }
+
             if (this.enemyAttackEventRelayBySlot.TryGetValue(enemySlotIndex, out var relay) && relay != null)
-                relay.Bind(onAttackImpact);
+                relay.Bind(DeliverImpactOnce);
 
             if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null)
+            {
+                DeliverImpactOnce();
                 return;
+            }
 
             animator.SetTrigger(AttackHash);
             StartCoroutine(this.ResolveEnemyAttackDuration(enemySlotIndex, animator));
+            StartCoroutine(this.EnsureEnemyAttackImpact(enemySlotIndex, DeliverImpactOnce));
+        }
+
+        // Safety net for PlayEnemyAttackFeedback: waits for the full Attack clip (the duration
+        // ResolveEnemyAttackDuration reports, same one CombatOrchestrator uses for its animation
+        // lock) and delivers the impact if the Animation Event hasn't by then. A no-op in the
+        // normal case, since DeliverImpactOnce ignores a second call.
+        private IEnumerator EnsureEnemyAttackImpact(int enemySlotIndex, Action deliverImpactOnce)
+        {
+            float startedAt = Time.time;
+            float giveUpAt  = startedAt + this.enemyDeathAnimTimeoutSec;
+
+            float duration = 0f;
+            while (Time.time < giveUpAt && !this.enemyAttackResolvedDurationBySlot.TryGetValue(enemySlotIndex, out duration))
+                yield return null;
+
+            float fireAt = startedAt + duration;
+            while (Time.time < fireAt)
+                yield return null;
+
+            deliverImpactOnce();
         }
 
         public bool TryGetResolvedEnemyAttackDuration(int enemySlotIndex, out float durationSec) =>
