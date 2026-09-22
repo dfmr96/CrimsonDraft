@@ -66,27 +66,27 @@ namespace CrimsonDraft.Tests
         private static OperatorRuntime MakeAlive(int slot) =>
             new OperatorRuntime(slot, null, isPresent: true, maxHp: 100);
 
-        private static WeaponData MakeWeaponData(string caliber = "9mm", int magazineCapacity = 6)
+        private static WeaponData MakeWeaponData(Caliber caliber = Caliber._9mm, int magazineCapacity = 6)
         {
             var d  = ScriptableObject.CreateInstance<WeaponData>();
             var so = new UnityEditor.SerializedObject(d);
             so.FindProperty("itemId").stringValue        = System.Guid.NewGuid().ToString();
             so.FindProperty("itemType").enumValueIndex   = (int)ItemType.Weapon;
             so.FindProperty("displayName").stringValue   = "Test Weapon";
-            so.FindProperty("caliber").stringValue       = caliber;
+            so.FindProperty("caliber").enumValueIndex    = (int)caliber;
             so.FindProperty("magazineCapacity").intValue = magazineCapacity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
         }
 
-        private static AmmoBoxData MakeAmmoBoxData(string caliber = "9mm", int defaultQuantity = 30)
+        private static AmmoBoxData MakeAmmoBoxData(Caliber caliber = Caliber._9mm, int defaultQuantity = 30)
         {
             var d  = ScriptableObject.CreateInstance<AmmoBoxData>();
             var so = new UnityEditor.SerializedObject(d);
             so.FindProperty("itemId").stringValue       = System.Guid.NewGuid().ToString();
             so.FindProperty("itemType").enumValueIndex  = (int)ItemType.AmmoBox;
             so.FindProperty("displayName").stringValue  = "Test Box";
-            so.FindProperty("caliber").stringValue      = caliber;
+            so.FindProperty("caliber").enumValueIndex   = (int)caliber;
             so.FindProperty("defaultQuantity").intValue = defaultQuantity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
@@ -113,6 +113,13 @@ namespace CrimsonDraft.Tests
             so.FindProperty("maxUses").intValue        = maxUses;
             so.ApplyModifiedPropertiesWithoutUndo();
             return d;
+        }
+
+        private static void SetGridSize(ItemData data, int width, int height)
+        {
+            var so = new UnityEditor.SerializedObject(data);
+            so.FindProperty("gridSize").vector2IntValue = new Vector2Int(width, height);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static SocketItemData MakeSocketItemData(string? id = null)
@@ -159,10 +166,8 @@ namespace CrimsonDraft.Tests
         public void AddItem_returnsFalse_whenOperatorSlotsAreFull()
         {
             var service = MakeService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
+            for (int i = 0; i < InventoryConstants.SlotsPerOperator; i++)
+                service.AddItem(MakeWeaponData(), operatorSlot: 0);
 
             bool result = service.AddItem(MakeWeaponData(), operatorSlot: 0);
             Assert.IsFalse(result);
@@ -172,14 +177,55 @@ namespace CrimsonDraft.Tests
         public void AddItem_doesNotSpillToAnotherOperatorsSlots()
         {
             var service = MakeService(new FakeRoster(MakeAlive(0), MakeAlive(1)));
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
-            service.AddItem(MakeWeaponData(), operatorSlot: 0);
+            for (int i = 0; i < InventoryConstants.SlotsPerOperator; i++)
+                service.AddItem(MakeWeaponData(), operatorSlot: 0);
 
             bool result = service.AddItem(MakeWeaponData(), operatorSlot: 0);
             Assert.IsFalse(result, "op0 is full — should not spill");
-            Assert.IsTrue(service.Slots[4].IsEmpty, "op1 slot 0 untouched");
+            Assert.IsTrue(service.Slots[InventoryConstants.SlotsPerOperator].IsEmpty, "op1 slot 0 untouched");
+        }
+
+        // ── AddItem: spatial (matrix-based) capacity ────────────────────────────
+
+        [Test]
+        public void AddItem_assignsGridPosition_onSuccess()
+        {
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            service.AddItem(MakeWeaponData(), operatorSlot: 0);
+
+            Assert.AreEqual(0, service.Slots[0].GridCol);
+            Assert.AreEqual(0, service.Slots[0].GridRow);
+        }
+
+        [Test]
+        public void AddItem_returnsFalse_whenFootprintCannotFit_dueToFragmentation()
+        {
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            var bigItem = MakeConsumableData("big");
+            SetGridSize(bigItem, 3, 3);
+            Assert.IsTrue(service.AddItem(bigItem, operatorSlot: 0), "3x3 item fits in the empty 4x4 grid");
+
+            var mediumItem = MakeConsumableData("medium");
+            SetGridSize(mediumItem, 2, 2);
+            bool result = service.AddItem(mediumItem, operatorSlot: 0);
+
+            Assert.IsFalse(result,
+                "no contiguous 2x2 area remains once a 3x3 item is placed, even though 7 cells are free");
+        }
+
+        [Test]
+        public void AddItem_stillFindsRemainingSingleCell_afterLargeItemPlaced()
+        {
+            var service = MakeService(new FakeRoster(MakeAlive(0)));
+            var bigItem = MakeConsumableData("big");
+            SetGridSize(bigItem, 3, 3);
+            service.AddItem(bigItem, operatorSlot: 0);
+
+            var smallItem = MakeConsumableData("small");
+            SetGridSize(smallItem, 1, 1);
+            bool result = service.AddItem(smallItem, operatorSlot: 0);
+
+            Assert.IsTrue(result, "a free single cell remains at (3,0) despite the 3x3 occupying (0,0)-(2,2)");
         }
 
         // ── RemoveItem / MoveItem ──────────────────────────────────────────────
@@ -280,8 +326,9 @@ namespace CrimsonDraft.Tests
             op0.PrimaryWeapon!.SetAmmo(10);
 
             service.UnequipWeapon(0);
-            service.MoveItem(0, 4); // move to op1's first slot (index 4)
-            service.EquipWeapon(4, operatorSlot: 1);
+            int op1Start = InventoryConstants.SlotsPerOperator;
+            service.MoveItem(0, op1Start); // move to op1's first slot
+            service.EquipWeapon(op1Start, operatorSlot: 1);
 
             Assert.AreEqual(10, op1.PrimaryWeapon!.CurrentAmmo, "ammo stays on weapon item");
         }
@@ -292,7 +339,7 @@ namespace CrimsonDraft.Tests
         public void CanReload_returnsFalse_whenNoWeaponEquipped()
         {
             var service = MakeService(new FakeRoster(MakeAlive(0)));
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
 
             Assert.IsFalse(service.CanReload(0, operatorSlot: 0));
         }
@@ -302,8 +349,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("5.56", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeWeaponData(Caliber._556x45, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
             service.EquipWeapon(0, operatorSlot: 0);
 
             Assert.IsFalse(service.CanReload(1, operatorSlot: 0));
@@ -314,8 +361,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(10);
 
@@ -327,8 +374,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm", defaultQuantity: 99), operatorSlot: 0, quantity: 99);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm, defaultQuantity: 99), operatorSlot: 0, quantity: 99);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(10);
 
@@ -345,8 +392,8 @@ namespace CrimsonDraft.Tests
         {
             var op      = MakeAlive(0);
             var service = MakeService(new FakeRoster(op));
-            service.AddItem(MakeWeaponData("9mm", 30), operatorSlot: 0);
-            service.AddItem(MakeAmmoBoxData("9mm"), operatorSlot: 0, quantity: 5);
+            service.AddItem(MakeWeaponData(Caliber._9mm, 30), operatorSlot: 0);
+            service.AddItem(MakeAmmoBoxData(Caliber._9mm), operatorSlot: 0, quantity: 5);
             service.EquipWeapon(0, operatorSlot: 0);
             op.PrimaryWeapon!.SetAmmo(0);
 
@@ -400,9 +447,9 @@ namespace CrimsonDraft.Tests
 
         [TestCase(-1, 1, 0)]
         [TestCase(0, 0, 0)]
-        [TestCase(0, 4, 0)]
+        [TestCase(0, InventoryConstants.SlotsPerOperator, 0)]
         [TestCase(0, 1, 2)]
-        [TestCase(0, 1, 4)]
+        [TestCase(0, 1, InventoryConstants.SlotsPerOperator)]
         public void TryCombine_invalidSlots_preserveInputs(int slotA, int slotB, int resultSlot)
         {
             var a = MakeKeyItemData("part-a");
@@ -502,19 +549,18 @@ namespace CrimsonDraft.Tests
             var filler = MakeConsumableData("filler");
             var output = MakeConsumableData("documents");
             var svc    = MakeService(new FakeRoster(MakeAlive(0), MakeAlive(1)), new FakeCombineService(itemA, itemB, output));
-            svc.AddItem(filler, operatorSlot: 0); // slot 0
-            svc.AddItem(filler, operatorSlot: 0); // slot 1
-            svc.AddItem(filler, operatorSlot: 0); // slot 2
-            svc.AddItem(filler, operatorSlot: 0); // slot 3 — op0 full
-            svc.AddItem(itemA,  operatorSlot: 1); // slot 4
-            svc.AddItem(itemB,  operatorSlot: 1); // slot 5
+            for (int i = 0; i < InventoryConstants.SlotsPerOperator; i++)
+                svc.AddItem(filler, operatorSlot: 0); // fills op0's grid completely
+            int op1Start = InventoryConstants.SlotsPerOperator;
+            svc.AddItem(itemA,  operatorSlot: 1); // op1 slot 0
+            svc.AddItem(itemB,  operatorSlot: 1); // op1 slot 1
 
-            svc.TryCombine(4, 5);
+            svc.TryCombine(op1Start, op1Start + 1);
 
-            // op0 full → AddItemAuto falls to op1 → result in slot 4 (first freed slot in op1)
-            Assert.IsFalse(svc.Slots[4].IsEmpty, "result in op1 slot 0 (index 4)");
-            Assert.AreEqual(output.ItemId, svc.Slots[4].Item!.Data.ItemId);
-            Assert.IsTrue(svc.Slots[5].IsEmpty, "slotB consumed");
+            // op0 full → AddItemAuto falls to op1 → result in op1's first freed slot
+            Assert.IsFalse(svc.Slots[op1Start].IsEmpty, "result in op1 slot 0");
+            Assert.AreEqual(output.ItemId, svc.Slots[op1Start].Item!.Data.ItemId);
+            Assert.IsTrue(svc.Slots[op1Start + 1].IsEmpty, "slotB consumed");
         }
 
         // ── TryUseKey ─────────────────────────────────────────────────────────

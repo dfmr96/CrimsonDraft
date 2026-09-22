@@ -245,7 +245,7 @@ namespace CrimsonDraft.UI
         {
             int slotsPerOp = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
-                : 4;
+                : InventoryConstants.SlotsPerOperator;
 
             if (HasFreeSlotForOperator(preferredOperator, slotsPerOp))
             {
@@ -519,7 +519,7 @@ namespace CrimsonDraft.UI
 
             int slotsPerOp = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
-                : 4;
+                : InventoryConstants.SlotsPerOperator;
 
             int blockStart = toOpIndex * slotsPerOp;
             if (fromSlot >= blockStart && fromSlot < blockStart + slotsPerOp) return true;
