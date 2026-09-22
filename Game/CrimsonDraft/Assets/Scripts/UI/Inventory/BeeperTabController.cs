@@ -221,6 +221,12 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            // The last letter's dots/dashes are already fully typed (activeLetter holds a
+            // valid decode) but letterTimeout hasn't locked it into Word yet -- if that lock
+            // would complete the code, do it now instead of making SEND wait out the timer.
+            if (this.activeLetter != '\0' && this.decoder.Word.Count == this.requiredLetters - 1)
+                LockCurrentLetter();
+
             if (this.decoder.Word.Count < this.requiredLetters)
             {
                 // Not enough letters yet -- Output now doubles as a manual clear, so a mistyped
