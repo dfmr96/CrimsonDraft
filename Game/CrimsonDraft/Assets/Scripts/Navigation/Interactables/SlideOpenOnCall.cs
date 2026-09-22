@@ -13,14 +13,20 @@ namespace CrimsonDraft.Navigation.Interactables
     /// Idempotent: calling Open() again while already open/opening does nothing.</summary>
     public sealed class SlideOpenOnCall : MonoBehaviour
     {
-        [SerializeField] private Vector3 openLocalOffset = new(0f, 0f, -0.3f); // relative to the closed position, local space
+        [SerializeField] private Vector3 openLocalOffset         = new(0f, 0f, -0.3f); // relative to the closed position, local space
+        [SerializeField] private Vector3 openLocalRotationOffset = Vector3.zero;       // euler angles, relative to the closed rotation, local axes
         [SerializeField] private float   duration        = 0.6f;
         [SerializeField] private Ease    ease             = Ease.OutQuad;
 
-        private Vector3 closedLocalPosition;
-        private bool    isOpen;
+        private Vector3    closedLocalPosition;
+        private Quaternion closedLocalRotation;
+        private bool       isOpen;
 
-        void Awake() => this.closedLocalPosition = transform.localPosition;
+        void Awake()
+        {
+            this.closedLocalPosition = transform.localPosition;
+            this.closedLocalRotation = transform.localRotation;
+        }
 
         public void Open()
         {
@@ -29,6 +35,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             transform.DOKill();
             transform.DOLocalMove(this.closedLocalPosition + this.openLocalOffset, this.duration).SetEase(this.ease);
+            transform.DOLocalRotateQuaternion(this.closedLocalRotation * Quaternion.Euler(this.openLocalRotationOffset), this.duration).SetEase(this.ease);
         }
 
         // Not wired to anything by default -- lets the same component be reused on a drawer
@@ -40,6 +47,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             transform.DOKill();
             transform.DOLocalMove(this.closedLocalPosition, this.duration).SetEase(this.ease);
+            transform.DOLocalRotateQuaternion(this.closedLocalRotation, this.duration).SetEase(this.ease);
         }
 
 #if UNITY_EDITOR
