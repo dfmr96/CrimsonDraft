@@ -62,6 +62,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
         [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
         [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
+        [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -176,6 +177,9 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterInstance(this.cachedBeeperReceivers);
             builder.Register<BeeperReceiverBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedItemSockets);
+            builder.Register<ItemSocketBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
@@ -229,6 +233,14 @@ namespace CrimsonDraft.Navigation
         private void CacheSceneBeeperReceivers()
         {
             this.cachedBeeperReceivers = FindObjectsByType<BeeperReceiverInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Item Sockets")]
+        private void CacheSceneItemSockets()
+        {
+            this.cachedItemSockets = FindObjectsByType<ItemSocketInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

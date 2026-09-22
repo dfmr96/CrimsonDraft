@@ -3,7 +3,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using VContainer;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 
@@ -11,6 +13,9 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class ItemSocketInteractable : MonoBehaviour, IInteractable
     {
+        // Cross-scene/save identity for this socket -- must be unique per ItemSocketInteractable
+        // instance in the project, same convention as PickupInteractable.pickupId.
+        [SerializeField] private string           socketId          = "";
         [SerializeField] private SocketItemData[] requiredItems = System.Array.Empty<SocketItemData>();
         [SerializeField] private UnityEvent       onActivated   = new();
         [SerializeField] private DialogueReference dialogueReference = new();
@@ -19,6 +24,7 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private GameObject?      hideOnActivate;   // optional visual (e.g. a steam/VFX blocker); switched off once the socket is fully activated
 
         private bool[] inserted = System.Array.Empty<bool>();
+        private ItemSocketStateRegistry registry = null!;
 
         public bool IsActivated { get; private set; }
 
@@ -29,9 +35,27 @@ namespace CrimsonDraft.Navigation.Interactables
         void Awake()
         {
             // Defensive: make sure the "placed" visual isn't left visible by mistake in the
-            // editor before anything has actually been inserted.
+            // editor before anything has actually been inserted. Construct() (run afterwards,
+            // once ItemSocketBootstrap has a registry to hand out) overrides this if the socket
+            // was already filled/activated in a previous scene or a loaded save.
             if (this.revealOnActivate != null)
                 this.revealOnActivate.SetActive(false);
+        }
+
+        // Called by ItemSocketBootstrap once per scene load, after Awake -- restores whatever
+        // was inserted here the last time this room was visited (or from a loaded save),
+        // without replaying the dialogue/onActivated side effects that ran the first time.
+        [Inject]
+        public void Construct(ItemSocketStateRegistry registry)
+        {
+            this.registry = registry;
+
+            var saved = registry.GetInserted(this.socketId);
+            if (saved.Length == this.requiredItems.Length)
+                this.inserted = (bool[])saved.Clone();
+
+            if (IsComplete())
+                ApplyActivatedState();
         }
 
         public bool CanInsert(ItemData item)
@@ -59,6 +83,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (this.requiredItems[i].ItemId != item.ItemId) continue;
 
                 ins[i] = true;
+                this.registry.SetInserted(this.socketId, (bool[])ins.Clone());
                 int filled = CountFilled();
 
                 dialogueService?.StartDialogue(
@@ -73,17 +98,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
                 if (IsComplete())
                 {
-                    this.IsActivated = true;
-
-                    if (this.blockingCollider != null)
-                        this.blockingCollider.enabled = false;
-
-                    if (this.revealOnActivate != null)
-                        this.revealOnActivate.SetActive(true);
-
-                    if (this.hideOnActivate != null)
-                        this.hideOnActivate.SetActive(false);
-
+                    ApplyActivatedState();
                     this.onActivated.Invoke();
                 }
 
@@ -113,6 +128,20 @@ namespace CrimsonDraft.Navigation.Interactables
                     ["$slots_filled"] = filled,
                     ["$slots_total"]  = total
                 });
+        }
+
+        private void ApplyActivatedState()
+        {
+            this.IsActivated = true;
+
+            if (this.blockingCollider != null)
+                this.blockingCollider.enabled = false;
+
+            if (this.revealOnActivate != null)
+                this.revealOnActivate.SetActive(true);
+
+            if (this.hideOnActivate != null)
+                this.hideOnActivate.SetActive(false);
         }
 
         private bool[] EnsureInserted()

@@ -58,6 +58,7 @@ namespace CrimsonDraft.Navigation
 
             ApplyDoors(data);
             ApplyRooms(data);
+            ApplyItemSockets(data);
             this.world.Pickups.LoadState(data.collectedPickupIds);
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
@@ -85,6 +86,14 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.rooms)
                 dict[entry.roomId] = entry.state;
             this.world.Rooms.LoadState(dict);
+        }
+
+        private void ApplyItemSockets(SaveGameData data)
+        {
+            var dict = new Dictionary<string, bool[]>();
+            foreach (var entry in data.itemSockets)
+                dict[entry.socketId] = entry.inserted;
+            this.world.ItemSockets.LoadState(dict);
         }
 
         // Only restores the registry data — actually spawning each corpse's GameObject is

@@ -2,11 +2,14 @@
 
 using System;
 using Unity.Cinemachine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Enemy;
+using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -27,16 +30,24 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         private readonly IInputService          inputService;
         private readonly IFixedCameraZoneService zoneService;
+        private readonly PlayerController        player;
+        private readonly EnemyNavAgent[]         enemies;
 
         private bool               isInspecting;
         private Action?            onExit;
         private CinemachineCamera? previousZoneCamera;
 
         [Preserve]
-        public InspectionController(IInputService inputService, IFixedCameraZoneService zoneService)
+        public InspectionController(
+            IInputService     inputService,
+            IFixedCameraZoneService zoneService,
+            PlayerController  player,
+            EnemyNavAgent[]   enemies)
         {
             this.inputService = inputService;
             this.zoneService  = zoneService;
+            this.player       = player;
+            this.enemies      = enemies;
         }
 
         public bool IsInspecting => this.isInspecting;
@@ -59,6 +70,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.previousZoneCamera = this.zoneService.CurrentZoneCamera;
             this.zoneService.ActivateZone(inspectCamera);
             this.inputService.SwitchToUI();
+            SetActorRenderersEnabled(false);
         }
 
         private void OnCancel(InputAction.CallbackContext _)
@@ -82,10 +94,28 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.zoneService.ActivateZone(this.previousZoneCamera);
             this.previousZoneCamera = null;
             this.inputService.SwitchToGameplay();
+            SetActorRenderersEnabled(true);
 
             var callback = this.onExit;
             this.onExit  = null;
             callback?.Invoke();
+        }
+
+        // The inspect camera hard-cuts to a shot the designer framed around the puzzle prop
+        // alone -- the player rig (and any enemy nearby) would otherwise stand in the middle
+        // of it. Queried live rather than cached at construction time since enemies can be
+        // defeated (destroyed) between inspections.
+        private void SetActorRenderersEnabled(bool enabled)
+        {
+            foreach (var renderer in this.player.GetComponentsInChildren<Renderer>(true))
+                renderer.enabled = enabled;
+
+            foreach (var enemy in this.enemies)
+            {
+                if (enemy == null) continue;
+                foreach (var renderer in enemy.GetComponentsInChildren<Renderer>(true))
+                    renderer.enabled = enabled;
+            }
         }
 
         void IDisposable.Dispose()

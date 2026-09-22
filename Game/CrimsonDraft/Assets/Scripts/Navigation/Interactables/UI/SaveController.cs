@@ -107,6 +107,9 @@ namespace CrimsonDraft.Navigation.Interactables
             data.knownMapIds.AddRange(this.world.KnownMaps.GetState());
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
 
+            foreach (var pair in this.world.ItemSockets.GetState())
+                data.itemSockets.Add(new ItemSocketStateEntry { socketId = pair.Key, inserted = pair.Value });
+
             foreach (var entry in this.world.OperatorCorpses.GetAll())
             {
                 data.operatorCorpses.Add(new OperatorCorpseEntry
