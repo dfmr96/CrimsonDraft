@@ -220,7 +220,7 @@ namespace CrimsonDraft.Combat
                 await this.battlefieldView.PlayOperatorShootBurstAsync(
                     this.context.SelectedOperator,
                     this.context.CurrentTargetSlot,
-                    this.pendingShots);
+                    this.pendingShots, this.context.IsMeleeAttack);
             }
             this.isPlayingBurst = false;
 

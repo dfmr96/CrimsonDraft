@@ -70,17 +70,22 @@ namespace CrimsonDraft.Combat
         }
 
         /// <summary>Equips the given weapon family: swaps the visible weapon model and updates the Animator's GunType.</summary>
-        public void SetGunType(GunType gunType)
+public void SetGunType(GunType gunType)
         {
             this.isShotgunEquipped = gunType is GunType.Shotgun or GunType.REShotgun;
+            this.ApplyEquippedWeaponVisibility();
+            this.animator.SetInteger(GunTypeHash, this.isShotgunEquipped ? 1 : 2);
+        }
 
+/// <summary>Shows whichever weapon model matches the currently equipped GunType (pistol xor shotgun), hiding the other. Used both by SetGunType and to restore visibility after a melee swing hides both.</summary>
+        private void ApplyEquippedWeaponVisibility()
+        {
             if (this.pistolWeapon.activeSelf == this.isShotgunEquipped)
                 this.pistolWeapon.SetActive(!this.isShotgunEquipped);
             if (this.shotgunWeapon.activeSelf != this.isShotgunEquipped)
                 this.shotgunWeapon.SetActive(this.isShotgunEquipped);
-
-            this.animator.SetInteger(GunTypeHash, this.isShotgunEquipped ? 1 : 2);
         }
+
 
         /// <summary>Call when the operator starts aiming (matches PlayerAimController.EnterAim).</summary>
         public void EnterAim()
@@ -108,6 +113,19 @@ namespace CrimsonDraft.Combat
         public void TriggerReload() => this.animator.SetTrigger(ReloadHash);
 
         public void TriggerKnifeAttack() => this.animator.SetTrigger(KnifeAttackHash);
+
+/// <summary>Call right before a melee/knife swing plays -- hides whichever gun (pistol or shotgun) is currently equipped, since the operator is using the knife, not the gun, for this attack.</summary>
+        public void EnterMelee()
+        {
+            if (this.pistolWeapon.activeSelf)
+                this.pistolWeapon.SetActive(false);
+            if (this.shotgunWeapon.activeSelf)
+                this.shotgunWeapon.SetActive(false);
+        }
+
+        /// <summary>Call once the melee/knife swing finishes -- restores whichever gun matches the equipped GunType.</summary>
+        public void ExitMelee() => this.ApplyEquippedWeaponVisibility();
+
 
         public void TriggerFlinch() => this.animator.SetTrigger(FlinchHash);
 

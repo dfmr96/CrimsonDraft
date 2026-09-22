@@ -330,6 +330,7 @@ namespace CrimsonDraft.Tests
             public void ShowOperatorDamage(int operatorSlotIndex, int damage) { }
             public void PlayOperatorHitFx(int operatorSlotIndex) { }
             public void PlayOperatorFlinch(int operatorSlotIndex) { }
+            public void PlayOperatorReload(int operatorSlotIndex) { }
             public void PlayOperatorDeath(int operatorSlotIndex) { }
             public bool HasOperatorDeathSettled(int operatorSlotIndex) => true;
             public void SetEnemyTargetIndicator(int slotIndex) { }
@@ -345,7 +346,7 @@ namespace CrimsonDraft.Tests
             public bool IsEnemyStaggered(int slotIndex) => false;
             public bool IsEnemyDead(int slotIndex) => false;
             public bool HasAliveEnemies() => false;
-            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots) =>
+            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots, bool isMelee = false) =>
                 UniTask.CompletedTask;
 #if UNITY_EDITOR || DEBUG_COMBAT
             public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex) =>

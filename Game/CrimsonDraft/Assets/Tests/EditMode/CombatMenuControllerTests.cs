@@ -1284,6 +1284,7 @@ namespace CrimsonDraft.Tests
             public void ShowOperatorDamage(int operatorSlotIndex, int damage) { }
             public void PlayOperatorHitFx(int operatorSlotIndex) { }
             public void PlayOperatorFlinch(int operatorSlotIndex) { }
+            public void PlayOperatorReload(int operatorSlotIndex) { }
             public void PlayOperatorDeath(int operatorSlotIndex) { }
             public bool HasOperatorDeathSettled(int operatorSlotIndex) => true;
             public void SetEnemyTargetIndicator(int slotIndex)         => this.EnemyTargetVisible = true;
@@ -1347,7 +1348,7 @@ namespace CrimsonDraft.Tests
                 return this.LastDamageResult;
             }
             public bool HasAliveEnemies() => this.occupiedSlots.Length > 0;
-            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
+            public UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots, bool isMelee = false)
             {
                 this.BurstCallCount++;
                 this.LastBurstOperatorSlotIndex = operatorSlotIndex;

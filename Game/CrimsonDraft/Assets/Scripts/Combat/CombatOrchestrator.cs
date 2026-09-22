@@ -577,9 +577,18 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        private void ApplyUseItem(PendingAction action)
+private void ApplyUseItem(PendingAction action)
         {
-            if (action.ItemIndex < 0 || action.ItemIndex >= this.inventory.Slots.Count) return;
+            if (action.ItemIndex < 0)
+            {
+                // -1 signals a reload combine (ammo box + weapon), consumed via
+                // CombatInventoryPanelController.ExecuteReload -> IInventoryService.ReloadOperator
+                // *before* this action was even enqueued. All that's left to do here is play the
+                // operator's Reload animation (pistol/shotgun routed by the Animator's GunType).
+                this.battlefieldView.PlayOperatorReload(action.SlotIndex);
+                return;
+            }
+            if (action.ItemIndex >= this.inventory.Slots.Count) return;
             InventorySlot slot = this.inventory.Slots[action.ItemIndex];
             if (slot.IsEmpty || slot.Item?.Data is not ConsumableData consumable) return;
 

@@ -35,6 +35,7 @@ namespace CrimsonDraft.Combat
         void ShowOperatorDamage(int operatorSlotIndex, int damage);
         void PlayOperatorHitFx(int operatorSlotIndex);
         void PlayOperatorFlinch(int operatorSlotIndex);
+        void PlayOperatorReload(int operatorSlotIndex);
         void PlayOperatorDeath(int operatorSlotIndex);
         bool HasOperatorDeathSettled(int operatorSlotIndex);
         void SetEnemyTargetIndicator(int slotIndex);
@@ -49,7 +50,7 @@ namespace CrimsonDraft.Combat
         bool IsEnemyStaggered(int slotIndex);
         bool IsEnemyDead(int slotIndex);
         bool HasAliveEnemies();
-        UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots);
+        UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots, bool isMelee = false);
 #if UNITY_EDITOR || DEBUG_COMBAT
         (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex);
 #endif

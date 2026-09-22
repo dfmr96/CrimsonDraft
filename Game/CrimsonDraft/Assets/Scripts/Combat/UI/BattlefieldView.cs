@@ -25,6 +25,11 @@ namespace CrimsonDraft.Combat
             public bool IsStaggered;
             public int StaggerActionsRemaining;
             public bool RecoveryQueued; // true once its EnemyRecover action has been enqueued
+            // Set when a hit lands while the enemy is down (TriggerEnemyFlinch skips the
+            // reaction animation while IsStaggered); consumed by RecoverEnemyStagger's
+            // wait-for-StaggerUp coroutine to play the deferred Flinch once it's back up.
+            public bool PendingFlinchAfterRecovery;
+            public float PendingFlinchStaggerPct;
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
@@ -47,16 +52,25 @@ namespace CrimsonDraft.Combat
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
         private readonly Dictionary<int, Animator> operatorAnimatorBySlot = new();
+        private readonly Dictionary<int, OperatorCombatWeaponPose> operatorWeaponPoseBySlot = new();
+
         private static readonly int ShootHash = Animator.StringToHash("Shoot");
         private static readonly int AimHash = Animator.StringToHash("Aim");
         private static readonly int FlinchHash = Animator.StringToHash("Flinch");
         private static readonly int OperatorDeathHash = Animator.StringToHash("Death");
+        private static readonly int ReloadHash = Animator.StringToHash("Reload");
+
+        private static readonly int KnifeAttackHash = Animator.StringToHash("KnifeAttack");
+
         private readonly Dictionary<int, Animator> enemyAnimatorBySlot = new();
-        private readonly Dictionary<int, bool> enemyHitToggleBySlot = new(); // false = Hit1 next, true = Hit2 next
-        private static readonly int Hit1Hash = Animator.StringToHash("Hit1");
-        private static readonly int Hit2Hash = Animator.StringToHash("Hit2");
         private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int IsStaggeredHash = Animator.StringToHash("IsStaggered");
+        // Enemy_Combat_Controller v2: a single Flinch trigger replaces v1's alternating
+        // Hit1/Hit2, routed to Flinch01/02/03 by the Stagger float (100=full poise, 0=broken).
+        private static readonly int EnemyFlinchHash = Animator.StringToHash("Flinch");
+        private static readonly int EnemyStaggerFloatHash = Animator.StringToHash("Stagger");
+        private static readonly int EnemyStaggerRecoverHash = Animator.StringToHash("StaggerRecover");
+        private static readonly int EnemyDeathHash = Animator.StringToHash("Death");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
         private readonly Dictionary<int, float> enemyAttackResolvedDurationBySlot = new();
         private readonly Dictionary<int, EnemyAttackEventRelay> enemyAttackEventRelayBySlot = new();
@@ -80,7 +94,7 @@ namespace CrimsonDraft.Combat
             this.enemyTargetIndicator.SetActive(false);
         }
 
-        public void Populate(EncounterData encounter)
+public void Populate(EncounterData encounter)
         {
             foreach (var go in this.spawnedSprites)
                 Destroy(go);
@@ -89,8 +103,8 @@ namespace CrimsonDraft.Combat
             this.enemyGoBySlot.Clear();
             this.enemyRendererBySlot.Clear();
             this.operatorAnimatorBySlot.Clear();
+            this.operatorWeaponPoseBySlot.Clear();
             this.enemyAnimatorBySlot.Clear();
-            this.enemyHitToggleBySlot.Clear();
             this.enemyDeathMarkerBySlot.Clear();
             this.operatorHitFxMarkerBySlot.Clear();
             this.settledDeadOperatorSlots.Clear();
@@ -138,7 +152,9 @@ namespace CrimsonDraft.Combat
                     InitialPoise            = rolledPoise,
                     IsStaggered             = false,
                     StaggerActionsRemaining = 0,
-                    RecoveryQueued          = false
+                    RecoveryQueued          = false,
+                    PendingFlinchAfterRecovery = false,
+                    PendingFlinchStaggerPct = 0f
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -176,6 +192,17 @@ namespace CrimsonDraft.Combat
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
                 if (operatorAnimator != null)
                     this.operatorAnimatorBySlot[i] = operatorAnimator;
+
+                // Drives the shotgun idle/aim pose blend and silences the Health Overlay layer
+                // while aiming (same trick as Navigation's PlayerAimController), and sets the
+                // Animator's GunType from whatever weapon this operator currently has equipped.
+                var weaponPose = go.GetComponentInChildren<OperatorCombatWeaponPose>();
+                if (weaponPose != null)
+                {
+                    this.operatorWeaponPoseBySlot[i] = weaponPose;
+                    var activeWeapon = this.roster != null && i < this.roster.Count ? this.roster[i].ActiveWeapon : null;
+                    weaponPose.SetGunType(activeWeapon?.GunType ?? GunType.Pistols);
+                }
 
                 var hitFxMarker = go.GetComponentInChildren<OperatorHitFxMarker>();
                 if (hitFxMarker != null) this.operatorHitFxMarkerBySlot[i] = hitFxMarker;
@@ -281,7 +308,12 @@ namespace CrimsonDraft.Combat
             state.StaggerActionsRemaining = Mathf.Max(0, enemyData.StaggerRecoveryActionCount);
             state.RecoveryQueued          = false;
             if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            {
                 anim.SetBool(IsStaggeredHash, true);
+                // Fires the AnyState -> StaggerFlinchFall transition now that IsStaggered is
+                // true, regardless of whatever Flinch01/02/03/Idle state the last hit left it in.
+                anim.SetTrigger(EnemyFlinchHash);
+            }
         }
 
         public void RecoverEnemyStagger(int slotIndex)
@@ -292,7 +324,33 @@ namespace CrimsonDraft.Combat
             state.CurrentPoise   = state.InitialPoise; // fresh Poise for the next round of combat
             state.RecoveryQueued = false;
             if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            {
                 anim.SetBool(IsStaggeredHash, false);
+                anim.SetTrigger(EnemyStaggerRecoverHash); // StaggerFlinchFall -> StaggerUp -> Idle
+
+                if (state.PendingFlinchAfterRecovery)
+                    StartCoroutine(this.PlayPendingFlinchAfterStaggerUp(slotIndex, anim, state.PendingFlinchStaggerPct));
+                state.PendingFlinchAfterRecovery = false;
+            }
+        }
+
+        // A hit that landed while the enemy was down (see TriggerEnemyFlinch) doesn't get
+        // lost -- it waits here for StaggerUp to actually finish playing and land back on
+        // Idle before playing the deferred Flinch reaction, so the enemy never reacts to
+        // damage mid-getup, only once it's genuinely back on its feet.
+        private IEnumerator PlayPendingFlinchAfterStaggerUp(int slotIndex, Animator anim, float staggerPct)
+        {
+            float giveUpAt = Time.time + this.enemyDeathAnimTimeoutSec;
+            while (!anim.GetCurrentAnimatorStateInfo(0).IsName("Idle") && Time.time < giveUpAt)
+                yield return null;
+
+            // Don't stack a stray Flinch on top of whatever happened while we were waiting
+            // (e.g. it died, or got staggered again from another hit in the meantime).
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state) || state.IsDead || state.IsStaggered)
+                yield break;
+
+            anim.SetFloat(EnemyStaggerFloatHash, staggerPct);
+            anim.SetTrigger(EnemyFlinchHash);
         }
 
         private readonly List<int> readyToRecoverSlotsBuf = new();
@@ -329,22 +387,22 @@ namespace CrimsonDraft.Combat
         public void FinalizeEnemyDeath(int slotIndex)
         {
             if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
-            StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex, state.IsStaggered));
+            StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex));
         }
 
         // RE-style "definitely dead" marker: a blood pool (a child object referenced via
         // EnemyDeathMarker) reveals under the corpse so the player can tell it won't get
-        // back up. If the enemy was still standing, it collapses first, reusing the same
-        // Fall clip the stagger knockdown uses (there's no separate "falls dead" clip); if
-        // it was already down from a stagger, the collapse is skipped since it's already
-        // on the ground. The corpse is never hidden or destroyed — once removed from
+        // back up. Enemy_Combat_Controller v2 has a dedicated Death state/clip (distinct
+        // from the Stagger knockdown), so it always plays here regardless of whether the
+        // enemy was already down -- the AnyState -> Death transition cuts in immediately
+        // either way. The corpse is never hidden or destroyed -- once removed from
         // occupiedEnemySlots it's untargetable and dead to the ATB system (SyncDeadEnemies
         // picks it up from there), but stays visible in the scene as an inert prop.
-        private IEnumerator PlayDeathSequenceThenFinalize(int slotIndex, bool wasAlreadyDown)
+        private IEnumerator PlayDeathSequenceThenFinalize(int slotIndex)
         {
-            if (!wasAlreadyDown && this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
+            if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
             {
-                anim.SetBool(IsStaggeredHash, true);
+                anim.SetTrigger(EnemyDeathHash);
                 yield return this.WaitForAnimatorStateChange(anim);
             }
 
@@ -387,16 +445,70 @@ namespace CrimsonDraft.Combat
             this.occupiedEnemySlots = nextOccupied.ToArray();
         }
 
-        public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots)
+public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots, bool isMelee = false)
         {
             if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
                 return;
 
-            // The "Shoot" trigger only has an outgoing transition defined from "AimingIdlePistol"
-            // (not the default "IdleUnarmed"), so Aim must be set and the transition into
-            // AimingIdlePistol must actually complete before triggering Shoot has any effect.
-            animator.SetBool(AimHash, true);
-            while (!animator.GetCurrentAnimatorStateInfo(0).IsName("AimingIdlePistol"))
+            this.operatorWeaponPoseBySlot.TryGetValue(operatorSlotIndex, out var weaponPose);
+
+            if (isMelee)
+            {
+                // A melee swing is always a single strike (SlashStrategy resolves every slash
+                // point under BulletIndex 0), so it plays once - no Aim gating needed either,
+                // since "KnifeAttack" is an AnyState transition on the v2 controller. The operator
+                // is fighting with the knife, not whatever gun is equipped, so hide that gun's
+                // model for the duration of the swing (EnterMelee/ExitMelee), same idea as
+                // EnterAim/ExitAim below for shooting.
+                if (weaponPose != null)
+                {
+                    weaponPose.EnterMelee();
+                    weaponPose.TriggerKnifeAttack();
+                }
+                else
+                    animator.SetTrigger(KnifeAttackHash);
+
+                bool anyHit = false;
+                foreach (var shot in shots)
+                {
+                    if (shot.Zone != ShotZone.Miss)
+                    {
+                        anyHit = true;
+                        break;
+                    }
+                }
+                if (anyHit)
+                    this.TriggerEnemyFlinch(enemySlotIndex);
+
+                while (!animator.GetCurrentAnimatorStateInfo(0).IsName("KnifeAttack"))
+                    await UniTask.NextFrame();
+
+                var knifeClipInfo = animator.GetCurrentAnimatorClipInfo(0);
+                float knifeDuration = knifeClipInfo.Length > 0 ? knifeClipInfo[0].clip.length : 0f;
+                if (knifeDuration > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(knifeDuration));
+
+                weaponPose?.ExitMelee();
+
+                return;
+            }
+
+            bool isShotgun = this.roster != null && operatorSlotIndex < this.roster.Count &&
+                this.roster[operatorSlotIndex].ActiveWeapon?.GunType is GunType.Shotgun or GunType.REShotgun;
+            string aimIdleState = isShotgun ? "ShotgunAimIdle" : "PistolAimIdle";
+            string shootState = isShotgun ? "ShotgunShoot" : "PistolShoot";
+
+            // The "Shoot" trigger only has an outgoing transition defined from the weapon-appropriate
+            // AimIdle state (Operator_Combat_Controller v2), so Aim must be entered - via
+            // OperatorCombatWeaponPose.EnterAim when available, so the shotgun pose blend and Health
+            // Overlay silencing kick in exactly like Navigation's PlayerAimController - and the
+            // transition into that AimIdle state must actually complete before triggering Shoot has
+            // any effect.
+            if (weaponPose != null)
+                weaponPose.EnterAim();
+            else
+                animator.SetBool(AimHash, true);
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName(aimIdleState))
                 await UniTask.NextFrame();
 
             // One animation trigger per bullet fired, not per pellet - a shotgun shell that
@@ -405,7 +517,10 @@ namespace CrimsonDraft.Combat
             int bulletCount = AimViewController.CountBullets(shots);
             for (int b = 0; b < bulletCount; b++)
             {
-                animator.SetTrigger(ShootHash);
+                if (weaponPose != null)
+                    weaponPose.TriggerShoot();
+                else
+                    animator.SetTrigger(ShootHash);
 
                 bool anyHit = false;
                 foreach (var shot in shots)
@@ -419,7 +534,7 @@ namespace CrimsonDraft.Combat
                 if (anyHit)
                     this.TriggerEnemyFlinch(enemySlotIndex);
 
-                while (!animator.GetCurrentAnimatorStateInfo(0).IsName("ShootPistolFlexed2"))
+                while (!animator.GetCurrentAnimatorStateInfo(0).IsName(shootState))
                     await UniTask.NextFrame();
 
                 var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
@@ -428,7 +543,10 @@ namespace CrimsonDraft.Combat
                     await UniTask.Delay(TimeSpan.FromSeconds(duration));
             }
 
-            animator.SetBool(AimHash, false);
+            if (weaponPose != null)
+                weaponPose.ExitAim();
+            else
+                animator.SetBool(AimHash, false);
         }
 
         private void TriggerEnemyFlinch(int enemySlotIndex)
@@ -438,10 +556,34 @@ namespace CrimsonDraft.Combat
             this.SpawnBloodHitFx(enemySlotIndex);
 
             if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
+            if (!this.enemyStateBySlot.TryGetValue(enemySlotIndex, out var state)) return;
 
-            bool useHit2 = this.enemyHitToggleBySlot.TryGetValue(enemySlotIndex, out var toggle) && toggle;
-            animator.SetTrigger(useHit2 ? Hit2Hash : Hit1Hash);
-            this.enemyHitToggleBySlot[enemySlotIndex] = !useHit2;
+            float? staggerPct = state.InitialPoise > 0
+                ? Mathf.Clamp(100f * state.CurrentPoise / state.InitialPoise, 0f, 100f)
+                : (float?)null;
+
+            // While the enemy is down from a stagger it just stays on the ground -- no flinch
+            // reaction plays until StaggerUp actually finishes and it's back on its feet. The
+            // hit isn't lost: it's remembered (with the Poise/Stagger it had when it landed,
+            // frozen while staggered) and played the instant recovery completes -- see
+            // RecoverEnemyStagger / PlayPendingFlinchAfterStaggerUp.
+            if (state.IsStaggered)
+            {
+                state.PendingFlinchAfterRecovery = true;
+                if (staggerPct.HasValue)
+                    state.PendingFlinchStaggerPct = staggerPct.Value;
+                return;
+            }
+
+            // Reports how much Poise is left (100 = full, 0 = broken) so Enemy_Combat_Controller
+            // v2 can route the Flinch trigger to Flinch01/02/03 by itself -- Flinch01 while
+            // still mostly full, down to Flinch03 right before it collapses into
+            // StaggerFlinchFall (TriggerEnemyStagger fires that transition separately once the
+            // burst finishes and the stagger is confirmed).
+            if (staggerPct.HasValue)
+                animator.SetFloat(EnemyStaggerFloatHash, staggerPct.Value);
+
+            animator.SetTrigger(EnemyFlinchHash);
         }
 
         private void SpawnBloodHitFx(int enemySlotIndex)
@@ -539,6 +681,15 @@ namespace CrimsonDraft.Combat
 
             animator.SetTrigger(FlinchHash);
         }
+
+public void PlayOperatorReload(int operatorSlotIndex)
+        {
+            if (!this.operatorAnimatorBySlot.TryGetValue(operatorSlotIndex, out var animator) || animator == null)
+                return;
+
+            animator.SetTrigger(ReloadHash);
+        }
+
 
         public void PlayOperatorDeath(int operatorSlotIndex)
         {
