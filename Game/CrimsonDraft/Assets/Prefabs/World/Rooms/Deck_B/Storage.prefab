@@ -3660,13 +3660,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5576138408242492416, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2756075986708705540}
   m_SourcePrefab: {fileID: 100100000, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
 --- !u!4 &1600616275889875399 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8376327867882062794, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
   m_PrefabInstance: {fileID: 7063959603281603085}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &3416637291076754957 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5576138408242492416, guid: a103fc22c4d3d894299c1c87147a4093, type: 3}
+  m_PrefabInstance: {fileID: 7063959603281603085}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2756075986708705540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3416637291076754957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!1001 &7276736269010924909
 PrefabInstance:
   m_ObjectHideFlags: 0

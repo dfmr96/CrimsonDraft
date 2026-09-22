@@ -7256,6 +7256,7 @@ GameObject:
   - component: {fileID: 630698423562289510}
   - component: {fileID: 4071274735569047400}
   - component: {fileID: 2438281849458601537}
+  - component: {fileID: 674028778143094767}
   m_Layer: 0
   m_Name: Object_14
   m_TagString: Untagged
@@ -7335,6 +7336,22 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &674028778143094767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5517915576016876470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!1 &5519521775876897422
 GameObject:
   m_ObjectHideFlags: 0
@@ -18317,8 +18334,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4532309227901234883, guid: 5fb897164e1eeeb4db1007e5b8d0a596, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8248027368013718395}
   m_SourcePrefab: {fileID: 100100000, guid: 5fb897164e1eeeb4db1007e5b8d0a596, type: 3}
+--- !u!1 &5803830913776658170 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4532309227901234883, guid: 5fb897164e1eeeb4db1007e5b8d0a596, type: 3}
+  m_PrefabInstance: {fileID: 7957480443758086201}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8248027368013718395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5803830913776658170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311830ccff30b84e860fc65892cad3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shine.ItemShineOverlay
+  shineMaterial: {fileID: 2100000, guid: 9875a974344c83447b584523c02e75ee, type: 2}
+  sweepDirection: {x: 0.35, y: 1, z: 0}
+  maxTimeOffset: 2.5
+  sweepWidthFraction: 0.35
 --- !u!4 &7488420551475575222 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 685269099013353871, guid: 5fb897164e1eeeb4db1007e5b8d0a596, type: 3}
