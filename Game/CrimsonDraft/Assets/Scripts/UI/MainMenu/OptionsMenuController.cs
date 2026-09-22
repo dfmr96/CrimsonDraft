@@ -2,6 +2,7 @@
 
 using System;
 using CrimsonDraft.Infrastructure.Audio;
+using CrimsonDraft.Rendering.Outline;
 using TMPro;
 using UnityEngine;
 using VContainer;
@@ -42,6 +43,7 @@ namespace CrimsonDraft.UI.MainMenu
         private Action<float>[]   applyToService = null!;
         private IAudioSettingsService audioSettingsService = null!;
         private MainMenuSfxData      sfxData               = null!;
+        private readonly SelectionOutlineHighlight highlight = new();
 
         public int ChannelCount => this.channels.Length;
 
@@ -78,21 +80,12 @@ namespace CrimsonDraft.UI.MainMenu
                 channel.baseRotation = channel.knob.localRotation;
                 channel.value        = Mathf.RoundToInt(startValues01[i] * 100f);
                 Apply(channel);
-                channel.outline.SetActive(false);
             }
         }
 
-        public void ShowOutline(int index)
-        {
-            for (int i = 0; i < this.channels.Length; i++)
-                this.channels[i].outline.SetActive(i == index);
-        }
+        public void ShowOutline(int index) => this.highlight.Show(this.channels[index].knob);
 
-        public void HideOutlines()
-        {
-            foreach (var channel in this.channels)
-                channel.outline.SetActive(false);
-        }
+        public void HideOutlines() => this.highlight.Clear();
 
         public void Adjust(int index, int direction)
         {

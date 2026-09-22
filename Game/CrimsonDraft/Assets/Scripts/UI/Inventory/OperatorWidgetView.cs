@@ -53,7 +53,7 @@ namespace CrimsonDraft.UI
             gameObject.SetActive(true);
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
-            if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.DisplayName ?? string.Empty;
+            if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
             if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive);
 
             this.ApplyHealthState(op.HpRatio, op.IsAlive);
