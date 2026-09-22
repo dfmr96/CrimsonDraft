@@ -13,7 +13,7 @@ namespace CrimsonDraft.Navigation.Dialogue
     {
         private readonly DialogueRunner                          runner;
         private readonly InMemoryVariableStorage                 variableStorage;
-        private readonly IInputService                           inputService;
+        protected readonly IInputService                         inputService;
         private readonly IPublisher<DialogueActiveChangedEvent>  dialoguePublisher;
 
         private Action?      pendingOnComplete;
@@ -93,7 +93,7 @@ namespace CrimsonDraft.Navigation.Dialogue
 
         private void OnDialogueComplete()
         {
-            this.inputService.SwitchToGameplay();
+            ReturnToPreviousInputContext();
             this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(false));
 
             foreach (var name in this.sessionCommandNames)
@@ -104,5 +104,11 @@ namespace CrimsonDraft.Navigation.Dialogue
             this.pendingOnComplete = null;
             callback?.Invoke();
         }
+
+        // Which input map should own input once this dialogue ends. The default (world/NPC
+        // dialogue, pickups) hands control back to gameplay -- InspectDialogueService overrides
+        // this because its prompts run while the inventory/inspect UI is still open underneath,
+        // which needs InventoryConfirm/InventoryNavigate re-enabled, not the gameplay map.
+        protected virtual void ReturnToPreviousInputContext() => this.inputService.SwitchToGameplay();
     }
 }

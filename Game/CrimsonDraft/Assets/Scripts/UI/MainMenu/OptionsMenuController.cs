@@ -41,13 +41,15 @@ namespace CrimsonDraft.UI.MainMenu
         private SoundChannel[]    channels = null!;
         private Action<float>[]   applyToService = null!;
         private IAudioSettingsService audioSettingsService = null!;
+        private MainMenuSfxData      sfxData               = null!;
 
         public int ChannelCount => this.channels.Length;
 
         [Inject]
-        public void Construct(IAudioSettingsService audioSettingsService)
+        public void Construct(IAudioSettingsService audioSettingsService, MainMenuSfxData sfxData)
         {
             this.audioSettingsService = audioSettingsService;
+            this.sfxData              = sfxData;
         }
 
         private void Start()
@@ -95,7 +97,10 @@ namespace CrimsonDraft.UI.MainMenu
         public void Adjust(int index, int direction)
         {
             var channel = this.channels[index];
-            channel.value = Mathf.Clamp(channel.value + direction * this.stepPercent, 0, 100);
+            int clamped = Mathf.Clamp(channel.value + direction * this.stepPercent, 0, 100);
+            if (clamped == channel.value) this.sfxData.PlayKnobLimit(gameObject);
+            else this.sfxData.PlayKnobTick(gameObject);
+            channel.value = clamped;
             Apply(channel);
             this.applyToService[index](channel.value / 100f);
         }

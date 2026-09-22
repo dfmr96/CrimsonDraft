@@ -30,6 +30,13 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class ItemSocketStateEntry
+    {
+        public string  socketId = "";
+        public bool[]  inserted = Array.Empty<bool>();
+    }
+
+    [Serializable]
     public sealed class InventorySlotEntry
     {
         public int    slotIndex;
@@ -64,6 +71,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();

@@ -98,7 +98,7 @@ namespace CrimsonDraft.UI
             OnEnable();
         }
 
-        void OnInspectClosed()
+        void OnInspectClosed(string? selectItemId)
         {
             this.lastDir = Vector2Int.zero;
         }
@@ -208,8 +208,8 @@ namespace CrimsonDraft.UI
         private void PopulateGrid(int opSlot)
         {
             ClearGrid();
-            int start = opSlot * 4;
-            int end   = Mathf.Min(start + 4, this.inventoryService.SlotCount);
+            int start = opSlot * InventoryConstants.SlotsPerOperator;
+            int end   = Mathf.Min(start + InventoryConstants.SlotsPerOperator, this.inventoryService.SlotCount);
 
             // Pass 1: items with a saved 2D position go to their exact cell.
             for (int i = start; i < end; i++)
@@ -546,8 +546,8 @@ namespace CrimsonDraft.UI
 
         private int FindSlotIndex(InventoryItemView view)
         {
-            int start = this.operatorSlot * 4;
-            int end   = Mathf.Min(start + 4, this.inventoryService.SlotCount);
+            int start = this.operatorSlot * InventoryConstants.SlotsPerOperator;
+            int end   = Mathf.Min(start + InventoryConstants.SlotsPerOperator, this.inventoryService.SlotCount);
             for (int i = start; i < end; i++)
                 if (this.inventoryService.Slots[i].Item == view.BoundItem) return i;
             return -1;

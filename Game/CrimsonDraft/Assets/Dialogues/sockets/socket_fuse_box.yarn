@@ -1,0 +1,12 @@
+title: socket_fuse_box
+---
+<<if $insert_result == "success">>
+You placed {$item_name}.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} doesn't fit here.
+<<elseif $activated>>
+The fuse is in place. The panel should have power now.
+<<else>>
+Looks like this panel is missing a fuse.
+<<endif>>
+===

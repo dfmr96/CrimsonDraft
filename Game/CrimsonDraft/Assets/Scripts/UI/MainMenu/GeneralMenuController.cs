@@ -57,14 +57,16 @@ namespace CrimsonDraft.UI.MainMenu
         private int          gammaValue;
         private IGraphicsSettingsService graphicsSettingsService = null!;
         private IControlSchemeService    controlSchemeService    = null!;
+        private MainMenuSfxData          sfx                     = null!;
 
         public int ChannelCount => 3;
 
         [Inject]
-        public void Construct(IGraphicsSettingsService graphicsSettingsService, IControlSchemeService controlSchemeService)
+        public void Construct(IGraphicsSettingsService graphicsSettingsService, IControlSchemeService controlSchemeService, MainMenuSfxData sfx)
         {
             this.graphicsSettingsService = graphicsSettingsService;
             this.controlSchemeService    = controlSchemeService;
+            this.sfx                     = sfx;
         }
 
         private void Awake()
@@ -107,12 +109,16 @@ namespace CrimsonDraft.UI.MainMenu
                     ? ControlScheme.Classic
                     : ControlScheme.Modern;
                 this.controlSchemeService.SetScheme(next);
+                this.sfx.PlayKnobTick(gameObject);
                 return;
             }
 
             if (index != GammaIndex) return; // Language is locked for now.
 
-            this.gammaValue = Mathf.Clamp(this.gammaValue + direction * this.stepPercent, 0, 100);
+            int clamped = Mathf.Clamp(this.gammaValue + direction * this.stepPercent, 0, 100);
+            if (clamped == this.gammaValue) this.sfx.PlayKnobLimit(gameObject);
+            else this.sfx.PlayKnobTick(gameObject);
+            this.gammaValue = clamped;
             ApplyGamma();
             this.graphicsSettingsService.SetGamma(this.gammaValue / 100f);
         }

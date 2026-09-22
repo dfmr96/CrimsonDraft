@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Scripting;
 using CrimsonDraft.Operators;
 
@@ -25,7 +26,7 @@ namespace CrimsonDraft.Inventory
         {
             if (this.slots != null) return this.slots;
             this.roster.EnsureInitialized();
-            this.slots = new InventorySlot[this.roster.Count * 4];
+            this.slots = new InventorySlot[this.roster.Count * InventoryConstants.SlotsPerOperator];
             for (int i = 0; i < this.slots.Length; i++)
                 this.slots[i] = new InventorySlot();
             return this.slots;
@@ -37,12 +38,13 @@ namespace CrimsonDraft.Inventory
         public bool AddItem(ItemData data, int operatorSlot, int quantity = 0)
         {
             var s     = EnsureSlots();
-            int start = operatorSlot * 4;
+            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
+            int end   = start + InventoryConstants.SlotsPerOperator;
 
             // Try to stack into existing slot with same item
             if (data.Stackable)
             {
-                for (int i = start; i < start + 4; i++)
+                for (int i = start; i < end; i++)
                 {
                     if (s[i].IsEmpty || s[i].Item!.Data.ItemId != data.ItemId) continue;
 
@@ -59,8 +61,12 @@ namespace CrimsonDraft.Inventory
                 }
             }
 
-            // Place in first empty slot of this operator's block
-            for (int i = start; i < start + 4; i++)
+            // Real footprint fit — mirrors InventoryPopulator.TryFindSlot so "no space" reflects
+            // actual grid occupancy (multi-cell items), not just a raw count of item entries.
+            if (!TryFindFreeCell(BuildOccupancy(operatorSlot), data.GridSize, out var origin))
+                return false;
+
+            for (int i = start; i < end; i++)
             {
                 if (!s[i].IsEmpty) continue;
 
@@ -73,20 +79,24 @@ namespace CrimsonDraft.Inventory
                     SocketItemData sd => new SocketItem(sd),
                     _ => throw new ArgumentException($"Unknown ItemData subtype: {data.GetType().Name}")
                 };
-                s[i].Item     = item;
-                s[i].Quantity = 1;
+                s[i].Item         = item;
+                s[i].Quantity     = 1;
+                s[i].GridCol      = origin.x;
+                s[i].GridRow      = origin.y;
+                s[i].GridRotation = 0;
                 return true;
             }
 
-            return false; // operator's 4 slots are full
+            return false; // occupancy had room but no free entry — array/occupancy invariant broken
         }
 
         public bool AddExistingItem(InventoryItem item, int operatorSlot)
         {
             var s     = EnsureSlots();
-            int start = operatorSlot * 4;
+            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
+            int end   = start + InventoryConstants.SlotsPerOperator;
 
-            for (int i = start; i < start + 4; i++)
+            for (int i = start; i < end; i++)
             {
                 if (!s[i].IsEmpty) continue;
                 s[i].Item     = item;
@@ -97,9 +107,62 @@ namespace CrimsonDraft.Inventory
             return false;
         }
 
+        // Builds a 4×4-style occupancy matrix for one operator's block from the footprint
+        // (GridCol/GridRow/GridRotation + Data.GridSize) of its currently-positioned items —
+        // the same shape InventoryGrid.itemGrid tracks visually, so capacity here matches what
+        // the player actually sees. Excludes entries with no assigned position (-1,-1): those
+        // are momentarily "held"/in-transit and get placed by the UI once dropped.
+        private bool[,] BuildOccupancy(int operatorSlot, int excludeSlotIndex = -1)
+        {
+            var occupancy = new bool[InventoryConstants.OperatorGridWidth, InventoryConstants.OperatorGridHeight];
+            var s     = EnsureSlots();
+            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
+            int end   = start + InventoryConstants.SlotsPerOperator;
+
+            for (int i = start; i < end; i++)
+            {
+                if (i == excludeSlotIndex) continue;
+                var slot = s[i];
+                if (slot.IsEmpty || slot.GridCol < 0 || slot.GridRow < 0) continue;
+
+                var size = slot.GridRotation == 1
+                    ? new Vector2Int(slot.Item!.Data.GridSize.y, slot.Item!.Data.GridSize.x)
+                    : slot.Item!.Data.GridSize;
+
+                for (int c = slot.GridCol; c < slot.GridCol + size.x; c++)
+                    for (int r = slot.GridRow; r < slot.GridRow + size.y; r++)
+                        if (c >= 0 && c < InventoryConstants.OperatorGridWidth
+                            && r >= 0 && r < InventoryConstants.OperatorGridHeight)
+                            occupancy[c, r] = true;
+            }
+
+            return occupancy;
+        }
+
+        private static bool TryFindFreeCell(bool[,] occupancy, Vector2Int size, out Vector2Int origin)
+        {
+            int maxCol = InventoryConstants.OperatorGridWidth  - size.x;
+            int maxRow = InventoryConstants.OperatorGridHeight - size.y;
+            if (maxCol < 0 || maxRow < 0) { origin = default; return false; }
+
+            for (int row = 0; row <= maxRow; row++)
+                for (int col = 0; col <= maxCol; col++)
+                {
+                    bool free = true;
+                    for (int c = col; c < col + size.x && free; c++)
+                        for (int r = row; r < row + size.y && free; r++)
+                            if (occupancy[c, r]) free = false;
+
+                    if (free) { origin = new Vector2Int(col, row); return true; }
+                }
+
+            origin = default;
+            return false;
+        }
+
         public bool AddItemAuto(ItemData data, int quantity = 0)
         {
-            int operatorCount = EnsureSlots().Length / 4;
+            int operatorCount = EnsureSlots().Length / InventoryConstants.SlotsPerOperator;
             for (int op = 0; op < operatorCount; op++)
             {
                 if (AddItem(data, op, quantity))
@@ -229,15 +292,62 @@ namespace CrimsonDraft.Inventory
             return new KeyUseOutcome(KeyUseResult.NotFound, -1);
         }
 
+        public bool HasItem(string itemId)
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+                if (!s[i].IsEmpty && s[i].Item!.Data.ItemId == itemId) return true;
+            return false;
+        }
+
+        public bool TryRemoveItem(string itemId)
+        {
+            var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i].IsEmpty || s[i].Item!.Data.ItemId != itemId) continue;
+                RemoveItem(i);
+                return true;
+            }
+            return false;
+        }
+
         public bool TryCombine(int slotA, int slotB)
         {
             var s = EnsureSlots();
+            for (int i = 0; i < s.Length; i++)
+                if (s[i].IsEmpty || i == slotA || i == slotB)
+                    return TryCombine(slotA, slotB, i, out _);
+            return false;
+        }
+
+        public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+        {
+            combinedItem = null;
+            var s = EnsureSlots();
+            if (slotA < 0 || slotA >= s.Length || slotB < 0 || slotB >= s.Length
+                || slotA == slotB || resultSlot < 0 || resultSlot >= s.Length) return false;
             if (s[slotA].IsEmpty || s[slotB].IsEmpty) return false;
+            if (resultSlot != slotA && resultSlot != slotB && !s[resultSlot].IsEmpty) return false;
+            if (s[slotA].Item!.IsEquipped || s[slotB].Item!.IsEquipped) return false;
             var result = this.combineService.TryGetResult(s[slotA].Item!.Data, s[slotB].Item!.Data);
             if (result == null) return false;
+            // Construct before consuming inputs so unsupported recipe outputs cannot lose items.
+            combinedItem = result switch
+            {
+                WeaponData wd => new WeaponItem(wd),
+                AmmoBoxData ad => new AmmoBoxItem(ad, 0),
+                ConsumableData cd => new ConsumableItem(cd),
+                KeyItemData kd => new KeyItem(kd),
+                SocketItemData sd => new SocketItem(sd),
+                _ => null
+            };
+            if (combinedItem == null) return false;
             RemoveItem(slotA);
             RemoveItem(slotB);
-            AddItemAuto(result);
+            s[resultSlot].Item = combinedItem;
+            s[resultSlot].Quantity = 1;
+            SetSlotPosition(resultSlot, -1, -1, 0);
             return true;
         }
 

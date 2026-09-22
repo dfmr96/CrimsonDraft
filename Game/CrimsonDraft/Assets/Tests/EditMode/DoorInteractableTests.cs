@@ -52,7 +52,7 @@ namespace CrimsonDraft.Tests
             FakeDoorDialogueService  dialogue,
             FakeDoorInventoryService inventory)
         {
-            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!);
+            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
         }
 
         // ── Tests ─────────────────────────────────────────────────────────────
@@ -169,6 +169,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeDoorInventoryService : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public KeyUseOutcome TryUseKeyResult  = new KeyUseOutcome(KeyUseResult.NotFound, -1);
             public bool          RemoveItemCalled  { get; private set; }
             public int           RemovedSlotIndex  { get; private set; } = -1;

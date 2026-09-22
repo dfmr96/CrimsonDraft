@@ -57,8 +57,8 @@ namespace CrimsonDraft.Navigation
 
                 this.inventory.AddItem(weaponData, operatorSlot: slot);
 
-                int start = slot * 4;
-                for (int i = start; i < start + 4; i++)
+                int start = slot * InventoryConstants.SlotsPerOperator;
+                for (int i = start; i < start + InventoryConstants.SlotsPerOperator; i++)
                 {
                     if (this.inventory.Slots[i].Item?.Data == weaponData
                         && this.inventory.Slots[i].Item!.EquippedBySlot < 0)

@@ -1,13 +1,18 @@
 #nullable enable
 
+using System;
+using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
+using VContainer.Unity;
+using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 
 namespace CrimsonDraft.UI
 {
-    public class TabManager : MonoBehaviour
+    public class TabManager : MonoBehaviour, IInitializable, IDisposable
     {
         [System.Serializable]
         public struct Tab
@@ -27,9 +32,21 @@ namespace CrimsonDraft.UI
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
 
-        [Inject] private IInputService    inputService = null!;
-        [Inject] private InventorySfxData sfx          = null!;
+        // Locked out of the tab bar (button hidden, not reachable via LEFT/RIGHT) until the
+        // player picks up beeperUnlockNoteId -- the Beeper isn't something the player starts
+        // the game owning, it's found. See NoteCollectedEvent / DocumentInteractable.
+        [Header("Beeper Unlock")]
+        [SerializeField] private GameObject? beeperTabButton;
+        [SerializeField] private string      beeperUnlockNoteId = "note_b01";
+
+        [Inject] private IInputService                     inputService     = null!;
+        [Inject] private InventorySfxData                  sfx              = null!;
+        [Inject] private NoteRegistry                       noteRegistry     = null!;
+        [Inject] private ISubscriber<NoteCollectedEvent>    noteCollectedSub = null!;
         private bool inputBound;
+        private IDisposable? noteSubscription;
+        private int  beeperTabIndex   = -1;
+        private bool beeperUnlocked;
 
         private int  currentIndex;
         private bool tabBarActive;
@@ -39,6 +56,40 @@ namespace CrimsonDraft.UI
         private bool holding;
         private Vector2Int lastDir;
         private float nextMoveTime;
+
+        // ── DI lifecycle ─────────────────────────────────────────────────────
+
+        // Subscribed here (VContainer container build), not OnEnable -- canvasRoot gets
+        // SetActive(false) whenever the inventory closes (InventoryOpenCloseController.Close),
+        // which would disable this component and miss NoteCollectedEvent for notes picked up
+        // out in the world while the inventory isn't open. Same reasoning as
+        // FilesTabController.OnNoteCollected.
+        public void Initialize()
+        {
+            this.beeperTabIndex = Array.FindIndex(this.tabs, t => t.name == "Beeper");
+            this.noteSubscription = this.noteCollectedSub.Subscribe(OnNoteCollected);
+            RefreshBeeperLock();
+        }
+
+        public void Dispose() => this.noteSubscription?.Dispose();
+
+        void OnNoteCollected(NoteCollectedEvent e)
+        {
+            if (e.NoteId == this.beeperUnlockNoteId)
+                RefreshBeeperLock();
+        }
+
+        // Re-synced on every open (see ResetForOpen) as well as at Initialize(), so a save
+        // loaded with the note already collected doesn't leave the button stuck hidden just
+        // because NoteRegistry's load happened to run after this component's Initialize().
+        void RefreshBeeperLock()
+        {
+            this.beeperUnlocked = this.noteRegistry.IsCollected(this.beeperUnlockNoteId);
+            if (this.beeperTabButton != null)
+                this.beeperTabButton.SetActive(this.beeperUnlocked);
+        }
+
+        bool IsLocked(int index) => index == this.beeperTabIndex && !this.beeperUnlocked;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
@@ -132,7 +183,15 @@ namespace CrimsonDraft.UI
             }
             else if (dir.x != 0) // LEFT/RIGHT → navigate between tabs
             {
-                this.focusedTabIndex = (this.focusedTabIndex + dir.x + this.tabs.Length) % this.tabs.Length;
+                int next = this.focusedTabIndex;
+                do
+                {
+                    next = (next + dir.x + this.tabs.Length) % this.tabs.Length;
+                } while (IsLocked(next) && next != this.focusedTabIndex);
+
+                if (next == this.focusedTabIndex) return; // every other tab is locked
+
+                this.focusedTabIndex = next;
                 SetTabBarFocus(this.focusedTabIndex);
                 this.sfx?.PlayCursor(gameObject);
             }
@@ -210,6 +269,7 @@ namespace CrimsonDraft.UI
         public void ActivateTab(int index)
         {
             if (index == this.currentIndex) return;
+            if (IsLocked(index)) return;
 
             if (this.tabs[this.currentIndex].name == "Inventory" || this.currentIndex == 0)
                 this.gridCursor?.CancelAll();
@@ -296,6 +356,7 @@ namespace CrimsonDraft.UI
         {
             this.tabBarActive = false;
             ClearTabBarFocus();
+            RefreshBeeperLock();
 
             if (this.currentIndex != this.startingTab)
             {

@@ -69,7 +69,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!);
+            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
 
         // ── tests ─────────────────────────────────────────────────────────────
 
@@ -235,6 +235,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventory : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public KeyUseOutcome UseKeyResult    = new(KeyUseResult.NotFound, -1);
             public bool          RemoveItemCalled { get; private set; }
             public int           RemovedSlotIndex { get; private set; } = -1;

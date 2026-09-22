@@ -34,15 +34,17 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Ease  travelEase      = Ease.InOutSine;
 
         private IInputService inputService = null!;
+        private MainMenuSfxData sfx        = null!;
         private Vector3       homePosition;
         private Quaternion    homeRotation;
         private Destination   currentDestination;
         private bool          isTravelling;
 
         [Inject]
-        public void Construct(IInputService inputService)
+        public void Construct(IInputService inputService, MainMenuSfxData sfx)
         {
             this.inputService = inputService;
+            this.sfx          = sfx;
             this.inputService.UICancel.performed += OnCancel;
         }
 
@@ -66,6 +68,8 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.NewGame;
             this.isTravelling       = true;
 
+            this.sfx.PlayDecide(gameObject);
+            this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
 
@@ -87,6 +91,8 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.Options;
             this.isTravelling       = true;
 
+            this.sfx.PlayDecide(gameObject);
+            this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
 
@@ -108,6 +114,8 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.LoadGame;
             this.isTravelling       = true;
 
+            this.sfx.PlayDecide(gameObject);
+            this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
 
@@ -148,6 +156,9 @@ namespace CrimsonDraft.UI.MainMenu
             Destination from = this.currentDestination;
             this.currentDestination = Destination.None;
             this.isTravelling       = true;
+
+            this.sfx.PlayCancel(gameObject);
+            this.sfx.PlayPanelTravel(gameObject);
 
             switch (from)
             {

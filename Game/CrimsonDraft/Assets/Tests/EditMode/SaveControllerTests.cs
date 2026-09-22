@@ -36,6 +36,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public InventorySlot[] RawSlots = Array.Empty<InventorySlot>();
             public int SlotCount => this.RawSlots.Length;
             public IReadOnlyList<InventorySlot> Slots => this.RawSlots;
@@ -135,7 +144,8 @@ namespace CrimsonDraft.Tests
         {
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
+                new ItemSocketStateRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");
@@ -143,6 +153,7 @@ namespace CrimsonDraft.Tests
             world.KnownMaps.MarkKnown("map-1");
             world.Enemies.SetDefeated("enemy-1");
             world.OperatorCorpses.Record(0, "room-1", new Vector3(9f, 0f, 9f), Quaternion.identity);
+            world.ItemSockets.SetInserted("socket-1", new[] { true });
 
             var weaponData = MakeWeaponData("weapon-1");
             var weaponItem = new WeaponItem(weaponData);
@@ -186,6 +197,9 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(1, data.readNoteIds.Count);
                 Assert.AreEqual(1, data.knownMapIds.Count);
                 Assert.AreEqual(1, data.defeatedEnemyIds.Count);
+                Assert.AreEqual(1, data.itemSockets.Count);
+                Assert.AreEqual("socket-1", data.itemSockets[0].socketId);
+                CollectionAssert.AreEqual(new[] { true }, data.itemSockets[0].inserted);
                 Assert.AreEqual(1, data.operatorCorpses.Count);
                 Assert.AreEqual(0, data.operatorCorpses[0].slotIndex);
                 Assert.AreEqual("room-1", data.operatorCorpses[0].roomId);

@@ -42,7 +42,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, null!, null!, null!, dialogue, null!, null!, null!, null!);
+            => new(inventory, null!, null!, null!, null!, dialogue, null!, null!, null!, null!, null!);
 
         [Test]
         public void Construct_whenAlreadyCollected_deactivatesGameObject()
@@ -121,6 +121,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventory : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public bool AddItemAutoResult;
 
             public IReadOnlyList<InventorySlot> Slots                              => Array.Empty<InventorySlot>();

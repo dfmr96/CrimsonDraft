@@ -1,8 +1,11 @@
 #nullable enable
 
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using Yarn.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.UI;
 
@@ -13,6 +16,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         [SerializeField] private GameObject  root            = null!;
         [SerializeField] private Transform   mountPoint       = null!;
         [SerializeField] private float       rotationSpeed    = 60f;
+        [SerializeField] private float       activationRotationSpeed = 240f;
         [SerializeField] private bool        autoRotate       = true;
         [SerializeField] private string      previewLayerName = "ItemPreview";
 
@@ -125,7 +129,10 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             // just skip instantiating a 3D preview.
             if (modelPrefab != null)
             {
-                this.currentInstance = Instantiate(modelPrefab, this.mountPoint.position, this.mountPoint.rotation, this.mountPoint);
+                // Parent-only overload -- preserves the prefab's own authored local
+                // position/rotation/scale under mountPoint, instead of forcing world
+                // position/rotation to mountPoint's and discarding the prefab's offset.
+                this.currentInstance = Instantiate(modelPrefab, this.mountPoint);
                 if (this.previewLayer >= 0)
                     SetLayerRecursively(this.currentInstance.transform, this.previewLayer);
             }
@@ -158,6 +165,54 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             if (axis.y != 0f) this.mountPoint.Rotate(camRight, -axis.y * delta, Space.World);
         }
 
+        // Smoothly rotates mountPoint from whatever the player left it at to targetRotation,
+        // at activationRotationSpeed degrees/sec, using unscaled time (same reasoning as
+        // everywhere else in this class -- the inventory pauses the game while this is shown).
+        // Used to snap the model to a known, camera-friendly angle before playing a hotspot's
+        // reveal animation, regardless of how the player was aiming when they confirmed.
+        public async UniTask RotateMountPointTo(Quaternion targetRotation, CancellationToken cancellationToken = default)
+        {
+            const float doneThresholdDegrees = 0.5f;
+            while (Quaternion.Angle(this.mountPoint.rotation, targetRotation) > doneThresholdDegrees)
+            {
+                this.mountPoint.rotation = Quaternion.RotateTowards(
+                    this.mountPoint.rotation, targetRotation, this.activationRotationSpeed * Time.unscaledDeltaTime);
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+            }
+            this.mountPoint.rotation = targetRotation;
+        }
+
+        // Returns null when the currently-shown item has no ItemExamineHotspots at all, or
+        // when nothing usable resolves -- callers should fall back to that item's own
+        // default examine text in that case. A non-null result is either text to type or a
+        // prompt to run -- see ExamineResolution.
+        public ExamineResolution? TryGetExamineDialogue(IInventoryService inventory)
+        {
+            if (this.currentInstance == null) return null;
+
+            var hotspots = this.currentInstance.GetComponentInChildren<ItemExamineHotspots>();
+            if (hotspots == null) return null;
+
+            Collider? hitCollider = null;
+            if (this.previewCamera != null)
+            {
+                // Player rotates the model via mountPoint.Rotate (SetRotationInput), a plain
+                // Transform op -- with autoSyncTransforms disabled project-wide and Time.timeScale
+                // at 0 while inspect is open (no physics step to pick it up naturally), PhysX
+                // would otherwise see a stale collider pose here.
+                Physics.SyncTransforms();
+
+                int mask = this.previewLayer >= 0 ? 1 << this.previewLayer : ~0;
+                if (Physics.Raycast(this.previewCamera.transform.position, this.previewCamera.transform.forward,
+                        out var hit, Mathf.Infinity, mask, QueryTriggerInteraction.Collide))
+                {
+                    hitCollider = hit.collider;
+                }
+            }
+
+            return hotspots.Resolve(hitCollider, inventory);
+        }
+
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);
 
         private void ApplyHighlightSize()
@@ -181,6 +236,32 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             t.gameObject.layer = layer;
             for (int i = 0; i < t.childCount; i++)
                 SetLayerRecursively(t.GetChild(i), layer);
+        }
+
+        // Debug aid: draws the exact ray TryGetExamineDialogue() would cast right now
+        // (green if it hits something on the preview layer, red if not), plus the
+        // currently-shown instance's hotspot colliders, so both can be inspected together
+        // without separately selecting the spawned model in the hierarchy.
+        void OnDrawGizmosSelected()
+        {
+            if (this.previewCamera == null) return;
+
+            // Same reasoning as TryGetExamineDialogue(): without this, a script-driven
+            // rotation change may not be visible to Physics.Raycast yet.
+            Physics.SyncTransforms();
+
+            var origin  = this.previewCamera.transform.position;
+            var forward = this.previewCamera.transform.forward;
+            int mask    = this.previewLayer >= 0 ? 1 << this.previewLayer : ~0;
+
+            bool hasHit = Physics.Raycast(origin, forward, out var hit, Mathf.Infinity, mask, QueryTriggerInteraction.Collide);
+
+            Gizmos.color = hasHit ? Color.green : Color.red;
+            Gizmos.DrawLine(origin, origin + forward * (hasHit ? hit.distance : 10f));
+            if (hasHit) Gizmos.DrawWireSphere(hit.point, 0.03f);
+
+            if (this.currentInstance != null)
+                this.currentInstance.GetComponentInChildren<ItemExamineHotspots>()?.DrawGizmos();
         }
     }
 }

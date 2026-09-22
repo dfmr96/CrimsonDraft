@@ -24,6 +24,12 @@ namespace CrimsonDraft.UI
         [SerializeField] private TMP_Text      lineText      = null!;
         [SerializeField] private MarkupPalette? markupPalette;
 
+        // Off by default -- PickupDialogueSystem's world pickup prompts ("Pick up X?") keep
+        // showing their line instantly. InspectPromptDialogueSystem's instance opts in so its
+        // hotspot prompts match the typewriter used everywhere else in InspectPanel.
+        [SerializeField] private bool  useTypewriterForLine     = false;
+        [SerializeField] private float typewriterCharsPerSecond = 40f;
+
         [Header("Options")]
         [SerializeField] private Transform        optionsContainer = null!;
         [SerializeField] private PickupOptionItem optionPrefab     = null!;
@@ -41,6 +47,9 @@ namespace CrimsonDraft.UI
         private YarnTaskCompletionSource<DialogueOption?>? optionTcs;
         private float lastNavigateTime;
         private const float NavigateCooldown = 0.2f;
+
+        private bool isTypingLine;
+        private bool skipLineRequested;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
@@ -68,10 +77,53 @@ namespace CrimsonDraft.UI
             return YarnTask.CompletedTask;
         }
 
-        public override YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
+        public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
         {
-            lineText.text = ApplyMarkupColor(line.Text, "item", "orange");
-            return YarnTask.CompletedTask;
+            string text = ApplyMarkupColor(line.Text, "item", "orange");
+
+            if (!useTypewriterForLine)
+            {
+                lineText.text = text;
+                return;
+            }
+
+            skipLineRequested = false;
+            isTypingLine       = true;
+            lineText.text      = string.Empty;
+
+            // Same reasoning as PickupPresenter's option navigation below: PickupConfirm is
+            // only wired for the duration it's needed, here to let the player skip the reveal
+            // early instead of waiting it out.
+            Action<InputAction.CallbackContext>? onSkip = null;
+            if (inputService != null)
+            {
+                onSkip = _ => skipLineRequested = true;
+                inputService.PickupConfirm.performed += onSkip;
+            }
+
+            float charInterval = 1f / Mathf.Max(1f, typewriterCharsPerSecond);
+            float timer         = 0f;
+            int   revealed      = 0;
+
+            while (revealed < text.Length)
+            {
+                if (skipLineRequested) { revealed = text.Length; break; }
+
+                timer += Time.unscaledDeltaTime;
+                while (timer >= charInterval && revealed < text.Length)
+                {
+                    revealed++;
+                    timer -= charInterval;
+                }
+
+                lineText.text = text.Substring(0, revealed);
+                await YarnTask.Yield();
+            }
+
+            lineText.text = text;
+            isTypingLine  = false;
+
+            if (onSkip != null) inputService!.PickupConfirm.performed -= onSkip;
         }
 
         private static string ApplyMarkupColor(MarkupParseResult markup, string markerName, string color)
@@ -169,17 +221,22 @@ namespace CrimsonDraft.UI
 
         void Update()
         {
-            if (!isSelectingOption || inputService != null || optionTcs == null) return;
+            if (inputService != null) return;
 
             var kb = Keyboard.current;
             var gp = Gamepad.current;
+            bool confirm = kb?.cKey.wasPressedThisFrame == true || gp?.buttonSouth.wasPressedThisFrame == true;
 
-            bool right   = kb?.rightArrowKey.wasPressedThisFrame == true
-                        || gp?.dpad.right.wasPressedThisFrame   == true;
-            bool left    = kb?.leftArrowKey.wasPressedThisFrame  == true
-                        || gp?.dpad.left.wasPressedThisFrame    == true;
-            bool confirm = kb?.cKey.wasPressedThisFrame          == true
-                        || gp?.buttonSouth.wasPressedThisFrame   == true;
+            if (isTypingLine)
+            {
+                if (confirm) skipLineRequested = true;
+                return;
+            }
+
+            if (!isSelectingOption || optionTcs == null) return;
+
+            bool right = kb?.rightArrowKey.wasPressedThisFrame == true || gp?.dpad.right.wasPressedThisFrame == true;
+            bool left  = kb?.leftArrowKey.wasPressedThisFrame  == true || gp?.dpad.left.wasPressedThisFrame  == true;
 
             if (right) ShiftSelection(1);
             if (left)  ShiftSelection(-1);

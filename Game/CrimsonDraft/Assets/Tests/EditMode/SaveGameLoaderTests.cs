@@ -37,6 +37,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             public int SlotCount { get; set; } = 4;
             public InventorySlot[]? LoadedSlots { get; private set; }
             public IReadOnlyList<InventorySlot> Slots => Array.Empty<InventorySlot>();
@@ -112,7 +121,8 @@ namespace CrimsonDraft.Tests
             var itemDb      = MakeDatabase();
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
+                new ItemSocketStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -151,6 +161,10 @@ namespace CrimsonDraft.Tests
                     readNoteIds        = new List<string> { "note-1" },
                     knownMapIds        = new List<string> { "map-1" },
                     defeatedEnemyIds   = new List<string> { "enemy-1" },
+                    itemSockets        = new List<ItemSocketStateEntry>
+                    {
+                        new ItemSocketStateEntry { socketId = "socket-1", inserted = new[] { true, false } },
+                    },
                     operatorCorpses   = new List<OperatorCorpseEntry>
                     {
                         new OperatorCorpseEntry { slotIndex = 0, roomId = "room-2", position = new Vector3(1f, 0f, 1f), rotation = Quaternion.identity },
@@ -167,7 +181,8 @@ namespace CrimsonDraft.Tests
             var roomOrch  = new FakeRoomOrchestrator();
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
-                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry());
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
+                new ItemSocketStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -183,6 +198,7 @@ namespace CrimsonDraft.Tests
                 Assert.IsTrue(world.KnownMaps.IsKnown("map-1"));
                 Assert.IsTrue(world.Enemies.IsDefeated("enemy-1"));
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
+                CollectionAssert.AreEqual(new[] { true, false }, world.ItemSockets.GetInserted("socket-1"));
                 CollectionAssert.AreEqual(new[] { 80 }, roster.RestoredHp);
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);

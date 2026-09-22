@@ -7,21 +7,20 @@ namespace CrimsonDraft.Inventory
     public interface IInventoryService
     {
         /// <summary>
-        /// Flat array of rosterCount × 4 slots. Never null.
-        /// Grid layout: 2 rows × (rosterCount * 2) columns.
-        /// slotIndex / 4 = owning operatorSlot.
-        /// See Grid Index Layout in the implementation plan for col/row formulas.
+        /// Flat array of rosterCount × InventoryConstants.SlotsPerOperator slots. Never null.
+        /// slotIndex / InventoryConstants.SlotsPerOperator = owning operatorSlot.
         /// </summary>
         IReadOnlyList<InventorySlot> Slots { get; }
         int SlotCount { get; }
 
-        /// <summary>Adds item to operatorSlot's 4-slot section. Stacks if Stackable and same ItemId exists.
-        /// Returns false if all 4 slots are occupied and item cannot stack.</summary>
+        /// <summary>Adds item to operatorSlot's section. Stacks if Stackable and same ItemId exists.
+        /// Otherwise returns false unless the item's footprint (ItemData.GridSize) actually fits
+        /// somewhere in the operator's grid — matching what the visual InventoryGrid can place.</summary>
         bool AddItem(ItemData data, int operatorSlot, int quantity = 0);
 
-        /// <summary>Places an already-constructed item into the first empty slot of operatorSlot's 4-slot
+        /// <summary>Places an already-constructed item into the first empty slot of operatorSlot's
         /// section, preserving its object reference (unlike AddItem, which always constructs a new item).
-        /// Returns false if all 4 slots are occupied.</summary>
+        /// Returns false if the section has no empty slot.</summary>
         bool AddExistingItem(InventoryItem item, int operatorSlot);
 
         /// <summary>Tries each operator in order until one has space. Returns false only if all operators are full.</summary>
@@ -56,15 +55,26 @@ namespace CrimsonDraft.Inventory
         void ReloadOperator(int slotIndex, int operatorSlot);
 
         /// <summary>Checks for a recipe matching the items in slotA and slotB (symmetric).
-        /// If found: removes both items and places the result in the first available slot via AddItemAuto.
-        /// Returns false if either slot is empty or no recipe exists. No mutation on false.</summary>
+        /// If found: removes both items and places the result in the first available slot.
+        /// Invalid, identical, empty or equipped inputs are rejected. No mutation on false.</summary>
         bool TryCombine(int slotA, int slotB);
+
+        /// <summary>Combines into an empty slot or one of the consumed slots, returning the registered
+        /// instance for the UI. No inventory mutation on failure.</summary>
+        bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem);
 
         /// <summary>
         /// Finds the first KeyItem with the given itemId, decrements its uses, and returns the outcome.
         /// The key is never auto-removed — caller must call RemoveItem(outcome.SlotIndex) to discard it.
         /// </summary>
         KeyUseOutcome TryUseKey(string keyItemId);
+
+        /// <summary>Returns true if any slot holds an item with the given itemId.</summary>
+        bool HasItem(string itemId);
+
+        /// <summary>Finds and clears the first slot holding an item with the given
+        /// itemId. Returns false (no mutation) if not found.</summary>
+        bool TryRemoveItem(string itemId);
 
         /// <summary>
         /// Replaces the internal slot array and re-wires equipped weapons to the roster.

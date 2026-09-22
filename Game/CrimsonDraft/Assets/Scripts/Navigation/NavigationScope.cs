@@ -45,6 +45,8 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private InMemoryVariableStorage generalStorage   = null!;
         [SerializeField] private DialogueRunner          pickupRunner     = null!;
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
+        [SerializeField] private DialogueRunner          inspectPromptRunner  = null!;
+        [SerializeField] private InMemoryVariableStorage inspectPromptStorage = null!;
 
         // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
         // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
@@ -59,6 +61,8 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
         [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
         [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
+        [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
+        [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -103,8 +107,10 @@ namespace CrimsonDraft.Navigation
 #endif
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
+            builder.RegisterInstance(new InspectDialogueRunnerRef(this.inspectPromptRunner, this.inspectPromptStorage));
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
+            builder.Register<InspectDialogueService>(Lifetime.Scoped).As<IInspectDialogueService>();
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
             builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();
@@ -114,6 +120,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<ContainerView>();
             builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
+            builder.Register<InspectionController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
             builder.RegisterInstance(this.saveSlotListView);
             builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
@@ -167,6 +174,12 @@ namespace CrimsonDraft.Navigation
             builder.Register<MapPickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedDocumentPickups);
             builder.Register<DocumentPickupBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedBeeperReceivers);
+            builder.Register<BeeperReceiverBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedItemSockets);
+            builder.Register<ItemSocketBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
@@ -212,6 +225,22 @@ namespace CrimsonDraft.Navigation
         private void CacheSceneCameraZoneTriggers()
         {
             this.cachedCameraZoneTriggers = FindObjectsByType<FixedCameraZoneTrigger>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Beeper Receivers")]
+        private void CacheSceneBeeperReceivers()
+        {
+            this.cachedBeeperReceivers = FindObjectsByType<BeeperReceiverInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Item Sockets")]
+        private void CacheSceneItemSockets()
+        {
+            this.cachedItemSockets = FindObjectsByType<ItemSocketInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }

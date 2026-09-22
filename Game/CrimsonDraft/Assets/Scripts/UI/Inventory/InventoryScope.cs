@@ -23,7 +23,7 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<GridCursor>();
             builder.RegisterComponentInHierarchy<ItemContextMenu>();
             builder.RegisterComponentInHierarchy<PartyPanelView>();
-            builder.RegisterComponentInHierarchy<TabManager>();
+            builder.RegisterComponentInHierarchy<TabManager>().AsSelf().AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<InspectPanel>();
             builder.RegisterComponentInHierarchy<InventoryGridGroup>();
             builder.RegisterComponentInHierarchy<InventoryOpenCloseController>().AsSelf().AsImplementedInterfaces();
@@ -34,6 +34,9 @@ namespace CrimsonDraft.UI
 
             if (FindFirstObjectByType<MapTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<MapTabController>();
+
+            if (FindFirstObjectByType<BeeperTabController>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<BeeperTabController>();
 
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
             builder.Register<InventorySceneInit>(Lifetime.Singleton);

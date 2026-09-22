@@ -43,7 +43,7 @@ namespace CrimsonDraft.UI
 
             int slotsPerOperator = this.roster.Count > 0
                 ? this.inventoryService.SlotCount / this.roster.Count
-                : 4;
+                : InventoryConstants.SlotsPerOperator;
 
             // Remove views left over from a previous open whose backing item no longer
             // exists (e.g. a consumable fully used up in combat while the UI was in memory).

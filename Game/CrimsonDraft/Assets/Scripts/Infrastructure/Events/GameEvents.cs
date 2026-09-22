@@ -117,4 +117,11 @@ namespace CrimsonDraft.Infrastructure.Events
     {
         public string NoteId { get; init; }
     }
+
+    // Published whenever the BEEPER panel's SEND is confirmed. Nothing has to be listening —
+    // a level zone can subscribe to react immediately, or just poll BeeperSignalRegistry.CurrentSignal.
+    public readonly struct BeeperSignalSentEvent
+    {
+        public string Code { get; init; }
+    }
 }

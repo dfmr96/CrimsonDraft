@@ -1010,6 +1010,15 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeInventoryService : IInventoryService
         {
+            public bool HasItem(string itemId) => false;
+            public bool TryRemoveItem(string itemId) => false;
+
+            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
+            {
+                combinedItem = null;
+                return false;
+            }
+
             private readonly InventorySlot[] slots = new InventorySlot[8]; // 2 operators × 4
 
             public FakeInventoryService()
@@ -1428,6 +1437,7 @@ namespace CrimsonDraft.Tests
 
             private sealed class FakeWeaponSlot : IWeaponSlot
             {
+                public int MaxShotCount => 6;
                 public Caliber Caliber    => Caliber._9mm;
                 public GunType GunType    => GunType.Pistols;
                 public int     BaseDamage => 20;
