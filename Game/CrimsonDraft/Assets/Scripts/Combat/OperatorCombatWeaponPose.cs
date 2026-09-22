@@ -21,6 +21,9 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject pistolWeapon = null!;  // e.g. "Glock 1"
         [SerializeField] private GameObject shotgunWeapon = null!; // e.g. "Shotgun 1"
 
+        [Header("Melee Weapon Visual")]
+        [SerializeField] private GameObject knifeWeapon = null!; // e.g. "Knife 1" -- only shown during EnterMelee/ExitMelee
+
         [Header("Shotgun Aim Pose (relative to its parent hand bone)")]
         [SerializeField] private Vector3 shotgunAimLocalPosition;
         [SerializeField] private Vector3 shotgunAimLocalEulerAngles;
@@ -115,16 +118,25 @@ public void SetGunType(GunType gunType)
         public void TriggerKnifeAttack() => this.animator.SetTrigger(KnifeAttackHash);
 
 /// <summary>Call right before a melee/knife swing plays -- hides whichever gun (pistol or shotgun) is currently equipped, since the operator is using the knife, not the gun, for this attack.</summary>
+/// <summary>Call right before a melee/knife swing plays -- hides whichever gun (pistol or shotgun) is currently equipped and shows the knife model instead, since the operator is using the knife for this attack.</summary>
         public void EnterMelee()
         {
             if (this.pistolWeapon.activeSelf)
                 this.pistolWeapon.SetActive(false);
             if (this.shotgunWeapon.activeSelf)
                 this.shotgunWeapon.SetActive(false);
+            if (!this.knifeWeapon.activeSelf)
+                this.knifeWeapon.SetActive(true);
         }
 
         /// <summary>Call once the melee/knife swing finishes -- restores whichever gun matches the equipped GunType.</summary>
-        public void ExitMelee() => this.ApplyEquippedWeaponVisibility();
+/// <summary>Call once the melee/knife swing finishes -- hides the knife again and restores whichever gun matches the equipped GunType.</summary>
+        public void ExitMelee()
+        {
+            if (this.knifeWeapon.activeSelf)
+                this.knifeWeapon.SetActive(false);
+            this.ApplyEquippedWeaponVisibility();
+        }
 
 
         public void TriggerFlinch() => this.animator.SetTrigger(FlinchHash);
