@@ -390,9 +390,11 @@ namespace CrimsonDraft.Combat
                 ATBActorState? actor = this.atbSystem.GetActor(i, ATBActorKind.Enemy);
                 if (actor == null || actor.IsDead || !actor.IsReady) continue;
 
-                int targetSlot = SelectEnemyTargetSlot(aliveOperatorSlots);
-
-                this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, targetSlot, data.AttackDamage));
+                // Target is deliberately left unresolved here (-1) and picked in ProcessQueueHead
+                // right before the attack executes instead -- otherwise an operator who enters
+                // Mercy after this enemy is enqueued but before it fires would still eat the hit
+                // at full (pre-Mercy) odds, since the roll already happened.
+                this.actionQueue.Enqueue(PendingAction.EnemyAttack(i, -1, data.AttackDamage));
 
                 float nextSec = Mathf.Max(0.1f, GetOrRollAttackBaseSec(i, data));
                 this.atbSystem.ResetActor(i, ATBActorKind.Enemy);
@@ -524,8 +526,13 @@ namespace CrimsonDraft.Combat
                     if (IsActorDead(head)) { this.DequeueAction(); return; }
                     if (this.battlefieldView.IsEnemyStaggered(head.SlotIndex)) { this.DequeueAction(); return; }
                     if (Time.time < this.animationLockUntil) return;
+
+                    IReadOnlyList<int> aliveOperatorSlots = this.roster.GetAliveSlots();
+                    if (aliveOperatorSlots.Count == 0) { this.DequeueAction(); return; }
+                    int targetSlot = SelectEnemyTargetSlot(aliveOperatorSlots);
+
                     this.enemyAttackInProgress = true;
-                    ApplyEnemyAttack(head);
+                    ApplyEnemyAttack(PendingAction.EnemyAttack(head.SlotIndex, targetSlot, head.Damage));
                 }
                 else
                 {
