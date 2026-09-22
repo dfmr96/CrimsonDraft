@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Audio;
@@ -137,9 +136,14 @@ namespace CrimsonDraft.Navigation
             Time.timeScale = 1f;
             this.graphicsSettings.PopGammaSuppression();
             this.view.FadeInventoryVolume(false);
-            await this.screenFader.FadeOutAsync();
-            SceneManager.LoadScene(MainMenuSceneName, LoadSceneMode.Single);
-            await this.screenFader.FadeInAsync();
+
+            // Was a bare synchronous SceneManager.LoadScene(Single) -- that tears down the
+            // gameplay scene and activates MainMenu in the same frame, with no gap for Wwise
+            // to unregister the old AkAudioListener before the new one registers. Routing
+            // through the async LoadSceneAsync (same helper "New Game" already uses) spreads
+            // that across frames like every other scene transition does, which is the only
+            // structural difference from the transitions that don't lose audio.
+            await this.screenFader.LoadSceneAsync(MainMenuSceneName);
         }
 
         private void OnBack(InputAction.CallbackContext _)

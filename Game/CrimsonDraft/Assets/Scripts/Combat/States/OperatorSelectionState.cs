@@ -50,6 +50,7 @@ namespace CrimsonDraft.Combat
             this.context.SuppressNextOperatorFocusSfx();
             this.commandPanel.Hide();
             this.menuView.SetDimmed(false);
+            SyncAllOperatorNames();
             SyncAllOperatorAmmo();
             SyncAllOperatorHealth();
 
@@ -113,6 +114,16 @@ namespace CrimsonDraft.Combat
             this.battlefieldView.SetOperatorIndicator(index);
             this.menuView.MoveSelectorTo(this.menuView.GetOperatorAnchor(index));
             this.menuView.FocusOperator(index);
+        }
+
+        // Matches the callsign shown in the inventory screen (OperatorData.CombatName) rather
+        // than the real name (DisplayName) -- combat and inventory should read the same
+        // identity, and previously this card showed a static per-slot "Alpha/Bravo/Delta" squad
+        // badge sprite instead, unrelated to which operator was actually bound to that slot.
+        private void SyncAllOperatorNames()
+        {
+            for (int i = 0; i < this.roster.Count; i++)
+                this.menuView.SetOperatorName(i, this.roster[i].Data?.CombatName ?? string.Empty);
         }
 
         private void SyncAllOperatorAmmo()
