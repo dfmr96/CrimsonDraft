@@ -387,10 +387,8 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
     activationTransform: {fileID: 0}
-    rewardItem: {fileID: 0}
-    rewardDialogue:
-      project: {fileID: 0}
-      nodeName: 
+    reward:
+      rid: -2
     rewardAnimationClip: {fileID: 0}
   - collider: {fileID: 887545386899524408}
     dialogue:
@@ -416,14 +414,24 @@ MonoBehaviour:
             m_BoolArgument: 0
           m_CallState: 2
     activationTransform: {fileID: 9048434330603025130}
-    rewardItem: {fileID: 11400000, guid: 6669b78c25f64bfeac97db5a0d66e68d, type: 2}
-    rewardDialogue:
-      project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
-      nodeName: examine_KI_05_reward
+    reward:
+      rid: 3642871631997043204
     rewardAnimationClip: {fileID: 4781951162920444690, guid: 90cfcd1b26827604489ea33fc582cd89, type: 3}
   defaultDialogue:
     project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
     nodeName: examine_placeholder
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 3642871631997043204
+      type: {class: ItemHotspotReward, ns: CrimsonDraft.Inventory, asm: CrimsonDraft.Inventory}
+      data:
+        announcementDialogue:
+          project: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
+          nodeName: examine_KI_05_reward
+        rewardItem: {fileID: 11400000, guid: 6669b78c25f64bfeac97db5a0d66e68d, type: 2}
 --- !u!1 &4334171566727615581
 GameObject:
   m_ObjectHideFlags: 0

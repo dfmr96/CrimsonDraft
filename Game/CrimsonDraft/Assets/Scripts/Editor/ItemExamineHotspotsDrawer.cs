@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -27,8 +28,7 @@ namespace CrimsonDraft.Editor
             var promptDialogueProp = property.FindPropertyRelative("promptDialogue");
             var onUsedProp         = property.FindPropertyRelative("onUsed");
             var activationTransformProp = property.FindPropertyRelative("activationTransform");
-            var rewardItemProp          = property.FindPropertyRelative("rewardItem");
-            var rewardDialogueProp      = property.FindPropertyRelative("rewardDialogue");
+            var rewardProp              = property.FindPropertyRelative("reward");
             var rewardAnimationClipProp = property.FindPropertyRelative("rewardAnimationClip");
 
             float y = position.y;
@@ -63,14 +63,11 @@ namespace CrimsonDraft.Editor
                 new GUIContent("On Used", "Fires after Required Item is consumed via the \"Sí\" branch of Prompt Dialogue's use_required_item command."), true);
             y = onUsedRect.yMax + vSpace * 2;
 
-            var rewardItemRect = new Rect(position.x, y, position.width, lineH);
-            EditorGUI.PropertyField(rewardItemRect, rewardItemProp,
-                new GUIContent("Reward Item", "Optional. Granted after Reward Animation Clip finishes playing (if set) -- the item being inspected is consumed first to free up space, then this is added."));
-            y = rewardItemRect.yMax + vSpace;
-
-            var rewardDialogueRect = new Rect(position.x, y, position.width, ExamineDialogueField.Height);
-            ExamineDialogueField.Draw(rewardDialogueRect, rewardDialogueProp, new GUIContent("Reward Dialogue"));
-            y = rewardDialogueRect.yMax + vSpace;
+            float rewardHeight = HotspotRewardField.GetHeight(rewardProp);
+            var rewardRect = new Rect(position.x, y, position.width, rewardHeight);
+            HotspotRewardField.Draw(rewardRect, rewardProp,
+                new GUIContent("Reward", "Optional. Granted after Reward Animation Clip finishes playing (if set)."));
+            y = rewardRect.yMax + vSpace;
 
             var rewardAnimationClipRect = new Rect(position.x, y, position.width, lineH);
             EditorGUI.PropertyField(rewardAnimationClipRect, rewardAnimationClipProp,
@@ -82,6 +79,7 @@ namespace CrimsonDraft.Editor
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             var onUsedProp = property.FindPropertyRelative("onUsed");
+            var rewardProp = property.FindPropertyRelative("reward");
             float lineH = EditorGUIUtility.singleLineHeight;
             float vSpace = EditorGUIUtility.standardVerticalSpacing;
 
@@ -91,8 +89,7 @@ namespace CrimsonDraft.Editor
                  + ExamineDialogueField.Height + vSpace              // promptDialogue
                  + lineH + vSpace                                   // activationTransform
                  + EditorGUI.GetPropertyHeight(onUsedProp, true) + vSpace * 2 // onUsed
-                 + lineH + vSpace                                   // rewardItem
-                 + ExamineDialogueField.Height + vSpace              // rewardDialogue
+                 + HotspotRewardField.GetHeight(rewardProp) + vSpace          // reward
                  + lineH                                            // rewardAnimationClip
                  + Spacing;
         }
@@ -192,6 +189,101 @@ namespace CrimsonDraft.Editor
         {
             nodeNameProp.stringValue = name;
             nodeNameProp.serializedObject.ApplyModifiedProperties();
+        }
+    }
+
+    // Draws Hotspot.reward ([SerializeReference] HotspotReward?) with an explicit type-picker
+    // dropdown instead of relying on Unity's built-in right-click "managed reference" context
+    // menu -- that only wires up through the default Inspector's own field-drawing pipeline,
+    // not when a rect is hand-laid-out inside a custom PropertyDrawer like HotspotDrawer.
+    internal static class HotspotRewardField
+    {
+        public static float GetHeight(SerializedProperty rewardProp)
+        {
+            float lineH  = EditorGUIUtility.singleLineHeight;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            float height = lineH; // type-picker row
+            if (rewardProp.managedReferenceValue == null) return height;
+
+            foreach (var child in EnumerateChildren(rewardProp))
+                height += vSpace + GetChildHeight(child);
+
+            return height;
+        }
+
+        public static void Draw(Rect position, SerializedProperty rewardProp, GUIContent label)
+        {
+            var typeRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            DrawTypePicker(typeRect, rewardProp, label);
+
+            if (rewardProp.managedReferenceValue == null) return;
+
+            float y = typeRect.yMax;
+            float vSpace = EditorGUIUtility.standardVerticalSpacing;
+
+            foreach (var child in EnumerateChildren(rewardProp))
+            {
+                y += vSpace;
+                float childHeight = GetChildHeight(child);
+                var childRect = new Rect(position.x, y, position.width, childHeight);
+
+                if (child.type == nameof(DialogueReference))
+                    ExamineDialogueField.Draw(childRect, child, new GUIContent(child.displayName));
+                else
+                    EditorGUI.PropertyField(childRect, child, true);
+
+                y += childHeight;
+            }
+        }
+
+        private static float GetChildHeight(SerializedProperty child) =>
+            child.type == nameof(DialogueReference) ? ExamineDialogueField.Height : EditorGUI.GetPropertyHeight(child, true);
+
+        // Direct (depth+1) children only -- NextVisible(false) skips into grandchildren for
+        // expanded foldouts, which GetPropertyHeight(child, true) already accounts for on its
+        // own via includeChildren.
+        private static IEnumerable<SerializedProperty> EnumerateChildren(SerializedProperty rewardProp)
+        {
+            var iterator = rewardProp.Copy();
+            var end      = rewardProp.GetEndProperty();
+            int depth    = iterator.depth + 1;
+
+            if (!iterator.NextVisible(true)) yield break;
+
+            while (!SerializedProperty.EqualContents(iterator, end) && iterator.depth >= depth)
+            {
+                if (iterator.depth == depth) yield return iterator.Copy();
+                if (!iterator.NextVisible(false)) break;
+            }
+        }
+
+        private static void DrawTypePicker(Rect rect, SerializedProperty rewardProp, GUIContent label)
+        {
+            rect = EditorGUI.PrefixLabel(rect, label);
+
+            var currentType = rewardProp.managedReferenceValue?.GetType();
+            var content     = new GUIContent(currentType != null ? currentType.Name : "None");
+
+            if (!EditorGUI.DropdownButton(rect, content, FocusType.Keyboard)) return;
+
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("None"), currentType == null, () => SetRewardType(rewardProp, null));
+
+            foreach (var type in TypeCache.GetTypesDerivedFrom<HotspotReward>())
+            {
+                if (type.IsAbstract) continue;
+                var capturedType = type;
+                menu.AddItem(new GUIContent(type.Name), type == currentType, () => SetRewardType(rewardProp, capturedType));
+            }
+
+            menu.DropDown(rect);
+        }
+
+        private static void SetRewardType(SerializedProperty rewardProp, Type? type)
+        {
+            rewardProp.managedReferenceValue = type != null ? Activator.CreateInstance(type) : null;
+            rewardProp.serializedObject.ApplyModifiedProperties();
         }
     }
 }

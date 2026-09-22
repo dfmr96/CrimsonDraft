@@ -139,6 +139,20 @@ namespace CrimsonDraft.Tests
             return d;
         }
 
+        // HotspotReward/ItemHotspotReward are plain [Serializable] classes (not
+        // UnityEngine.Object), so SerializedObject can't reach their private fields the way
+        // MakeItemData does above -- same reflection technique MakeHotspots already uses for
+        // ItemExamineHotspots' own private fields.
+        private static ItemHotspotReward MakeItemReward(ItemData rewardItem, DialogueReference announcementDialogue)
+        {
+            var reward = new ItemHotspotReward();
+            typeof(ItemHotspotReward).GetField("rewardItem", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(reward, rewardItem);
+            typeof(HotspotReward).GetField("announcementDialogue", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(reward, announcementDialogue);
+            return reward;
+        }
+
         // DialogueReference.IsValid checks project.Program.Nodes.ContainsKey(nodeName)
         // against a real compiled Program -- a bare ScriptableObject.CreateInstance()
         // has no compiled data, so tests that need IsValid == true load the project's
@@ -202,21 +216,21 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Resolve_requiredItemPresent_validPrompt_returnsRewardFields()
+        public void Resolve_requiredItemPresent_validPrompt_returnsRewardField()
         {
             var collider     = new GameObject().AddComponent<BoxCollider>();
             var requiredItem = MakeItemData("small_key");
             var rewardItem   = MakeItemData("reward_item");
             var prompt       = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
-            var rewardDialogue = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var announcementDialogue = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var reward = MakeItemReward(rewardItem, announcementDialogue);
             var hotspot = new ItemExamineHotspots.Hotspot
             {
                 collider       = collider,
                 dialogue       = new DialogueReference { nodeName = "locked_node" },
                 requiredItem   = requiredItem,
                 promptDialogue = prompt,
-                rewardItem     = rewardItem,
-                rewardDialogue = rewardDialogue,
+                reward         = reward,
             };
             var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
 
@@ -224,8 +238,32 @@ namespace CrimsonDraft.Tests
 
             Assert.IsNotNull(result);
             Assert.IsNotNull(result!.Value.Prompt);
-            Assert.AreSame(rewardItem, result.Value.Prompt!.Value.RewardItem);
-            Assert.AreSame(rewardDialogue, result.Value.Prompt.Value.RewardDialogue);
+            Assert.AreSame(reward, result.Value.Prompt!.Value.Reward);
+            Assert.AreSame(announcementDialogue, result.Value.Prompt!.Value.Reward!.AnnouncementDialogue);
+        }
+
+        [Test]
+        public void Resolve_noRequiredItem_withReward_stillReturnsPrompt()
+        {
+            var collider = new GameObject().AddComponent<BoxCollider>();
+            var flavorDialogue = new DialogueReference { nodeName = "book_flavor" };
+            var rewardItem = MakeItemData("note_reward");
+            var announcementDialogue = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var reward = MakeItemReward(rewardItem, announcementDialogue);
+            var hotspot = new ItemExamineHotspots.Hotspot
+            {
+                collider = collider,
+                dialogue = flavorDialogue,
+                reward   = reward, // requiredItem left null -- activates unconditionally
+            };
+            var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
+
+            var result = comp.Resolve(collider, new FakeInventoryService()); // empty inventory
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result!.Value.Prompt);
+            Assert.IsNull(result.Value.Prompt!.Value.RequiredItem);
+            Assert.AreSame(reward, result.Value.Prompt!.Value.Reward);
         }
 
         [Test]
