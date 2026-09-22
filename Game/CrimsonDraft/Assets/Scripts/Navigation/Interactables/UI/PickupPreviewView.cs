@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using Yarn.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.UI;
+using CrimsonDraft.Rendering.Shine;
 
 namespace CrimsonDraft.Navigation.Interactables.UI
 {
@@ -233,6 +234,12 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
         private static void SetLayerRecursively(Transform t, int layer)
         {
+            // World pickups and this preview instantiate the exact same prefab -- a
+            // ShineOverlayRoot subtree (ItemShineOverlay's glint, see CrimsonDraft.Rendering.Shine)
+            // must keep its own layer instead of being pulled onto ItemPreview here, or the
+            // world-only shine would start rendering in the inspect/inventory preview too.
+            if (t.GetComponent<ShineOverlayRoot>() != null) return;
+
             t.gameObject.layer = layer;
             for (int i = 0; i < t.childCount; i++)
                 SetLayerRecursively(t.GetChild(i), layer);

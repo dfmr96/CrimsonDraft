@@ -60,6 +60,11 @@ namespace CrimsonDraft.Rendering.Shine
         {
             var overlayObject = new GameObject("ShineOverlay");
             overlayObject.transform.SetParent(sourceFilter.transform, worldPositionStays: false);
+            // Marks this subtree so PickupPreviewView.Show() leaves its layer alone instead of
+            // pulling it onto "ItemPreview" with the rest of the instantiated model -- the world
+            // pickup and the inspect/inventory preview share the same prefab, but only world
+            // cameras (which include the default layer) should ever render this glint.
+            overlayObject.AddComponent<ShineOverlayRoot>();
 
             var overlayFilter = overlayObject.AddComponent<MeshFilter>();
             overlayFilter.sharedMesh = mesh;
