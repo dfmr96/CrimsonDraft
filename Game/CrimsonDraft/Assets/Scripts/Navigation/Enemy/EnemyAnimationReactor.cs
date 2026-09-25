@@ -2,35 +2,32 @@
 
 using UnityEngine;
 using UnityEngine.AI;
+using CrimsonDraft.Infrastructure.Events;
 
 namespace CrimsonDraft.Navigation.Enemy
 {
     /// <summary>
-    /// Traduce el movimiento del NavMeshAgent y la posición del jugador en los parámetros
+    /// Traduce el estado de EnemyNavAgent y el movimiento del NavMeshAgent en los parámetros
     /// del Animator Controller de navegación del enemigo (Enemy_Nav_Controller):
     /// Idle / Walk01 / Walk02 (variedad al caminar), ZombieTwitch01 / 02 (interrupciones
     /// aleatorias del Idle), WalkEnemyClose (reacción cuando el jugador pasa cerca) y
-    /// Attack (cuando el jugador está muy cerca).
+    /// Attack (cuando EnemyNavAgent entra en el estado Attack).
     /// </summary>
     public sealed class EnemyAnimationReactor : MonoBehaviour
     {
         [Header("Referencias")]
         [Tooltip("Transform del jugador. Si se deja vacío, se busca automáticamente por el tag \"Player\".")]
         [SerializeField] private Transform? player;
+        [Tooltip("EnemyNavAgent dueño de este reactor. Si se deja vacío, se busca en un padre.")]
+        [SerializeField] private EnemyNavAgent owner = null!;
+        [Tooltip("Hitbox de la mano que ataca. Si se deja vacío, se busca en los hijos.")]
+        [SerializeField] private EnemyAttackHitbox hitbox = null!;
 
         [Header("Proximidad — WalkEnemyClose")]
         [Tooltip("Distancia a la que el jugador es considerado \"cerca\" (dispara WalkEnemyClose).")]
         [SerializeField] private float closeRadius       = 4.5f;
         [Tooltip("Margen extra sobre closeRadius antes de desactivar IsClose, para evitar flickering en el borde.")]
         [SerializeField] private float closeRadiusBuffer = 0.5f;
-
-        [Header("Ataque")]
-        [Tooltip("Distancia a la que el jugador está lo bastante cerca como para que el enemigo ataque.")]
-        [SerializeField] private float attackRange       = 1.3f;
-        [Tooltip("Margen extra sobre attackRange antes de salir del rango de ataque.")]
-        [SerializeField] private float attackRangeBuffer = 0.3f;
-        [Tooltip("Tiempo mínimo entre ataques mientras el jugador se mantiene en rango de ataque.")]
-        [SerializeField] private float attackCooldown    = 1.6f;
 
         [Header("Locomoción")]
         [Tooltip("Velocidad mínima del NavMeshAgent para considerar que el enemigo está caminando.")]
@@ -51,11 +48,10 @@ namespace CrimsonDraft.Navigation.Enemy
         private NavMeshAgent navAgent = null!;
 
         private bool  isCloseActive;
-        private bool  isAttackRangeActive;
-        private bool  stoppedForAttack;
         private bool  wasMoving;
+        private bool  wasPlayingAttack;
+        private EnemyAlertState previousState;
         private float twitchTimer;
-        private float attackTimer;
 
         private void Awake()
         {
@@ -67,11 +63,24 @@ namespace CrimsonDraft.Navigation.Enemy
                 var tagged = GameObject.FindGameObjectWithTag("Player");
                 if (tagged != null) player = tagged.transform;
             }
+
+            if (owner == null)
+                owner = GetComponentInParent<EnemyNavAgent>();
+
+            if (hitbox == null)
+                hitbox = GetComponentInChildren<EnemyAttackHitbox>(true);
         }
+
+        // Unity solo entrega Animation Events al GameObject que tiene el Animator (este),
+        // nunca a hijos — por eso EnemyAttackHitbox (colgado de Hand.R) no puede recibirlos
+        // directamente; este reactor los recibe y reenvía.
+        public void OnAttackHitboxOpen()  => hitbox.Open();
+        public void OnAttackHitboxClose() => hitbox.Close();
 
         private void Start()
         {
             twitchTimer = RandomTwitchInterval();
+            previousState = owner.State;
         }
 
         private void Update()
@@ -79,10 +88,10 @@ namespace CrimsonDraft.Navigation.Enemy
             if (player == null) return;
 
             UpdateProximity();
-            UpdateAttackMovementLock();
             UpdateLocomotion();
             UpdateTwitch();
-            UpdateAttack();
+            UpdateAttackTrigger();
+            UpdateAttackFinishedEdge();
         }
 
         private void UpdateLocomotion()
@@ -102,48 +111,25 @@ namespace CrimsonDraft.Navigation.Enemy
             toPlayer.y = 0f;
             var distance = toPlayer.magnitude;
 
-            // Hysteresis igual que EnemyDetectionSensor: activa por debajo del radio,
-            // desactiva recién al superar radio + buffer, para no parpadear en el borde.
+            // Hysteresis para no parpadear en el borde.
             if (!isCloseActive && distance < closeRadius)
                 isCloseActive = true;
             else if (isCloseActive && distance > closeRadius + closeRadiusBuffer)
                 isCloseActive = false;
 
-            if (!isAttackRangeActive && distance < attackRange)
-                isAttackRangeActive = true;
-            else if (isAttackRangeActive && distance > attackRange + attackRangeBuffer)
-                isAttackRangeActive = false;
-
-            // Dentro del rango de ataque el enemigo ataca en vez de reaccionar al paso
-            // del jugador: se reporta IsClose en falso para que WalkEnemyClose no compita
-            // con Attack por la transición.
-            var reportedClose = isCloseActive && !isAttackRangeActive;
+            // Mientras ataca, no compite con Attack por la transición.
+            var reportedClose = isCloseActive && owner.State != EnemyAlertState.Attack;
 
             animator.SetBool(IsCloseHash, reportedClose);
         }
 
-        // Frena al NavMeshAgent apenas el jugador entra en rango de ataque (mientras se
-        // "prepara") y lo mantiene frenado mientras se reproduce Attack, aunque el jugador
-        // ya se haya alejado del rango durante la animación. Recién lo suelta cuando el
-        // Animator terminó de salir del estado Attack, para que primero termine de atacar
-        // y después retome el camino que ya tenía en curso. Solo toca isStopped en los
-        // flancos de entrada/salida (no todos los frames) y solo lo libera si fue este
-        // script el que lo frenó, para no pisar el isStopped que maneja EnemyNavAgent en
-        // sus propios estados (Suspicious, pausa por diálogo, etc.).
-        private void UpdateAttackMovementLock()
+        // Dispara el trigger Attack del Animator en el flanco de entrada al estado Attack
+        // de EnemyNavAgent (única fuente de verdad sobre cuándo atacar).
+        private void UpdateAttackTrigger()
         {
-            var shouldHalt = isAttackRangeActive || IsPlayingAttack();
-
-            if (shouldHalt && !stoppedForAttack)
-            {
-                navAgent.isStopped = true;
-                stoppedForAttack = true;
-            }
-            else if (!shouldHalt && stoppedForAttack)
-            {
-                navAgent.isStopped = false;
-                stoppedForAttack = false;
-            }
+            if (owner.State == EnemyAlertState.Attack && previousState != EnemyAlertState.Attack)
+                animator.SetTrigger(AttackHash);
+            previousState = owner.State;
         }
 
         // "Current" se mantiene en Attack durante todo el crossfade de salida hacia Idle,
@@ -156,20 +142,14 @@ namespace CrimsonDraft.Navigation.Enemy
             return false;
         }
 
-        private void UpdateAttack()
+        // Notifica a EnemyNavAgent apenas la animación de ataque termina sin haber conectado
+        // (si hubiera conectado, EnemyAttackHitbox ya sacó al enemigo del estado Attack).
+        private void UpdateAttackFinishedEdge()
         {
-            if (!isAttackRangeActive)
-            {
-                // Que el primer ataque, al entrar en rango, salga sin demora.
-                attackTimer = 0f;
-                return;
-            }
-
-            attackTimer -= Time.deltaTime;
-            if (attackTimer > 0f) return;
-
-            animator.SetTrigger(AttackHash);
-            attackTimer = attackCooldown;
+            var playingAttack = IsPlayingAttack();
+            if (wasPlayingAttack && !playingAttack && owner.State == EnemyAlertState.Attack)
+                owner.NotifyAttackAnimationFinished();
+            wasPlayingAttack = playingAttack;
         }
 
         private void UpdateTwitch()
@@ -198,9 +178,6 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             Gizmos.color = new Color(1f, 0.5f, 0f, 0.35f);
             Gizmos.DrawWireSphere(transform.position, closeRadius);
-
-            Gizmos.color = new Color(1f, 0f, 1f, 0.55f);
-            Gizmos.DrawWireSphere(transform.position, attackRange);
         }
 #endif
     }

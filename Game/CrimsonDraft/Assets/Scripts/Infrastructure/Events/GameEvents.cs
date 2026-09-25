@@ -4,7 +4,7 @@ namespace CrimsonDraft.Infrastructure.Events
 {
     public enum AmmoType { Rip, Fmj }
 
-    public enum GuardAlertState { Patrol, Suspicious, Alert }
+    public enum EnemyAlertState { Idle, Alerted, Attack }
 
     public readonly struct CombatStartedEvent
     {
@@ -106,11 +106,11 @@ namespace CrimsonDraft.Infrastructure.Events
         }
     }
 
-    public readonly struct GuardAlertChangedEvent
+    public readonly struct EnemyAlertChangedEvent
     {
-        public string GuardId { get; init; }
-        public GuardAlertState PreviousState { get; init; }
-        public GuardAlertState NewState { get; init; }
+        public string EnemyId { get; init; }
+        public EnemyAlertState PreviousState { get; init; }
+        public EnemyAlertState NewState { get; init; }
     }
 
     public readonly struct NoteCollectedEvent

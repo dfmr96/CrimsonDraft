@@ -12,13 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d9416cc6c67d2d449e059030a6ab1d6, type: 3}
   m_Name: NavigationEnemyData_Infected_Initial
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.NavigationEnemyData
-  encounterId: initial
-  patrolSpeed: 1
   chaseSpeed: 2
-  waypointStopDistance: 0.3
-  catchRadius: 0.8
-  detectRadius: 1.8
-  undetectRadius: 2.4
+  turnSpeed: 120
+  turnInPlaceThreshold: 35
+  attackRange: 1.3
+  attackRangeBuffer: 0.3
   playerDeadzone: 0.1
   playerRunThreshold: 5.5
   walkSoundRadius: 3
@@ -31,5 +29,3 @@ MonoBehaviour:
   targetMask:
     serializedVersion: 2
     m_Bits: 8
-  suspiciousEnabled: 1
-  suspiciousDuration: 2

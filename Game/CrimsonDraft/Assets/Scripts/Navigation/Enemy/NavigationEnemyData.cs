@@ -7,21 +7,19 @@ namespace CrimsonDraft.Navigation.Enemy
     [CreateAssetMenu(fileName = "NavigationEnemyData", menuName = "CrimsonDraft/Navigation Enemy Data")]
     public sealed class NavigationEnemyData : ScriptableObject
     {
-        [Header("Movement")]
-        [Tooltip("Velocidad del NavMeshAgent durante el estado Patrol.")]
-        public float patrolSpeed          = 2.0f;
-        [Tooltip("Velocidad del NavMeshAgent durante el estado Alert (persecución).")]
-        public float chaseSpeed           = 3.5f;
-        [Tooltip("Distancia al waypoint a la que se considera alcanzado y se avanza al siguiente.")]
-        public float waypointStopDistance = 0.3f;
-        [Tooltip("Distancia al jugador a la que se dispara el combate.")]
-        public float catchRadius          = 0.8f;
+        [Header("Alerted Movement")]
+        [Tooltip("Velocidad del NavMeshAgent mientras persigue en Alerted.")]
+        public float chaseSpeed = 3.5f;
+        [Tooltip("Velocidad de giro en grados/segundo al encarar al jugador antes de avanzar.")]
+        public float turnSpeed = 120f;
+        [Tooltip("Ángulo (grados) respecto al jugador por encima del cual el enemigo se detiene a girar en el lugar en vez de avanzar.")]
+        public float turnInPlaceThreshold = 35f;
 
-        [Header("Proximity Detection")]
-        [Tooltip("Radio omnidireccional de activación. El enemigo detecta al jugador si entra a esta distancia.")]
-        public float detectRadius   = 1.8f;
-        [Tooltip("Radio de desactivación (debe ser mayor que detectRadius). El enemigo deja de detectar por proximidad solo cuando el jugador supera esta distancia, evitando flickering en el borde.")]
-        public float undetectRadius = 2.4f;
+        [Header("Attack")]
+        [Tooltip("Distancia a la que el enemigo entra en el estado Attack.")]
+        public float attackRange = 1.3f;
+        [Tooltip("Margen extra sobre attackRange antes de volver a Alerted (evita flickering en el borde).")]
+        public float attackRangeBuffer = 0.3f;
 
         [Header("Sound Detection")]
         [Tooltip("Velocidad mínima del Rigidbody del jugador para producir sonido. Por debajo de este valor se considera en reposo.")]
@@ -42,11 +40,5 @@ namespace CrimsonDraft.Navigation.Enemy
         public LayerMask obstructionMask;
         [Tooltip("Capa del jugador. El raycast de visión debe impactar en esta capa para confirmar la detección. Si está vacío, la detección visual nunca se activa.")]
         public LayerMask targetMask;
-
-        [Header("Suspicious State")]
-        [Tooltip("Si está activo, al detectar al jugador el enemigo entra en Suspicious antes de pasar a Alert. Si está inactivo, pasa directamente a Alert.")]
-        public bool  suspiciousEnabled  = false;
-        [Tooltip("Duración en segundos del estado Suspicious. Si el jugador no se confirma en este tiempo, el enemigo vuelve a Patrol.")]
-        public float suspiciousDuration = 2.0f;
     }
 }

@@ -22,39 +22,34 @@ namespace CrimsonDraft.Navigation.Enemy
 
         public string        EncounterId  => this.encounterId;
         public EncounterData? EncounterData => this.encounterData;
-        [SerializeField] private EnemyPatrolPath      path          = null!;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
         [SerializeField] private Transform?           eyePoint;
-        [Tooltip("Si está desactivado, el enemigo permanece estático en su posición inicial en lugar de patrullar.")]
-        [SerializeField] private bool                 patrolEnabled        = true;
-        [Tooltip("Velocidad de giro en grados/segundo durante el estado Suspicious.")]
-        [SerializeField] private float                suspiciousTurnSpeed  = 120f;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
         private ISubscriber<DialogueActiveChangedEvent>? dialogueSubscriber;
         private IEncounterContext?                     encounterContext;
-        private IPublisher<GuardAlertChangedEvent>?    guardAlertPublisher;
+        private IPublisher<EnemyAlertChangedEvent>?    enemyAlertPublisher;
         private PlayerController?                      playerController;
         private EnemyStateRegistry?                    enemyStateRegistry;
         private string                                 enemyKey = string.Empty;
 
         private NavMeshAgent     navAgent        = null!;
         private Rigidbody        playerRb        = null!;
-        private GuardAlertState  state           = GuardAlertState.Patrol;
-        private float            suspiciousTimer;
+        private EnemyAlertState  state           = EnemyAlertState.Idle;
         private IDisposable?     combatEndedSub;
         private IDisposable?     dialogueSub;
         private bool             combatTriggered;
         private bool             dialoguePaused;
-        private NavMeshPath navPathCache = null!;
+
+        public EnemyAlertState State => state;
 
         public void Construct(
             ISceneTransitionService                 sceneTransitionService,
             ISubscriber<CombatEndedEvent>           combatEndedSubscriber,
             ISubscriber<DialogueActiveChangedEvent> dialogueSubscriber,
             IEncounterContext                       encounterContext,
-            IPublisher<GuardAlertChangedEvent>      guardAlertPublisher,
+            IPublisher<EnemyAlertChangedEvent>      enemyAlertPublisher,
             PlayerController                        playerController,
             EnemyStateRegistry                      enemyStateRegistry,
             string                                  enemyKey)
@@ -63,7 +58,7 @@ namespace CrimsonDraft.Navigation.Enemy
             this.combatEndedSubscriber  = combatEndedSubscriber;
             this.dialogueSubscriber     = dialogueSubscriber;
             this.encounterContext       = encounterContext;
-            this.guardAlertPublisher    = guardAlertPublisher;
+            this.enemyAlertPublisher    = enemyAlertPublisher;
             this.playerController       = playerController;
             this.enemyStateRegistry     = enemyStateRegistry;
             this.enemyKey               = enemyKey;
@@ -71,7 +66,6 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Start()
         {
-            navPathCache = new NavMeshPath();
             navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
             if (playerRb == null)
@@ -80,10 +74,6 @@ namespace CrimsonDraft.Navigation.Enemy
                 enabled = false;
                 return;
             }
-            navAgent.speed = data.patrolSpeed;
-
-            if (patrolEnabled && path.HasWaypoints)
-                navAgent.SetDestination(path.Current.position);
 
             combatEndedSub = combatEndedSubscriber?.Subscribe(OnCombatEnded);
             dialogueSub    = dialogueSubscriber?.Subscribe(OnDialogueActiveChanged);
@@ -102,111 +92,84 @@ namespace CrimsonDraft.Navigation.Enemy
 
             switch (state)
             {
-                case GuardAlertState.Patrol:     UpdatePatrol();     break;
-                case GuardAlertState.Suspicious: UpdateSuspicious(); break;
-                case GuardAlertState.Alert:      UpdateAlert();      break;
+                case EnemyAlertState.Idle:    UpdateIdle();    break;
+                case EnemyAlertState.Alerted: UpdateAlerted(); break;
+                case EnemyAlertState.Attack:  UpdateAttack();  break;
             }
         }
 
-        private void UpdatePatrol()
+        private void UpdateIdle()
         {
-            if (patrolEnabled
-                && path.HasWaypoints
-                && !navAgent.pathPending
-                && navAgent.hasPath
-                && navAgent.remainingDistance < data.waypointStopDistance)
-            {
-                path.Advance();
-                navAgent.SetDestination(path.Current.position);
-            }
-
-            if (!Detect()) return;
-
-            if (data.suspiciousEnabled)
-                TransitionTo(GuardAlertState.Suspicious);
-            else if (CanReachPlayer())
-                TransitionTo(GuardAlertState.Alert);
+            if (Detect())
+                TransitionTo(EnemyAlertState.Alerted);
         }
 
-        private void UpdateSuspicious()
+        private void UpdateAlerted()
         {
-            var dir = (playerController!.transform.position - transform.position);
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 0.001f)
-            {
-                var targetRotation = Quaternion.LookRotation(dir.normalized);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, suspiciousTurnSpeed * Time.deltaTime);
-            }
+            var toPlayer = playerController!.transform.position - transform.position;
+            toPlayer.y = 0f;
 
-            suspiciousTimer -= Time.deltaTime;
-
-            if (Detect() && CanReachPlayer())
+            if (toPlayer.magnitude < data.attackRange)
             {
-                TransitionTo(GuardAlertState.Alert);
+                TransitionTo(EnemyAlertState.Attack);
                 return;
             }
 
-            if (suspiciousTimer <= 0f)
-                TransitionTo(GuardAlertState.Patrol);
+            var angle = Vector3.Angle(transform.forward, toPlayer.normalized);
+            if (angle > data.turnInPlaceThreshold)
+            {
+                navAgent.isStopped = true;
+                navAgent.updateRotation = false;
+                var targetRotation = Quaternion.LookRotation(toPlayer.normalized);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, data.turnSpeed * Time.deltaTime);
+            }
+            else
+            {
+                navAgent.isStopped = false;
+                navAgent.updateRotation = true;
+                navAgent.SetDestination(playerController.transform.position);
+            }
         }
 
-        private void UpdateAlert()
+        private void UpdateAttack()
         {
-            navAgent.SetDestination(playerController!.transform.position);
-
-            var toPlayer = playerController.transform.position - transform.position;
-            toPlayer.y = 0f;
-            if (toPlayer.magnitude < data.catchRadius)
-                TriggerCombat();
+            // Intentionally empty: the agent stays stopped (set on TransitionTo),
+            // Animator plays the Attack clip, and EnemyAttackHitbox/EnemyAnimationReactor
+            // drive the exit via NotifyAttackHit()/NotifyAttackAnimationFinished().
         }
 
         private bool Detect()
             => sensor.Evaluate(data, playerController!.transform, playerRb, eyePoint);
 
-        private bool CanReachPlayer()
-        {
-            NavMesh.CalculatePath(
-                transform.position,
-                playerController!.transform.position,
-                NavMesh.AllAreas,
-                navPathCache);
-            return navPathCache.status == NavMeshPathStatus.PathComplete;
-        }
-
-        private void TransitionTo(GuardAlertState next)
+        private void TransitionTo(EnemyAlertState next)
         {
             var prev = state;
             state = next;
 
-            guardAlertPublisher?.Publish(new GuardAlertChangedEvent
+            enemyAlertPublisher?.Publish(new EnemyAlertChangedEvent
             {
-                GuardId       = gameObject.name,
+                EnemyId       = gameObject.name,
                 PreviousState = prev,
                 NewState      = next,
             });
 
             switch (next)
             {
-                case GuardAlertState.Patrol:
+                case EnemyAlertState.Idle:
                     navAgent.isStopped = false;
-                    navAgent.speed = data.patrolSpeed;
                     navAgent.updateRotation = true;
-                    sensor.ResetState();
-                    if (patrolEnabled && path.HasWaypoints)
-                        navAgent.SetDestination(path.Current.position);
-                    break;
-
-                case GuardAlertState.Suspicious:
                     navAgent.ResetPath();
-                    navAgent.isStopped = true;
-                    navAgent.updateRotation = false;
-                    suspiciousTimer = data.suspiciousDuration;
                     break;
 
-                case GuardAlertState.Alert:
+                case EnemyAlertState.Alerted:
                     navAgent.isStopped = false;
                     navAgent.updateRotation = true;
                     navAgent.speed = data.chaseSpeed;
+                    break;
+
+                case EnemyAlertState.Attack:
+                    navAgent.isStopped = true;
+                    navAgent.updateRotation = true;
                     break;
             }
         }
@@ -214,6 +177,18 @@ namespace CrimsonDraft.Navigation.Enemy
         public void NotifyCombatTriggered()
         {
             this.combatTriggered = true;
+        }
+
+        public void NotifyAttackHit()
+        {
+            if (state != EnemyAlertState.Attack) return;
+            TriggerCombat();
+        }
+
+        public void NotifyAttackAnimationFinished()
+        {
+            if (state != EnemyAlertState.Attack) return;
+            TransitionTo(EnemyAlertState.Alerted);
         }
 
         public void ResetToSpawn(Vector3 position, Quaternion rotation)
@@ -232,8 +207,7 @@ namespace CrimsonDraft.Navigation.Enemy
             combatTriggered = false;
             dialoguePaused  = false;
 
-            path?.ResetIndex();
-            TransitionTo(GuardAlertState.Patrol);
+            TransitionTo(EnemyAlertState.Idle);
         }
 
         private void TriggerCombat()
@@ -248,7 +222,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
         {
             dialoguePaused = ev.IsActive;
-            navAgent.isStopped = ev.IsActive || state is GuardAlertState.Suspicious;
+            navAgent.isStopped = ev.IsActive || state is EnemyAlertState.Attack;
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)
@@ -268,13 +242,7 @@ namespace CrimsonDraft.Navigation.Enemy
             var eyeOrigin = eyePoint != null ? eyePoint.position : pos;
 
             Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-            Gizmos.DrawWireSphere(pos, data.catchRadius);
-
-            Gizmos.color = new Color(1f, 1f, 0f, 0.4f);
-            Gizmos.DrawWireSphere(pos, data.detectRadius);
-
-            Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
-            Gizmos.DrawWireSphere(pos, data.undetectRadius);
+            Gizmos.DrawWireSphere(pos, data.attackRange);
 
             Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
             Gizmos.DrawWireSphere(pos, data.walkSoundRadius);

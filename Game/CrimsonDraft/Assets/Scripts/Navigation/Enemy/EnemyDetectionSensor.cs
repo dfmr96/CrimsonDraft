@@ -6,22 +6,12 @@ namespace CrimsonDraft.Navigation.Enemy
 {
     public sealed class EnemyDetectionSensor : MonoBehaviour
     {
-        private bool proximityActive = false;
-
         public bool Evaluate(NavigationEnemyData data, Transform player, Rigidbody playerRb, Transform? eyePoint)
         {
             var playerPos = player.position;
             var distance  = Vector3.Distance(transform.position, playerPos);
 
-            // 1. Proximity with hysteresis (omnidirectional, from sensor origin)
-            if (!proximityActive && distance < data.detectRadius)
-                proximityActive = true;
-            else if (proximityActive && distance > data.undetectRadius)
-                proximityActive = false;
-
-            if (proximityActive) return true;
-
-            // 2. Sound detection (distance from sensor origin to player)
+            // 1. Sound detection (distance from sensor origin to player)
             var speed = playerRb.linearVelocity.magnitude;
             if (speed > data.playerDeadzone)
             {
@@ -31,7 +21,7 @@ namespace CrimsonDraft.Navigation.Enemy
                 if (distance < soundRadius) return true;
             }
 
-            // 3. Visual detection — 2-pass raycast from eye point
+            // 2. Visual detection — 2-pass raycast from eye point
             if (distance < data.visualRange)
             {
                 var origin      = eyePoint != null ? eyePoint.position : transform.position;
@@ -52,11 +42,6 @@ namespace CrimsonDraft.Navigation.Enemy
             }
 
             return false;
-        }
-
-        public void ResetState()
-        {
-            proximityActive = false;
         }
     }
 }
