@@ -467,7 +467,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 41179935}
-  - component: {fileID: 41179932}
   - component: {fileID: 41179936}
   m_Layer: 0
   m_Name: EnemyEncounterTrigger
@@ -476,19 +475,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &41179932
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 41179931}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6824acd31953c14e895af50e2d28b6a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Combat.CombatTrigger
-  encounterId: test_01
 --- !u!4 &41179935
 Transform:
   m_ObjectHideFlags: 0
@@ -751,7 +737,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 77312842}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &77312841
 BoxCollider:
@@ -960,7 +947,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 111267863}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &111267862
 BoxCollider:
@@ -1107,7 +1095,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 118105756}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &118105755
 BoxCollider:
@@ -2927,7 +2916,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 261551612}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &261551611
 BoxCollider:
@@ -3069,7 +3059,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 263566887}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &263566886
 BoxCollider:
@@ -4118,7 +4109,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 435630755}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &435630754
 BoxCollider:
@@ -7735,7 +7727,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 885212407}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &885212406
 BoxCollider:
@@ -8643,7 +8636,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 927893166}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &927893165
 BoxCollider:
@@ -10226,7 +10220,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1082960536}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1082960535
 BoxCollider:
@@ -12491,7 +12486,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1344359227}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1344359226
 BoxCollider:
@@ -12904,7 +12900,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1366276335}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1366276334
 BoxCollider:
@@ -14395,7 +14392,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1550577303}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1550577302
 BoxCollider:
@@ -15199,7 +15197,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1640496220}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1640496219
 BoxCollider:
@@ -15570,7 +15569,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1688627105}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1688627104
 BoxCollider:
@@ -16330,7 +16330,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5b3129612da3a4a80255b458205d92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomOccluder
-  ceilingRenderer: {fileID: 1768857864}
+  toTransparent: []
+  toDark: []
   fadeDuration: 1
 --- !u!65 &1768857863
 BoxCollider:
@@ -17666,6 +17667,29 @@ MonoBehaviour:
   autoInjectGameObjects: []
   startingLoadout: {fileID: 11400000, guid: 6fcc82b62286bf24ca26a7c011fa6667, type: 2}
   combineRecipeLibrary: {fileID: 11400000, guid: 9ecd441926829fc4fb1828296dcefdae, type: 2}
+  roomTransitionContext: {fileID: 0}
+  sceneEntryContext: {fileID: 0}
+  startingRoom: {fileID: 0}
+  mapDataSet: {fileID: 0}
+  itemDatabase: {fileID: 0}
+  saveSlotListView: {fileID: 0}
+  corpseSettings: {fileID: 0}
+  generalRunner: {fileID: 0}
+  generalStorage: {fileID: 0}
+  pickupRunner: {fileID: 0}
+  pickupStorage: {fileID: 0}
+  inspectPromptRunner: {fileID: 0}
+  inspectPromptStorage: {fileID: 0}
+  pickupPreviewView: {fileID: 0}
+  cachedRoomDoors: []
+  cachedSceneDoors: []
+  cachedPickups: []
+  cachedMapPickups: []
+  cachedDocumentPickups: []
+  cachedEnemies: []
+  cachedCameraZoneTriggers: []
+  cachedBeeperReceivers: []
+  cachedItemSockets: []
 --- !u!4 &1940657591
 Transform:
   m_ObjectHideFlags: 0

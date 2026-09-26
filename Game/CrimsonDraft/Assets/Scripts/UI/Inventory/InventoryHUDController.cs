@@ -111,6 +111,15 @@ namespace CrimsonDraft.UI
                 Object.Destroy(view.gameObject);
                 this.cursor.RequestClose();
                 this.interactionCaster.TryUseItem(view.Data);
+
+                for (int i = 0; i < this.inventoryService.SlotCount; i++)
+                {
+                    if (this.inventoryService.Slots[i].Item == view.BoundItem)
+                    {
+                        this.inventoryService.RemoveItem(i);
+                        break;
+                    }
+                }
                 return;
             }
 

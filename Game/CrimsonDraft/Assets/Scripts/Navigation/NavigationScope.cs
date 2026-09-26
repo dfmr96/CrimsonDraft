@@ -14,7 +14,6 @@ using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
-using CrimsonDraft.Navigation.Combat;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
@@ -59,7 +58,6 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private MapPickupInteractable[] cachedMapPickups     = System.Array.Empty<MapPickupInteractable>();
         [SerializeField] private DocumentInteractable[]  cachedDocumentPickups = System.Array.Empty<DocumentInteractable>();
         [SerializeField] private EnemyNavAgent[]         cachedEnemies        = System.Array.Empty<EnemyNavAgent>();
-        [SerializeField] private CombatTrigger[]         cachedCombatTriggers = System.Array.Empty<CombatTrigger>();
         [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
         [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
         [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
@@ -155,7 +153,7 @@ namespace CrimsonDraft.Navigation
             var msgOptions = Parent!.Container.Resolve<MessagePipeOptions>();
             builder.RegisterMessageBroker<RoomTransitionStartedEvent>(msgOptions);
             builder.RegisterMessageBroker<RoomTransitionedEvent>(msgOptions);
-            builder.RegisterMessageBroker<GuardAlertChangedEvent>(msgOptions);
+            builder.RegisterMessageBroker<EnemyAlertChangedEvent>(msgOptions);
             builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
             builder.RegisterMessageBroker<DialogueActiveChangedEvent>(msgOptions);
 
@@ -173,7 +171,6 @@ namespace CrimsonDraft.Navigation
             if (radio != null)
                 builder.RegisterComponent(radio);
             builder.RegisterInstance(this.cachedEnemies);
-            builder.RegisterInstance(this.cachedCombatTriggers);
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterInstance(this.corpseSettings);
@@ -229,8 +226,6 @@ namespace CrimsonDraft.Navigation
         private void CacheSceneEnemies()
         {
             this.cachedEnemies = FindObjectsByType<EnemyNavAgent>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-            this.cachedCombatTriggers = FindObjectsByType<CombatTrigger>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }
