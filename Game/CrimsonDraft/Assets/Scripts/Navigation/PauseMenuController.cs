@@ -73,7 +73,9 @@ namespace CrimsonDraft.Navigation
             this.view.MasterSlider.onValueChanged.AddListener(this.audioSettings.SetMasterVolume);
             this.view.SfxSlider.onValueChanged.AddListener(this.audioSettings.SetSfxVolume);
             this.view.MusicSlider.onValueChanged.AddListener(this.audioSettings.SetMusicVolume);
-            this.view.GammaSlider.onValueChanged.AddListener(this.graphicsSettings.SetGamma);
+            // Slider is whole numbers 0..GammaSteps (9 positions, matching every other gamma
+            // control) -- rescale back down to the 0..1 value the service stores.
+            this.view.GammaSlider.onValueChanged.AddListener(v => this.graphicsSettings.SetGamma(v / this.graphicsSettings.GammaSteps));
 
             // Toggles share a ToggleGroup (mutually exclusive) -- only react to the one turning
             // ON, or a single click would fire both listeners (the one switching off too).
@@ -127,7 +129,7 @@ namespace CrimsonDraft.Navigation
                 this.audioSettings.MasterVolume,
                 this.audioSettings.SfxVolume,
                 this.audioSettings.MusicVolume);
-            this.view.SetGammaValue(this.graphicsSettings.Gamma);
+            this.view.SetGammaValue(this.graphicsSettings.Gamma * this.graphicsSettings.GammaSteps);
             this.view.SetControlToggle(this.controlScheme.CurrentScheme == ControlScheme.Classic);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);

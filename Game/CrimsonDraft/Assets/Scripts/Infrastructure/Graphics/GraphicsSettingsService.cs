@@ -21,8 +21,10 @@ namespace CrimsonDraft.Infrastructure.Graphics
         private const string GammaKey          = "Graphics.Gamma";
         private const float  DefaultGamma      = 0.5f;
         private const float  GammaOffsetRange  = 0.5f;
+        private const int    GammaStepCount    = 8;
 
         public float Gamma { get; private set; }
+        public int   GammaSteps => GammaStepCount;
 
         private int suppressionCount;
 

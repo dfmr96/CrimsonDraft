@@ -34,9 +34,11 @@ namespace CrimsonDraft.UI.MainMenu
             // editor default) -- it never tracked Gamma set from the Options knob. Without this,
             // the handle could sit far from the real persisted value, so the first nudge here
             // jumped gamma by a huge amount instead of the intended small step.
-            this.slider.SetValueWithoutNotify(this.graphicsSettingsService.Gamma);
+            this.slider.SetValueWithoutNotify(this.graphicsSettingsService.Gamma * this.graphicsSettingsService.GammaSteps);
         }
 
-        public void SetGamma(float sliderValue) => this.graphicsSettingsService.SetGamma(sliderValue);
+        // Slider is configured as whole numbers 0..GammaSteps (9 positions) so it matches every
+        // other gamma control in the game -- rescale back down to the 0..1 value the service stores.
+        public void SetGamma(float sliderValue) => this.graphicsSettingsService.SetGamma(sliderValue / this.graphicsSettingsService.GammaSteps);
     }
 }
