@@ -35,9 +35,14 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject? carouselHighlight;
         [SerializeField] private GameObject? prevArrowHighlight;
         [SerializeField] private GameObject? nextArrowHighlight;
-        [SerializeField] private ManualSelectScale? prevArrowScale;
-        [SerializeField] private ManualSelectScale? nextArrowScale;
         [SerializeField] private float       arrowFlashTime = 0.12f;
+
+        // AddComponent<ManualSelectScale> onto prevArrow/nextArrow at runtime and built from the
+        // "<"/">" glyph TMP_Text (reusing categoryLabel's own font) -- both live only in the
+        // running scene instance, not the saved scene, so this feature doesn't depend on the
+        // scene being re-saved. See EnsureArrowFeedback.
+        private ManualSelectScale? prevArrowScale;
+        private ManualSelectScale? nextArrowScale;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -207,7 +212,11 @@ namespace CrimsonDraft.UI
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
-        void Start() => EnsureSelectorParented();
+        void Start()
+        {
+            EnsureSelectorParented();
+            EnsureArrowFeedback();
+        }
 
         private bool selectorParented;
 
@@ -221,6 +230,64 @@ namespace CrimsonDraft.UI
             this.selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
             this.selectorRect.anchorMax = new Vector2(0.5f, 0.5f);
             this.selectorRect.pivot     = new Vector2(0f, 1f);
+        }
+
+        private bool arrowFeedbackReady;
+
+        // Adds the press-feedback scale and the "<"/">" glyph to prevArrow/nextArrow purely at
+        // runtime -- no scene wiring, so this doesn't depend on the scene being re-saved.
+        // Idempotent: GetComponent/transform.Find pick up whatever a previous run already
+        // added, so calling this again is a no-op.
+        void EnsureArrowFeedback()
+        {
+            if (this.arrowFeedbackReady) return;
+            this.arrowFeedbackReady = true;
+
+            this.prevArrowScale = EnsureArrowScale(this.prevArrow);
+            this.nextArrowScale = EnsureArrowScale(this.nextArrow);
+            EnsureArrowGlyph(this.prevArrow, "<");
+            EnsureArrowGlyph(this.nextArrow, ">");
+        }
+
+        static ManualSelectScale? EnsureArrowScale(GameObject? arrow) =>
+            arrow == null ? null : arrow.GetComponent<ManualSelectScale>() ?? arrow.AddComponent<ManualSelectScale>();
+
+        // Reuses categoryLabel's own font (Pixellari) instead of a new serialized font
+        // reference, so this glyph never needs anything assigned in the Inspector either.
+        void EnsureArrowGlyph(GameObject? arrow, string glyph)
+        {
+            if (arrow == null) return;
+
+            const string GlyphName = "ArrowGlyph";
+            Transform existing = arrow.transform.Find(GlyphName);
+            TMP_Text label;
+
+            if (existing != null)
+            {
+                label = existing.GetComponent<TMP_Text>();
+            }
+            else
+            {
+                var go = new GameObject(GlyphName, typeof(RectTransform));
+                go.transform.SetParent(arrow.transform, false);
+                go.layer = arrow.layer;
+
+                var rt = (RectTransform)go.transform;
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+
+                label                    = go.AddComponent<TextMeshProUGUI>();
+                label.font               = this.categoryLabel.font;
+                label.fontSharedMaterial = this.categoryLabel.fontSharedMaterial;
+                label.fontSize           = 24f;
+                label.alignment          = TextAlignmentOptions.Center;
+                label.color              = Color.white;
+                label.raycastTarget      = false;
+            }
+
+            label.text = glyph;
         }
 
         void OnEnable()

@@ -125,15 +125,31 @@ MonoBehaviour:
   optionsPanel: {fileID: 3002355896550085398}
   inventoryVolume: {fileID: 1834753985321838491}
   volumeFadeDuration: 0.3
+  sfx: {fileID: 0}
   resumeButton: {fileID: 252417936640773479}
   optionsButton: {fileID: 4681610703319316314}
   quitButton: {fileID: 657040697865971868}
+  audioButton: {fileID: 0}
+  videoButton: {fileID: 0}
+  controlsButton: {fileID: 0}
+  windowsRoot: {fileID: 0}
+  audioWindow: {fileID: 0}
+  videoWindow: {fileID: 0}
+  controlsWindow: {fileID: 0}
   masterSlider: {fileID: 1275993628924025662}
   sfxSlider: {fileID: 2431081024871120206}
   musicSlider: {fileID: 2293806781466317944}
   gammaSlider: {fileID: 7002815029275431870}
+  videoHiddenBackdrop: []
   modernToggle: {fileID: 6176593876760607048}
   classicToggle: {fileID: 5959468028461042290}
+  gamepadLayout: {fileID: 0}
+  keyboardLayout: {fileID: 0}
+  keyboardLayoutToggle: {fileID: 0}
+  gamepadLayoutToggle: {fileID: 0}
+  schemeDescription: {fileID: 0}
+  modernDescription: Directional movement with natural, camera relative turning.
+  classicDescription: Tank controls, the character rotates in place to turn.
 --- !u!1 &130561303872770169
 GameObject:
   m_ObjectHideFlags: 0
@@ -753,6 +769,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &963637389686629578
 GameObject:
   m_ObjectHideFlags: 0
@@ -891,6 +909,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &1300023556708687048
 GameObject:
   m_ObjectHideFlags: 0
@@ -1263,6 +1283,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &1729401827320515715
 GameObject:
   m_ObjectHideFlags: 0
@@ -1500,6 +1522,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &1762681327437394969
 GameObject:
   m_ObjectHideFlags: 0
@@ -1680,6 +1704,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &1768335068120645240
 GameObject:
   m_ObjectHideFlags: 0
@@ -2095,6 +2121,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   cachedPickups:
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -3066,6 +3094,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &4670795941812725571
 GameObject:
   m_ObjectHideFlags: 0
@@ -3522,6 +3552,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &5105129496286467467
 GameObject:
   m_ObjectHideFlags: 0
@@ -5296,6 +5328,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &7667271589546804115
 GameObject:
   m_ObjectHideFlags: 0
@@ -5969,6 +6003,8 @@ MonoBehaviour:
   selectedScale: 1.1
   pressedScale: 0.9
   pressDuration: 0.08
+  onScale: 1.2
+  offAlpha: 1
 --- !u!1 &8724938624498533046
 GameObject:
   m_ObjectHideFlags: 0
@@ -12111,7 +12147,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2215994628422579930, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2398998823750713261, guid: 2202e3889f000464ba4a97af4f71b0bc, type: 3}
       propertyPath: m_AnchorMax.x
