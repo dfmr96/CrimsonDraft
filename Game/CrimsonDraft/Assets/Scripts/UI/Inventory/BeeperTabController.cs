@@ -294,6 +294,14 @@ namespace CrimsonDraft.UI
             if (dir == this.lastDir) return;
             this.lastDir = dir;
 
+            // Input is the topmost row of this tab -- another Up from there goes into the tab
+            // bar, same as GridCursor/FilesTabController exiting their own top row.
+            if (dir == Vector2Int.up && this.focusIndex == 0)
+            {
+                this.tabManager?.EnterTabBar();
+                return;
+            }
+
             int next = Mathf.Clamp(this.focusIndex - dir.y, 0, 1); // up → Input(0), down → Output(1)
             if (next == this.focusIndex) return;
 

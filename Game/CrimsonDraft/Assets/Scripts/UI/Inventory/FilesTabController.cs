@@ -13,6 +13,7 @@ using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Save.UI;
 using Yarn.Unity;
 using CrimsonDraft.Navigation.Interactables;
 
@@ -34,6 +35,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject? carouselHighlight;
         [SerializeField] private GameObject? prevArrowHighlight;
         [SerializeField] private GameObject? nextArrowHighlight;
+        [SerializeField] private ManualSelectScale? prevArrowScale;
+        [SerializeField] private ManualSelectScale? nextArrowScale;
         [SerializeField] private float       arrowFlashTime = 0.12f;
 
         [Header("Navigation Feel")]
@@ -447,9 +450,20 @@ namespace CrimsonDraft.UI
         void ProcessMove(Vector2Int dir)
         {
             if (this.focus == Focus.Carousel)
+            {
+                // Carousel is the topmost row of this tab -- another Up from here goes into
+                // the tab bar, same as GridCursor exiting its grid from row 0.
+                if (dir.y > 0)
+                {
+                    this.tabManager.EnterTabBar();
+                    return;
+                }
                 MoveCarousel(dir);
+            }
             else
+            {
                 MoveGrid(dir);
+            }
 
             this.sfx?.PlayCursor(gameObject);
         }
@@ -467,9 +481,11 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            // LEFT / RIGHT — change category + flash the pressed arrow
+            // LEFT / RIGHT — change category + flash/push the pressed arrow
             this.categoryIndex = (this.categoryIndex + dir.x + Categories.Length) % Categories.Length;
-            FlashArrowHighlight(dir.x < 0 ? this.prevArrowHighlight : this.nextArrowHighlight);
+            bool goingPrev = dir.x < 0;
+            FlashArrowHighlight(goingPrev ? this.prevArrowHighlight : this.nextArrowHighlight);
+            (goingPrev ? this.prevArrowScale : this.nextArrowScale)?.Punch();
             RefreshCategory();
         }
 
