@@ -9,6 +9,7 @@ using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Save.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -25,6 +26,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private int                 startingTab        = 0;
         [SerializeField] private GameObject[]        tabIndicators      = null!;
         [SerializeField] private GameObject[]        tabFocusHighlights = System.Array.Empty<GameObject>();
+        [SerializeField] private ManualSelectScale[] tabIconScales      = System.Array.Empty<ManualSelectScale>();
         [SerializeField] private GridCursor          gridCursor         = null!;
         [SerializeField] private FilesTabController? filesTab;
 
@@ -279,6 +281,9 @@ namespace CrimsonDraft.UI
             this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
 
+            if (index < this.tabIconScales.Length)
+                this.tabIconScales[index]?.Punch();
+
             if (this.tabs[this.currentIndex].name == "Map")
                 this.sfx?.PlayMapOpen(gameObject);
             else
@@ -312,12 +317,19 @@ namespace CrimsonDraft.UI
             for (int i = 0; i < this.tabFocusHighlights.Length; i++)
                 if (this.tabFocusHighlights[i] != null)
                     this.tabFocusHighlights[i].SetActive(i == index);
+
+            for (int i = 0; i < this.tabIconScales.Length; i++)
+                if (this.tabIconScales[i] != null)
+                    this.tabIconScales[i].SetSelected(i == index);
         }
 
         public void ClearTabBarFocus()
         {
             foreach (var h in this.tabFocusHighlights)
                 if (h != null) h.SetActive(false);
+
+            foreach (var s in this.tabIconScales)
+                if (s != null) s.SetSelected(false);
         }
 
         // ── Input Reading ────────────────────────────────────────────────────

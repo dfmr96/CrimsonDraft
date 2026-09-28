@@ -35,6 +35,10 @@ namespace CrimsonDraft.UI.MainMenu
         private bool                  isStartingNewGame;
         private GameObject?           lastSelected;
 
+        // Last device that performed any action -- drives which layout (gamepad vs keyboard)
+        // the New Game controls hint shows, and flips it live if the player switches mid-menu.
+        private bool usingGamepad;
+
         [Inject]
         public void Construct(
             IInputService          inputService,
@@ -68,6 +72,9 @@ namespace CrimsonDraft.UI.MainMenu
             this.newGamePromptView.ModernButton.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
             this.newGamePromptView.ClassicButton.onClick.AddListener(() => SelectScheme(ControlScheme.Classic));
             this.newGamePromptView.SetSelectedScheme(this.controlSchemeService.CurrentScheme == ControlScheme.Classic);
+            this.newGamePromptView.ShowControlsLayout(this.usingGamepad);
+
+            InputSystem.onActionChange += OnActionChange;
 
             this.loadGameButton.interactable = HasAnySave();
         }
@@ -98,10 +105,30 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnDestroy()
         {
+            InputSystem.onActionChange -= OnActionChange;
+
             if (this.inputService == null) return;
             this.inputService.UINavigate.performed -= OnNavigate;
             this.inputService.UIConfirm.performed  -= OnConfirm;
             this.inputService.UICancel.performed   -= OnBack;
+        }
+
+        private void OnActionChange(object obj, InputActionChange change)
+        {
+            if (change != InputActionChange.ActionPerformed || obj is not InputAction action)
+                return;
+
+            var device = action.activeControl?.device;
+            if (device == null)
+                return;
+
+            // Mouse counts as keyboard -- only a Gamepad switches to the pad layout.
+            bool gamepad = device is Gamepad;
+            if (gamepad == this.usingGamepad)
+                return;
+
+            this.usingGamepad = gamepad;
+            this.newGamePromptView.ShowControlsLayout(gamepad);
         }
 
         private bool HasAnySave()

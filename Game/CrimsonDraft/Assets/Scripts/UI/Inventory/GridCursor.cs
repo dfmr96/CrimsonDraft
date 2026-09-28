@@ -214,6 +214,10 @@ namespace CrimsonDraft.UI
                     ExitMeleeSlotToGrid();
                     this.sfx?.PlayCursor(gameObject);
                 }
+                else if (dir.y > 0)
+                {
+                    this.tabManager?.EnterTabBar();
+                }
                 return;
             }
 
@@ -236,9 +240,14 @@ namespace CrimsonDraft.UI
                 }
 
                 // Pressing up past row 0 exits the grid into the operator's melee slot
-                // (rendered directly above the grid, permanently-equipped so never a grid cell).
-                if (dir.y > 0 && next.y < 0 && TryEnterMeleeSlot())
+                // (rendered directly above the grid, permanently-equipped so never a grid cell)
+                // when it has one, otherwise straight up into the tab bar.
+                if (dir.y > 0 && next.y < 0)
+                {
+                    if (TryEnterMeleeSlot()) return;
+                    this.tabManager?.EnterTabBar();
                     return;
+                }
             }
 
             next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
