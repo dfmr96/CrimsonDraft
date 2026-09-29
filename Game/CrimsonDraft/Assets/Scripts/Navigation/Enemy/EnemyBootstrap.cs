@@ -6,6 +6,7 @@ using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Navigation;
 using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Enemy
@@ -20,6 +21,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private readonly IPublisher<EnemyAlertChangedEvent>      enemyAlertPublisher;
         private readonly PlayerController                        playerController;
         private readonly EnemyStateRegistry                      registry;
+        private readonly NavigationTimeScale                     timeScale;
 
         [Preserve]
         public EnemyBootstrap(
@@ -30,7 +32,8 @@ namespace CrimsonDraft.Navigation.Enemy
             IEncounterContext                       encounterContext,
             IPublisher<EnemyAlertChangedEvent>      enemyAlertPublisher,
             PlayerController                        playerController,
-            EnemyStateRegistry                      registry)
+            EnemyStateRegistry                      registry,
+            NavigationTimeScale                     timeScale)
         {
             this.enemies                = enemies;
             this.sceneTransitionService = sceneTransitionService;
@@ -40,6 +43,7 @@ namespace CrimsonDraft.Navigation.Enemy
             this.enemyAlertPublisher    = enemyAlertPublisher;
             this.playerController       = playerController;
             this.registry               = registry;
+            this.timeScale              = timeScale;
         }
 
         void IInitializable.Initialize()
@@ -55,6 +59,7 @@ namespace CrimsonDraft.Navigation.Enemy
                     this.enemyAlertPublisher,
                     this.playerController,
                     this.registry,
+                    this.timeScale,
                     key);
 
                 if (this.registry.IsDefeated(key))

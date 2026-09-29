@@ -10,6 +10,7 @@ using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
+using CrimsonDraft.Navigation;
 using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Enemy
@@ -32,6 +33,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private IPublisher<EnemyAlertChangedEvent>?    enemyAlertPublisher;
         private PlayerController?                      playerController;
         private EnemyStateRegistry?                    enemyStateRegistry;
+        private NavigationTimeScale?                   timeScale;
         private string                                 enemyKey = string.Empty;
 
         private NavMeshAgent     navAgent        = null!;
@@ -43,6 +45,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private bool             dialoguePaused;
 
         public EnemyAlertState State => state;
+        public float TimeScale => timeScale?.Scale ?? 1f;
 
         public void Construct(
             ISceneTransitionService                 sceneTransitionService,
@@ -52,6 +55,7 @@ namespace CrimsonDraft.Navigation.Enemy
             IPublisher<EnemyAlertChangedEvent>      enemyAlertPublisher,
             PlayerController                        playerController,
             EnemyStateRegistry                      enemyStateRegistry,
+            NavigationTimeScale                     timeScale,
             string                                  enemyKey)
         {
             this.sceneTransitionService = sceneTransitionService;
@@ -61,6 +65,7 @@ namespace CrimsonDraft.Navigation.Enemy
             this.enemyAlertPublisher    = enemyAlertPublisher;
             this.playerController       = playerController;
             this.enemyStateRegistry     = enemyStateRegistry;
+            this.timeScale              = timeScale;
             this.enemyKey               = enemyKey;
         }
 
@@ -89,6 +94,15 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (playerController == null) return;
             if (dialoguePaused) return;
+
+            // Congela por completo a cualquier enemigo que no haya sido el que disparó el
+            // combate: nada de decisiones de IA ni de movimiento mientras dure la pelea
+            // (NavigationTimeScale, no Time.timeScale global -- Combat necesita ese en 1).
+            if (TimeScale <= 0f)
+            {
+                navAgent.isStopped = true;
+                return;
+            }
 
             switch (state)
             {
@@ -121,7 +135,7 @@ namespace CrimsonDraft.Navigation.Enemy
                 navAgent.isStopped = true;
                 navAgent.updateRotation = false;
                 var targetRotation = Quaternion.LookRotation(toPlayer.normalized);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, data.turnSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, data.turnSpeed * TimeScale * Time.deltaTime);
             }
             else
             {
@@ -215,8 +229,10 @@ namespace CrimsonDraft.Navigation.Enemy
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
             this.combatTriggered = true;
-            sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData).Forget();
-            gameObject.SetActive(false);
+            // Se desactiva recién cuando el fade termina de tapar la pantalla (onScreenCovered),
+            // no en el instante del golpe -- si no, el zombie desaparece de golpe en medio del
+            // freeze-frame en vez de quedar congelado, visible, durante ese beat.
+            sceneTransitionService.StartCombatAsync(this.encounterId, this.encounterData, onScreenCovered: () => gameObject.SetActive(false)).Forget();
         }
 
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
