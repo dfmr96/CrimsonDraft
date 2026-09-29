@@ -21,8 +21,19 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private GameObject    doorTransitionPrefab = null!;
         [SerializeField] private AK.Wwise.Event doorLockedEvent     = new();
 
+        // Opt-in override for doors whose lock state is driven entirely by gameplay (e.g. the
+        // Cheff_Room beeper mechanism) rather than DoorData's static Locked+KeyItem flow. When
+        // true, Interact() ignores data/keyItem/registry entirely and gates purely on
+        // mechanismLocked -- set at runtime via SetMechanismLocked, e.g. by BeeperDoorMechanism.
+        [SerializeField] private bool              useMechanismLock;
+        [SerializeField] private bool              mechanismLocked;
+        [SerializeField] private DialogueReference mechanismLockedDialogue = new();
+
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
+        public bool            MechanismLocked => this.mechanismLocked;
+
+        public void SetMechanismLocked(bool locked) => this.mechanismLocked = locked;
 
         // Doors have their own opening/transition animation — the player shouldn't also play
         // a generic Interact animation.
@@ -47,6 +58,22 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            if (this.useMechanismLock)
+            {
+                if (this.mechanismLocked)
+                {
+                    context.DialogueService.StartDialogue(this.mechanismLockedDialogue.nodeName ?? "");
+                    return;
+                }
+
+                this.unlocked = true;
+                this.registry.MarkUnlocked(this.doorId);
+                this.roomOrchestrator
+                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                    .Forget();
+                return;
+            }
+
             if (!this.data.Locked || this.unlocked)
             {
                 this.registry.MarkUnlocked(this.doorId);
