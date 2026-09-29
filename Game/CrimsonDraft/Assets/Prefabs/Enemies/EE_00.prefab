@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 1870784440109680137}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.00068, z: -0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -52,7 +52,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.0025
+  m_Radius: 0.001981833
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1173758282413156168
 MonoBehaviour:
@@ -313,6 +313,14 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -8017449571587430431, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8017449571587430431, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 4c4b5466299932b4bb53815de95c9f94, type: 2}
     - target: {fileID: 919132149155446097, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
       propertyPath: m_Name
       value: Visual

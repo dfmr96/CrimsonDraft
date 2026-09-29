@@ -195,7 +195,10 @@ namespace CrimsonDraft.Combat
         private static string GaugeBar(float gauge)
         {
             const int width  = 10;
-            int       filled = Mathf.RoundToInt(gauge * width);
+            // remaining/total can transiently push gauge outside [0, 1] (e.g. remaining
+            // momentarily exceeding total right as a new lock starts), which would otherwise
+            // send a negative count into either string ctor below.
+            int       filled = Mathf.Clamp(Mathf.RoundToInt(gauge * width), 0, width);
             return new string('█', filled) + new string('░', width - filled);
         }
     }
