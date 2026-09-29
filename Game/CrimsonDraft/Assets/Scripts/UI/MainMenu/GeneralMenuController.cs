@@ -12,9 +12,10 @@ namespace CrimsonDraft.UI.MainMenu
     /// General tab content: Language is a physical knob too, same as Sound, but locked for now
     /// (Adjust is a no-op for it -- the knob/outline exist, rotating just isn't wired up yet).
     /// Control is a real two-state toggle (Modern/Classic, see IControlSchemeService) -- either
-    /// direction flips it, there's nothing to clamp with only two values. Gamma is a real 0-100
-    /// value: rotates its knob exactly like a volume knob and also keeps the canvas fill bar in
-    /// sync. Selection is shown purely via each knob's outline (never in the flat canvas),
+    /// direction flips it, there's nothing to clamp with only two values. Gamma steps through
+    /// IGraphicsSettingsService.GammaSteps discrete positions (9, matching every other gamma
+    /// control): rotates its knob exactly like a volume knob and also keeps the canvas fill bar
+    /// in sync. Selection is shown purely via each knob's outline (never in the flat canvas),
     /// matching Sound.
     /// </summary>
     public sealed class GeneralMenuController : MonoBehaviour, IOptionsChannelPanel
@@ -47,12 +48,11 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private LockedChannel language = null!;
         [SerializeField] private LockedChannel control  = null!;
 
-        [Header("Gamma (0-100)")]
+        [Header("Gamma (9 steps, see IGraphicsSettingsService.GammaSteps)")]
         [SerializeField] private GammaChannel gamma = null!;
         [Tooltip("Eje local (previo a la rotación base) sobre el que gira la perilla de Gamma.")]
         [SerializeField] private Vector3 spinAxis     = Vector3.up;
         [SerializeField] private float   sweepDegrees = 270f;
-        [SerializeField] private int     stepPercent  = 5;
 
         // Language/Control have no rotating knob transform of their own (Adjust() no-ops or
         // doesn't apply), only the legacy KnobOutline mesh -- its parent is always the physical
@@ -94,7 +94,7 @@ namespace CrimsonDraft.UI.MainMenu
             // Reads graphicsSettingsService, injected via Construct() during the scope's own
             // Awake() -- deferring to Start() guarantees that already ran (see
             // MainMenuController.Start()/OptionsMenuController.Start() for the same reasoning).
-            this.gammaValue = Mathf.RoundToInt(this.graphicsSettingsService.Gamma * 100f);
+            this.gammaValue = Mathf.RoundToInt(this.graphicsSettingsService.Gamma * this.graphicsSettingsService.GammaSteps);
             ApplyGamma();
         }
 
@@ -116,23 +116,23 @@ namespace CrimsonDraft.UI.MainMenu
 
             if (index != GammaIndex) return; // Language is locked for now.
 
-            int clamped = Mathf.Clamp(this.gammaValue + direction * this.stepPercent, 0, 100);
+            int clamped = Mathf.Clamp(this.gammaValue + direction, 0, this.graphicsSettingsService.GammaSteps);
             if (clamped == this.gammaValue) this.sfx.PlayKnobLimit(gameObject);
             else this.sfx.PlayKnobTick(gameObject);
             this.gammaValue = clamped;
             ApplyGamma();
-            this.graphicsSettingsService.SetGamma(this.gammaValue / 100f);
+            this.graphicsSettingsService.SetGamma((float)this.gammaValue / this.graphicsSettingsService.GammaSteps);
         }
 
         private void ApplyGamma()
         {
-            float angle = Mathf.Lerp(0f, this.sweepDegrees, this.gammaValue / 100f);
+            float fill = (float)this.gammaValue / this.graphicsSettingsService.GammaSteps;
+            float angle = Mathf.Lerp(0f, this.sweepDegrees, fill);
             this.gamma.knob.localRotation = this.gamma.baseRotation * Quaternion.AngleAxis(angle, this.spinAxis);
 
             // The bar is center-pivoted, so shrinking its scale alone would shrink toward the
             // middle from both sides. Nudging the anchored position by the same half-width we
             // just trimmed keeps the LEFT edge fixed, so it reads as a slider filling left-to-right.
-            float fill = this.gammaValue / 100f;
             var scale = this.gamma.fillBar.localScale;
             scale.x = fill;
             this.gamma.fillBar.localScale = scale;

@@ -6,9 +6,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
+using UnityEngine.UI;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.Save.UI;
 
 namespace CrimsonDraft.UI
 {
@@ -31,6 +33,17 @@ namespace CrimsonDraft.UI
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
+
+        // Gap between the tab bar buttons themselves (Windows/GridLayoutGroup, one level above
+        // tabFocusHighlights). Applied in code instead of on the GridLayoutGroup asset so this
+        // doesn't depend on the scene being re-saved -- see EnsureTabIconScales.
+        [Header("Tab Bar Feel")]
+        [SerializeField] private float tabBarSpacing = 8f;
+
+        // Lazily built from tabFocusHighlights' parents (the Inventory_Btn/Files_Btn/... row) --
+        // AddComponent<ManualSelectScale> at runtime rather than requiring it wired in the
+        // Inspector, so the hover/press feedback doesn't depend on scene serialization.
+        private ManualSelectScale?[] tabIconScales = System.Array.Empty<ManualSelectScale?>();
 
         // Locked out of the tab bar (button hidden, not reachable via LEFT/RIGHT) until the
         // player picks up beeperUnlockNoteId -- the Beeper isn't something the player starts
@@ -127,6 +140,9 @@ namespace CrimsonDraft.UI
 
             if (this.gridCursor == null)
                 this.gridCursor = GetComponentInChildren<GridCursor>(true);
+
+            EnsureTabIconScales();
+            ApplyTabBarSpacing();
 
             this.currentIndex = this.startingTab;
             for (int i = 0; i < this.tabs.Length; i++)
@@ -264,6 +280,47 @@ namespace CrimsonDraft.UI
                 this.filesTab.ShowSelectorAfterTabBar();
         }
 
+        // ── Tab Bar Feel (runtime-only, no scene wiring) ────────────────────────
+
+        // tabFocusHighlights[i] ("Selector") is a direct child of the button root
+        // ("Inventory_Btn"/"Files_Btn"/...), which is itself already wired via
+        // tabIndicators/tabFocusHighlights -- so the button GameObject can be reached without
+        // adding a single new serialized reference. AddComponent is a no-op the next time this
+        // runs (GetComponent finds the one it added last time), so this is safe to call once
+        // per EnsureInitialized.
+        void EnsureTabIconScales()
+        {
+            this.tabIconScales = new ManualSelectScale?[this.tabFocusHighlights.Length];
+            for (int i = 0; i < this.tabFocusHighlights.Length; i++)
+            {
+                if (this.tabFocusHighlights[i] == null) continue;
+                Transform? btnRoot = this.tabFocusHighlights[i].transform.parent;
+                if (btnRoot == null) continue;
+
+                this.tabIconScales[i] = btnRoot.GetComponent<ManualSelectScale>()
+                                         ?? btnRoot.gameObject.AddComponent<ManualSelectScale>();
+            }
+        }
+
+        // Widens the gap between tab buttons by shifting some of the row's existing width
+        // budget from cellSize into spacing, so the row's total width -- and therefore the
+        // panel it has to fit in -- doesn't change. Reads the GridLayoutGroup two levels above
+        // a Selector (Selector -> Btn -> Windows) instead of a new serialized field.
+        void ApplyTabBarSpacing()
+        {
+            if (this.tabFocusHighlights.Length == 0 || this.tabFocusHighlights[0] == null) return;
+            Transform? windowsRoot = this.tabFocusHighlights[0].transform.parent?.parent;
+            GridLayoutGroup? grid = windowsRoot != null ? windowsRoot.GetComponent<GridLayoutGroup>() : null;
+            if (grid == null) return;
+
+            int   count          = this.tabs.Length;
+            float currentRowWidth = grid.cellSize.x * count + grid.spacing.x * (count - 1);
+            float newCellWidth    = (currentRowWidth - this.tabBarSpacing * (count - 1)) / count;
+
+            grid.spacing  = new Vector2(this.tabBarSpacing, grid.spacing.y);
+            grid.cellSize = new Vector2(newCellWidth, grid.cellSize.y);
+        }
+
         // ── Switching ────────────────────────────────────────────────────────
 
         public void ActivateTab(int index)
@@ -278,6 +335,9 @@ namespace CrimsonDraft.UI
             this.currentIndex = index;
             this.tabs[this.currentIndex].root.SetActive(true);
             RefreshIndicators();
+
+            if (index < this.tabIconScales.Length)
+                this.tabIconScales[index]?.Punch();
 
             if (this.tabs[this.currentIndex].name == "Map")
                 this.sfx?.PlayMapOpen(gameObject);
@@ -312,12 +372,19 @@ namespace CrimsonDraft.UI
             for (int i = 0; i < this.tabFocusHighlights.Length; i++)
                 if (this.tabFocusHighlights[i] != null)
                     this.tabFocusHighlights[i].SetActive(i == index);
+
+            for (int i = 0; i < this.tabIconScales.Length; i++)
+                if (this.tabIconScales[i] != null)
+                    this.tabIconScales[i].SetSelected(i == index);
         }
 
         public void ClearTabBarFocus()
         {
             foreach (var h in this.tabFocusHighlights)
                 if (h != null) h.SetActive(false);
+
+            foreach (var s in this.tabIconScales)
+                if (s != null) s.SetSelected(false);
         }
 
         // ── Input Reading ────────────────────────────────────────────────────
