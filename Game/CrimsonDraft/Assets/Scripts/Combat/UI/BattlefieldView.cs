@@ -30,6 +30,13 @@ namespace CrimsonDraft.Combat
             // wait-for-StaggerUp coroutine to play the deferred Flinch once it's back up.
             public bool PendingFlinchAfterRecovery;
             public float PendingFlinchStaggerPct;
+            // Set in ApplyDamageToEnemy when the killing blow included at least one Head-zone
+            // pellet; read by PlayDeathSequenceThenFinalize to spawn the headshot explosion FX.
+            public bool DiedFromHeadshot;
+            // Guards FinalizeEnemyDeath against running its coroutine twice -- TriggerEnemyFlinch
+            // calls it as soon as the burst's killing bullet lands, and AimingState calls it again
+            // once the whole burst finishes.
+            public bool DeathFinalized;
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
@@ -71,6 +78,9 @@ namespace CrimsonDraft.Combat
         private static readonly int EnemyStaggerFloatHash = Animator.StringToHash("Stagger");
         private static readonly int EnemyStaggerRecoverHash = Animator.StringToHash("StaggerRecover");
         private static readonly int EnemyDeathHash = Animator.StringToHash("Death");
+        // Enemy_Combat_Controller v3: AnyState + IsStaggered plays StaggerFloorDamage/StaggerFloorDeath
+        // instead of the standing Flinch/Death reactions once the enemy is down.
+        private static readonly int EnemyStaggerHitHash = Animator.StringToHash("StaggerHit");
         private readonly Dictionary<int, EnemyDeathMarker> enemyDeathMarkerBySlot = new();
         private readonly Dictionary<int, float> enemyAttackResolvedDurationBySlot = new();
         private readonly Dictionary<int, EnemyAttackEventRelay> enemyAttackEventRelayBySlot = new();
@@ -154,7 +164,9 @@ public void Populate(EncounterData encounter)
                     StaggerActionsRemaining = 0,
                     RecoveryQueued          = false,
                     PendingFlinchAfterRecovery = false,
-                    PendingFlinchStaggerPct = 0f
+                    PendingFlinchStaggerPct = 0f,
+                    DiedFromHeadshot        = false,
+                    DeathFinalized          = false
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -269,6 +281,9 @@ public void Populate(EncounterData encounter)
                 // off) are deferred to FinalizeEnemyDeath(), called once the operator's
                 // shoot animation finishes playing, so combat can never end mid-burst.
                 state.IsDead = true;
+                // Any Head-zone pellet in the killing action explodes the head on death,
+                // whether or not it was enough pellets to guarantee the kill via isDecapitated.
+                state.DiedFromHeadshot = decapitationPellets > 0;
                 return new EnemyDamageResult(slotIndex, appliedDamage, 0, true, false, isDecapitated);
             }
 
@@ -384,22 +399,30 @@ public void Populate(EncounterData encounter)
 
         public bool HasAliveEnemies() => this.occupiedEnemySlots.Length > 0;
 
+        // Idempotent -- TriggerEnemyFlinch calls this the instant the burst's killing bullet
+        // lands, so AimingState's own post-burst call (its long-standing contract with this
+        // method) becomes a harmless no-op instead of replaying the whole death sequence.
         public void FinalizeEnemyDeath(int slotIndex)
         {
-            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state)) return;
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state) || state.DeathFinalized) return;
+            state.DeathFinalized = true;
             StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex));
         }
 
         // RE-style "definitely dead" marker: a blood pool (a child object referenced via
         // EnemyDeathMarker) reveals under the corpse so the player can tell it won't get
-        // back up. Enemy_Combat_Controller v2 has a dedicated Death state/clip (distinct
-        // from the Stagger knockdown), so it always plays here regardless of whether the
-        // enemy was already down -- the AnyState -> Death transition cuts in immediately
-        // either way. The corpse is never hidden or destroyed -- once removed from
-        // occupiedEnemySlots it's untargetable and dead to the ATB system (SyncDeadEnemies
-        // picks it up from there), but stays visible in the scene as an inert prop.
+        // back up. The Death trigger alone decides the clip on Enemy_Combat_Controller v3:
+        // AnyState + IsStaggered==false -> Death (standing corpse), AnyState +
+        // IsStaggered==true -> StaggerFloorDeath (dies face-down where it was staggered,
+        // no getting-up transition out of it). The corpse is never hidden or destroyed --
+        // once removed from occupiedEnemySlots it's untargetable and dead to the ATB system
+        // (SyncDeadEnemies picks it up from there), but stays visible in the scene as an
+        // inert prop.
         private IEnumerator PlayDeathSequenceThenFinalize(int slotIndex)
         {
+            if (this.enemyStateBySlot.TryGetValue(slotIndex, out var deadState) && deadState.DiedFromHeadshot)
+                this.SpawnHeadExplosionFx(slotIndex);
+
             if (this.enemyAnimatorBySlot.TryGetValue(slotIndex, out var anim) && anim != null)
             {
                 anim.SetTrigger(EnemyDeathHash);
@@ -477,16 +500,22 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
                         break;
                     }
                 }
+                // A melee swing is a single strike, so its one hit (if any) is always the burst's
+                // last/only hit -- a kill here cuts straight to Death instead of flinching first.
                 if (anyHit)
-                    this.TriggerEnemyFlinch(enemySlotIndex);
+                    this.TriggerEnemyFlinch(enemySlotIndex, isFinalHitInBurst: true);
 
-                while (!animator.GetCurrentAnimatorStateInfo(0).IsName("KnifeAttack"))
+                // A kill on this swing can now finish (and end combat / unload the scene) while
+                // this coroutine is still mid-flight -- see the bullet loop's comment below.
+                while (animator != null && !animator.GetCurrentAnimatorStateInfo(0).IsName("KnifeAttack"))
                     await UniTask.NextFrame();
+                if (animator == null) return;
 
                 var knifeClipInfo = animator.GetCurrentAnimatorClipInfo(0);
                 float knifeDuration = knifeClipInfo.Length > 0 ? knifeClipInfo[0].clip.length : 0f;
                 if (knifeDuration > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(knifeDuration));
+                if (animator == null) return;
 
                 weaponPose?.ExitMelee();
 
@@ -508,13 +537,24 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
                 weaponPose.EnterAim();
             else
                 animator.SetBool(AimHash, true);
-            while (!animator.GetCurrentAnimatorStateInfo(0).IsName(aimIdleState))
+            while (animator != null && !animator.GetCurrentAnimatorStateInfo(0).IsName(aimIdleState))
                 await UniTask.NextFrame();
+            if (animator == null) return;
 
             // One animation trigger per bullet fired, not per pellet - a shotgun shell that
             // resolves into several ResolvedShot entries (same BulletIndex) still plays the
             // shoot animation once.
             int bulletCount = AimViewController.CountBullets(shots);
+
+            // ApplyDamageToEnemy already tallied the whole burst's damage (and set IsDead) before
+            // any of it started playing, so every bullet in a killing burst would otherwise see the
+            // enemy as already dead. Only the last bullet that actually lands should cut to Death --
+            // earlier ones in the same burst still flinch normally.
+            int lastHitBulletIndex = -1;
+            foreach (var shot in shots)
+                if (shot.Zone != ShotZone.Miss)
+                    lastHitBulletIndex = Mathf.Max(lastHitBulletIndex, shot.BulletIndex);
+
             for (int b = 0; b < bulletCount; b++)
             {
                 if (weaponPose != null)
@@ -532,15 +572,23 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
                     }
                 }
                 if (anyHit)
-                    this.TriggerEnemyFlinch(enemySlotIndex);
+                    this.TriggerEnemyFlinch(enemySlotIndex, isFinalHitInBurst: b == lastHitBulletIndex);
 
-                while (!animator.GetCurrentAnimatorStateInfo(0).IsName(shootState))
+                // A kill on this bullet fires FinalizeEnemyDeath immediately (see TriggerEnemyFlinch)
+                // instead of waiting for the whole burst to finish -- if it was the last enemy,
+                // SyncDeadEnemies can end combat and unload this scene (destroying this operator's
+                // Animator/weaponPose) while this coroutine is still awaiting the rest of its own
+                // shoot animation. Bail out the moment that happens instead of touching a destroyed
+                // object.
+                while (animator != null && !animator.GetCurrentAnimatorStateInfo(0).IsName(shootState))
                     await UniTask.NextFrame();
+                if (animator == null) return;
 
                 var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
                 float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 0f;
                 if (duration > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(duration));
+                if (animator == null) return;
             }
 
             if (weaponPose != null)
@@ -549,29 +597,44 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
                 animator.SetBool(AimHash, false);
         }
 
-        private void TriggerEnemyFlinch(int enemySlotIndex)
+        // isFinalHitInBurst marks the last bullet in this burst that actually lands (see the
+        // lastHitBulletIndex precompute in PlayOperatorShootBurstAsync). ApplyDamageToEnemy tallies
+        // the whole burst's damage and sets IsDead before any of it plays, so every bullet would
+        // otherwise see the enemy as already dead -- only that final hit should cut straight to the
+        // death animation instead of flinching; earlier bullets in the same burst still flinch.
+        private void TriggerEnemyFlinch(int enemySlotIndex, bool isFinalHitInBurst = false)
         {
             if (enemySlotIndex < 0) return;
 
             this.SpawnBloodHitFx(enemySlotIndex);
 
-            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
             if (!this.enemyStateBySlot.TryGetValue(enemySlotIndex, out var state)) return;
+
+            if (isFinalHitInBurst && state.IsDead)
+            {
+                // Spawns particles the instant the killing shot lands, same as any other hit --
+                // FinalizeEnemyDeath is idempotent, so AimingState's own post-burst call is a no-op.
+                this.FinalizeEnemyDeath(enemySlotIndex);
+                return;
+            }
+
+            if (!this.enemyAnimatorBySlot.TryGetValue(enemySlotIndex, out var animator) || animator == null) return;
 
             float? staggerPct = state.InitialPoise > 0
                 ? Mathf.Clamp(100f * state.CurrentPoise / state.InitialPoise, 0f, 100f)
                 : (float?)null;
 
-            // While the enemy is down from a stagger it just stays on the ground -- no flinch
-            // reaction plays until StaggerUp actually finishes and it's back on its feet. The
-            // hit isn't lost: it's remembered (with the Poise/Stagger it had when it landed,
-            // frozen while staggered) and played the instant recovery completes -- see
-            // RecoverEnemyStagger / PlayPendingFlinchAfterStaggerUp.
+            // While the enemy is down from a stagger, a hit plays StaggerFloorDamage (AnyState +
+            // IsStaggered on Enemy_Combat_Controller v3) instead of the standing Flinch01/02/03
+            // reaction. The standing reaction isn't lost either -- it's remembered (with the
+            // Poise/Stagger it had when it landed, frozen while staggered) and played the instant
+            // recovery completes -- see RecoverEnemyStagger / PlayPendingFlinchAfterStaggerUp.
             if (state.IsStaggered)
             {
                 state.PendingFlinchAfterRecovery = true;
                 if (staggerPct.HasValue)
                     state.PendingFlinchStaggerPct = staggerPct.Value;
+                animator.SetTrigger(EnemyStaggerHitHash);
                 return;
             }
 
@@ -595,6 +658,33 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
                 ? marker.HitFxPoint
                 : null;
             Vector3 spawnPos = hitFxPoint != null ? hitFxPoint.position : enemyGo.transform.position;
+
+            Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
+        }
+
+        // Same blood FX prefab as a regular hit, but placed at the head's current
+        // world-space location for a headshot kill -- "the head explodes". HeadBone is the
+        // actual "head" skeleton bone, so its position tracks the real animated pose whether
+        // standing, mid-flinch or staggered on the ground. HeadRenderer.bounds is NOT used for
+        // this: it's a fixed box from the bind pose that just rigidly follows the root bone, so
+        // it only looks roughly right while standing and is badly off once lying down. The head
+        // mesh itself is hidden (not destroyed, to keep the SkinnedMeshRenderer's bone bindings
+        // intact for the rest of the corpse) so it actually looks blown off rather than just
+        // having particles play in front of it.
+        private void SpawnHeadExplosionFx(int enemySlotIndex)
+        {
+            if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null) return;
+            this.enemyDeathMarkerBySlot.TryGetValue(enemySlotIndex, out var marker);
+
+            if (marker != null && marker.HeadRenderer != null)
+                marker.HeadRenderer.enabled = false;
+
+            if (this.bloodHitFxPrefab == null) return;
+            Vector3 spawnPos =
+                marker != null && marker.HeadBone != null     ? marker.HeadBone.position :
+                marker != null && marker.HeadRenderer != null ? marker.HeadRenderer.bounds.center :
+                marker != null && marker.HitFxPoint != null   ? marker.HitFxPoint.position :
+                enemyGo.transform.position;
 
             Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
         }
