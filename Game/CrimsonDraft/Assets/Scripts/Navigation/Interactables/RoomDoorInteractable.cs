@@ -29,6 +29,14 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private bool              mechanismLocked;
         [SerializeField] private DialogueReference mechanismLockedDialogue = new();
 
+        // Optional pairing for doors that start mechanism-locked from one side (e.g. "locked
+        // from the other side") and open permanently once crossed from the far side. Set this
+        // on the door that does the unlocking, pointing at its counterpart elsewhere in the
+        // scene -- e.g. Door_B2 (mechanismLocked = true, shows the locked-from-other-side
+        // dialogue) is referenced by Door_B1.unlocksOnCross, so walking through Door_B1 clears
+        // Door_B2's lock and both sides behave as a normal two-way door from then on.
+        [SerializeField] private RoomDoorInteractable? unlocksOnCross;
+
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
         public bool            MechanismLocked => this.mechanismLocked;
@@ -68,18 +76,14 @@ namespace CrimsonDraft.Navigation.Interactables
 
                 this.unlocked = true;
                 this.registry.MarkUnlocked(this.doorId);
-                this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                    .Forget();
+                CrossDoor();
                 return;
             }
 
             if (!this.data.Locked || this.unlocked)
             {
                 this.registry.MarkUnlocked(this.doorId);
-                this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                    .Forget();
+                CrossDoor();
                 return;
             }
 
@@ -116,9 +120,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.MarkUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            CrossDoor();
                         });
                     break;
 
@@ -135,12 +137,18 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.MarkUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            CrossDoor();
                         });
                     break;
             }
+        }
+
+        private void CrossDoor()
+        {
+            this.unlocksOnCross?.SetMechanismLocked(false);
+            this.roomOrchestrator
+                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                .Forget();
         }
     }
 }
