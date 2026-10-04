@@ -24,7 +24,7 @@ namespace CrimsonDraft.Combat
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
         private IEncounterContext                            encounterContext    = null!;
-        private IInventoryService                            inventory          = null!;
+        private ILegacyInventoryService                            inventory          = null!;
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
@@ -81,7 +81,7 @@ namespace CrimsonDraft.Combat
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
             IEncounterContext                            encounterContext,
-            IInventoryService                            inventory,
+            ILegacyInventoryService                            inventory,
             ICombatActionMenuView                        menuView)
         {
             this.atbSystem          = atbSystem;
@@ -589,7 +589,7 @@ private void ApplyUseItem(PendingAction action)
             if (action.ItemIndex < 0)
             {
                 // -1 signals a reload combine (ammo box + weapon), consumed via
-                // CombatInventoryPanelController.ExecuteReload -> IInventoryService.ReloadOperator
+                // CombatInventoryPanelController.ExecuteReload -> ILegacyInventoryService.ReloadOperator
                 // *before* this action was even enqueued. All that's left to do here is play the
                 // operator's Reload animation (pistol/shotgun routed by the Animator's GunType).
                 this.battlefieldView.PlayOperatorReload(action.SlotIndex);

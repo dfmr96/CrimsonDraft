@@ -22,7 +22,7 @@ namespace CrimsonDraft.Navigation
     public sealed class SaveGameLoader : IInitializable
     {
         private readonly ISaveGameService     saveGameService;
-        private readonly IInventoryService    inventoryService;
+        private readonly ILegacyInventoryService    inventoryService;
         private readonly IOperatorRoster      roster;
         private readonly IRoomOrchestrator    roomOrchestrator;
         private readonly PlayerController     player;
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Navigation
         [Preserve]
         public SaveGameLoader(
             ISaveGameService     saveGameService,
-            IInventoryService    inventoryService,
+            ILegacyInventoryService    inventoryService,
             IOperatorRoster      roster,
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,

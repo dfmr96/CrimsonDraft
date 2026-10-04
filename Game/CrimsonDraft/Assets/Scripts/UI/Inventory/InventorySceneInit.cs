@@ -9,7 +9,7 @@ namespace CrimsonDraft.UI
 {
     public class InventorySceneInit
     {
-        private readonly IInventoryService inventoryService;
+        private readonly ILegacyInventoryService inventoryService;
         private readonly IItemSpawner      itemSpawner;
         private readonly InventoryGridGroup gridGroup;
         private readonly PartyPanelView    partyPanel;
@@ -20,7 +20,7 @@ namespace CrimsonDraft.UI
 
         [Preserve]
         public InventorySceneInit(
-            IInventoryService inventoryService,
+            ILegacyInventoryService inventoryService,
             IItemSpawner      itemSpawner,
             InventoryGridGroup gridGroup,
             PartyPanelView    partyPanel,

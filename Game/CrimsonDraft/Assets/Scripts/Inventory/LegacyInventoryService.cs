@@ -8,14 +8,14 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Inventory
 {
-    public sealed class InventoryService : IInventoryService
+    public sealed class LegacyInventoryService : ILegacyInventoryService
     {
         private readonly IOperatorRoster roster;
         private readonly ICombineService combineService;
         private InventorySlot[]?         slots;
 
         [Preserve]
-        public InventoryService(IOperatorRoster roster, ICombineService combineService)
+        public LegacyInventoryService(IOperatorRoster roster, ICombineService combineService)
         {
             this.roster         = roster;
             this.combineService = combineService;

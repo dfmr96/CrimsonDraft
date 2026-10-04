@@ -12,7 +12,7 @@ namespace CrimsonDraft.Navigation
     public sealed class InventoryBootstrap : IInitializable, IDisposable
     {
         private readonly StartingLoadout        loadout;
-        private readonly IInventoryService      inventory;
+        private readonly ILegacyInventoryService      inventory;
         private readonly InventoryStateRegistry registry;
         private readonly IOperatorRoster        roster;
         private bool initialized;
@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation
         [Preserve]
         public InventoryBootstrap(
             StartingLoadout        loadout,
-            IInventoryService      inventory,
+            ILegacyInventoryService      inventory,
             InventoryStateRegistry registry,
             IOperatorRoster        roster)
         {

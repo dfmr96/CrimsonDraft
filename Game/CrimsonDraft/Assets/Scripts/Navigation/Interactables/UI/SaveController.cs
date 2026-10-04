@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         private readonly IInputService       inputService;
         private readonly ISaveGameService    saveGameService;
-        private readonly IInventoryService   inventoryService;
+        private readonly ILegacyInventoryService   inventoryService;
         private readonly IOperatorRoster     roster;
         private readonly IRoomOrchestrator   roomOrchestrator;
         private readonly PlayerController    player;
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Navigation.Interactables
             IInputService        inputService,
             SaveSlotListView     view,
             ISaveGameService     saveGameService,
-            IInventoryService    inventoryService,
+            ILegacyInventoryService    inventoryService,
             IOperatorRoster      roster,
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,

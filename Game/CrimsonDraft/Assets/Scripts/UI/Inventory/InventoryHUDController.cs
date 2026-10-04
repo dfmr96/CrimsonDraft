@@ -11,7 +11,7 @@ namespace CrimsonDraft.UI
 {
     public sealed class InventoryHUDController : IInitializable, System.IDisposable
     {
-        private readonly IInventoryService inventoryService;
+        private readonly ILegacyInventoryService inventoryService;
         private readonly ICombineService   combineService;
         private readonly IItemSpawner      itemSpawner;
         private readonly IOperatorRoster   roster;
@@ -29,7 +29,7 @@ namespace CrimsonDraft.UI
 
         [Preserve]
         public InventoryHUDController(
-            IInventoryService  inventoryService,
+            ILegacyInventoryService  inventoryService,
             ICombineService    combineService,
             IItemSpawner       itemSpawner,
             IOperatorRoster    roster,
@@ -484,7 +484,7 @@ namespace CrimsonDraft.UI
                 // the visual grid still had room (it's larger than the logical slot cap), so the
                 // drop looked like it worked. Bounce it back so data and visuals don't diverge
                 // (a diverged item would look moved here but still belong to its old operator
-                // everywhere that reads from IInventoryService, e.g. the combat inventory panel).
+                // everywhere that reads from ILegacyInventoryService, e.g. the combat inventory panel).
                 RevertPlacementToSlot(item, fromSlot);
                 this.sfx.PlayInvalidAction(this.cursor.gameObject);
                 return;

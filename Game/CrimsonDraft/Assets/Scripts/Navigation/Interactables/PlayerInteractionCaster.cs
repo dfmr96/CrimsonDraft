@@ -31,7 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private Coroutine? interactingRoutine;
 
         private IInputService          inputService          = null!;
-        private IInventoryService      inventoryService      = null!;
+        private ILegacyInventoryService      inventoryService      = null!;
         private IDialogueService       dialogueService       = null!;
         private IPickupDialogueService pickupDialogueService = null!;
         private DocumentController     documentController    = null!;
@@ -48,7 +48,7 @@ namespace CrimsonDraft.Navigation.Interactables
         [Inject]
         public void Construct(
             IInputService          inputService,
-            IInventoryService      inventoryService,
+            ILegacyInventoryService      inventoryService,
             IDialogueService       dialogueService,
             IPickupDialogueService pickupDialogueService,
             DocumentController     documentController,

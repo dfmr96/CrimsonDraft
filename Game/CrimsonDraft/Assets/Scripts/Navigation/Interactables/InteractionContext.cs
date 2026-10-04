@@ -9,7 +9,7 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class InteractionContext
     {
-        public readonly IInventoryService      InventoryService;
+        public readonly ILegacyInventoryService      InventoryService;
         public readonly IInputService          InputService;
         public readonly IDialogueService       DialogueService;
         public readonly DocumentController     DocumentController;
@@ -22,7 +22,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly InspectionController   InspectionController;
 
         public InteractionContext(
-            IInventoryService      inventoryService,
+            ILegacyInventoryService      inventoryService,
             IInputService          inputService,
             IDialogueService       dialogueService,
             DocumentController     documentController,

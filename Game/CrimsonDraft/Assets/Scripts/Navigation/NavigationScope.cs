@@ -76,7 +76,7 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<PlayerAimController>();
-            builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
+            builder.Register<LegacyInventoryService>(Lifetime.Singleton).AsSelf().As<ILegacyInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();

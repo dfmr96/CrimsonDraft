@@ -36,7 +36,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private Animator? selectorAnimator;
         [SerializeField] private float     useAnimationTimeout = 1.5f; // safety net if the event never fires
 
-        [Inject] private IInventoryService inventoryService = null!;
+        [Inject] private ILegacyInventoryService inventoryService = null!;
         [Inject] private IInputService     inputService     = null!;
         [Inject] private CombatSfxData     sfx              = null!;
 

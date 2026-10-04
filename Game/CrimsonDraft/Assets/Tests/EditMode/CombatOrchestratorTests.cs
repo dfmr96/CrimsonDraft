@@ -384,7 +384,7 @@ namespace CrimsonDraft.Tests
             public void SetOperatorFocusFireMarked(int index, bool marked) { }
         }
 
-        private sealed class FakeInventoryService : IInventoryService
+        private sealed class FakeInventoryService : ILegacyInventoryService
         {
             public bool HasItem(string itemId) => false;
             public bool TryRemoveItem(string itemId) => false;

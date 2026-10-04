@@ -18,7 +18,7 @@ namespace CrimsonDraft.Navigation.UI
         private enum State { Closed, List, Reorder, ContextMenu, Combine, Examining }
 
         private readonly IInputService      inputService;
-        private readonly IInventoryService  inventoryService;
+        private readonly ILegacyInventoryService  inventoryService;
         private readonly IDialogueService   dialogueService;
         private readonly IOperatorRoster    roster;
         private readonly InventoryView      view;
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Navigation.UI
         [Preserve]
         public InventoryController(
             IInputService      inputService,
-            IInventoryService  inventoryService,
+            ILegacyInventoryService  inventoryService,
             IDialogueService   dialogueService,
             IOperatorRoster    roster,
             InventoryView      view,

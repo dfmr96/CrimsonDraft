@@ -34,7 +34,7 @@ namespace CrimsonDraft.UI
 
         [Inject] private InventorySfxData sfx   = null!;
         [Inject] private IInputService    input = null!;
-        [Inject] private IInventoryService                inventoryService       = null!;
+        [Inject] private ILegacyInventoryService                inventoryService       = null!;
         [Inject] private IInspectDialogueService          inspectDialogueService = null!;
         [Inject] private NoteRegistry                     noteRegistry           = null!;
         [Inject] private IPublisher<NoteCollectedEvent>   notePublisher          = null!;

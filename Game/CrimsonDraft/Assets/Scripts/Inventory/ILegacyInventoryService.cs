@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace CrimsonDraft.Inventory
 {
-    public interface IInventoryService
+    public interface ILegacyInventoryService
     {
         /// <summary>
         /// Flat array of rosterCount × InventoryConstants.SlotsPerOperator slots. Never null.

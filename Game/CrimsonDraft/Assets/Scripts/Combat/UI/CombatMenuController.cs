@@ -64,7 +64,7 @@ namespace CrimsonDraft.Combat
         private readonly IAimView                      aimView;
         private readonly IBattlefieldView              battlefieldView;
         private readonly IOperatorRoster               roster;
-        private readonly IInventoryService             inventory;
+        private readonly ILegacyInventoryService             inventory;
         private readonly ICombatOrchestrator                           orchestrator;
         private readonly ISubscriber<ShootConfigurationRequestedEvent> shootSubscriber;
         private readonly ISubscriber<MeleeConfigurationRequestedEvent> meleeSubscriber;
@@ -86,7 +86,7 @@ namespace CrimsonDraft.Combat
             IAimView                                       aimView,
             IBattlefieldView                               battlefieldView,
             IOperatorRoster                                roster,
-            IInventoryService                              inventory,
+            ILegacyInventoryService                              inventory,
             IInputService                                  inputService,
             ICombatOrchestrator                            orchestrator,
             CombatSfxData                                  sfx,
@@ -123,7 +123,7 @@ namespace CrimsonDraft.Combat
             IAimView                     aimView,
             IBattlefieldView             battlefieldView,
             IOperatorRoster              roster,
-            IInventoryService            inventory,
+            ILegacyInventoryService            inventory,
             ICombatOrchestrator?         orchestrator    = null,
             ISubscriber<ShootConfigurationRequestedEvent>? shootSubscriber = null,
             ISubscriber<MeleeConfigurationRequestedEvent>? meleeSubscriber = null,

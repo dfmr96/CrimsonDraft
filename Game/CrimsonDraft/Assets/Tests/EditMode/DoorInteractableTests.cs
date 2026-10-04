@@ -167,7 +167,7 @@ namespace CrimsonDraft.Tests
             public void SetVariable(string name, object value) { }
         }
 
-        private sealed class FakeDoorInventoryService : IInventoryService
+        private sealed class FakeDoorInventoryService : ILegacyInventoryService
         {
             public bool HasItem(string itemId) => false;
             public bool TryRemoveItem(string itemId) => false;

@@ -13,7 +13,7 @@ namespace CrimsonDraft.UI
 
         protected override void Configure(IContainerBuilder builder)
         {
-            // IInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
+            // ILegacyInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
             // are resolved from the parent NavigationScope — do NOT register them here.
 
             builder.RegisterInstance(this.inventorySfxData);

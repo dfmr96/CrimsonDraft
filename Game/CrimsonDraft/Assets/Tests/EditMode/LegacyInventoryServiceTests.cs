@@ -8,7 +8,7 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Tests
 {
-    public sealed class InventoryServiceTests
+    public sealed class LegacyInventoryServiceTests
     {
         // ── Fakes ──────────────────────────────────────────────────────────────
 
@@ -38,8 +38,8 @@ namespace CrimsonDraft.Tests
             }
         }
 
-        private static InventoryService MakeService(IOperatorRoster roster, ICombineService? combine = null) =>
-            new InventoryService(roster, combine ?? new NullCombineService());
+        private static LegacyInventoryService MakeService(IOperatorRoster roster, ICombineService? combine = null) =>
+            new LegacyInventoryService(roster, combine ?? new NullCombineService());
 
         private sealed class FakeRoster : IOperatorRoster
         {

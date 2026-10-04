@@ -404,7 +404,7 @@ namespace CrimsonDraft.UI
             this.holding = false;
             this.lastDir = Vector2Int.zero;
 
-            // A hotspot's onUsed/reward can add or remove items via IInventoryService while
+            // A hotspot's onUsed/reward can add or remove items via ILegacyInventoryService while
             // InspectPanel was open, without going through the normal open-time sync -- catch
             // those up (stale views for consumed items, missing views for granted ones) before
             // trying to select anything.

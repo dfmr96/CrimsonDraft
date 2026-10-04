@@ -29,7 +29,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private Key  toggleKey   = Key.F1;
         [SerializeField] private bool showOnStart = false;
 
-        private IInventoryService? inventory;
+        private ILegacyInventoryService? inventory;
         private IOperatorRoster?   roster;
 
         private bool      visible;
@@ -38,7 +38,7 @@ namespace CrimsonDraft.Navigation
         private GUIStyle? slotStyle;
 
         [Inject]
-        public void Construct(IInventoryService inventory, IOperatorRoster roster)
+        public void Construct(ILegacyInventoryService inventory, IOperatorRoster roster)
         {
             this.inventory = inventory;
             this.roster    = roster;

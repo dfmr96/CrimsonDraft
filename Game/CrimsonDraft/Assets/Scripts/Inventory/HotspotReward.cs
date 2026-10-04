@@ -15,14 +15,14 @@ namespace CrimsonDraft.Inventory
     // plain [SerializeReference] data (authored in the Inspector), not VContainer-managed.
     public readonly struct HotspotRewardContext
     {
-        public readonly IInventoryService                InventoryService;
+        public readonly ILegacyInventoryService                InventoryService;
         public readonly NoteRegistry                      NoteRegistry;
         public readonly IPublisher<NoteCollectedEvent>    NotePublisher;
         public readonly ItemData?                          ConsumedItem;
         public readonly Action<string?>                    ClosePanel;
 
         public HotspotRewardContext(
-            IInventoryService inventoryService, NoteRegistry noteRegistry,
+            ILegacyInventoryService inventoryService, NoteRegistry noteRegistry,
             IPublisher<NoteCollectedEvent> notePublisher, ItemData? consumedItem, Action<string?> closePanel)
         {
             this.InventoryService = inventoryService;

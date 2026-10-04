@@ -19,7 +19,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly ContainerView view;
 
         private List<ItemData>    containerItems   = new();
-        private IInventoryService inventoryService = null!;
+        private ILegacyInventoryService inventoryService = null!;
         private int               cursorIndex;
         private bool              isOpen;
 
@@ -37,7 +37,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.inputService.UICancel.performed   += OnBack;
         }
 
-        public void Open(ContainerData data, IInventoryService inventory)
+        public void Open(ContainerData data, ILegacyInventoryService inventory)
         {
             if (data.Emptied) return;
 

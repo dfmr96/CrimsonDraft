@@ -101,7 +101,7 @@ namespace CrimsonDraft.Tests
             Assert.AreSame(dialogueA, comp.GetDialogue(colliderA));
         }
 
-        private sealed class FakeInventoryService : IInventoryService
+        private sealed class FakeInventoryService : ILegacyInventoryService
         {
             private readonly HashSet<string> itemIds;
             public FakeInventoryService(params string[] presentItemIds) => this.itemIds = new HashSet<string>(presentItemIds);

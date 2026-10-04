@@ -48,7 +48,7 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int HealthStateHash = Animator.StringToHash("HealthState");
 
         private IInputService         inputService         = null!;
-        private IInventoryService     inventoryService     = null!;
+        private ILegacyInventoryService     inventoryService     = null!;
         private IControlSchemeService controlSchemeService = null!;
         private IPlayerMovementStrategy modernStrategy  = null!;
         private IPlayerMovementStrategy classicStrategy = null!;
@@ -70,7 +70,7 @@ namespace CrimsonDraft.Navigation.Player
         [Inject]
         public void Construct(
             IInputService                  inputService,
-            IInventoryService              inventoryService,
+            ILegacyInventoryService              inventoryService,
             ICameraRelativeMovementService cameraRelativeMovementService,
             IControlSchemeService          controlSchemeService,
             IOperatorRoster                roster)

@@ -34,7 +34,7 @@ namespace CrimsonDraft.Tests
             public SaveGameData? ConsumePendingLoad() => null;
         }
 
-        private sealed class FakeInventoryService : IInventoryService
+        private sealed class FakeInventoryService : ILegacyInventoryService
         {
             public bool HasItem(string itemId) => false;
             public bool TryRemoveItem(string itemId) => false;
