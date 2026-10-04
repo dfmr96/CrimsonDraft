@@ -13,12 +13,10 @@ namespace CrimsonDraft.UI
 
         protected override void Configure(IContainerBuilder builder)
         {
-            // ILegacyInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
+            // IInventoryService, IOperatorRoster, ICombineService, CombineRecipeLibrary
             // are resolved from the parent NavigationScope — do NOT register them here.
 
             builder.RegisterInstance(this.inventorySfxData);
-
-            builder.RegisterComponentInHierarchy<InventoryPopulator>().AsImplementedInterfaces().AsSelf();
 
             builder.RegisterComponentInHierarchy<GridCursor>();
             builder.RegisterComponentInHierarchy<ItemContextMenu>();
@@ -38,8 +36,8 @@ namespace CrimsonDraft.UI
             if (FindFirstObjectByType<BeeperTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<BeeperTabController>();
 
+            builder.Register<InventoryPresenters>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
-            builder.Register<InventorySceneInit>(Lifetime.Singleton);
         }
     }
 }

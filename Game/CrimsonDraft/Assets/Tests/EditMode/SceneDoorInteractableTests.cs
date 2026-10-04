@@ -16,6 +16,8 @@ namespace CrimsonDraft.Tests
 {
     public sealed class SceneDoorInteractableTests
     {
+        private static readonly KeyItem TestKey = (KeyItem)InventoryItemFactory.Create(InventoryTestData.Key());
+
         // ── helpers ──────────────────────────────────────────────────────────
 
         private static SceneDoorInteractable MakeDoor(
@@ -68,8 +70,8 @@ namespace CrimsonDraft.Tests
             return data;
         }
 
-        private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
+        private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventoryService inventory)
+            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!);
 
         // ── tests ─────────────────────────────────────────────────────────────
 
@@ -79,7 +81,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var door        = MakeDoor(MakeUnlockedDoor(), fakeService, new DoorStateRegistry());
 
-            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
 
             Assert.IsTrue(fakeService.TransitionCalled, "must call floor transition immediately");
 
@@ -94,7 +96,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var door        = MakeDoor(MakeLockedDoor("door_locked"), fakeService, registry, "door-1");
 
-            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
 
             Assert.IsTrue(fakeService.TransitionCalled, "registry unlock must override locked data flag");
 
@@ -108,7 +110,7 @@ namespace CrimsonDraft.Tests
             var dialogue    = new FakeDialogue();
             var door        = MakeDoor(MakeLockedDoor("door_locked"), fakeService, new DoorStateRegistry());
 
-            door.Interact(MakeContext(dialogue, new FakeInventory()));
+            door.Interact(MakeContext(dialogue, new FakeInventoryService()));
 
             Assert.AreEqual("door_locked", dialogue.LastNodeName);
             Assert.IsFalse(fakeService.TransitionCalled, "must not transition when locked");
@@ -123,7 +125,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var door        = MakeDoor(MakeUnlockedDoor(), fakeService, registry, "door-1");
 
-            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
 
             Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-1"),
                 "crossing an open door must mark it Unlocked on the map");
@@ -138,7 +140,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var door        = MakeDoor(MakeLockedDoor("door_locked"), fakeService, registry, "door-1");
 
-            door.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
 
             Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-1"));
 
@@ -151,7 +153,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var dialogue    = new FakeDialogue();
             var keyData     = MakeKeyItem("key-1", "Key 1");
-            var inventory   = new FakeInventory { UseKeyResult = new KeyUseOutcome(KeyUseResult.Success, 0) };
+            var inventory   = new FakeInventoryService { NextKeyOutcome = new KeyUseOutcome(KeyUseResult.Success, TestKey) };
             var door        = MakeDoor(MakeLockedDoor("door_test", keyData), fakeService, new DoorStateRegistry());
 
             door.Interact(MakeContext(dialogue, inventory));
@@ -172,7 +174,7 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var dialogue    = new FakeDialogue();
             var keyData     = MakeKeyItem("key-1", "Key 1");
-            var inventory   = new FakeInventory { UseKeyResult = new KeyUseOutcome(KeyUseResult.Success, 0) };
+            var inventory   = new FakeInventoryService { NextKeyOutcome = new KeyUseOutcome(KeyUseResult.Success, TestKey) };
             var door        = MakeDoor(MakeLockedDoor("door_test", keyData), fakeService, registry, "door-1");
 
             door.Interact(MakeContext(dialogue, inventory));
@@ -189,13 +191,12 @@ namespace CrimsonDraft.Tests
             var fakeService = new FakeFloorService();
             var dialogue    = new FakeDialogue();
             var keyData     = MakeKeyItem("key-1", "Key 1");
-            var inventory   = new FakeInventory { UseKeyResult = new KeyUseOutcome(KeyUseResult.DepletedAfterUse, 3) };
+            var inventory   = new FakeInventoryService { NextKeyOutcome = new KeyUseOutcome(KeyUseResult.DepletedAfterUse, TestKey) };
             var door        = MakeDoor(MakeLockedDoor("door_test", keyData), fakeService, new DoorStateRegistry());
 
             door.Interact(MakeContext(dialogue, inventory));
 
-            Assert.IsTrue(inventory.RemoveItemCalled, "must remove item from inventory when key is depleted");
-            Assert.AreEqual(3, inventory.RemovedSlotIndex);
+            CollectionAssert.Contains(inventory.Removed, TestKey, "must remove item from inventory when key is depleted");
 
             UnityEngine.Object.DestroyImmediate(door.gameObject);
         }
@@ -233,39 +234,5 @@ namespace CrimsonDraft.Tests
             public void SetVariable(string name, object value) { }
         }
 
-        private sealed class FakeInventory : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            public KeyUseOutcome UseKeyResult    = new(KeyUseResult.NotFound, -1);
-            public bool          RemoveItemCalled { get; private set; }
-            public int           RemovedSlotIndex { get; private set; } = -1;
-
-            public IReadOnlyList<InventorySlot> Slots                                  => Array.Empty<InventorySlot>();
-            public int  SlotCount                                                       => 0;
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0)     => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)          => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0)                   => false;
-            public void RemoveItem(int slotIndex) { RemoveItemCalled = true; RemovedSlotIndex = slotIndex; }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot)                             { }
-            public void EquipWeapon(int slotIndex, int operatorSlot)                   { }
-            public void UnequipWeapon(int slotIndex)                                   { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)                       => -1;
-            public bool CanReload(int slotIndex, int operatorSlot)                     => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot)                { }
-            public bool TryCombine(int slotA, int slotB)                                   => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)                             => UseKeyResult;
-            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void            LoadState(InventorySlot[] slots)                        { }
-            public InventorySlot[] GetRawSlots()                                           => Array.Empty<InventorySlot>();
-        }
     }
 }

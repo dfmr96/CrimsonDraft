@@ -15,14 +15,14 @@ namespace CrimsonDraft.Inventory
     // plain [SerializeReference] data (authored in the Inspector), not VContainer-managed.
     public readonly struct HotspotRewardContext
     {
-        public readonly ILegacyInventoryService                InventoryService;
+        public readonly IInventoryService                InventoryService;
         public readonly NoteRegistry                      NoteRegistry;
         public readonly IPublisher<NoteCollectedEvent>    NotePublisher;
         public readonly ItemData?                          ConsumedItem;
         public readonly Action<string?>                    ClosePanel;
 
         public HotspotRewardContext(
-            ILegacyInventoryService inventoryService, NoteRegistry noteRegistry,
+            IInventoryService inventoryService, NoteRegistry noteRegistry,
             IPublisher<NoteCollectedEvent> notePublisher, ItemData? consumedItem, Action<string?> closePanel)
         {
             this.InventoryService = inventoryService;
@@ -64,8 +64,8 @@ namespace CrimsonDraft.Inventory
         public override string Grant(HotspotRewardContext context)
         {
             if (context.ConsumedItem != null)
-                context.InventoryService.TryRemoveItem(context.ConsumedItem.ItemId);
-            context.InventoryService.AddItemAuto(this.rewardItem);
+                context.InventoryService.TryRemove(context.ConsumedItem.ItemId);
+            context.InventoryService.TryAdd(this.rewardItem);
 
             // Freshly granted/unidentified, so the announcement uses SecondaryName -- same
             // "not yet identified" naming GridCursor's tooltip shows for any item the player

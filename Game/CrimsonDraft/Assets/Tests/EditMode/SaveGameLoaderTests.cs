@@ -35,38 +35,6 @@ namespace CrimsonDraft.Tests
             }
         }
 
-        private sealed class FakeInventoryService : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            public int SlotCount { get; set; } = 4;
-            public InventorySlot[]? LoadedSlots { get; private set; }
-            public IReadOnlyList<InventorySlot> Slots => Array.Empty<InventorySlot>();
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot) => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0) => false;
-            public void RemoveItem(int slotIndex) { }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot) { }
-            public void EquipWeapon(int slotIndex, int operatorSlot) { }
-            public void UnequipWeapon(int slotIndex) { }
-            public int GetEquippedWeaponIndex(int operatorSlot) => -1;
-            public bool CanReload(int slotIndex, int operatorSlot) => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot) { }
-            public bool TryCombine(int slotA, int slotB) => false;
-            public KeyUseOutcome TryUseKey(string keyItemId) => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void LoadState(InventorySlot[] slots) => this.LoadedSlots = slots;
-            public void SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public InventorySlot[] GetRawSlots() => Array.Empty<InventorySlot>();
-        }
-
         private sealed class FakeRoster : IOperatorRoster
         {
             public int[]? RestoredHp { get; private set; }
@@ -131,7 +99,7 @@ namespace CrimsonDraft.Tests
                 var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
-                Assert.IsNull(inventory.LoadedSlots);
+                Assert.IsNull(inventory.RestoredEntries);
                 Assert.IsNull(roomOrch.ActivatedRoomId);
             }
             finally
@@ -176,7 +144,7 @@ namespace CrimsonDraft.Tests
                     },
                 },
             };
-            var inventory = new FakeInventoryService { SlotCount = 4 };
+            var inventory = new FakeInventoryService();
             var roster    = new FakeRoster();
             var roomOrch  = new FakeRoomOrchestrator();
             var world = new WorldStateRegistries(
@@ -203,10 +171,9 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);
 
-                Assert.IsNotNull(inventory.LoadedSlots);
-                var keyItem = inventory.LoadedSlots![0].Item as KeyItem;
-                Assert.IsNotNull(keyItem);
-                Assert.AreEqual(1, keyItem!.UsesRemaining);
+                Assert.IsNotNull(inventory.RestoredEntries);
+                Assert.AreEqual("key-1", inventory.RestoredEntries![0].itemId);
+                Assert.AreEqual(1, inventory.RestoredEntries[0].keyUsesRemaining);
             }
             finally
             {

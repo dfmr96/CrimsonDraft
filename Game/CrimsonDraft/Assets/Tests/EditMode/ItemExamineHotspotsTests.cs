@@ -101,35 +101,6 @@ namespace CrimsonDraft.Tests
             Assert.AreSame(dialogueA, comp.GetDialogue(colliderA));
         }
 
-        private sealed class FakeInventoryService : ILegacyInventoryService
-        {
-            private readonly HashSet<string> itemIds;
-            public FakeInventoryService(params string[] presentItemIds) => this.itemIds = new HashSet<string>(presentItemIds);
-
-            public bool HasItem(string itemId) => this.itemIds.Contains(itemId);
-            public bool TryRemoveItem(string itemId) => this.itemIds.Remove(itemId);
-
-            public IReadOnlyList<InventorySlot> Slots => Array.Empty<InventorySlot>();
-            public int  SlotCount                                           => 0;
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => false;
-            public void RemoveItem(int slotIndex) { }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot)         { }
-            public void EquipWeapon(int slotIndex, int operatorSlot) { }
-            public void UnequipWeapon(int slotIndex)               { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)   => -1;
-            public bool CanReload(int slotIndex, int operatorSlot) => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot) { }
-            public bool TryCombine(int slotA, int slotB)                       => false;
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem) { combinedItem = null; return false; }
-            public KeyUseOutcome TryUseKey(string keyItemId)                   => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void          SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void          LoadState(InventorySlot[] slots)               { }
-            public InventorySlot[] GetRawSlots()                               => Array.Empty<InventorySlot>();
-        }
-
         private static ItemData MakeItemData(string itemId)
         {
             var d  = ScriptableObject.CreateInstance<ItemData>();

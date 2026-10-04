@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation.Interactables
     {
         private readonly IInputService       inputService;
         private readonly ISaveGameService    saveGameService;
-        private readonly ILegacyInventoryService   inventoryService;
+        private readonly IInventoryService   inventoryService;
         private readonly IOperatorRoster     roster;
         private readonly IRoomOrchestrator   roomOrchestrator;
         private readonly PlayerController    player;
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Navigation.Interactables
             IInputService        inputService,
             SaveSlotListView     view,
             ISaveGameService     saveGameService,
-            ILegacyInventoryService    inventoryService,
+            IInventoryService    inventoryService,
             IOperatorRoster      roster,
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
@@ -121,27 +121,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 });
             }
 
-            var slots = this.inventoryService.GetRawSlots();
-            for (int i = 0; i < slots.Length; i++)
-            {
-                if (slots[i].IsEmpty) continue;
-                var item = slots[i].Item!;
-                data.inventorySlots.Add(new InventorySlotEntry
-                {
-                    slotIndex            = i,
-                    itemId               = item.Data.ItemId,
-                    slotQuantity         = slots[i].Quantity,
-                    ammoBoxQuantity      = item is AmmoBoxItem box ? box.Quantity : -1,
-                    weaponAmmo           = item is WeaponItem weapon ? weapon.CurrentAmmo : -1,
-                    keyUsesRemaining     = item is KeyItem key ? key.UsesRemaining : -1,
-                    isExamined           = item.IsExamined,
-                    gridCol              = slots[i].GridCol,
-                    gridRow              = slots[i].GridRow,
-                    gridRotation         = slots[i].GridRotation,
-                    equippedOperatorSlot = item.EquippedBySlot,
-                    equippedWeaponSlot   = item.EquippedWeaponSlot,
-                });
-            }
+            data.inventoryItems.AddRange(InventorySerializer.Capture(this.inventoryService));
 
             return data;
         }

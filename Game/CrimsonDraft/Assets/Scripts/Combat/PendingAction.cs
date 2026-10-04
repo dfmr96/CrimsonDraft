@@ -1,5 +1,7 @@
 #nullable enable
 
+using CrimsonDraft.Inventory;
+
 namespace CrimsonDraft.Combat
 {
     public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover, FocusFire, Melee }
@@ -8,7 +10,7 @@ namespace CrimsonDraft.Combat
     {
         public PendingActionType Type               { get; }
         public int               SlotIndex          { get; }
-        public int               ItemIndex          { get; }
+        public InventoryItem?    Item               { get; }
         public int               TargetOperatorSlot { get; }
         public int               Damage             { get; }
         public int[]             FocusFireParticipants { get; }
@@ -16,14 +18,14 @@ namespace CrimsonDraft.Combat
         private PendingAction(
             PendingActionType type,
             int slotIndex,
-            int itemIndex          = -1,
+            InventoryItem? item     = null,
             int targetOperatorSlot = -1,
             int damage             = 0,
             int[]? focusFireParticipants = null)
         {
             this.Type               = type;
             this.SlotIndex          = slotIndex;
-            this.ItemIndex          = itemIndex;
+            this.Item               = item;
             this.TargetOperatorSlot = targetOperatorSlot;
             this.Damage             = damage;
             this.FocusFireParticipants = focusFireParticipants ?? System.Array.Empty<int>();
@@ -32,8 +34,8 @@ namespace CrimsonDraft.Combat
         public static PendingAction Shoot(int operatorSlot) =>
             new PendingAction(PendingActionType.Shoot, operatorSlot);
 
-        public static PendingAction UseItem(int operatorSlot, int itemIndex) =>
-            new PendingAction(PendingActionType.UseItem, operatorSlot, itemIndex: itemIndex);
+        public static PendingAction UseItem(int operatorSlot, InventoryItem? item) =>
+            new PendingAction(PendingActionType.UseItem, operatorSlot, item: item);
 
         public static PendingAction EnemyAttack(int enemySlot, int targetOperatorSlot, int damage) =>
             new PendingAction(PendingActionType.EnemyAttack, enemySlot,

@@ -138,12 +138,13 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(1);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
 
-            this.combatInventoryView.RaiseOnItemUsed(5);
+            var item = InventoryItemFactory.Create(InventoryTestData.Consumable());
+            this.combatInventoryView.RaiseOnItemUsed(item);
 
             Assert.AreEqual(1, this.orchestrator.EnqueueCallCount);
             Assert.AreEqual(PendingActionType.UseItem, this.orchestrator.LastEnqueuedAction?.Type);
             Assert.AreEqual(1, this.orchestrator.LastEnqueuedAction?.SlotIndex);
-            Assert.AreEqual(5, this.orchestrator.LastEnqueuedAction?.ItemIndex);
+            Assert.AreSame(item, this.orchestrator.LastEnqueuedAction?.Item);
             Assert.IsFalse(this.combatInventoryView.IsVisible);
         }
 
@@ -1008,53 +1009,6 @@ namespace CrimsonDraft.Tests
 
         // ── Fakes ──────────────────────────────────────────────────────
 
-        private sealed class FakeInventoryService : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            private readonly InventorySlot[] slots = new InventorySlot[8]; // 2 operators × 4
-
-            public FakeInventoryService()
-            {
-                for (int i = 0; i < this.slots.Length; i++)
-                    this.slots[i] = new InventorySlot();
-            }
-
-            public IReadOnlyList<InventorySlot> Slots    => this.slots;
-            public int                          SlotCount => this.slots.Length;
-
-            public int RemoveItemCallCount  { get; private set; }
-            public int LastRemovedSlotIndex { get; private set; } = -1;
-
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => true;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
-            public void RemoveItem(int slotIndex)
-            {
-                this.RemoveItemCallCount++;
-                this.LastRemovedSlotIndex = slotIndex;
-            }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot)                         { }
-            public void EquipWeapon(int slotIndex, int operatorSlot)               { }
-            public void UnequipWeapon(int slotIndex)                               { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)                   => -1;
-            public bool CanReload(int slotIndex, int operatorSlot)                 => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot)            { }
-            public bool            TryCombine(int slotA, int slotB)          => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)               => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void            LoadState(InventorySlot[] slots)          { }
-            public InventorySlot[] GetRawSlots()                             => this.slots;
-        }
-
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
         {
             public event Action<int>? OnOperatorSelected;
@@ -1146,7 +1100,7 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeCombatInventoryView : ICombatInventoryView
         {
-            public event Action<int>? OnItemUsed;
+            public event Action<InventoryItem?>? OnItemUsed;
             public event Action?      OnCancelled;
             public bool IsVisible             { get; private set; }
             public int  LastShownOperatorSlot { get; private set; } = -1;
@@ -1156,7 +1110,7 @@ namespace CrimsonDraft.Tests
                 this.IsVisible             = true;
             }
             public void Hide()                          => this.IsVisible = false;
-            public void RaiseOnItemUsed(int slotIndex)   => this.OnItemUsed?.Invoke(slotIndex);
+            public void RaiseOnItemUsed(InventoryItem? item) => this.OnItemUsed?.Invoke(item);
             public void RaiseOnCancelled()               => this.OnCancelled?.Invoke();
         }
 

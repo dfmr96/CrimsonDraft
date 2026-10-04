@@ -59,7 +59,7 @@ namespace CrimsonDraft.Inventory
         public DialogueReference GetDialogue(Collider? hitCollider) =>
             FindHotspot(hitCollider)?.dialogue ?? this.defaultDialogue;
 
-        // Takes ILegacyInventoryService as a parameter, not injected -- this component lives on
+        // Takes IInventoryService as a parameter, not injected -- this component lives on
         // a prefab instantiated at runtime via Instantiate(), outside VContainer's build
         // graph (same reasoning as PickupPreviewView's own lack of injection).
         //
@@ -68,7 +68,7 @@ namespace CrimsonDraft.Inventory
         // valid defaultDialogue either) -- callers fall back to ItemData.ExamineDialogue
         // in that case, same contract PickupPreviewView.TryGetExamineDialogue() already
         // documented before this method existed.
-        public ExamineResolution? Resolve(Collider? hitCollider, ILegacyInventoryService inventory)
+        public ExamineResolution? Resolve(Collider? hitCollider, IInventoryService inventory)
         {
             var hotspot = FindHotspot(hitCollider);
 

@@ -36,11 +36,11 @@ namespace CrimsonDraft.UI
         [SerializeField] private Animator? selectorAnimator;
         [SerializeField] private float     useAnimationTimeout = 1.5f; // safety net if the event never fires
 
-        [Inject] private ILegacyInventoryService inventoryService = null!;
+        [Inject] private IInventoryService inventoryService = null!;
         [Inject] private IInputService     inputService     = null!;
         [Inject] private CombatSfxData     sfx              = null!;
 
-        public event Action<int>? OnItemUsed;
+        public event Action<InventoryItem?>? OnItemUsed;
         public event Action?      OnCancelled;
 
         private int        operatorSlot;
@@ -48,7 +48,7 @@ namespace CrimsonDraft.UI
         private bool       isActive;
         private Vector2Int lastDir;
         private float      nextMoveTime;
-        private int        pendingCombineSlot = -1; // ammo box slot awaiting a weapon target
+        private AmmoBoxItem? pendingCombineAmmo;
         private InventoryItemView? combineSourceView; // ammo box view being tinted while pending
         private CanvasGroup canvasGroup  = null!;
         private Image       selectorImage = null!;
@@ -57,7 +57,7 @@ namespace CrimsonDraft.UI
         private InspectPanel? inspectPanel;
         private bool        inputBound;
 
-        private readonly List<InventoryItemView> spawnedViews = new();
+        private ContainerGridPresenter? presenter;
 
         private static readonly Color ColorSelectorNormal     = Color.white;
         private static readonly Color ColorSelectorOnItem     = Color.yellow;
@@ -160,11 +160,10 @@ namespace CrimsonDraft.UI
             this.currentCell       = Vector2Int.zero;
             this.lastDir           = Vector2Int.zero;
             this.isActive          = true;
-            this.pendingCombineSlot = -1;
+            this.pendingCombineAmmo = null;
 
-            this.inventoryService.PruneEmptyStacks();
             RepositionToOperator(operatorOverviewRect);
-            PopulateGrid(opSlot);
+            BindGrid(opSlot);
             SetVisible(true);
             UpdateSelector();
         }
@@ -191,7 +190,7 @@ namespace CrimsonDraft.UI
         public void Hide()
         {
             this.isActive              = false;
-            this.pendingCombineSlot    = -1;
+            this.pendingCombineAmmo    = null;
             this.combineSourceView     = null;
             this.pendingUseCallback    = null;
             this.useAnimationCompleted = true;
@@ -199,106 +198,29 @@ namespace CrimsonDraft.UI
                 this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
                 this.inspectPanel.Close();
-            ClearGrid();
+            UnbindGrid();
             SetVisible(false);
         }
 
-        // ── Grid population ──────────────────────────────────────────────────
+        // ── Grid binding ─────────────────────────────────────────────────────
 
-        private void PopulateGrid(int opSlot)
+        private void BindGrid(int opSlot)
         {
-            ClearGrid();
-            int start = opSlot * InventoryConstants.SlotsPerOperator;
-            int end   = Mathf.Min(start + InventoryConstants.SlotsPerOperator, this.inventoryService.SlotCount);
-
-            // Pass 1: items with a saved 2D position go to their exact cell.
-            for (int i = start; i < end; i++)
-            {
-                var slot = this.inventoryService.Slots[i];
-                if (slot.IsEmpty || slot.Item == null) continue;
-                if (slot.GridCol < 0 || slot.GridRow < 0) continue;
-
-                SpawnItemView(slot.Item, slot.GridCol, slot.GridRow, slot.GridRotation);
-            }
-
-            // Pass 2: unpositioned items (e.g. picked up without opening the nav
-            // inventory) scan the whole grid for the first free cell — mirrors
-            // InventoryPopulator.TryFindSlot so items wrap across rows.
-            for (int i = start; i < end; i++)
-            {
-                var slot = this.inventoryService.Slots[i];
-                if (slot.IsEmpty || slot.Item == null) continue;
-                if (slot.GridCol >= 0 && slot.GridRow >= 0) continue;
-
-                if (TryFindFreeCell(slot.Item.Data.GridSize, out var origin))
-                    SpawnItemView(slot.Item, origin.x, origin.y, 0);
-                else
-                    Debug.LogWarning($"[CombatInventory] No free cell for {slot.Item.Data.DisplayName}");
-            }
+            UnbindGrid();
+            this.presenter = new ContainerGridPresenter(
+                this.inventoryService.GetContainer(ContainerId.Operator(opSlot)), this.grid, this.itemViewPrefab);
+            this.presenter.Rendered += UpdateSelector;
         }
 
-        private bool TryFindFreeCell(Vector2Int size, out Vector2Int origin)
+        private void UnbindGrid()
         {
-            int maxCol = this.grid.Columns - size.x;
-            int maxRow = this.grid.Rows    - size.y;
-            if (maxCol < 0 || maxRow < 0) { origin = default; return false; }
-
-            for (int row = 0; row <= maxRow; row++)
-                for (int col = 0; col <= maxCol; col++)
-                {
-                    var o = new Vector2Int(col, row);
-                    if (this.grid.CanPlace(o, size)) { origin = o; return true; }
-                }
-
-            origin = default;
-            return false;
+            if (this.presenter == null) return;
+            this.presenter.Rendered -= UpdateSelector;
+            this.presenter.Dispose();
+            this.presenter = null;
         }
 
-        private void SpawnItemView(InventoryItem item, int col, int row, int rotation)
-        {
-            var origin = new Vector2Int(col, row);
-            var size   = rotation == 0
-                ? item.Data.GridSize
-                : new Vector2Int(item.Data.GridSize.y, item.Data.GridSize.x);
-
-            if (!this.grid.CanPlace(origin, size))
-            {
-                Debug.LogWarning($"[CombatInventory] Cannot place {item.Data.DisplayName} at ({col},{row})");
-                return;
-            }
-
-            var view = Instantiate(this.itemViewPrefab, this.grid.transform);
-            view.Initialize(item, origin, this.grid.CellSize);
-            view.SetOwnerGrid(this.grid);
-
-            var rt = view.GetComponent<RectTransform>();
-            rt.anchoredPosition = this.grid.CellToLocal(origin);
-            this.grid.PlaceItem(view);
-
-            if (rotation == 1)
-            {
-                this.grid.RemoveItem(view);
-                view.Rotate();
-                this.grid.PlaceItem(view);
-                var pos = this.grid.CellToLocal(origin);
-                pos.x += rt.sizeDelta.y;
-                rt.anchoredPosition = pos;
-            }
-
-            view.RefreshQuantity();
-            this.spawnedViews.Add(view);
-        }
-
-        private void ClearGrid()
-        {
-            foreach (var v in this.spawnedViews)
-            {
-                if (v == null) continue;
-                this.grid.RemoveItem(v);
-                Destroy(v.gameObject);
-            }
-            this.spawnedViews.Clear();
-        }
+        private InventoryItemView? ViewAtCursor() => this.presenter?.ViewAt(this.currentCell);
 
         // ── Navigation ───────────────────────────────────────────────────────
 
@@ -340,21 +262,21 @@ namespace CrimsonDraft.UI
 
         private void TryMove(Vector2Int dir)
         {
+            if (this.presenter == null) return;
+            var container = this.presenter.Container;
             Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
 
-            InventoryItemView? underCursor = this.grid.GetItemAt(this.currentCell);
-            if (underCursor != null)
+            if (container.GetItemAt(this.currentCell) is { } under)
             {
-                var o = underCursor.GridOrigin;
-                var s = underCursor.GridSize;
-                if      (dir.x > 0) next.x = o.x + s.x;
-                else if (dir.x < 0) next.x = o.x - 1;
-                else if (dir.y > 0) next.y = o.y - 1;
-                else if (dir.y < 0) next.y = o.y + s.y;
+                var placement = container.GetPlacement(under)!;
+                if      (dir.x > 0) next.x = placement.Origin.x + placement.Footprint.x;
+                else if (dir.x < 0) next.x = placement.Origin.x - 1;
+                else if (dir.y > 0) next.y = placement.Origin.y - 1;
+                else if (dir.y < 0) next.y = placement.Origin.y + placement.Footprint.y;
             }
 
-            next.x = Mathf.Clamp(next.x, 0, this.grid.Columns - 1);
-            next.y = Mathf.Clamp(next.y, 0, this.grid.Rows    - 1);
+            next.x = Mathf.Clamp(next.x, 0, container.Width - 1);
+            next.y = Mathf.Clamp(next.y, 0, container.Height - 1);
             this.currentCell = next;
             UpdateSelector();
             this.sfx?.PlayCursor(gameObject);
@@ -362,22 +284,22 @@ namespace CrimsonDraft.UI
 
         private void UpdateSelector()
         {
-            InventoryItemView? item   = this.grid.GetItemAt(this.currentCell);
-            Vector2Int         size   = item != null ? item.GridSize   : Vector2Int.one;
-            Vector2Int         origin = item != null ? item.GridOrigin : this.currentCell;
+            if (this.presenter == null) return;
+            var under     = this.presenter.Container.GetItemAt(this.currentCell);
+            var placement = under != null ? this.presenter.Container.GetPlacement(under) : null;
+            Vector2Int size   = placement?.Footprint ?? Vector2Int.one;
+            Vector2Int origin = placement?.Origin    ?? this.currentCell;
 
-            bool isCombining = this.pendingCombineSlot >= 0;
+            bool isCombining = this.pendingCombineAmmo != null;
             this.selectorImage.color = isCombining ? Color.white
-                : item != null ? ColorSelectorOnItem
+                : under != null ? ColorSelectorOnItem
                 : ColorSelectorNormal;
 
             if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
                 this.selectorImage.sprite = isCombining ? this.selectorSpriteHold : this.selectorSpriteNormal;
 
             this.selectorRect.anchoredPosition = this.grid.CellToLocal(origin);
-            this.selectorRect.sizeDelta        = new Vector2(
-                size.x * this.grid.CellSize,
-                size.y * this.grid.CellSize);
+            this.selectorRect.sizeDelta        = new Vector2(size.x * this.grid.CellSize, size.y * this.grid.CellSize);
         }
 
         // ── Input handlers ───────────────────────────────────────────────────
@@ -394,29 +316,25 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            // ── Combine mode: player is selecting the target weapon ───────────
-            if (this.pendingCombineSlot >= 0)
+            if (this.pendingCombineAmmo != null)
             {
-                InventoryItemView? target = this.grid.GetItemAt(this.currentCell);
+                InventoryItemView? target = ViewAtCursor();
                 if (target != null && target.Data.ItemType == ItemType.Weapon
-                    && this.inventoryService.CanReload(this.pendingCombineSlot, this.operatorSlot))
+                    && this.inventoryService.CanReload(this.pendingCombineAmmo, this.operatorSlot))
                 {
                     this.sfx?.PlayDecide(gameObject);
-                    ExecuteReload(this.pendingCombineSlot);
+                    ExecuteReload();
                 }
-                // If target isn't valid (full, wrong caliber), stay in combine mode
                 return;
             }
 
-            // ── Normal confirm: open context menu ─────────────────────────────
-            InventoryItemView? view = this.grid.GetItemAt(this.currentCell);
+            InventoryItemView? view = ViewAtCursor();
             if (view == null) return;
 
-            int slotIndex = FindSlotIndex(view);
             var options = new ContextMenuOptions
             {
                 CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0,
-                CanCombine = slotIndex >= 0 && view.Data.ItemType == ItemType.AmmoBox,
+                CanCombine = view.Data.ItemType == ItemType.AmmoBox,
                 CanEquip   = false,
                 CanInspect = false,
             };
@@ -447,11 +365,10 @@ namespace CrimsonDraft.UI
                 this.contextMenu.Close();
                 return;
             }
-            // Exit combine mode back to normal grid navigation
-            if (this.pendingCombineSlot >= 0)
+            if (this.pendingCombineAmmo != null)
             {
                 this.sfx?.PlayCancel(gameObject);
-                this.pendingCombineSlot = -1;
+                this.pendingCombineAmmo = null;
                 RevertCombineSourceTint();
                 UpdateSelector();
                 return;
@@ -462,43 +379,31 @@ namespace CrimsonDraft.UI
 
         private void HandleUse(InventoryItemView view)
         {
-            int slotIndex = FindSlotIndex(view);
-            if (slotIndex < 0)
-            {
-                Debug.LogWarning("[CombatInventory] Used item not found in operator's inventory slots");
-                return;
-            }
-            PlayUseFeedback(() => OnItemUsed?.Invoke(slotIndex));
+            var item = view.BoundItem;
+            PlayUseFeedback(() => OnItemUsed?.Invoke(item));
         }
 
         private void HandleCombine(InventoryItemView view)
         {
-            int slotIndex = FindSlotIndex(view);
-            if (slotIndex < 0)
-            {
-                Debug.LogWarning("[CombatInventory] Combine: ammo box not found in operator's slots");
-                return;
-            }
-            this.pendingCombineSlot = slotIndex;
+            if (view.BoundItem is not AmmoBoxItem ammo) return;
+            this.pendingCombineAmmo = ammo;
             this.combineSourceView  = view;
-            view.GetComponent<Image>().color = ColorCombineSourceTint;
+            view.SetTint(ColorCombineSourceTint);
             UpdateSelector();
         }
 
-        // Called from the combine-pending confirm path
-        private void ExecuteReload(int ammoSlotIndex)
+        private void ExecuteReload()
         {
-            this.inventoryService.ReloadOperator(ammoSlotIndex, this.operatorSlot);
-            this.pendingCombineSlot = -1;
+            var ammo = this.pendingCombineAmmo!;
+            this.pendingCombineAmmo = null;
             RevertCombineSourceTint();
-            // -1 signals "turn consumed, but no item to remove" to the orchestrator
-            PlayUseFeedback(() => OnItemUsed?.Invoke(-1));
+            this.inventoryService.TryReload(ammo, this.operatorSlot);
+            PlayUseFeedback(() => OnItemUsed?.Invoke(null));
         }
 
         private void RevertCombineSourceTint()
         {
-            if (this.combineSourceView != null)
-                this.combineSourceView.GetComponent<Image>().color = Color.white;
+            if (this.combineSourceView != null) this.combineSourceView.ResetTint();
             this.combineSourceView = null;
         }
 
@@ -542,15 +447,6 @@ namespace CrimsonDraft.UI
                 Debug.LogWarning("[CombatInventory] Selector use animation timed out — forcing continue.");
                 OnSelectorAnimationComplete();
             }
-        }
-
-        private int FindSlotIndex(InventoryItemView view)
-        {
-            int start = this.operatorSlot * InventoryConstants.SlotsPerOperator;
-            int end   = Mathf.Min(start + InventoryConstants.SlotsPerOperator, this.inventoryService.SlotCount);
-            for (int i = start; i < end; i++)
-                if (this.inventoryService.Slots[i].Item == view.BoundItem) return i;
-            return -1;
         }
 
         private Vector2Int ReadDirection()

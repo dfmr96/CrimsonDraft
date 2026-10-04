@@ -187,7 +187,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         // when nothing usable resolves -- callers should fall back to that item's own
         // default examine text in that case. A non-null result is either text to type or a
         // prompt to run -- see ExamineResolution.
-        public ExamineResolution? TryGetExamineDialogue(ILegacyInventoryService inventory)
+        public ExamineResolution? TryGetExamineDialogue(IInventoryService inventory)
         {
             if (this.currentInstance == null) return null;
 

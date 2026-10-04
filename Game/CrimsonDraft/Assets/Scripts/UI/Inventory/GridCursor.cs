@@ -1,8 +1,9 @@
 #nullable enable
 
+using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 using VContainer;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
@@ -13,91 +14,59 @@ namespace CrimsonDraft.UI
     public class GridCursor : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private InventoryGridGroup  gridGroup    = null!;
-        [SerializeField] private RectTransform       selectorRect = null!;
-        [SerializeField] private ItemContextMenu     contextMenu  = null!;
-        [SerializeField] private ItemTooltip         tooltip      = null!;
-        [SerializeField] private InspectPanel        inspectPanel = null!;
-        [SerializeField] private TabManager?         tabManager;
-        [SerializeField] private PartyPanelView?     partyPanel;
+        [SerializeField] private SelectorView    selector     = null!;
+        [SerializeField] private HeldItemView    heldView     = null!;
+        [SerializeField] private ItemContextMenu contextMenu  = null!;
+        [SerializeField] private InspectPanel    inspectPanel = null!;
+        [SerializeField] private TabManager?     tabManager;
+        [SerializeField] private PartyPanelView? partyPanel;
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
 
-        [Header("Selector Sizing")]
-        [SerializeField] private float selectorPadding = 1f;
-        [SerializeField] private float hoverScaleMultiplier = 1.07f; // cursor + item grow while browsing over an occupied cell
+        [Inject] private IInputService       inputService = null!;
+        [Inject] private InventorySfxData    sfx          = null!;
+        [Inject] private IInventoryService   inventory    = null!;
+        [Inject] private InventoryPresenters presenters   = null!;
 
-        [Header("Hold Colors")]
-        [SerializeField] private Color colorHoldTint    = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f); // #9A9F5C
-        [SerializeField] private float alphaCannotPlace = 100f / 255f;
-        [SerializeField] private Color colorNormalItem  = Color.white;
+        private GridNavigator? navigator;
+        private bool           inputBound;
+        private bool           isCombineMode;
+        private bool           onMeleeSlot;
+        private bool           holdingDirection;
+        private Vector2Int     lastDir;
+        private float          nextMoveTime;
 
-        [Header("Selector Sprites")]
-        [SerializeField] private Sprite? selectorSpriteNormal;
-        [SerializeField] private Sprite? selectorSpriteHold; // shown while moving/combining
+        public event Action<InventoryItemView>? OnCellConfirmed;
+        public event Action<InventoryItemView>? OnCombineTargetConfirmed;
+        public event Action?                    OnCombineCancelled;
+        public event Action?                    OnCloseRequested;
 
-        [Inject] private IInputService     inputService = null!;
-        [Inject] private InventorySfxData  sfx          = null!;
-
-        // Resolved lazily via the container instead of [Inject] -- InventorySceneInit's own
-        // constructor takes a GridCursor param (for FindView), so field-injecting it directly
-        // here creates a circular resolution VContainer can't build (Lazy<T> reentrancy).
-        [Inject] private IObjectResolver  resolver     = null!;
-        private bool inputBound;
-
-        // Combine mode — set by InventoryHUDController
-        private bool isCombineMode;
         public bool IsCombineMode
         {
             get => this.isCombineMode;
             set
             {
                 this.isCombineMode = value;
-                PlaceSelectorAt(this.currentCell);
+                Refresh();
             }
         }
 
-        // Events consumed by InventoryHUDController
-        public event System.Action<InventoryItemView>?               OnCellConfirmed;
-        public event System.Action<InventoryItemView>?               OnCombineTargetConfirmed;
-        public event System.Action<InventoryItemView, InventoryGrid>? OnItemMovedToNewGrid;
-        public event System.Action<InventoryItemView>?               OnItemPlaced;
-        public event System.Action?                                   OnCombineCancelled;
-        public event System.Action?                                   OnCloseRequested;
-        public event System.Action<InventoryItemView>?                OnSplitCancelled;
+        public bool       IsHoldingItem => this.inventory.Held != null;
+        public Vector2Int CurrentCell   => Navigator.Cell;
 
-        // Grid state
-        private int        currentGridIndex;
-        private Vector2Int currentCell;
-        private Image      selectorImage = null!;
-        private Vector2Int lastDir;
-        private float      nextMoveTime;
-        private bool       holding;
-        private bool       onMeleeSlot;
-        private InventoryItemView? hoveredItem;      // scaled up while the cursor is browsing over it
-        private RectTransform?     hoveredMeleeIcon; // scaled up while the cursor is on the melee slot
+        private GridNavigator Navigator => this.navigator ??=
+            new GridNavigator(this.inventory.GetContainer, this.presenters.BuildLinks(), this.presenters.FirstGrid);
 
-        // Held item state
-        private InventoryItemView? heldItem;
-        private InventoryGrid?     heldFromGrid;
-        private bool               isSplitPhantomHeld;
+        private ContainerGridPresenter CurrentPresenter => this.presenters.Get(Navigator.Grid);
 
-        private InventoryGrid CurrentGrid => this.gridGroup.GetGrid(this.currentGridIndex);
-
-        private static readonly Color ColorSelectorNormal = Color.white;
-        private static readonly Color ColorSelectorOnItem = Color.yellow;
+        private int CurrentOperatorIndex =>
+            Navigator.Grid.Kind == ContainerKind.Operator ? Navigator.Grid.Index : -1;
 
         // ── Lifecycle ────────────────────────────────────────────────────────
 
-        void Awake()
-        {
-            if (this.gridGroup == null)
-                this.gridGroup = GetComponentInParent<InventoryGridGroup>();
-        }
-
-        void OnEnable()
+        private void OnEnable()
         {
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
@@ -105,7 +74,7 @@ namespace CrimsonDraft.UI
             this.inputBound = true;
         }
 
-        void OnDisable()
+        private void OnDisable()
         {
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
@@ -113,106 +82,82 @@ namespace CrimsonDraft.UI
             this.inputBound = false;
         }
 
-        void Start()
+        private void Start()
         {
-            this.selectorImage = this.selectorRect.GetComponent<Image>();
-
-            if (this.contextMenu != null)
-                this.contextMenu.OnClose += OnMenuClosed;
+            if (this.contextMenu != null)  this.contextMenu.OnClose  += OnMenuClosed;
             if (this.inspectPanel != null) this.inspectPanel.OnClose += OnInspectClosed;
+            this.presenters.Rendered  += OnGridRendered;
+            this.inventory.HeldChanged += OnHeldChanged;
 
-            AttachSelectorToGrid(CurrentGrid);
-            PlaceSelectorAt(this.currentCell);
+            Refresh();
 
-            // OnEnable runs before VContainer injection at scene start — subscribe here if missed
+            // OnEnable runs before VContainer injection at scene start — subscribe here if missed.
             OnEnable();
         }
 
-        // ── Update ───────────────────────────────────────────────────────────
-
-        void Update()
+        private void OnDestroy()
         {
-            if (this.inspectPanel != null && this.inspectPanel.IsOpen)
-                return;
+            if (this.contextMenu != null)  this.contextMenu.OnClose  -= OnMenuClosed;
+            if (this.inspectPanel != null) this.inspectPanel.OnClose -= OnInspectClosed;
+            if (this.presenters != null)   this.presenters.Rendered  -= OnGridRendered;
+            if (this.inventory != null)    this.inventory.HeldChanged -= OnHeldChanged;
+        }
 
-            // Tab bar has focus — grid cursor yields
-            if (this.tabManager != null && this.tabManager.IsTabBarActive)
-                return;
+        private void Update()
+        {
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
+            if (this.tabManager != null && this.tabManager.IsTabBarActive) return;
 
-            Vector2Int dir = ReadDirection();
-
+            var dir = ReadDirection();
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                HandleMenuNavigation(dir);
+                Repeat(dir, NavigateMenu);
                 return;
             }
 
-            HandleGridNavigation(dir);
-
-            if (this.heldItem != null)
-                UpdateHeldItemVisual();
+            Repeat(dir, TryMove);
         }
 
         // ── Navigation ───────────────────────────────────────────────────────
 
-        void HandleGridNavigation(Vector2Int dir)
+        private void Repeat(Vector2Int dir, Action<Vector2Int> step)
         {
             if (dir == Vector2Int.zero)
             {
-                this.holding = false;
-                this.lastDir = Vector2Int.zero;
+                this.holdingDirection = false;
+                this.lastDir          = Vector2Int.zero;
                 return;
             }
 
             if (dir != this.lastDir)
             {
-                TryMove(dir);
-                this.lastDir      = dir;
-                this.holding      = true;
-                this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
+                step(dir);
+                this.lastDir          = dir;
+                this.holdingDirection = true;
+                this.nextMoveTime     = Time.unscaledTime + this.initialRepeatDelay;
             }
-            else if (this.holding && Time.unscaledTime >= this.nextMoveTime)
+            else if (this.holdingDirection && Time.unscaledTime >= this.nextMoveTime)
             {
-                TryMove(dir);
+                step(dir);
                 this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
             }
         }
 
-        void HandleMenuNavigation(Vector2Int dir)
+        private void NavigateMenu(Vector2Int dir)
         {
-            if (dir == Vector2Int.zero)
-            {
-                this.holding = false;
-                this.lastDir = Vector2Int.zero;
-                return;
-            }
-
-            if (dir.y != 0 && dir != this.lastDir)
-            {
-                this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayCursor(gameObject);
-                this.lastDir      = dir;
-                this.holding      = true;
-                this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
-            }
-            else if (dir.y != 0 && this.holding && Time.unscaledTime >= this.nextMoveTime)
-            {
-                this.contextMenu.NavigateMenu(dir.y);
-                this.sfx?.PlayCursor(gameObject);
-                this.nextMoveTime = Time.unscaledTime + this.repeatInterval;
-            }
+            if (dir.y == 0) return;
+            this.contextMenu.NavigateMenu(dir.y);
+            this.sfx.PlayCursor(this.gameObject);
         }
 
-        void TryMove(Vector2Int dir)
+        private void TryMove(Vector2Int dir)
         {
-            // Melee slot is a pseudo-cell above row 0 -- it isn't part of CurrentGrid, so its
-            // navigation is handled separately from the grid math below.
             if (this.onMeleeSlot)
             {
                 if (dir.y < 0)
                 {
-                    ExitMeleeSlotToGrid();
-                    this.sfx?.PlayCursor(gameObject);
+                    ExitMeleeSlot();
+                    this.sfx.PlayCursor(this.gameObject);
                 }
                 else if (dir.y > 0)
                 {
@@ -221,119 +166,158 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            Vector2Int next = this.currentCell + new Vector2Int(dir.x, -dir.y);
-
-            // When not holding an item, skip to the far edge of the current item
-            // so multi-cell items don't require multiple presses to navigate past them.
-            if (this.heldItem == null)
+            if (Navigator.Move(dir, this.IsHoldingItem) == NavigationExit.Up)
             {
-                InventoryItemView? underCursor = CurrentGrid.GetItemAt(this.currentCell);
-                if (underCursor != null)
-                {
-                    Vector2Int o = underCursor.GridOrigin;
-                    Vector2Int s = underCursor.GridSize;
-
-                    if      (dir.x > 0) next.x = o.x + s.x;      // skip past right edge
-                    else if (dir.x < 0) next.x = o.x - 1;         // skip past left edge
-                    else if (dir.y < 0) next.y = o.y + s.y;       // skip past bottom edge (screen down = grid +y)
-                    else if (dir.y > 0) next.y = o.y - 1;         // skip past top edge
-                }
-
-                // Pressing up past row 0 exits the grid into the operator's melee slot
-                // (rendered directly above the grid, permanently-equipped so never a grid cell)
-                // when it has one, otherwise straight up into the tab bar.
-                if (dir.y > 0 && next.y < 0)
-                {
-                    if (TryEnterMeleeSlot()) return;
-                    this.tabManager?.EnterTabBar();
-                    return;
-                }
+                if (!TryEnterMeleeSlot()) this.tabManager?.EnterTabBar();
+                return;
             }
 
-            next.y = ((next.y % CurrentGrid.Rows) + CurrentGrid.Rows) % CurrentGrid.Rows;
-
-            if (next.x < 0)
-            {
-                this.currentGridIndex = (this.currentGridIndex - 1 + this.gridGroup.Count) % this.gridGroup.Count;
-                next.x = CurrentGrid.Columns - 1;
-                next.y = Mathf.Clamp(next.y, 0, CurrentGrid.Rows - 1);
-                AttachSelectorToGrid(CurrentGrid);
-            }
-            else if (next.x >= CurrentGrid.Columns)
-            {
-                this.currentGridIndex = (this.currentGridIndex + 1) % this.gridGroup.Count;
-                next.x = 0;
-                next.y = Mathf.Clamp(next.y, 0, CurrentGrid.Rows - 1);
-                AttachSelectorToGrid(CurrentGrid);
-            }
-
-            this.currentCell = next;
-            PlaceSelectorAt(this.currentCell);
-
-            this.sfx?.PlayCursor(gameObject);
+            Refresh();
+            this.sfx.PlayCursor(this.gameObject);
         }
 
-        // ── Input Callbacks ──────────────────────────────────────────────────
+        private void Refresh()
+        {
+            if (this.navigator == null && (this.presenters == null || this.inventory == null)) return;
+            if (this.onMeleeSlot || !this.selector.IsVisible) return;
 
-        void OnConfirm(InputAction.CallbackContext ctx)
+            var presenter = CurrentPresenter;
+            var cell      = Navigator.Cell;
+            var held      = this.inventory.Held;
+
+            if (held != null)
+            {
+                var footprint = ItemPlacement.FootprintOf(held.Data.GridSize, this.inventory.HeldRotation);
+                this.selector.ShowAtCell(presenter.Grid, cell, null, footprint, holdStyle: true, showTooltip: false);
+                this.heldView.Show(held, this.inventory.HeldRotation, presenter.Grid, cell, CanDropAt(presenter.Container, footprint, cell));
+                return;
+            }
+
+            this.heldView.Hide();
+            bool showTooltip = this.contextMenu == null || !this.contextMenu.IsOpen;
+            this.selector.ShowAtCell(presenter.Grid, cell, presenter.ViewAt(cell), null, this.isCombineMode, showTooltip);
+        }
+
+        private static bool CanDropAt(ItemContainer container, Vector2Int footprint, Vector2Int origin)
+        {
+            if (!container.IsWithinBounds(footprint, origin)) return false;
+            var overlapping = container.GetOverlapping(footprint, origin);
+            return overlapping.Count == 0 || (overlapping.Count == 1 && !overlapping.First().IsEquipped);
+        }
+
+        private void OnGridRendered(ContainerId id)
+        {
+            if (this.navigator != null && id == this.navigator.Grid) Refresh();
+        }
+
+        private void OnHeldChanged()
+        {
+            if (this.navigator != null) Refresh();
+        }
+
+        // ── Input callbacks ──────────────────────────────────────────────────
+
+        private void OnConfirm(InputAction.CallbackContext _)
         {
             if (this.tabManager != null && (this.tabManager.IsTabBarActive || this.tabManager.IsConsumingTabInput)) return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayDecide(gameObject);
+                this.sfx.PlayDecide(this.gameObject);
                 this.contextMenu.ConfirmSelection();
                 return;
             }
 
             if (this.onMeleeSlot)
             {
-                OperatorWidgetView? widget    = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
-                MeleeWeaponData?    meleeData = widget?.MeleeData;
-                if (meleeData != null && this.contextMenu != null)
-                {
-                    this.sfx?.PlayDecide(gameObject);
-                    this.contextMenu.OpenForMeleeInspectOnly(widget!.MeleeSlotRoot, meleeData);
-                }
+                ConfirmMeleeSlot();
                 return;
             }
 
-            if (this.IsCombineMode)
+            if (this.IsHoldingItem)
             {
-                InventoryItemView? target = CurrentGrid.GetItemAt(this.currentCell);
-                if (target != null)
-                    OnCombineTargetConfirmed?.Invoke(target);
+                Drop();
                 return;
             }
 
-            if (this.heldItem != null)
+            var view = CurrentPresenter.ViewAt(Navigator.Cell);
+            if (this.isCombineMode)
             {
-                TryPlace();
+                if (view != null) OnCombineTargetConfirmed?.Invoke(view);
                 return;
             }
 
-            if (this.contextMenu == null) return;
+            if (view == null)
+            {
+                this.sfx.PlayInvalidAction(this.gameObject);
+                return;
+            }
 
-            InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
-            if (item != null)
-            {
-                this.sfx?.PlayDecide(gameObject);
-                OnCellConfirmed?.Invoke(item);
-                if (this.tooltip != null)
-                    this.tooltip.ShowAboveSelector(this.selectorRect);
-            }
-            else
-            {
-                this.sfx?.PlayInvalidAction(gameObject);
-            }
+            this.sfx.PlayDecide(this.gameObject);
+            OnCellConfirmed?.Invoke(view);
+            this.selector.ShowTooltipAboveSelector();
         }
 
+        private void OnPickup(InputAction.CallbackContext _)
+        {
+            if (this.onMeleeSlot) return;
+            if (this.contextMenu != null && this.contextMenu.IsOpen)   return;
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
+
+            if (this.IsHoldingItem)
+            {
+                this.inventory.RotateHeld();
+                this.sfx.PlayCursor(this.gameObject);
+                return;
+            }
+
+            var container = CurrentPresenter.Container;
+            var item      = container.GetItemAt(Navigator.Cell);
+            if (item == null) return;
+
+            var origin = container.GetPlacement(item)!.Origin;
+            if (!this.inventory.TryPickUp(item))
+            {
+                this.sfx.PlayCancel(this.gameObject);
+                return;
+            }
+
+            Navigator.Reset(Navigator.Grid, origin);
+            this.sfx.PlayDecide(this.gameObject);
+            Refresh();
+        }
+
+        private void Drop()
+        {
+            var result = this.inventory.TryDrop(Navigator.Grid, Navigator.Cell);
+            if (result == DropResult.Rejected) this.sfx.PlayCancel(this.gameObject);
+            else                               this.sfx.PlayDecide(this.gameObject);
+            Refresh();
+        }
+
+        private void OnMenuClosed()
+        {
+            this.holdingDirection = false;
+            this.lastDir          = Vector2Int.zero;
+        }
+
+        private void OnInspectClosed(string? selectItemId)
+        {
+            this.holdingDirection = false;
+            this.lastDir          = Vector2Int.zero;
+
+            if (selectItemId != null && SelectItemById(selectItemId)) return;
+
+            var widget = this.onMeleeSlot ? CurrentWidget() : null;
+            if (widget != null) this.selector.ShowOnMelee(widget);
+            else                Refresh();
+        }
+
+        // ── Public API (TabManager / OpenClose / HUD) ────────────────────────
+
         // Called by TabManager.OnCancelTab — the sole subscriber to InventoryCancel — so this
-        // tab's own submenus/held-item state get first chance to consume Cancel before
-        // TabManager falls back to entering the tab bar selector. Must not subscribe to
-        // InventoryCancel itself: doing so alongside TabManager's own handler let both react
-        // to the same press and race on tab-bar state (see TabManager.OnCancelTab).
+        // tab's own submenus/held-item state get first chance to consume Cancel.
         public bool TryConsumeCancel()
         {
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
@@ -344,29 +328,37 @@ namespace CrimsonDraft.UI
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
-                this.sfx?.PlayCancel(gameObject);
+                this.sfx.PlayCancel(this.gameObject);
                 this.contextMenu.Close();
                 return true;
             }
 
             if (this.onMeleeSlot)
             {
-                ExitMeleeSlotToGrid();
-                this.sfx?.PlayCancel(gameObject);
+                ExitMeleeSlot();
+                this.sfx.PlayCancel(this.gameObject);
                 return true;
             }
 
-            if (this.IsCombineMode)
+            if (this.isCombineMode)
             {
                 this.IsCombineMode = false;
                 OnCombineCancelled?.Invoke();
-                this.sfx?.PlayCancel(gameObject);
+                this.sfx.PlayCancel(this.gameObject);
                 return true;
             }
 
-            if (this.heldItem != null)
+            if (this.IsHoldingItem)
             {
-                TryPlace();
+                if (this.inventory.HeldIsSplit)
+                {
+                    this.inventory.CancelHeld();
+                    this.sfx.PlayCancel(this.gameObject);
+                }
+                else
+                {
+                    Drop();
+                }
                 return true;
             }
 
@@ -375,514 +367,111 @@ namespace CrimsonDraft.UI
 
         public void RequestClose() => OnCloseRequested?.Invoke();
 
-        void OnPickup(InputAction.CallbackContext ctx)
+        public void CancelAll()
         {
-            if (this.onMeleeSlot) return;
-            if (this.contextMenu  != null && this.contextMenu.IsOpen)  return;
-            if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
-
-            if (this.heldItem == null)
+            if (this.isCombineMode)
             {
-                TryPickUp();
-                return;
+                this.isCombineMode = false;
+                OnCombineCancelled?.Invoke();
             }
 
-            this.heldItem.Rotate();
-            this.sfx?.PlayCursor(gameObject);
-            UpdateHeldItemVisual();
-            PlaceSelectorAt(this.currentCell);
+            this.inventory.CancelHeld();
+            if (this.contextMenu != null && this.contextMenu.IsOpen)   this.contextMenu.Close();
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) this.inspectPanel.Close();
+            if (this.onMeleeSlot) ExitMeleeSlot();
+            this.tabManager?.ResetTabBar();
+            this.heldView.Hide();
+            this.selector.HideTooltip();
+            this.holdingDirection = false;
+            this.lastDir          = Vector2Int.zero;
         }
-
-        void OnMenuClosed()
-        {
-            this.holding = false;
-            this.lastDir = Vector2Int.zero;
-        }
-
-        void OnInspectClosed(string? selectItemId)
-        {
-            this.holding = false;
-            this.lastDir = Vector2Int.zero;
-
-            // A hotspot's onUsed/reward can add or remove items via ILegacyInventoryService while
-            // InspectPanel was open, without going through the normal open-time sync -- catch
-            // those up (stale views for consumed items, missing views for granted ones) before
-            // trying to select anything.
-            this.resolver.Resolve<InventorySceneInit>().EnsureSynced();
-
-            if (selectItemId != null && SelectItemById(selectItemId))
-                return;
-
-            OperatorWidgetView? widget = this.onMeleeSlot && this.partyPanel != null
-                ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
-
-            if (widget != null) PlaceMeleeSelector(widget);
-            else                PlaceSelectorAt(this.currentCell);
-        }
-
-        // ── Pick Up / Place ──────────────────────────────────────────────────
-
-        void TryPickUp()
-        {
-            InventoryItemView? item = CurrentGrid.GetItemAt(this.currentCell);
-            if (item == null) return;
-
-            if (item.BoundItem.IsEquipped)
-            {
-                this.sfx?.PlayCancel(gameObject);
-                return;
-            }
-
-            this.currentCell = item.GridOrigin;
-
-            this.sfx?.PlayDecide(gameObject);
-            this.heldFromGrid = CurrentGrid;
-            this.heldItem     = item;
-            PlaceSelectorAt(this.currentCell);
-
-            CurrentGrid.RemoveItem(item);
-            item.transform.SetAsLastSibling();
-            UpdateHeldItemVisual();
-        }
-
-        public void BeginHoldingSplitItem(InventoryItemView view, InventoryGrid fromGrid)
-        {
-            this.heldFromGrid       = fromGrid;
-            this.heldItem           = view;
-            this.isSplitPhantomHeld = true;
-
-            view.SetGridOrigin(this.currentCell);
-            view.transform.SetAsLastSibling();
-            PlaceSelectorAt(this.currentCell);
-            UpdateHeldItemVisual();
-        }
-
-        void TryPlace()
-        {
-            InventoryGrid targetGrid = CurrentGrid;
-
-            if (!targetGrid.IsWithinBounds(this.currentCell, this.heldItem!.GridSize))
-            {
-                this.sfx?.PlayCancel(gameObject);
-                return;
-            }
-
-            bool multipleItems;
-            InventoryItemView? overlapping = targetGrid.GetOverlappingItem(
-                this.currentCell, this.heldItem.GridSize, out multipleItems);
-
-            if (multipleItems)
-            {
-                this.sfx?.PlayCancel(gameObject);
-                return;
-            }
-
-            if (overlapping != null && overlapping.BoundItem.IsEquipped)
-            {
-                this.sfx?.PlayCancel(gameObject);
-                return;
-            }
-
-            if (overlapping == null)
-            {
-                // Decide plays once OnItemPlaced fully resolves (InventoryHUDController.
-                // HandleItemPlaced) -- placement can still be rejected there at the logical-slot
-                // layer (operator's 4 slots already full of distinct stacks) even when this
-                // visual/grid-space check passed, and that path plays InvalidAction + reverts.
-                // Playing Decide here unconditionally used to fire alongside that InvalidAction.
-                PlaceHeldItem(targetGrid, this.currentCell);
-            }
-            else
-            {
-                targetGrid.RemoveItem(overlapping);
-
-                if (targetGrid.CanPlace(this.currentCell, this.heldItem.GridSize))
-                {
-                    Vector2Int    originBeforeSwap   = this.heldItem!.GridOrigin;
-                    InventoryGrid fromGridBeforeSwap = this.heldFromGrid!;
-                    PlaceHeldItem(targetGrid, this.currentCell);
-
-                    this.heldItem     = overlapping;
-                    this.heldFromGrid = fromGridBeforeSwap;
-                    overlapping.SetGridOrigin(originBeforeSwap);
-                    overlapping.transform.SetAsLastSibling();
-                    UpdateHeldItemVisual();
-                }
-                else
-                {
-                    this.sfx?.PlayCancel(gameObject);
-                    targetGrid.PlaceItem(overlapping);
-                }
-            }
-        }
-
-        void PlaceHeldItem(InventoryGrid targetGrid, Vector2Int origin)
-        {
-            if (targetGrid != this.heldFromGrid)
-                OnItemMovedToNewGrid?.Invoke(this.heldItem!, this.heldFromGrid!);
-
-            this.heldItem!.SetGridOrigin(origin);
-            this.heldItem.SetOwnerGrid(targetGrid);
-            this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
-
-            var rt = this.heldItem.GetComponent<RectTransform>();
-            rt.SetParent(targetGrid.transform, false);
-            rt.anchoredPosition = GetItemPosition(this.heldItem, origin, targetGrid);
-
-            targetGrid.PlaceItem(this.heldItem);
-
-            OnItemPlaced?.Invoke(this.heldItem);
-
-            this.heldItem           = null;
-            this.heldFromGrid       = null;
-            this.isSplitPhantomHeld = false;
-
-            PlaceSelectorAt(this.currentCell);
-        }
-
-        void CancelPickup()
-        {
-            if (this.heldItem == null) return;
-
-            if (this.isSplitPhantomHeld)
-            {
-                InventoryItemView phantom = this.heldItem;
-
-                this.heldItem           = null;
-                this.heldFromGrid       = null;
-                this.isSplitPhantomHeld = false;
-
-                OnSplitCancelled?.Invoke(phantom);
-                PlaceSelectorAt(this.currentCell);
-                return;
-            }
-
-            this.heldItem.GetComponent<Image>().color = this.colorNormalItem;
-
-            var rt = this.heldItem.GetComponent<RectTransform>();
-            rt.SetParent(this.heldFromGrid!.transform, false);
-            rt.anchoredPosition = GetItemPosition(this.heldItem, this.heldItem.GridOrigin, this.heldFromGrid);
-
-            this.heldFromGrid.PlaceItem(this.heldItem);
-
-            this.heldItem     = null;
-            this.heldFromGrid = null;
-
-            PlaceSelectorAt(this.currentCell);
-        }
-
-        // ── Held Item Visual ─────────────────────────────────────────────────
-
-        Vector2 GetItemPosition(InventoryItemView item, Vector2Int cell, InventoryGrid grid)
-        {
-            Vector2 pos = grid.CellToLocal(cell);
-            if (item.Rotation == 1)
-                pos.x += item.GetComponent<RectTransform>().sizeDelta.y;
-            return pos;
-        }
-
-        // Item RectTransforms use a top-left pivot (grid-placement math is written around it),
-        // so scaling them directly grows the box only right/down instead of from its visual
-        // center. Recomputing the rest position fresh and offsetting by the pivot-to-center
-        // vector (scaled by how much we're growing) keeps the visible center fixed instead.
-        void ApplyItemHoverScale(InventoryItemView item)
-        {
-            var rt       = item.GetComponent<RectTransform>();
-            Vector2 basePos = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
-            rt.anchoredPosition = basePos + (1f - this.hoverScaleMultiplier) * rt.rect.center;
-            rt.localScale       = Vector3.one * this.hoverScaleMultiplier;
-        }
-
-        void ResetItemHoverScale(InventoryItemView item)
-        {
-            var rt = item.GetComponent<RectTransform>();
-            rt.anchoredPosition = GetItemPosition(item, item.GridOrigin, item.OwnerGrid ?? CurrentGrid);
-            rt.localScale       = Vector3.one;
-        }
-
-        void UpdateHeldItemVisual()
-        {
-            if (this.heldItem == null) return;
-
-            var rt = this.heldItem.GetComponent<RectTransform>();
-
-            if (rt.parent != CurrentGrid.transform)
-                rt.SetParent(CurrentGrid.transform, false);
-
-            rt.anchoredPosition = GetItemPosition(this.heldItem, this.currentCell, CurrentGrid);
-
-            bool canPlace = CurrentGrid.IsWithinBounds(this.currentCell, this.heldItem.GridSize)
-                         && CurrentGrid.CanPlace(this.currentCell, this.heldItem.GridSize);
-
-            if (!canPlace && CurrentGrid.IsWithinBounds(this.currentCell, this.heldItem.GridSize))
-            {
-                bool multi;
-                InventoryItemView? overlap = CurrentGrid.GetOverlappingItem(
-                    this.currentCell, this.heldItem.GridSize, out multi);
-
-                if (!multi && overlap != null)
-                {
-                    CurrentGrid.RemoveItem(overlap);
-                    canPlace = CurrentGrid.CanPlace(this.currentCell, this.heldItem.GridSize);
-                    CurrentGrid.PlaceItem(overlap);
-                }
-            }
-
-            Color tint = this.colorHoldTint;
-            if (!canPlace) tint.a = this.alphaCannotPlace;
-            this.heldItem.GetComponent<Image>().color = tint;
-        }
-
-        // ── Melee Slot ───────────────────────────────────────────────────────
-
-        bool TryEnterMeleeSlot()
-        {
-            OperatorWidgetView? widget = this.partyPanel != null ? this.partyPanel.GetWidget(this.currentGridIndex) : null;
-            if (widget == null || !widget.HasMeleeWeapon) return false;
-
-            this.onMeleeSlot = true;
-            PlaceMeleeSelector(widget);
-            return true;
-        }
-
-        void ExitMeleeSlotToGrid()
-        {
-            this.onMeleeSlot = false;
-
-            if (this.hoveredMeleeIcon != null)
-            {
-                this.hoveredMeleeIcon.anchoredPosition = Vector2.zero;
-                this.hoveredMeleeIcon.localScale       = Vector3.one;
-                this.hoveredMeleeIcon = null;
-            }
-
-            AttachSelectorToGrid(CurrentGrid);
-            PlaceSelectorAt(this.currentCell);
-        }
-
-        void PlaceMeleeSelector(OperatorWidgetView widget)
-        {
-            RectTransform slot = widget.MeleeSlotRoot;
-            this.selectorRect.SetParent(slot.parent, false);
-            this.selectorRect.pivot            = slot.pivot;
-            this.selectorRect.anchorMin        = slot.anchorMin;
-            this.selectorRect.anchorMax        = slot.anchorMax;
-            Vector2 selectorBasePos            = slot.anchoredPosition;
-            this.selectorRect.sizeDelta        = slot.sizeDelta + new Vector2(this.selectorPadding, this.selectorPadding) * 2f;
-
-            // Same pivot-to-center compensation as the grid's item/selector hover scale --
-            // the melee slot's own pivot isn't necessarily centered, so scaling it directly
-            // would grow it off to one side instead of from its visual middle.
-            this.selectorRect.anchoredPosition = selectorBasePos + (1f - this.hoverScaleMultiplier) * this.selectorRect.rect.center;
-            this.selectorRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
-
-            if (this.selectorImage != null)
-            {
-                this.selectorImage.color = ColorSelectorOnItem;
-                if (this.selectorSpriteNormal != null)
-                    this.selectorImage.sprite = this.selectorSpriteNormal;
-            }
-
-            MeleeWeaponData? meleeData = widget.MeleeData;
-            if (this.tooltip != null && meleeData != null)
-                this.tooltip.ShowAtItem(meleeData.DisplayName, slot);
-
-            RectTransform? iconRect = widget.MeleeIconRect;
-            if (iconRect != null)
-            {
-                // The icon is anchored right-middle with anchoredPosition always Vector2.zero
-                // (see OperatorWidgetView.AnchorIconToGridSize), so zero is always its true
-                // unscaled rest position -- no need to read it back before offsetting.
-                iconRect.anchoredPosition = (1f - this.hoverScaleMultiplier) * iconRect.rect.center;
-                iconRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
-                this.hoveredMeleeIcon     = iconRect;
-            }
-        }
-
-        // ── Visual ───────────────────────────────────────────────────────────
-
-        void AttachSelectorToGrid(InventoryGrid grid)
-        {
-            this.selectorRect.SetParent(grid.transform, false);
-            this.selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
-            this.selectorRect.anchorMax = new Vector2(0.5f, 0.5f);
-            this.selectorRect.pivot     = new Vector2(0f, 1f);
-        }
-
-        void PlaceSelectorAt(Vector2Int cell)
-        {
-            InventoryItemView? item = CurrentGrid.GetItemAt(cell);
-            bool isHolding = this.heldItem != null || this.isCombineMode;
-
-            if (this.selectorImage != null)
-            {
-                this.selectorImage.color = isHolding ? Color.white
-                    : item != null ? ColorSelectorOnItem
-                    : ColorSelectorNormal;
-
-                if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
-                    this.selectorImage.sprite = isHolding ? this.selectorSpriteHold : this.selectorSpriteNormal;
-            }
-
-            Vector2Int size   = this.heldItem != null ? this.heldItem.GridSize
-                              : item          != null ? item.GridSize
-                              : Vector2Int.one;
-            Vector2Int origin = this.heldItem != null ? cell
-                              : item          != null ? item.GridOrigin
-                              : cell;
-
-            Vector2 selectorBasePos = CurrentGrid.CellToLocal(origin)
-                + new Vector2(this.selectorPadding, -this.selectorPadding);
-            this.selectorRect.anchoredPosition = selectorBasePos;
-
-            this.selectorRect.sizeDelta = new Vector2(
-                size.x * CurrentGrid.CellSize - this.selectorPadding * 2f,
-                size.y * CurrentGrid.CellSize - this.selectorPadding * 2f);
-
-            bool highlightItem = !isHolding && item != null;
-
-            if (this.hoveredItem != null && this.hoveredItem != item)
-            {
-                ResetItemHoverScale(this.hoveredItem);
-                this.hoveredItem = null;
-            }
-
-            if (highlightItem)
-            {
-                ApplyItemHoverScale(item!);
-                this.hoveredItem = item;
-            }
-
-            // selectorRect's pivot is top-left (0,1), so scaling it directly would grow the
-            // box only right/down instead of from its visual center -- offset the position by
-            // the pivot-to-center vector, scaled by how much we're shrinking/growing it, to
-            // compensate (same trick as Apply/ResetItemHoverScale below).
-            float selectorScale = highlightItem ? this.hoverScaleMultiplier : 1f;
-            this.selectorRect.anchoredPosition = selectorBasePos + (1f - selectorScale) * this.selectorRect.rect.center;
-            this.selectorRect.localScale = Vector3.one * selectorScale;
-
-            if (this.tooltip != null && (this.contextMenu == null || !this.contextMenu.IsOpen))
-            {
-                if (item != null)
-                {
-                    bool hasSecondary  = !string.IsNullOrEmpty(item.Data.SecondaryName);
-                    string displayName = (!item.IsInspected && hasSecondary)
-                        ? item.Data.SecondaryName
-                        : item.Data.DisplayName;
-
-                    this.tooltip.ShowAtItem(displayName, item.GetComponent<RectTransform>());
-                }
-                else
-                {
-                    this.tooltip.Hide();
-                }
-            }
-        }
-
-        // ── Input Reading ────────────────────────────────────────────────────
-
-        Vector2Int ReadDirection()
-        {
-            Vector2 raw = this.inputService.InventoryNavigate.ReadValue<Vector2>();
-
-            if (raw.sqrMagnitude < 0.01f) return Vector2Int.zero;
-
-            float absX = Mathf.Abs(raw.x);
-            float absY = Mathf.Abs(raw.y);
-            if (absX >= absY) return raw.x > 0 ? Vector2Int.right : Vector2Int.left;
-            return raw.y > 0 ? Vector2Int.up : Vector2Int.down;
-        }
-
-        // ── Public ───────────────────────────────────────────────────────────
-
-        public Vector2Int    CurrentCell        => this.currentCell;
-        public InventoryGrid CurrentGrid_Public => CurrentGrid;
-        public bool          IsHoldingItem      => this.heldItem != null;
 
         public void ResetCursorToOrigin()
         {
-            this.currentCell      = Vector2Int.zero;
-            this.currentGridIndex = 0;
-            this.holding          = false;
+            Navigator.Reset(this.presenters.FirstGrid, Vector2Int.zero);
+            this.holdingDirection = false;
             this.lastDir          = Vector2Int.zero;
             this.onMeleeSlot      = false;
-            AttachSelectorToGrid(CurrentGrid);
-            this.selectorRect.gameObject.SetActive(true);
-            PlaceSelectorAt(this.currentCell);
+            this.selector.SetVisible(true);
+            Refresh();
         }
 
         public void HideSelectorForTabBar()
         {
-            this.selectorRect.gameObject.SetActive(false);
-            this.tooltip?.Hide();
-            this.holding = false;
-            this.lastDir = Vector2Int.zero;
+            this.selector.SetVisible(false);
+            this.holdingDirection = false;
+            this.lastDir          = Vector2Int.zero;
         }
 
         public void ShowSelectorAfterTabBar()
         {
-            this.currentCell = new Vector2Int(this.currentCell.x, 0);
-            this.selectorRect.gameObject.SetActive(true);
-            PlaceSelectorAt(this.currentCell);
+            Navigator.Reset(Navigator.Grid, new Vector2Int(Navigator.Cell.x, 0));
+            this.selector.SetVisible(true);
+            Refresh();
         }
 
-        public void CancelAll()
-        {
-            if (this.IsCombineMode) { this.IsCombineMode = false; OnCombineCancelled?.Invoke(); }
-            if (this.heldItem != null)                                    CancelPickup();
-            if (this.contextMenu  != null && this.contextMenu.IsOpen)     this.contextMenu.Close();
-            if (this.inspectPanel != null && this.inspectPanel.IsOpen)    this.inspectPanel.Close();
-            if (this.onMeleeSlot)                                         ExitMeleeSlotToGrid();
-            this.tabManager?.ResetTabBar();
-            this.tooltip?.Hide();
-            this.holding = false;
-            this.lastDir = Vector2Int.zero;
-        }
-
-        public int GetOperatorOf(InventoryItemView view)
-            => view.OwnerGrid != null ? this.gridGroup.IndexOf(view.OwnerGrid) : -1;
-
-        public InventoryGrid? GetGridForOperator(int operatorIndex)
-            => this.gridGroup.GetGrid(operatorIndex);
-
-        public InventoryItemView? FindView(InventoryItem item)
-        {
-            for (int g = 0; g < this.gridGroup.Count; g++)
-            {
-                var grid = this.gridGroup.GetGrid(g);
-                if (grid == null) continue;
-                for (int c = 0; c < grid.Columns; c++)
-                    for (int r = 0; r < grid.Rows; r++)
-                    {
-                        var view = grid.GetItemAt(new Vector2Int(c, r));
-                        if (view != null && view.BoundItem == item) return view;
-                    }
-            }
-            return null;
-        }
-
-        // Moves the cursor to the first grid cell holding an item with the given itemId --
-        // used after InspectPanel grants a reward so the player lands right on it.
+        // Moves the cursor to the first item with the given id -- used after InspectPanel
+        // grants a reward so the player lands right on it.
         public bool SelectItemById(string itemId)
         {
-            for (int g = 0; g < this.gridGroup.Count; g++)
+            foreach (var container in this.inventory.OperatorContainers)
             {
-                var grid = this.gridGroup.GetGrid(g);
-                if (grid == null) continue;
-                for (int c = 0; c < grid.Columns; c++)
-                    for (int r = 0; r < grid.Rows; r++)
-                    {
-                        var view = grid.GetItemAt(new Vector2Int(c, r));
-                        if (view == null || view.Data.ItemId != itemId) continue;
+                if (!this.presenters.Has(container.Id)) continue;
+                var placement = container.Placements.FirstOrDefault(p => p.Item.Data.ItemId == itemId);
+                if (placement == null) continue;
 
-                        this.currentGridIndex = g;
-                        this.currentCell      = view.GridOrigin;
-                        AttachSelectorToGrid(grid);
-                        PlaceSelectorAt(this.currentCell);
-                        return true;
-                    }
+                this.onMeleeSlot = false;
+                Navigator.Reset(container.Id, placement.Origin);
+                Refresh();
+                return true;
             }
             return false;
+        }
+
+        // ── Melee slot ───────────────────────────────────────────────────────
+
+        private OperatorWidgetView? CurrentWidget()
+        {
+            int op = CurrentOperatorIndex;
+            return op >= 0 && this.partyPanel != null ? this.partyPanel.GetWidget(op) : null;
+        }
+
+        private bool TryEnterMeleeSlot()
+        {
+            var widget = CurrentWidget();
+            if (widget == null || !widget.HasMeleeWeapon) return false;
+
+            this.onMeleeSlot = true;
+            this.selector.ShowOnMelee(widget);
+            return true;
+        }
+
+        private void ExitMeleeSlot()
+        {
+            this.onMeleeSlot = false;
+            this.selector.ClearMeleeHover();
+            Refresh();
+        }
+
+        private void ConfirmMeleeSlot()
+        {
+            var widget    = CurrentWidget();
+            var meleeData = widget != null ? widget.MeleeData : null;
+            if (widget == null || meleeData == null || this.contextMenu == null) return;
+
+            this.sfx.PlayDecide(this.gameObject);
+            this.contextMenu.OpenForMeleeInspectOnly(widget.MeleeSlotRoot, meleeData);
+        }
+
+        // ── Input reading ────────────────────────────────────────────────────
+
+        private Vector2Int ReadDirection()
+        {
+            Vector2 raw = this.inputService.InventoryNavigate.ReadValue<Vector2>();
+            if (raw.sqrMagnitude < 0.01f) return Vector2Int.zero;
+
+            if (Mathf.Abs(raw.x) >= Mathf.Abs(raw.y)) return raw.x > 0 ? Vector2Int.right : Vector2Int.left;
+            return raw.y > 0 ? Vector2Int.up : Vector2Int.down;
         }
     }
 }

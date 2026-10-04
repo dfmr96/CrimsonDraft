@@ -1,5 +1,7 @@
 #nullable enable
 
+using CrimsonDraft.Inventory;
+
 namespace CrimsonDraft.Combat
 {
     internal sealed class CombatInventoryState : ICombatMenuState
@@ -36,10 +38,10 @@ namespace CrimsonDraft.Combat
             this.view.OnCancelled -= HandleCancelled;
         }
 
-        private void HandleItemUsed(int slotIndex)
+        private void HandleItemUsed(InventoryItem? item)
         {
             this.context.Orchestrator.EnqueueAction(
-                PendingAction.UseItem(this.context.SelectedOperator, slotIndex));
+                PendingAction.UseItem(this.context.SelectedOperator, item));
             this.view.Hide();
 
             // Only release the card's focus-lift here, on an actual commit — mirrors

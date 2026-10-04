@@ -22,7 +22,7 @@ namespace CrimsonDraft.Navigation
     public sealed class SaveGameLoader : IInitializable
     {
         private readonly ISaveGameService     saveGameService;
-        private readonly ILegacyInventoryService    inventoryService;
+        private readonly IInventoryService    inventoryService;
         private readonly IOperatorRoster      roster;
         private readonly IRoomOrchestrator    roomOrchestrator;
         private readonly PlayerController     player;
@@ -33,7 +33,7 @@ namespace CrimsonDraft.Navigation
         [Preserve]
         public SaveGameLoader(
             ISaveGameService     saveGameService,
-            ILegacyInventoryService    inventoryService,
+            IInventoryService    inventoryService,
             IOperatorRoster      roster,
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
@@ -111,52 +111,10 @@ namespace CrimsonDraft.Navigation
 
         private void ApplyInventory(SaveGameData data)
         {
-            int slotCount = this.inventoryService.SlotCount;
-            var slots     = new InventorySlot[slotCount];
-            for (int i = 0; i < slotCount; i++)
-                slots[i] = new InventorySlot();
-
-            foreach (var entry in data.inventorySlots)
-            {
-                if (entry.slotIndex < 0 || entry.slotIndex >= slotCount) continue;
-                if (!this.itemDatabase.TryGetById(entry.itemId, out var itemData)) continue;
-
-                InventoryItem item = itemData switch
-                {
-                    WeaponData     wd => new WeaponItem(wd),
-                    AmmoBoxData    ad => new AmmoBoxItem(ad, entry.ammoBoxQuantity >= 0 ? entry.ammoBoxQuantity : ad.DefaultQuantity),
-                    ConsumableData cd => new ConsumableItem(cd),
-                    KeyItemData    kd => new KeyItem(kd),
-                    SocketItemData sd => new SocketItem(sd),
-                    _ => throw new ArgumentException($"Unknown ItemData subtype: {itemData.GetType().Name}")
-                };
-
-                item.IsExamined = entry.isExamined;
-
-                if (item is WeaponItem weaponItem && entry.weaponAmmo >= 0)
-                    weaponItem.SetAmmo(entry.weaponAmmo);
-
-                if (item is KeyItem keyItem && entry.keyUsesRemaining >= 0)
-                {
-                    int toConsume = keyItem.Data.MaxUses - entry.keyUsesRemaining;
-                    for (int c = 0; c < toConsume; c++)
-                        keyItem.Consume();
-                }
-
-                if (entry.equippedOperatorSlot >= 0)
-                    item.SetEquipped(entry.equippedOperatorSlot, entry.equippedWeaponSlot);
-
-                slots[entry.slotIndex] = new InventorySlot
-                {
-                    Item         = item,
-                    Quantity     = entry.slotQuantity,
-                    GridCol      = entry.gridCol,
-                    GridRow      = entry.gridRow,
-                    GridRotation = entry.gridRotation,
-                };
-            }
-
-            this.inventoryService.LoadState(slots);
+            var entries = data.inventoryItems.Count > 0 || data.inventorySlots.Count == 0
+                ? data.inventoryItems
+                : InventorySerializer.FromLegacySlots(data.inventorySlots);
+            this.inventoryService.Restore(entries, this.itemDatabase);
         }
     }
 }

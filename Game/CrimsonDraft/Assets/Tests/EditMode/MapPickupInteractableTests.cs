@@ -41,8 +41,8 @@ namespace CrimsonDraft.Tests
             return pickup;
         }
 
-        private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventory inventory)
-            => new(inventory, null!, null!, null!, null!, dialogue, null!, null!, null!, null!, null!);
+        private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventoryService inventory)
+            => new(inventory, null!, null!, null!, dialogue, null!, null!, null!, null!, null!);
 
         [Test]
         public void Construct_whenAlreadyCollected_deactivatesGameObject()
@@ -64,7 +64,7 @@ namespace CrimsonDraft.Tests
             var knownMaps      = new KnownMapsRegistry();
             var pickup         = MakePickup(pickupRegistry, knownMaps);
             var dialogue       = new FakeDialogue();
-            var inventory      = new FakeInventory { AddItemAutoResult = true };
+            var inventory      = new FakeInventoryService { AddResult = true };
 
             pickup.Interact(MakeContext(dialogue, inventory));
             dialogue.LastCommands!["try_pickup"].Invoke();
@@ -84,7 +84,7 @@ namespace CrimsonDraft.Tests
             var knownMaps      = new KnownMapsRegistry();
             var pickup         = MakePickup(pickupRegistry, knownMaps);
             var dialogue       = new FakeDialogue();
-            var inventory      = new FakeInventory { AddItemAutoResult = false };
+            var inventory      = new FakeInventoryService { AddResult = false };
 
             pickup.Interact(MakeContext(dialogue, inventory));
             dialogue.LastCommands!["try_pickup"].Invoke();
@@ -119,37 +119,5 @@ namespace CrimsonDraft.Tests
             public void SetVariable(string name, object value) { }
         }
 
-        private sealed class FakeInventory : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            public bool AddItemAutoResult;
-
-            public IReadOnlyList<InventorySlot> Slots                              => Array.Empty<InventorySlot>();
-            public int  SlotCount                                                   => 0;
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => AddItemAutoResult;
-            public void RemoveItem(int slotIndex)                                  { }
-            public void PruneEmptyStacks()                                         { }
-            public void MoveItem(int fromSlot, int toSlot)                         { }
-            public void EquipWeapon(int slotIndex, int operatorSlot)               { }
-            public void UnequipWeapon(int slotIndex)                               { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)                   => -1;
-            public bool CanReload(int slotIndex, int operatorSlot)                 => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot)            { }
-            public bool TryCombine(int slotA, int slotB)                               => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)                         => new(KeyUseResult.NotFound, -1);
-            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void            LoadState(InventorySlot[] slots)                    { }
-            public InventorySlot[] GetRawSlots()                                       => Array.Empty<InventorySlot>();
-        }
     }
 }

@@ -60,7 +60,7 @@ namespace CrimsonDraft.Navigation.Map
                 {
                     ["try_pickup"] = () =>
                     {
-                        pickupSucceeded = context.InventoryService.AddItemAuto(this.item);
+                        pickupSucceeded = context.InventoryService.TryAdd(this.item);
                         context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
                     }
                 });

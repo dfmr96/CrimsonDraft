@@ -13,6 +13,8 @@ namespace CrimsonDraft.Tests
 {
     public sealed class DoorInteractableTests
     {
+        private static readonly KeyItem TestKey = (KeyItem)InventoryItemFactory.Create(InventoryTestData.Key());
+
         // ── Helpers ──────────────────────────────────────────────────────────
 
         private static DoorData MakeDoorData(bool locked, string yarnNodeName, KeyItemData? keyItem = null)
@@ -50,9 +52,9 @@ namespace CrimsonDraft.Tests
 
         private static InteractionContext MakeContext(
             FakeDoorDialogueService  dialogue,
-            FakeDoorInventoryService inventory)
+            FakeInventoryService inventory)
         {
-            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
+            return new InteractionContext(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!);
         }
 
         // ── Tests ─────────────────────────────────────────────────────────────
@@ -63,7 +65,7 @@ namespace CrimsonDraft.Tests
             var data      = MakeDoorData(locked: false, yarnNodeName: "door_test");
             var door      = MakeDoor(data);
             var dialogue  = new FakeDoorDialogueService();
-            var inventory = new FakeDoorInventoryService();
+            var inventory = new FakeInventoryService();
 
             door.Interact(MakeContext(dialogue, inventory));
 
@@ -76,7 +78,7 @@ namespace CrimsonDraft.Tests
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: null);
             var door      = MakeDoor(data);
             var dialogue  = new FakeDoorDialogueService();
-            var inventory = new FakeDoorInventoryService();
+            var inventory = new FakeInventoryService();
 
             door.Interact(MakeContext(dialogue, inventory));
 
@@ -90,9 +92,9 @@ namespace CrimsonDraft.Tests
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: keyData);
             var door      = MakeDoor(data);
             var dialogue  = new FakeDoorDialogueService();
-            var inventory = new FakeDoorInventoryService
+            var inventory = new FakeInventoryService
             {
-                TryUseKeyResult = new KeyUseOutcome(KeyUseResult.NotFound, -1)
+                NextKeyOutcome = new KeyUseOutcome(KeyUseResult.NotFound, TestKey)
             };
 
             door.Interact(MakeContext(dialogue, inventory));
@@ -107,9 +109,9 @@ namespace CrimsonDraft.Tests
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: keyData);
             var door      = MakeDoor(data);
             var dialogue  = new FakeDoorDialogueService();
-            var inventory = new FakeDoorInventoryService
+            var inventory = new FakeInventoryService
             {
-                TryUseKeyResult = new KeyUseOutcome(KeyUseResult.Success, 2)
+                NextKeyOutcome = new KeyUseOutcome(KeyUseResult.Success, TestKey)
             };
 
             door.Interact(MakeContext(dialogue, inventory));
@@ -133,15 +135,14 @@ namespace CrimsonDraft.Tests
             var data      = MakeDoorData(locked: true, yarnNodeName: "door_test", keyItem: keyData);
             var door      = MakeDoor(data);
             var dialogue  = new FakeDoorDialogueService();
-            var inventory = new FakeDoorInventoryService
+            var inventory = new FakeInventoryService
             {
-                TryUseKeyResult = new KeyUseOutcome(KeyUseResult.DepletedAfterUse, 3)
+                NextKeyOutcome = new KeyUseOutcome(KeyUseResult.DepletedAfterUse, TestKey)
             };
 
             door.Interact(MakeContext(dialogue, inventory));
 
-            Assert.IsTrue(inventory.RemoveItemCalled);
-            Assert.AreEqual(3, inventory.RemovedSlotIndex);
+            CollectionAssert.Contains(inventory.Removed, TestKey);
         }
 
         // ── Fakes ─────────────────────────────────────────────────────────────
@@ -167,39 +168,5 @@ namespace CrimsonDraft.Tests
             public void SetVariable(string name, object value) { }
         }
 
-        private sealed class FakeDoorInventoryService : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            public KeyUseOutcome TryUseKeyResult  = new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public bool          RemoveItemCalled  { get; private set; }
-            public int           RemovedSlotIndex  { get; private set; } = -1;
-
-            public IReadOnlyList<InventorySlot> Slots => Array.Empty<InventorySlot>();
-            public int  SlotCount                                           => 0;
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => false;
-            public void RemoveItem(int slotIndex) { RemoveItemCalled = true; RemovedSlotIndex = slotIndex; }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot)         { }
-            public void EquipWeapon(int slotIndex, int operatorSlot) { }
-            public void UnequipWeapon(int slotIndex)               { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)   => -1;
-            public bool CanReload(int slotIndex, int operatorSlot) => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot) { }
-            public bool TryCombine(int slotA, int slotB)                       => false;
-            public KeyUseOutcome TryUseKey(string keyItemId)                   => TryUseKeyResult;
-            public void          SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void          LoadState(InventorySlot[] slots)               { }
-            public InventorySlot[] GetRawSlots()                               => Array.Empty<InventorySlot>();
-        }
     }
 }

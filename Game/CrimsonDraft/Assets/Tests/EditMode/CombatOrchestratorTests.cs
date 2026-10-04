@@ -384,44 +384,5 @@ namespace CrimsonDraft.Tests
             public void SetOperatorFocusFireMarked(int index, bool marked) { }
         }
 
-        private sealed class FakeInventoryService : ILegacyInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            private readonly InventorySlot[] slots = new InventorySlot[8];
-
-            public FakeInventoryService()
-            {
-                for (int i = 0; i < this.slots.Length; i++)
-                    this.slots[i] = new InventorySlot();
-            }
-
-            public IReadOnlyList<InventorySlot> Slots    => this.slots;
-            public int                          SlotCount => this.slots.Length;
-
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => true;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
-            public void RemoveItem(int slotIndex) { }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot) { }
-            public void EquipWeapon(int slotIndex, int operatorSlot) { }
-            public void UnequipWeapon(int slotIndex) { }
-            public int  GetEquippedWeaponIndex(int operatorSlot) => -1;
-            public bool CanReload(int slotIndex, int operatorSlot) => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot) { }
-            public bool            TryCombine(int slotA, int slotB) => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)      => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void            LoadState(InventorySlot[] slots) { }
-            public InventorySlot[] GetRawSlots() => this.slots;
-        }
     }
 }

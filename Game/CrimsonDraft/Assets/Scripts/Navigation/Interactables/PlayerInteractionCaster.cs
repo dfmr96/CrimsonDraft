@@ -31,11 +31,10 @@ namespace CrimsonDraft.Navigation.Interactables
         private Coroutine? interactingRoutine;
 
         private IInputService          inputService          = null!;
-        private ILegacyInventoryService      inventoryService      = null!;
+        private IInventoryService      inventoryService      = null!;
         private IDialogueService       dialogueService       = null!;
         private IPickupDialogueService pickupDialogueService = null!;
         private DocumentController     documentController    = null!;
-        private ContainerController    containerController   = null!;
         private PuzzleViewController    puzzleViewController   = null!;
         private ScreenFader             screenFader            = null!;
         private PickupPreviewController pickupPreviewController = null!;
@@ -48,11 +47,10 @@ namespace CrimsonDraft.Navigation.Interactables
         [Inject]
         public void Construct(
             IInputService          inputService,
-            ILegacyInventoryService      inventoryService,
+            IInventoryService      inventoryService,
             IDialogueService       dialogueService,
             IPickupDialogueService pickupDialogueService,
             DocumentController     documentController,
-            ContainerController    containerController,
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
@@ -65,7 +63,6 @@ namespace CrimsonDraft.Navigation.Interactables
             this.dialogueService       = dialogueService;
             this.pickupDialogueService = pickupDialogueService;
             this.documentController    = documentController;
-            this.containerController   = containerController;
             this.puzzleViewController   = puzzleViewController;
             this.screenFader            = screenFader;
             this.pickupPreviewController = pickupPreviewController;
@@ -119,7 +116,6 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.inputService,
                 this.dialogueService,
                 this.documentController,
-                this.containerController,
                 this.pickupDialogueService,
                 this.puzzleViewController,
                 this.screenFader,

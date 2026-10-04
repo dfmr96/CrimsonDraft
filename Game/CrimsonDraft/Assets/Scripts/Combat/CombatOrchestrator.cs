@@ -24,7 +24,7 @@ namespace CrimsonDraft.Combat
         private IBattlefieldView                             battlefieldView    = null!;
         private IOperatorRoster                              roster             = null!;
         private IEncounterContext                            encounterContext    = null!;
-        private ILegacyInventoryService                            inventory          = null!;
+        private IInventoryService                            inventory          = null!;
         private ICombatActionMenuView                        menuView           = null!;
 
         [SerializeField] private float operatorActionDurationSec      = 0.5f;
@@ -81,7 +81,7 @@ namespace CrimsonDraft.Combat
             IBattlefieldView                             battlefieldView,
             IOperatorRoster                              roster,
             IEncounterContext                            encounterContext,
-            ILegacyInventoryService                            inventory,
+            IInventoryService                            inventory,
             ICombatActionMenuView                        menuView)
         {
             this.atbSystem          = atbSystem;
@@ -584,28 +584,19 @@ namespace CrimsonDraft.Combat
             }
         }
 
-private void ApplyUseItem(PendingAction action)
+        private void ApplyUseItem(PendingAction action)
         {
-            if (action.ItemIndex < 0)
+            if (action.Item == null)
             {
-                // -1 signals a reload combine (ammo box + weapon), consumed via
-                // CombatInventoryPanelController.ExecuteReload -> ILegacyInventoryService.ReloadOperator
-                // *before* this action was even enqueued. All that's left to do here is play the
-                // operator's Reload animation (pistol/shotgun routed by the Animator's GunType).
+                // A reload (ammo box + weapon) is applied by CombatInventoryPanelController via
+                // IInventoryService.TryReload before the action is enqueued; only the animation is left.
                 this.battlefieldView.PlayOperatorReload(action.SlotIndex);
                 return;
             }
-            if (action.ItemIndex >= this.inventory.Slots.Count) return;
-            InventorySlot slot = this.inventory.Slots[action.ItemIndex];
-            if (slot.IsEmpty || slot.Item?.Data is not ConsumableData consumable) return;
 
             int targetSlot = action.TargetOperatorSlot >= 0 ? action.TargetOperatorSlot : action.SlotIndex;
-            if (targetSlot < this.roster.Count && this.roster[targetSlot].IsAlive)
-                this.roster[targetSlot].Heal(consumable.HealAmount);
-
-            slot.Quantity--;
-            if (slot.Quantity <= 0)
-                this.inventory.RemoveItem(action.ItemIndex);
+            if (targetSlot >= this.roster.Count) return;
+            this.inventory.TryUseConsumable(action.Item, targetSlot);
         }
 
         private void ApplyEnemyAttack(PendingAction action)

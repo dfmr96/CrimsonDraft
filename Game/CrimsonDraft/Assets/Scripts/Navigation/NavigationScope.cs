@@ -76,7 +76,7 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<PlayerController>();
             builder.RegisterComponentInHierarchy<PlayerAimController>();
-            builder.Register<LegacyInventoryService>(Lifetime.Singleton).AsSelf().As<ILegacyInventoryService>();
+            builder.Register<InventoryService>(Lifetime.Singleton).AsSelf().As<IInventoryService>();
             builder.Register<InventoryBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
@@ -96,13 +96,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
             builder.RegisterComponentInHierarchy<PickupRegistryDebugView>();
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Optional debug overlay — only registered if present in the scene, so it
-            // never breaks scope build when the GameObject isn't added.
-            var inventoryDebug = FindObjectOfType<InventoryDebugPrinter>(true);
-            if (inventoryDebug != null)
-                builder.RegisterComponent(inventoryDebug);
-#endif
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
             builder.RegisterInstance(new InspectDialogueRunnerRef(this.inspectPromptRunner, this.inspectPromptStorage));
@@ -115,8 +108,6 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-            builder.RegisterComponentInHierarchy<ContainerView>();
-            builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InspectionController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
@@ -128,7 +119,7 @@ namespace CrimsonDraft.Navigation
             // build time if the type isn't in the scene (unlike a plain FindObjectOfType
             // null-check), which took down the whole container -- and everything after it in
             // this method -- in every other scene sharing NavigationScope (e.g. Deck B on new
-            // game). Same optional-registration pattern as InventoryDebugPrinter/RadioInteractable
+            // game). Same optional-registration pattern as RadioInteractable
             // below: only register it if this scene actually has one.
             var generatorSwitchPanel = FindObjectOfType<GeneratorSwitchPanel>(true);
             if (generatorSwitchPanel != null)
@@ -166,7 +157,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<MusicManagerController>().AsImplementedInterfaces();
 
             // Optional room prop — not every scene has a physical radio placed yet,
-            // so only register it if present, same as InventoryDebugPrinter above.
+            // so only register it if present, same as GeneratorSwitchPanel above.
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);

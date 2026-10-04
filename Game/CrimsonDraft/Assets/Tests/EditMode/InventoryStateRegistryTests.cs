@@ -1,51 +1,55 @@
 #nullable enable
 
+using System.Collections.Generic;
 using NUnit.Framework;
+using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure;
-using CrimsonDraft.Inventory; // InventorySlot
 
 namespace CrimsonDraft.Tests
 {
     public sealed class InventoryStateRegistryTests
     {
+        private static List<InventoryItemEntry> OneEntry() =>
+            new List<InventoryItemEntry> { new InventoryItemEntry { itemId = "med" } };
+
         [Test]
         public void HasSavedState_initially_isFalse()
         {
-            var registry = new InventoryStateRegistry();
-            Assert.IsFalse(registry.HasSavedState);
+            Assert.IsFalse(new InventoryStateRegistry().HasSavedState);
         }
 
         [Test]
         public void Load_initially_returnsNull()
         {
-            var registry = new InventoryStateRegistry();
-            Assert.IsNull(registry.Load<InventorySlot[]>());
+            Assert.IsNull(new InventoryStateRegistry().Load());
         }
 
         [Test]
         public void Save_setsHasSavedState_toTrue()
         {
             var registry = new InventoryStateRegistry();
-            registry.Save(new InventorySlot[4]);
+            registry.Save(OneEntry());
             Assert.IsTrue(registry.HasSavedState);
         }
 
         [Test]
-        public void Load_afterSave_returnsSameArrayReference()
+        public void Load_afterSave_returnsACopyOfTheEntries()
         {
             var registry = new InventoryStateRegistry();
-            var slots = new InventorySlot[4];
-            registry.Save(slots);
-            Assert.AreSame(slots, registry.Load<InventorySlot[]>());
+            var entries  = OneEntry();
+            registry.Save(entries);
+            entries.Clear();
+
+            Assert.AreEqual(1, registry.Load()!.Count);
+            Assert.AreEqual("med", registry.Load()![0].itemId);
         }
 
         [Test]
         public void ClearAll_removesSavedState()
         {
             var registry = new InventoryStateRegistry();
-            registry.Save(new InventorySlot[4]);
+            registry.Save(OneEntry());
             registry.ClearAll();
-
             Assert.IsFalse(registry.HasSavedState);
         }
     }

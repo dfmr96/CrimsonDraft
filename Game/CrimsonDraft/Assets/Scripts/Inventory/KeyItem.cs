@@ -1,5 +1,7 @@
 #nullable enable
 
+using UnityEngine;
+
 namespace CrimsonDraft.Inventory
 {
     public sealed class KeyItem : InventoryItem
@@ -21,5 +23,8 @@ namespace CrimsonDraft.Inventory
             this.UsesRemaining--;
             return this.UsesRemaining == 0;
         }
+
+        internal void RestoreUses(int usesRemaining) =>
+            this.UsesRemaining = Mathf.Clamp(usesRemaining, 0, this.Data.MaxUses);
     }
 }

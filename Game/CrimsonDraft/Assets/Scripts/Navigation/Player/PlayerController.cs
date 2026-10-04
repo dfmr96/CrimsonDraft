@@ -48,7 +48,7 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int HealthStateHash = Animator.StringToHash("HealthState");
 
         private IInputService         inputService         = null!;
-        private ILegacyInventoryService     inventoryService     = null!;
+        private IInventoryService     inventoryService     = null!;
         private IControlSchemeService controlSchemeService = null!;
         private IPlayerMovementStrategy modernStrategy  = null!;
         private IPlayerMovementStrategy classicStrategy = null!;
@@ -70,7 +70,7 @@ namespace CrimsonDraft.Navigation.Player
         [Inject]
         public void Construct(
             IInputService                  inputService,
-            ILegacyInventoryService              inventoryService,
+            IInventoryService              inventoryService,
             ICameraRelativeMovementService cameraRelativeMovementService,
             IControlSchemeService          controlSchemeService,
             IOperatorRoster                roster)
@@ -117,7 +117,7 @@ namespace CrimsonDraft.Navigation.Player
 
         private void FixedUpdate()
         {
-            var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
+            var isArmed = this.inventoryService.HasEquippedWeapon(PlayerOperatorSlot);
             this.animator.SetBool(ArmedHash, isArmed);
 
             // GunType.Pistols is int 0, which also doubles as "nothing equipped" here --

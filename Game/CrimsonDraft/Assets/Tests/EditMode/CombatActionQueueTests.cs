@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using CrimsonDraft.Combat;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Tests
 {
@@ -33,7 +34,7 @@ namespace CrimsonDraft.Tests
         public void Dequeue_removesFromFront()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.UseItem(0, 0));
+            queue.Enqueue(PendingAction.UseItem(0, null));
             queue.Enqueue(PendingAction.EnemyAttack(0, 1, 10));
             PendingAction first = queue.Dequeue();
             Assert.AreEqual(PendingActionType.UseItem, first.Type);
@@ -45,7 +46,7 @@ namespace CrimsonDraft.Tests
         {
             var queue = new CombatActionQueue();
             queue.Enqueue(PendingAction.Shoot(0));
-            queue.Enqueue(PendingAction.UseItem(1, 2));
+            queue.Enqueue(PendingAction.UseItem(1, null));
             queue.Enqueue(PendingAction.EnemyAttack(0, 0, 15));
             Assert.AreEqual(PendingActionType.Shoot,       queue.Dequeue().Type);
             Assert.AreEqual(PendingActionType.UseItem,     queue.Dequeue().Type);
@@ -56,7 +57,7 @@ namespace CrimsonDraft.Tests
         public void Clear_emptiesQueue()
         {
             var queue = new CombatActionQueue();
-            queue.Enqueue(PendingAction.UseItem(0, 0));
+            queue.Enqueue(PendingAction.UseItem(0, null));
             queue.Enqueue(PendingAction.Shoot(1));
             queue.Clear();
             Assert.AreEqual(0, queue.Count);
@@ -84,10 +85,11 @@ namespace CrimsonDraft.Tests
         [Test]
         public void PendingAction_UseItem_storesPayload()
         {
-            var action = PendingAction.UseItem(operatorSlot: 1, itemIndex: 4);
+            var item   = InventoryItemFactory.Create(InventoryTestData.Consumable());
+            var action = PendingAction.UseItem(operatorSlot: 1, item: item);
             Assert.AreEqual(PendingActionType.UseItem, action.Type);
             Assert.AreEqual(1, action.SlotIndex);
-            Assert.AreEqual(4, action.ItemIndex);
+            Assert.AreSame(item, action.Item);
         }
     }
 }

@@ -9,11 +9,10 @@ namespace CrimsonDraft.Navigation.Interactables
 {
     public sealed class InteractionContext
     {
-        public readonly ILegacyInventoryService      InventoryService;
+        public readonly IInventoryService      InventoryService;
         public readonly IInputService          InputService;
         public readonly IDialogueService       DialogueService;
         public readonly DocumentController     DocumentController;
-        public readonly ContainerController    ContainerController;
         public readonly IPickupDialogueService PickupDialogueService;
         public readonly PuzzleViewController    PuzzleViewController;
         public readonly ScreenFader            ScreenFader;
@@ -22,11 +21,10 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly InspectionController   InspectionController;
 
         public InteractionContext(
-            ILegacyInventoryService      inventoryService,
+            IInventoryService      inventoryService,
             IInputService          inputService,
             IDialogueService       dialogueService,
             DocumentController     documentController,
-            ContainerController    containerController,
             IPickupDialogueService pickupDialogueService,
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
@@ -38,7 +36,6 @@ namespace CrimsonDraft.Navigation.Interactables
             InputService          = inputService;
             DialogueService       = dialogueService;
             DocumentController    = documentController;
-            ContainerController   = containerController;
             PickupDialogueService = pickupDialogueService;
             PuzzleViewController   = puzzleViewController;
             ScreenFader            = screenFader;

@@ -6,6 +6,10 @@ namespace CrimsonDraft.UI
     {
         [SerializeField] private InventoryGrid[] grids;
 
+        [SerializeField] private InventoryItemView itemViewPrefab;
+
+        public InventoryItemView ItemViewPrefab => itemViewPrefab;
+
         public int Count => grids.Length;
 
         public InventoryGrid GetGrid(int index)

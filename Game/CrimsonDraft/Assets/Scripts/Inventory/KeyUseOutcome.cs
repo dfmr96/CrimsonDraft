@@ -5,12 +5,12 @@ namespace CrimsonDraft.Inventory
     public readonly struct KeyUseOutcome
     {
         public KeyUseResult Result    { get; }
-        public int          SlotIndex { get; } // -1 when Result is NotFound
+        public KeyItem?     Item      { get; }
 
-        public KeyUseOutcome(KeyUseResult result, int slotIndex)
+        public KeyUseOutcome(KeyUseResult result, KeyItem? item)
         {
             this.Result    = result;
-            this.SlotIndex = slotIndex;
+            this.Item      = item;
         }
     }
 }
