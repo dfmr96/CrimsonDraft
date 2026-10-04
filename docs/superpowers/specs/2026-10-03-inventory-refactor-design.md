@@ -268,21 +268,28 @@ public static class InventorySerializer
 
 ### 5. Deletions
 
-Code and the components/prefabs that reference it (scene and prefab edits done
-through the live Editor, not by hand-editing YAML):
+**Scenes are not modified in this pass — only prefabs.** Prefab edits are done
+through the live Editor, not by hand-editing YAML. Deleting a class that a scene
+still references leaves a "Missing Script" component in that scene (harmless at
+runtime); those are listed below for the owner to clean up later.
 
-| Delete | Asset cleanup |
-|---|---|
-| `Navigation/UI/InventoryController.cs` | — |
-| `Navigation/UI/InventoryView.cs` | Remove component from `Production/Navigation.unity`, `Production/New Room.unity`, `Deck B/DeckB_Port_Stairs.unity`, `Deck B/New Room.unity`, `Test/FIX_Deck_B ShadersTest.unity` |
-| `Navigation/UI/OperatorInventoryCard.cs`, `InventorySlotCell.cs`, `InventoryActionButton.cs` | Delete `Prefabs/OperatorInventoryCard.prefab`, `Prefabs/InventorySlotCell.prefab`, `Prefabs/UI/InventoryActionButton.prefab` |
-| `Editor/BuildInventoryPanel.cs`, `Editor/BuildInventoryActionButton.cs` | — |
-| `UI/Inventory/Ui_manager.cs`, `PickUpPromptUI.cs` | — |
-| `UI/Inventory/IItemSpawner.cs`, `InventoryPopulator.cs`, `InventorySceneInit.cs` | Remove `InventoryPopulator` from `UI_Canvas.prefab`; `InventoryScope` registrations updated |
-| `UI/Inventory/TestPickupItem.cs` | Remove from `UI_Canvas.prefab` |
-| `Navigation/InventoryDebugPrinter.cs` | Remove from `Deck_B_Development.unity`; drop optional registration in `NavigationScope` |
-| `Navigation/Interactables/ContainerInteractable.cs`, `UI/ContainerController.cs`, `UI/ContainerView.cs`, `Data/ContainerData.cs` (no `ContainerData` assets exist) | Remove from `Navigation.unity`, `UI_Canvas.prefab` and the scenes listed for `ContainerView`; drop `ContainerController` registration and `InteractionContext.ContainerController` |
-| `Inventory/InventorySlot.cs` | — |
+| Delete | Prefab cleanup | Scenes left with a Missing Script (not edited) |
+|---|---|---|
+| `Navigation/UI/InventoryController.cs` | — | — |
+| `Navigation/UI/InventoryView.cs` | — | `Production/Navigation.unity`, `Production/New Room.unity`, `Deck B/DeckB_Port_Stairs.unity`, `Deck B/New Room.unity`, `Test/FIX_Deck_B ShadersTest.unity` |
+| `Navigation/UI/OperatorInventoryCard.cs`, `InventorySlotCell.cs`, `InventoryActionButton.cs` | Delete `Prefabs/OperatorInventoryCard.prefab`, `Prefabs/InventorySlotCell.prefab`, `Prefabs/UI/InventoryActionButton.prefab` | — |
+| `Editor/BuildInventoryPanel.cs`, `Editor/BuildInventoryActionButton.cs` | — | — |
+| `UI/Inventory/Ui_manager.cs`, `PickUpPromptUI.cs` | — | — |
+| `UI/Inventory/IItemSpawner.cs`, `InventoryPopulator.cs`, `InventorySceneInit.cs` | Remove `InventoryPopulator` from `UI_Canvas.prefab`; `InventoryScope` registrations updated | — |
+| `UI/Inventory/TestPickupItem.cs` | Remove from `UI_Canvas.prefab` | — |
+| `Navigation/InventoryDebugPrinter.cs` | — (drop optional registration in `NavigationScope`) | `Production/Deck_B_Development.unity` |
+| `Navigation/Interactables/ContainerInteractable.cs`, `UI/ContainerController.cs`, `UI/ContainerView.cs`, `Data/ContainerData.cs` (no `ContainerData` assets exist) | Remove `ContainerView` from `UI_Canvas.prefab`; drop `ContainerController` registration and `InteractionContext.ContainerController` | `ContainerInteractable`: `Production/Navigation.unity`. `ContainerView`: the five scenes listed for `InventoryView` |
+| `Inventory/InventorySlot.cs` | — | — |
+
+Before deleting, each class is checked for serialized references from *other*
+scene components (e.g. a field typed `ContainerView` on a scope) so that no live
+component loses a required reference; if one exists, that field is removed in
+code, not in the scene.
 
 Kept: `OperatorTestWidget`, `PartyTestHarness` (roster/test-scene tools, editor
 and dev builds only).
