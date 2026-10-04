@@ -143,7 +143,9 @@ public interface IInventoryService
     ContainerId? FindContainerOf(InventoryItem item);
 
     InventoryItem? Held { get; }
+    int HeldRotation { get; }
     event Action? HeldChanged;
+    void RotateHeld();
 
     bool TryAdd(ItemData data, int quantity = 0);                    // operators in order
     bool TryAdd(ItemData data, ContainerId target, int quantity = 0);
@@ -153,7 +155,7 @@ public interface IInventoryService
 
     bool TryPickUp(InventoryItem item);
     bool TrySplit(InventoryItem stack);
-    DropResult TryDrop(ContainerId target, Vector2Int origin, int rotation);
+    DropResult TryDrop(ContainerId target, Vector2Int origin);   // uses HeldRotation
     void CancelHeld();
 
     bool TryCombine(InventoryItem a, InventoryItem b, out InventoryItem? result);
@@ -162,7 +164,8 @@ public interface IInventoryService
     bool TryReload(InventoryItem ammo, int operatorSlot);
     void Equip(WeaponItem weapon, int operatorSlot);
     void Unequip(WeaponItem weapon);
-    KeyUseOutcome TryUseKey(string keyItemId);
+    bool HasEquippedWeapon(int operatorSlot);
+    KeyUseOutcome TryUseKey(string keyItemId);   // outcome carries KeyItem? Item instead of SlotIndex
 
     void Restore(IReadOnlyList<InventoryItemEntry> entries, ItemDatabase database);
 }
@@ -197,6 +200,9 @@ public enum DropResult { Placed, Swapped, Rejected }
 - `Equip`/`Unequip` update item + roster for the weapon's `WeaponSlot`, replacing
   only the weapon in that slot; they raise `Changed` on the affected containers so
   the equipped tint re-renders.
+
+`PendingAction` carries `InventoryItem? Item` instead of `ItemIndex` (null = reload
+already applied); `ICombatInventoryView.OnItemUsed` becomes `Action<InventoryItem?>`.
 
 `CombatInventoryPanelController`, `CombatOrchestrator`, `InventoryHUDController`,
 `InspectPanel`, `PickupInteractable`, `MapPickupInteractable`, `HotspotReward`,
