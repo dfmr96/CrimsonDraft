@@ -56,12 +56,15 @@ namespace CrimsonDraft.Tests
         private static MapRoomVisual Visual(int x, int y, int turns = 0, bool current = false)
             => new("r", MapTestData.Sprite(10, 10), new Vector2Int(x, y), turns, current);
 
+        private void ShowFitted(MapRoomVisual[] visuals, string name, bool hasUp, bool hasDown)
+            => this.view.Show(visuals, MapLayoutBounds.Compute(visuals), name, hasUp, hasDown);
+
         private RectTransform Room(int i) => (RectTransform)this.content.GetChild(i);
 
         [Test]
         public void Show_placesOneImagePerVisual_relativeToBoundsCentre()
         {
-            this.view.Show(new[] { Visual(0, 0), Visual(20, 0) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0), Visual(20, 0) }, "DECK B", false, false);
 
             Assert.AreEqual(2, this.content.childCount);
             Assert.AreEqual(new Vector2(-10f, 0f), Room(0).anchoredPosition);
@@ -74,7 +77,7 @@ namespace CrimsonDraft.Tests
         [Test]
         public void Show_oddSizedRoom_keepsEdgesOnWholePixels()
         {
-            this.view.Show(new[] { new MapRoomVisual("r", MapTestData.Sprite(11, 9), new Vector2Int(0, 0), 0, false) }, "DECK B", false, false);
+            ShowFitted(new[] { new MapRoomVisual("r", MapTestData.Sprite(11, 9), new Vector2Int(0, 0), 0, false) }, "DECK B", false, false);
             var left   = Room(0).anchoredPosition.x - Room(0).sizeDelta.x * 0.5f;
             var bottom = Room(0).anchoredPosition.y - Room(0).sizeDelta.y * 0.5f;
             Assert.AreEqual(Mathf.Round(left), left, 0.0001f);
@@ -82,10 +85,20 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Show_placesRoomsAgainstTheFloorBounds_notTheVisibleOnes()
+        {
+            var floor = new Rect(0f, 0f, 200f, 100f);
+            this.view.Show(new[] { Visual(0, 0) }, floor, "DECK B", false, false);
+
+            Assert.AreEqual(new Vector2(-95f, -45f), Room(0).anchoredPosition);
+            Assert.AreEqual(0.5f, this.content.localScale.x, 0.0001f);
+        }
+
+        [Test]
         public void Show_again_hidesSurplusImages()
         {
-            this.view.Show(new[] { Visual(0, 0), Visual(20, 0) }, "DECK B", false, false);
-            this.view.Show(new[] { Visual(0, 0) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0), Visual(20, 0) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0) }, "DECK B", false, false);
 
             Assert.IsTrue(Room(0).gameObject.activeSelf);
             Assert.IsFalse(Room(1).gameObject.activeSelf);
@@ -94,14 +107,14 @@ namespace CrimsonDraft.Tests
         [Test]
         public void Show_rotatesByQuarterTurns()
         {
-            this.view.Show(new[] { Visual(0, 0, turns: 1) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0, turns: 1) }, "DECK B", false, false);
             Assert.AreEqual(90f, Room(0).localEulerAngles.z, 0.01f);
         }
 
         [Test]
         public void Show_setsHeaderAndArrows()
         {
-            this.view.Show(new[] { Visual(0, 0) }, "DECK C", hasUp: true, hasDown: false);
+            ShowFitted(new[] { Visual(0, 0) }, "DECK C", hasUp: true, hasDown: false);
             Assert.AreEqual("DECK C", this.label.text);
             Assert.IsTrue(this.up.activeSelf);
             Assert.IsFalse(this.down.activeSelf);
@@ -110,14 +123,14 @@ namespace CrimsonDraft.Tests
         [Test]
         public void Show_nonCurrentRooms_areWhite()
         {
-            this.view.Show(new[] { Visual(0, 0), Visual(20, 0, current: true) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0), Visual(20, 0, current: true) }, "DECK B", false, false);
             Assert.AreEqual(Color.white, Room(0).GetComponent<Image>().color);
         }
 
         [Test]
         public void Hide_deactivatesRoot()
         {
-            this.view.Show(new[] { Visual(0, 0) }, "DECK B", false, false);
+            ShowFitted(new[] { Visual(0, 0) }, "DECK B", false, false);
             this.view.Hide();
             Assert.IsFalse(this.view.IsVisible);
         }

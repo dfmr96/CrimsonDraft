@@ -77,7 +77,7 @@ namespace CrimsonDraft.UI
                 : null;
 
             var visuals = MapRoomVisuals.Resolve(map, this.rooms, this.pickups, this.knownMaps, currentRoomId);
-            this.mapScreenView.Show(visuals, map.DisplayName, this.floors!.HasUp, this.floors.HasDown);
+            this.mapScreenView.Show(visuals, MapLayoutBounds.Floor(map), map.DisplayName, this.floors!.HasUp, this.floors.HasDown);
         }
     }
 }

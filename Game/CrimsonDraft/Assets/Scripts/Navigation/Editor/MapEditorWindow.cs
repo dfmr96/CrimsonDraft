@@ -120,7 +120,7 @@ namespace CrimsonDraft.Navigation.Editor
         private void Frame()
         {
             if (this.map == null) return;
-            var bounds = MapLayoutBounds.Compute(MapRoomVisuals.Preview(this.map, this.previewComplete));
+            var bounds = MapLayoutBounds.Floor(this.map);
             this.pan = new Vector2(-bounds.center.x, bounds.center.y) * this.zoom;
         }
 
@@ -283,7 +283,7 @@ namespace CrimsonDraft.Navigation.Editor
 
             if (visuals.Count > 0)
             {
-                var c = ToScreen(canvas, MapLayoutBounds.Compute(visuals).center);
+                var c = ToScreen(canvas, MapLayoutBounds.Floor(target).center);
                 EditorGUI.DrawRect(new Rect(c.x - 6f, c.y - 0.5f, 12f, 1f), Color.cyan);
                 EditorGUI.DrawRect(new Rect(c.x - 0.5f, c.y - 6f, 1f, 12f), Color.cyan);
             }

@@ -9,7 +9,8 @@ using CrimsonDraft.Infrastructure.Map;
 namespace CrimsonDraft.Navigation.UI
 {
     /// <summary>Draws one floor of the map as room sprites, centred (to the whole pixel) on the
-    /// floor's bounds and shrunk to fit the viewport. The player's current room pulses its alpha.</summary>
+    /// whole floor's frame and shrunk to fit the viewport, so the view never moves as rooms are
+    /// discovered. The player's current room pulses its alpha.</summary>
     public sealed class MapScreenView : MonoBehaviour
     {
         [SerializeField] private GameObject      root      = null!;
@@ -28,15 +29,16 @@ namespace CrimsonDraft.Navigation.UI
 
         public bool IsVisible => this.root.activeSelf;
 
-        public void Show(IReadOnlyList<MapRoomVisual> visuals, string floorName, bool hasUp, bool hasDown)
+        /// <param name="floorBounds">Frame of the whole floor (MapLayoutBounds.Floor), not of the
+        /// visible rooms, so centre and scale never shift as rooms are discovered.</param>
+        public void Show(IReadOnlyList<MapRoomVisual> visuals, Rect floorBounds, string floorName, bool hasUp, bool hasDown)
         {
             this.root.SetActive(true);
             this.deckName.text = floorName;
             this.upArrow.SetActive(hasUp);
             this.downArrow.SetActive(hasDown);
 
-            var bounds = MapLayoutBounds.Compute(visuals);
-            var centre = new Vector2(Mathf.Round(bounds.center.x), Mathf.Round(bounds.center.y));
+            var centre = new Vector2(Mathf.Round(floorBounds.center.x), Mathf.Round(floorBounds.center.y));
             this.currentImage = null;
 
             for (int i = 0; i < visuals.Count; i++)
@@ -58,7 +60,7 @@ namespace CrimsonDraft.Navigation.UI
             for (int i = visuals.Count; i < this.images.Count; i++)
                 this.images[i].gameObject.SetActive(false);
 
-            float scale = FitScale(bounds.size, this.viewport.rect.size);
+            float scale = FitScale(floorBounds.size, this.viewport.rect.size);
             this.content.localScale = new Vector3(scale, scale, 1f);
         }
 

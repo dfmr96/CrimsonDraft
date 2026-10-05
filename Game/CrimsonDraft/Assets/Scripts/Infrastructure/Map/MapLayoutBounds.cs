@@ -28,6 +28,31 @@ namespace CrimsonDraft.Infrastructure.Map
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
+        /// <summary>The whole floor's frame: every room that has art, discovered or not, sized by
+        /// the larger of its two sprites. Framing the MAP tab on this keeps the zoom and every
+        /// room's place fixed while the player discovers rooms.</summary>
+        public static Rect Floor(MapData map)
+        {
+            bool any = false;
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
+
+            foreach (var room in map.Rooms)
+            {
+                var size = Vector2.Max(
+                    room.IncompleteSprite != null ? SizeOf(room.IncompleteSprite, room.QuarterTurns) : Vector2.zero,
+                    room.CompleteSprite   != null ? SizeOf(room.CompleteSprite,   room.QuarterTurns) : Vector2.zero);
+                if (size == Vector2.zero)
+                    continue;
+
+                any = true;
+                min = Vector2.Min(min, room.Position);
+                max = Vector2.Max(max, room.Position + size);
+            }
+
+            return any ? Rect.MinMaxRect(min.x, min.y, max.x, max.y) : Rect.zero;
+        }
+
         public static RectInt RectOf(MapRoomVisual visual)
         {
             var size = SizeOf(visual.Sprite, visual.QuarterTurns);

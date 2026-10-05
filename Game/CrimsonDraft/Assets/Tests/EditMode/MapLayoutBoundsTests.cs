@@ -45,5 +45,26 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(new Vector2(20, 10), MapLayoutBounds.Compute(new[] { Visual(10, 20, 0, 0, turns: 1) }).size);
             Assert.AreEqual(new Vector2(10, 20), MapLayoutBounds.Compute(new[] { Visual(10, 20, 0, 0, turns: 2) }).size);
         }
+
+        [Test]
+        public void Floor_coversEveryRoomWithASprite_regardlessOfDiscovery()
+        {
+            var small = MapTestData.Sprite(10, 10);
+            var map = MapTestData.Map("deck-a",
+                MapTestData.Room("a", new Vector2Int(0, 0), incomplete: small, complete: small),
+                MapTestData.Room("b", new Vector2Int(90, 40), incomplete: small, complete: small),
+                MapTestData.Room("no-art", new Vector2Int(500, 500)));
+
+            Assert.AreEqual(Rect.MinMaxRect(0, 0, 100, 50), MapLayoutBounds.Floor(map));
+        }
+
+        [Test]
+        public void Floor_usesTheLargerOfBothSprites()
+        {
+            var map = MapTestData.Map("deck-a",
+                MapTestData.Room("a", new Vector2Int(0, 0), incomplete: MapTestData.Sprite(10, 10), complete: MapTestData.Sprite(14, 8)));
+
+            Assert.AreEqual(Rect.MinMaxRect(0, 0, 14, 10), MapLayoutBounds.Floor(map));
+        }
     }
 }

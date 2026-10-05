@@ -117,7 +117,7 @@ Kept: `MapDoorMarker`, `MapSceneConfig`.
 
 - **`MapRoomVisuals.Resolve(map, rooms, pickups, knownMaps, currentRoomId)`** (pure): returns
   visible `{RoomId, Sprite, Position, QuarterTurns, IsCurrent}`.
-- **`MapLayoutBounds`** (pure): bounding box of the visible visuals, using sprite pixel size and
+- **`MapLayoutBounds`** (pure): `Floor(map)` frames every room that has art (discovered or not, larger of its two sprites) — the MAP tab centres and fits on this, so the zoom and room positions never change as rooms are discovered; `Compute` gives the bounding box of a visual list, using sprite pixel size and
   swapping width/height on odd `QuarterTurns`; returns the centre.
 - **`MapFloors`** (pure):
   - lists the available floors in `MapDataSet` order, plus the player's own floor (appended last) when the set doesn't contain it;
