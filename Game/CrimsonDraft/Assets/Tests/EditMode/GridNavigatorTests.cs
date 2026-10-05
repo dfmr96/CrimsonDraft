@@ -166,21 +166,21 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Rows_upFromOperator_entersStorageAtProportionalColumn()
+        public void Rows_upFromAnyOperator_entersStorageAtBottomLeft()
         {
             var nav = RowNavigator(Op1, col: 2, row: 0);
             Assert.AreEqual(NavigationExit.None, nav.Move(Vector2Int.up, isHolding: false));
             Assert.AreEqual(ContainerId.Storage, nav.Grid);
-            Assert.AreEqual(new Vector2Int(6, 3), nav.Cell);
+            Assert.AreEqual(new Vector2Int(0, 3), nav.Cell);
         }
 
         [Test]
-        public void Rows_downFromStorage_entersOperatorAtProportionalColumn()
+        public void Rows_downFromStorage_entersFirstOperatorAtTopLeft()
         {
             var nav = RowNavigator(ContainerId.Storage, col: 10, row: 3);
             nav.Move(Vector2Int.down, isHolding: true);
-            Assert.AreEqual(Op2, nav.Grid);
-            Assert.AreEqual(new Vector2Int(2, 0), nav.Cell);
+            Assert.AreEqual(Op0, nav.Grid);
+            Assert.AreEqual(new Vector2Int(0, 0), nav.Cell);
         }
 
         [Test]

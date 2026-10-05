@@ -71,10 +71,9 @@ and the operators. The box contents persist through scene changes and save files
 - New optional constructor input: **rows** — an ordered list (top to bottom)
   of grid rows, each an ordered list (left to right) of `ContainerId`s.
 - When a vertical move leaves a grid and the grid belongs to a row with a row
-  above/below, the target grid and column are chosen by **proportional
-  horizontal position**: treat each row as spanning the same width, each grid
-  in a row as an equal share, and map the cell centre's horizontal fraction
-  into the destination row.
+  above/below, the cursor enters the destination row's **first grid at its near
+  corner**: bottom-left when moving up (any operator → Storage (0,3)), top-left
+  when moving down (Storage → first operator (0,0)).
 - With rows present, leaving the top row upward or the bottom row downward is a
   no-op that returns `NavigationExit.None` and keeps the cursor in place
   (storage mode has no tab bar or melee slot to exit to).
@@ -86,9 +85,10 @@ and the operators. The box contents persist through scene changes and save files
 - **`StorageWindow`** (MonoBehaviour) on a new GameObject under `Inventory`
   (sibling after `Card_Container`, so it draws above the cards), anchored to the
   top, covering the cards' top half. Contains a frame/background (sprite and
-  colour copied from the card border), a title label "BAÚL", and an
+  colour copied from the card border), a title label "STORAGE BOX", and an
   `InventoryGrid` (12×4, `containerKind = Storage`, same cell size as operator
-  grids, horizontally centred). Inactive by default. Built in
+  grids, horizontally centred) inside a `Grid_container` framed with the same
+  top/right border sprite as the operator grids (tiled). Inactive by default. Built in
   `UI_Inventry_Root.prefab` through the Editor (source prefab, not UI_Canvas
   overrides, not scenes). API: `InventoryGrid Grid`, `void Show()`, `void Hide()`,
   `bool IsShown`.
@@ -139,8 +139,8 @@ TDD, EditMode, shared fakes.
   entry falls back to operators; operator entry falls back to storage.
 - `InventoryBootstrapTests` additions: new game loads `storageItems` into
   storage; saved state ignores them.
-- `GridNavigatorTests` additions: rows — up from an operator enters storage at the
-  proportional column; down from storage picks the right operator and column;
+- `GridNavigatorTests` additions: rows — up from any operator enters storage at
+  the bottom-left cell; down from storage enters the first operator at top-left;
   edges are no-ops; without rows behaviour unchanged.
 - `StorageBoxInteractableTests`: `Interact` publishes the event.
 - Play Mode (CLI `eval`): open storage mode via the event, move items both ways,
@@ -152,7 +152,5 @@ TDD, EditMode, shared fakes.
 
 ## Risks
 
-- Proportional row mapping is an approximation if the storage window's width
-  differs from the cards row; acceptable for keyboard/gamepad navigation.
 - Positional `InteractionContext` construction in tests changes again (one
   added argument).

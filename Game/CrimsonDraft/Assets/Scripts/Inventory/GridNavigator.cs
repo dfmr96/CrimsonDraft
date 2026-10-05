@@ -77,11 +77,11 @@ namespace CrimsonDraft.Inventory
             if (next.y < 0 || next.y >= container.Height)
             {
                 bool up = next.y < 0;
-                if (TryLocateRow(this.Grid, out int rowIndex, out int position))
+                if (TryLocateRow(this.Grid, out int rowIndex, out _))
                 {
                     int target = up ? rowIndex - 1 : rowIndex + 1;
                     if (target >= 0 && target < this.rows!.Count)
-                        EnterRow(target, rowIndex, position, this.Cell.x, container.Width, enterFromBelow: up);
+                        EnterRow(target, enterFromBelow: up);
                     return NavigationExit.None;
                 }
 
@@ -141,17 +141,14 @@ namespace CrimsonDraft.Inventory
             return false;
         }
 
-        private void EnterRow(int targetRow, int fromRow, int fromPosition, int fromColumn, int fromWidth, bool enterFromBelow)
+        // Entering another row always lands on its first grid's near corner: bottom-left when
+        // coming from below, top-left when coming from above.
+        private void EnterRow(int targetRow, bool enterFromBelow)
         {
-            float fraction = (fromPosition + (fromColumn + 0.5f) / fromWidth) / this.rows![fromRow].Count;
-            var   row      = this.rows[targetRow];
-            float scaled   = fraction * row.Count;
-            int   gridIdx  = Mathf.Clamp(Mathf.FloorToInt(scaled), 0, row.Count - 1);
-            var   target   = this.resolve(row[gridIdx]);
-            int   column   = Mathf.Clamp(Mathf.FloorToInt((scaled - gridIdx) * target.Width), 0, target.Width - 1);
-
-            this.Grid = row[gridIdx];
-            this.Cell = new Vector2Int(column, enterFromBelow ? target.Height - 1 : 0);
+            var row    = this.rows![targetRow];
+            var target = this.resolve(row[0]);
+            this.Grid = row[0];
+            this.Cell = new Vector2Int(0, enterFromBelow ? target.Height - 1 : 0);
         }
 
         private static int IndexOf(IReadOnlyList<ContainerId> row, ContainerId grid)
