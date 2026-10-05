@@ -9,13 +9,14 @@ using CrimsonDraft.Infrastructure.Map;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>Lays out a floor's room sprites on a free canvas. Position is each room's
-    /// bottom-left corner in map pixels; dragging snaps to the grid and magnetises to nearby
-    /// room edges (hold Alt to drag freely), and Align snaps edges in one go. Edits the MapData asset only
+    /// bottom-left corner in map pixels; dragging snaps to the grid and, with Magnet on, to
+    /// nearby room edges (Alt inverts the magnet while dragging). Edits the MapData asset only
     /// (never the scene): sprites, pixel position and 90° rotation. Rooms and their pickup/door
     /// ids come from the scene bake (MapBaker); rooms no longer in the scene show as orphans.</summary>
     public sealed class MapEditorWindow : EditorWindow
     {
-        private const string SnapPrefKey = "CrimsonDraft.MapEditor.Snap";
+        private const string SnapPrefKey   = "CrimsonDraft.MapEditor.Snap";
+        private const string MagnetPrefKey = "CrimsonDraft.MapEditor.Magnet";
         private const float  ListWidth   = 280f;
         private const float  MinZoom     = 0.1f;
         private const float  MaxZoom     = 8f;
@@ -28,6 +29,7 @@ namespace CrimsonDraft.Navigation.Editor
         [SerializeField] private float    zoom = 1f;
         [SerializeField] private int      snap = 1;
         [SerializeField] private bool     previewComplete;
+        [SerializeField] private bool     magnet = true;
         [SerializeField] private Vector2  listScroll;
 
         private bool       dragging;
@@ -43,7 +45,8 @@ namespace CrimsonDraft.Navigation.Editor
 
         private void OnEnable()
         {
-            this.snap = EditorPrefs.GetInt(SnapPrefKey, this.snap);
+            this.snap   = EditorPrefs.GetInt(SnapPrefKey, this.snap);
+            this.magnet = EditorPrefs.GetBool(MagnetPrefKey, this.magnet);
             Undo.undoRedoPerformed += Repaint;
         }
 
@@ -103,12 +106,12 @@ namespace CrimsonDraft.Navigation.Editor
             if (GUILayout.Button("Frame", EditorStyles.toolbarButton, GUILayout.Width(50f)))
                 Frame();
 
-            var alignLabel = new GUIContent(
-                string.IsNullOrEmpty(this.selectedRoomId) ? "Align all" : "Align",
-                $"Snaps room edges to the nearest edge of another room within {MapAlign.DefaultTolerance}px. " +
-                "With a room selected only that room moves; otherwise every room, in list order.");
-            if (GUILayout.Button(alignLabel, EditorStyles.toolbarButton, GUILayout.Width(65f)))
-                Align();
+            EditorGUI.BeginChangeCheck();
+            this.magnet = GUILayout.Toggle(this.magnet, new GUIContent("Magnet",
+                $"Snap dragged room edges to other rooms' edges within {MapAlign.DefaultTolerance}px. Hold Alt to invert while dragging."),
+                EditorStyles.toolbarButton, GUILayout.Width(60f));
+            if (EditorGUI.EndChangeCheck())
+                EditorPrefs.SetBool(MagnetPrefKey, this.magnet);
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -121,40 +124,11 @@ namespace CrimsonDraft.Navigation.Editor
             this.pan = new Vector2(-bounds.center.x, bounds.center.y) * this.zoom;
         }
 
-        private void Align()
-        {
-            if (this.map == null) return;
-
-            var visuals = MapRoomVisuals.Preview(this.map, this.previewComplete);
-            Undo.RecordObject(this.map, "Align map rooms");
-
-            if (string.IsNullOrEmpty(this.selectedRoomId))
-            {
-                var corners = MapAlign.AlignAll(visuals.Select(MapLayoutBounds.RectOf).ToList(), MapAlign.DefaultTolerance);
-                for (int i = 0; i < visuals.Count; i++)
-                    SetPosition(this.map, visuals[i].RoomId, corners[i]);
-            }
-            else
-            {
-                var moving = visuals.FirstOrDefault(v => v.RoomId == this.selectedRoomId);
-                if (moving.Sprite == null) return;
-                SetPosition(this.map, moving.RoomId, moving.Position + Magnet(visuals, moving.RoomId, MapLayoutBounds.RectOf(moving)));
-            }
-
-            EditorUtility.SetDirty(this.map);
-        }
-
         private static Vector2Int Magnet(IReadOnlyList<MapRoomVisual> visuals, string movingId, RectInt moving)
             => MapAlign.SnapOffset(
                 moving,
                 visuals.Where(v => v.RoomId != movingId).Select(MapLayoutBounds.RectOf),
                 MapAlign.DefaultTolerance);
-
-        private static void SetPosition(MapData target, string roomId, Vector2Int position)
-        {
-            var room = target.Rooms.FirstOrDefault(r => r.RoomId == roomId);
-            if (room != null) room.Position = position;
-        }
 
         // ---------- Room list + inspector ----------
 
@@ -387,7 +361,7 @@ namespace CrimsonDraft.Navigation.Editor
                     {
                         var delta = (e.mousePosition - this.dragStartMouse) / this.zoom;
                         var moved = Snap(this.dragStartPosition + new Vector2(delta.x, -delta.y));
-                        if (!e.alt)
+                        if (this.magnet != e.alt)
                             moved += DragMagnet(target, room, moved);
                         if (moved != room.Position)
                         {

@@ -9,7 +9,7 @@ using CrimsonDraft.Infrastructure.Map;
 namespace CrimsonDraft.Navigation.UI
 {
     /// <summary>Draws one floor of the map as room sprites, centred (to the whole pixel) on the
-    /// floor's bounds and shrunk to fit the viewport. The player's current room tints back and forth.</summary>
+    /// floor's bounds and shrunk to fit the viewport. The player's current room pulses its alpha.</summary>
     public sealed class MapScreenView : MonoBehaviour
     {
         [SerializeField] private GameObject      root      = null!;
@@ -20,8 +20,8 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private GameObject      downArrow = null!;
 
         [Header("Current room")]
-        [SerializeField] private Color currentTint = new(1f, 0.35f, 0.35f, 1f);
-        [SerializeField] private float pulseSpeed  = 3f;
+        [SerializeField, Range(0f, 1f)] private float minAlpha   = 0.3f;
+        [SerializeField]                private float pulseSpeed = 3f;
 
         private readonly List<Image> images = new();
         private Image? currentImage;
@@ -76,13 +76,18 @@ namespace CrimsonDraft.Navigation.UI
             return Mathf.Min(1f, viewportSize.x / contentSize.x, viewportSize.y / contentSize.y);
         }
 
+        public static Color PulseColor(float time, float speed, float minAlpha)
+        {
+            float t = (Mathf.Sin(time * speed) + 1f) * 0.5f;
+            return new Color(1f, 1f, 1f, Mathf.Lerp(minAlpha, 1f, t));
+        }
+
         private void Update()
         {
             if (this.currentImage == null)
                 return;
 
-            float t = (Mathf.Sin(Time.unscaledTime * this.pulseSpeed) + 1f) * 0.5f;
-            this.currentImage.color = Color.Lerp(Color.white, this.currentTint, t);
+            this.currentImage.color = PulseColor(Time.unscaledTime, this.pulseSpeed, this.minAlpha);
         }
 
         private Image Acquire(int index)

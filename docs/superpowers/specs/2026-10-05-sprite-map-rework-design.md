@@ -11,7 +11,7 @@ asset-based editor, shown centred in the MAP tab with vertical input switching f
 ## Decisions (from the user)
 
 - Each room has two sprites: **incomplete** and **complete** (all its pickups collected).
-- The player's current room is highlighted by a **tint change**, not a blink.
+- The player's current room is highlighted by an **alpha pulse** (changed from the original tint at the user's request).
 - Discovery is unchanged: a visited room is drawn; with the floor's **map item**, unvisited
   rooms are drawn too — with their real complete/incomplete sprite. Otherwise invisible.
 - A room with no pickups counts as **complete**, even if never visited.
@@ -93,8 +93,7 @@ Replaces the current `MapEditorWindow`.
   Selecting shows: both sprite fields, `Position` X/Y ints, ⟲ / ⟳ 90° buttons, **Delete** (orphans only).
 - **Canvas:**
   - Draws each room sprite at `Position` with `QuarterTurns`; selected room outlined.
-  - Click selects; drag moves with grid snap and an edge magnet (edges within 4 px snap to another room's edge; hold Alt to drag freely).
-  - **Align** (toolbar): snaps the selected room's edges to its neighbours within 4 px, or every room in list order when nothing is selected. Undoable.
+  - Click selects; drag moves with grid snap and, with the toolbar **Magnet** toggle on (persisted in `EditorPrefs`), an edge magnet: edges within 4 px snap to another room's edge. Alt inverts the magnet while dragging.
   - Mouse wheel zoom and middle-drag pan — editor only.
   - A room without a sprite is not drawn; assigning its first sprite places it at the visible canvas centre.
   - A cross marks the bounding-box centre (what the game centres on).
@@ -130,7 +129,7 @@ Kept: `MapDoorMarker`, `MapSceneConfig`.
     - anchored position = `Position − boundsCentre`;
     - Z rotation = `QuarterTurns × 90`.
   - **Fit:** if the bounds exceed the viewport, the content is uniformly scaled down to fit. It is never scaled up past 1.
-  - **Current-room tint:** `Color.Lerp(white, currentTint, (sin(t·pulseSpeed)+1)/2)`, using unscaled time.
+  - **Current-room pulse:** alpha only, `Lerp(minAlpha, 1, (sin(t·pulseSpeed)+1)/2)` on a white colour, using unscaled time.
   - **Header:** floor name with ▲ / ▼ shown only when a floor exists in that direction.
 - **`MapTabController`**:
   - On enable, shows the player's floor.

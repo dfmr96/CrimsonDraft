@@ -123,6 +123,20 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void PulseColor_onlyChangesAlpha_betweenMinAndOne()
+        {
+            float speed = 3f;
+            var peak   = MapScreenView.PulseColor(Mathf.PI * 0.5f / speed, speed, 0.3f);
+            var trough = MapScreenView.PulseColor(Mathf.PI * 1.5f / speed, speed, 0.3f);
+
+            Assert.AreEqual(new Color(1f, 1f, 1f, 1f),   peak);
+            Assert.AreEqual(1f, trough.r);
+            Assert.AreEqual(1f, trough.g);
+            Assert.AreEqual(1f, trough.b);
+            Assert.AreEqual(0.3f, trough.a, 0.0001f);
+        }
+
+        [Test]
         public void FitScale_onlyShrinks()
         {
             Assert.AreEqual(0.5f, MapScreenView.FitScale(new Vector2(200f, 100f), new Vector2(100f, 100f)), 0.0001f);

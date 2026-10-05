@@ -25,24 +25,6 @@ namespace CrimsonDraft.Infrastructure.Map
             return new Vector2Int(bestX ?? 0, bestY ?? 0);
         }
 
-        /// <summary>Aligns rooms in order: the first stays put, each next one snaps against the
-        /// ones already aligned. Returns the new bottom-left corners.</summary>
-        public static IReadOnlyList<Vector2Int> AlignAll(IReadOnlyList<RectInt> rects, int tolerance)
-        {
-            var placed  = new List<RectInt>(rects.Count);
-            var corners = new List<Vector2Int>(rects.Count);
-
-            foreach (var rect in rects)
-            {
-                var aligned = rect;
-                aligned.position += SnapOffset(rect, placed, tolerance);
-                placed.Add(aligned);
-                corners.Add(aligned.position);
-            }
-
-            return corners;
-        }
-
         private static int? Nearest(int? best, int tolerance, params int[] candidates)
         {
             foreach (int delta in candidates)

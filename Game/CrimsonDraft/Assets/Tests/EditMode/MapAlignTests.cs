@@ -46,20 +46,5 @@ namespace CrimsonDraft.Tests
         {
             Assert.AreEqual(Vector2Int.zero, MapAlign.SnapOffset(new RectInt(10, 0, 5, 5), new[] { new RectInt(0, 0, 10, 10) }, 4));
         }
-
-        [Test]
-        public void AlignAll_snapsEachRoom_againstTheAlreadyAlignedOnes()
-        {
-            var rects = new[] { new RectInt(0, 0, 10, 10), new RectInt(12, 1, 10, 10), new RectInt(24, -1, 10, 10) };
-            var corners = MapAlign.AlignAll(rects, 4);
-            CollectionAssert.AreEqual(new[] { new Vector2Int(0, 0), new Vector2Int(10, 0), new Vector2Int(20, 0) }, corners);
-        }
-
-        [Test]
-        public void AlignAll_neverMovesMoreThanTolerance()
-        {
-            var rects = new[] { new RectInt(0, 0, 10, 10), new RectInt(50, 50, 10, 10) };
-            CollectionAssert.AreEqual(new[] { new Vector2Int(0, 0), new Vector2Int(50, 50) }, MapAlign.AlignAll(rects, 4));
-        }
     }
 }
