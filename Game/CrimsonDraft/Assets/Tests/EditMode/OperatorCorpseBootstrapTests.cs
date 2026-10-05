@@ -297,5 +297,36 @@ namespace CrimsonDraft.Tests
                 UnityEngine.Object.DestroyImmediate(playerGo);
             }
         }
+    
+        [Test]
+        public void RecordNewDeaths_spawnsCorpseForDeadOperatorWithoutCombatEnd()
+        {
+            var roomGo   = new GameObject("Room");
+            var room     = roomGo.AddComponent<RoomController>();
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            var registry = new OperatorCorpseRegistry();
+            var spawner  = new FakeSpawner();
+
+            try
+            {
+                var bootstrap = new OperatorCorpseBootstrap(new FakeRoster(count: 3, deadSlots: 2), new FakeRoomOrchestrator(room), player,
+                    new FakeSubscriber<CombatEndedEvent>(), new FakeSubscriber<RoomTransitionedEvent>(), registry, spawner);
+                ((IInitializable)bootstrap).Initialize();
+
+                bootstrap.RecordNewDeaths();
+                bootstrap.RecordNewDeaths();
+
+                Assert.IsTrue(registry.IsRecorded(2));
+                Assert.AreEqual(1, spawner.SpawnCallCount);
+                Assert.AreEqual(2, spawner.LastSlot);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(roomGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
     }
 }

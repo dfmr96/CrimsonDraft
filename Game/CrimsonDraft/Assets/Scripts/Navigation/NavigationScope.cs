@@ -169,8 +169,11 @@ namespace CrimsonDraft.Navigation
             builder.RegisterInstance(this.corpseSettings);
             builder.Register<CorpseProximityTracker>(Lifetime.Singleton).AsSelf().As<ICorpseAccess>();
             builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
-            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces().AsSelf();
             builder.Register<DeadOperatorGearReleaser>(Lifetime.Singleton).AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
+#endif
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();

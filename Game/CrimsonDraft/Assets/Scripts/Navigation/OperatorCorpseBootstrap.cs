@@ -65,7 +65,9 @@ namespace CrimsonDraft.Navigation
                 SpawnRecordedCorpsesForRoom(this.roomOrchestrator.CurrentRoom);
         }
 
-        private void OnCombatEnded(CombatEndedEvent ev)
+        private void OnCombatEnded(CombatEndedEvent ev) => RecordNewDeaths();
+
+        public void RecordNewDeaths()
         {
             RoomController? room = this.roomOrchestrator.CurrentRoom;
             if (room == null) return;
