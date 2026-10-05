@@ -24,7 +24,8 @@ namespace CrimsonDraft.Tests
             GameObject        doorPrefab,
             IRoomOrchestrator orchestrator,
             DoorStateRegistry? registry = null,
-            string            doorId   = "test-door")
+            string            doorId   = "test-door",
+            RoomDoorInteractable? unlocksOnCross = null)
         {
             var go   = new GameObject();
             var door = go.AddComponent<RoomDoorInteractable>();
@@ -33,6 +34,7 @@ namespace CrimsonDraft.Tests
             so.FindProperty("destination").objectReferenceValue          = destination;
             so.FindProperty("doorTransitionPrefab").objectReferenceValue = doorPrefab;
             so.FindProperty("doorId").stringValue                        = doorId;
+            so.FindProperty("unlocksOnCross").objectReferenceValue       = unlocksOnCross;
             so.ApplyModifiedPropertiesWithoutUndo();
             door.Construct(orchestrator, registry ?? new DoorStateRegistry());
             return door;
@@ -246,6 +248,38 @@ namespace CrimsonDraft.Tests
 
             UnityEngine.Object.DestroyImmediate(door.gameObject);
             UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void Interact_whenCrossingPairedDoor_unlocksTheOtherSideMechanismLock()
+        {
+            var registry       = new DoorStateRegistry();
+            var destinationA   = MakeRoom();
+            var destinationB   = MakeRoom();
+            var prefab         = new GameObject("DoorPrefab");
+            var orchestrator   = new FakeOrchestrator();
+
+            // Door A: locked from the other side until Door B is crossed.
+            var doorA = MakeDoor(MakeUnlockedDoor(), destinationA, prefab, orchestrator, registry, "door-a");
+            var soA   = new SerializedObject(doorA);
+            soA.FindProperty("useMechanismLock").boolValue = true;
+            soA.FindProperty("mechanismLocked").boolValue  = true;
+            soA.ApplyModifiedPropertiesWithoutUndo();
+
+            // Door B: the free side, paired to unlock Door A once crossed.
+            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b", doorA);
+
+            Assert.IsTrue(doorA.MechanismLocked, "door A should start locked from the other side");
+
+            doorB.Interact(MakeContext(new FakeDialogue(), new FakeInventory()));
+
+            Assert.IsFalse(doorA.MechanismLocked, "crossing door B must unlock door A");
+
+            UnityEngine.Object.DestroyImmediate(doorA.gameObject);
+            UnityEngine.Object.DestroyImmediate(doorB.gameObject);
+            UnityEngine.Object.DestroyImmediate(destinationA.gameObject);
+            UnityEngine.Object.DestroyImmediate(destinationB.gameObject);
             UnityEngine.Object.DestroyImmediate(prefab);
         }
 
