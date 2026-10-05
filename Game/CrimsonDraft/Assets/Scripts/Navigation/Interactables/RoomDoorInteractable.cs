@@ -37,6 +37,11 @@ namespace CrimsonDraft.Navigation.Interactables
         // Door_B2's lock and both sides behave as a normal two-way door from then on.
         [SerializeField] private RoomDoorInteractable? unlocksOnCross;
 
+        // Optional feedback shown the first time this door is used while unlocksOnCross is still
+        // mechanism-locked (e.g. "You unlocked the door."). The player advances the dialogue and
+        // only then crosses. Skipped on later uses and when no node is set.
+        [SerializeField] private DialogueReference unlocksOnCrossDialogue = new();
+
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
         public bool            MechanismLocked => this.mechanismLocked;
@@ -76,14 +81,14 @@ namespace CrimsonDraft.Navigation.Interactables
 
                 this.unlocked = true;
                 this.registry.MarkUnlocked(this.doorId);
-                CrossDoor();
+                CrossDoorWithUnlockFeedback(context);
                 return;
             }
 
             if (!this.data.Locked || this.unlocked)
             {
                 this.registry.MarkUnlocked(this.doorId);
-                CrossDoor();
+                CrossDoorWithUnlockFeedback(context);
                 return;
             }
 
@@ -141,6 +146,19 @@ namespace CrimsonDraft.Navigation.Interactables
                         });
                     break;
             }
+        }
+
+        private void CrossDoorWithUnlockFeedback(InteractionContext context)
+        {
+            var node = this.unlocksOnCrossDialogue.nodeName;
+
+            if (this.unlocksOnCross == null || !this.unlocksOnCross.MechanismLocked || string.IsNullOrEmpty(node))
+            {
+                CrossDoor();
+                return;
+            }
+
+            context.DialogueService.StartDialogue(node, onComplete: CrossDoor);
         }
 
         private void CrossDoor()
