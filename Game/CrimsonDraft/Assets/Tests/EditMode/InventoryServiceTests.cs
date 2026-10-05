@@ -12,10 +12,10 @@ namespace CrimsonDraft.Tests
     public sealed partial class InventoryServiceTests
     {
         private static InventoryService Service(int operators = 2, ICombineService? combine = null) =>
-            new InventoryService(FakeRoster.WithOperators(operators), combine ?? FakeCombineService.None);
+            new InventoryService(FakeRoster.WithOperators(operators), combine ?? FakeCombineService.None, FakeCorpseAccess.None);
 
-        private static InventoryService Service(FakeRoster roster, ICombineService? combine = null) =>
-            new InventoryService(roster, combine ?? FakeCombineService.None);
+        private static InventoryService Service(FakeRoster roster, ICombineService? combine = null, ICorpseAccess? access = null) =>
+            new InventoryService(roster, combine ?? FakeCombineService.None, access ?? FakeCorpseAccess.None);
 
         private static ItemContainer Op(InventoryService s, int index) => s.GetContainer(ContainerId.Operator(index));
 

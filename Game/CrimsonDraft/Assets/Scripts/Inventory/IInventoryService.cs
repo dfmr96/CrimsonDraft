@@ -18,6 +18,8 @@ namespace CrimsonDraft.Inventory
         void Remove(InventoryItem item);
         bool TryRemove(string itemId);
         bool HasItem(string itemId);
+        bool IsCarried(ContainerId id);
+        bool IsAccessible(ContainerId id);
 
         InventoryItem? Held { get; }
         int HeldRotation { get; }
@@ -39,6 +41,7 @@ namespace CrimsonDraft.Inventory
         void Unequip(WeaponItem weapon);
         bool HasEquippedWeapon(int operatorSlot);
         KeyUseOutcome TryUseKey(string keyItemId);
+        void ReleaseDeadOperatorWeapons();
 
         void Restore(IReadOnlyList<InventoryItemEntry> entries, ItemDatabase database);
     }

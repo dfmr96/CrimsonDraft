@@ -42,7 +42,7 @@ namespace CrimsonDraft.UI
                 RefreshWeaponSlot(weapon, this.weaponSlot0Root, this.weaponSlot0Icon, this.weaponSlot0AmmoLabel);
         }
 
-        public void Bind(OperatorRuntime op)
+        public void Bind(OperatorRuntime op, bool canLoot)
         {
             if (!op.IsPresent)
             {
@@ -54,7 +54,7 @@ namespace CrimsonDraft.UI
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
-            if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive);
+            if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive && !canLoot);
 
             this.ApplyHealthState(op.HpRatio, op.IsAlive);
 

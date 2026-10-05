@@ -23,6 +23,7 @@ namespace CrimsonDraft.Inventory
             var container = FindContainerObjectOf(item);
             var placement = container?.GetPlacement(item);
             if (container == null || placement == null) return false;
+            if (!IsAccessible(container.Id)) return false;
 
             container.Remove(item);
             SetHeld(item, placement.Rotation, new HeldReturn(container.Id, placement.Origin, placement.Rotation, null));
@@ -35,7 +36,7 @@ namespace CrimsonDraft.Inventory
             if (this.held != null || !stack.Data.Stackable || stack.Quantity <= 1 || FindCarriedContainerOf(stack) == null)
                 return false;
             var size = stack.Data.GridSize;
-            return EnsureContainers().Any(c =>
+            return CarriedContainers().Any(c =>
                 c.TryFindFreeCell(size, out _) || c.TryFindFreeCell(ItemPlacement.FootprintOf(size, 1), out _));
         }
 
@@ -64,6 +65,7 @@ namespace CrimsonDraft.Inventory
         public DropResult TryDrop(ContainerId target, Vector2Int origin)
         {
             if (this.held == null || this.heldReturn == null) return DropResult.Rejected;
+            if (!IsAccessible(target)) return DropResult.Rejected;
 
             var container = GetContainer(target);
             var footprint = ItemPlacement.FootprintOf(this.held.Data.GridSize, this.HeldRotation);

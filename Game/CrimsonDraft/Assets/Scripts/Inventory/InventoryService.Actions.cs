@@ -85,6 +85,17 @@ namespace CrimsonDraft.Inventory
         public bool HasEquippedWeapon(int operatorSlot) =>
             AllPlacements().Any(p => p.Item is WeaponItem w && w.EquippedBySlot == operatorSlot);
 
+        public void ReleaseDeadOperatorWeapons()
+        {
+            var released = AllContainers()
+                .SelectMany(c => c.Placements.Select(p => p.Item))
+                .OfType<WeaponItem>()
+                .Where(w => w.IsEquipped && !this.roster[w.EquippedBySlot].IsAlive)
+                .ToList();
+            foreach (var weapon in released) UnequipInternal(weapon);
+            NotifyChanged(released.Select(FindContainerObjectOf).ToArray());
+        }
+
         public KeyUseOutcome TryUseKey(string keyItemId)
         {
             var key = AllPlacements().Select(p => p.Item).OfType<KeyItem>().FirstOrDefault(k => k.Data.ItemId == keyItemId);
@@ -143,7 +154,7 @@ namespace CrimsonDraft.Inventory
             containerA.Remove(a);
             containerB.Remove(b);
 
-            var candidates = EnsureContainers().OrderBy(c => c == containerA ? 0 : 1).ToList();
+            var candidates = CarriedContainers().OrderBy(c => c == containerA ? 0 : 1).ToList();
             if (!TryFindFreeCell(candidates, resultData.GridSize, out var target, out var origin))
             {
                 containerA.Place(a, placementA.Origin, placementA.Rotation);

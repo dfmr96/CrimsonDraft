@@ -73,6 +73,14 @@ namespace CrimsonDraft.Tests
         public static OperatorRuntime Alive(int slot) =>
             new OperatorRuntime(slot, null, isPresent: true, maxHp: 100);
 
+        public static OperatorRuntime Dead(int slot)
+        {
+            var op = Alive(slot);
+            op.ApplyDamage(op.MaxHp);
+            op.ApplyDamage(1);
+            return op;
+        }
+
         private static T Create<T>(string? id, ItemType type) where T : ItemData
         {
             var data = ScriptableObject.CreateInstance<T>();

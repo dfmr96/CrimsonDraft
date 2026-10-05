@@ -2,6 +2,7 @@
 
 using UnityEngine;
 using VContainer;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
@@ -15,7 +16,8 @@ namespace CrimsonDraft.UI
         [SerializeField] private PartyTestHarness? testHarness;
 #endif
 
-        [Inject] private IOperatorRoster? roster;
+        [Inject] private IOperatorRoster?   roster;
+        [Inject] private IInventoryService? inventory;
 
         public IOperatorRoster? Roster { get; private set; }
 
@@ -46,11 +48,13 @@ namespace CrimsonDraft.UI
             for (int i = 0; i < this.widgets.Length; i++)
             {
                 if (i < source.Count)
-                    this.widgets[i].Bind(source[i]);
+                    this.widgets[i].Bind(source[i], CanLoot(i));
                 else
                     this.widgets[i].gameObject.SetActive(false);
             }
         }
+
+        private bool CanLoot(int slot) => this.inventory != null && this.inventory.IsAccessible(ContainerId.Operator(slot));
 
         public OperatorWidgetView? GetWidget(int index) =>
             index >= 0 && index < this.widgets.Length ? this.widgets[index] : null;
@@ -60,7 +64,7 @@ namespace CrimsonDraft.UI
             if (this.roster == null || !this.roster.IsInitialized) return;
             for (int i = 0; i < this.widgets.Length; i++)
                 if (i < this.roster.Count)
-                    this.widgets[i].Bind(this.roster[i]);
+                    this.widgets[i].Bind(this.roster[i], CanLoot(i));
         }
     }
 }

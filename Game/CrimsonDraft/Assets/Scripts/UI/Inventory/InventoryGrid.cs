@@ -57,6 +57,14 @@ namespace CrimsonDraft.UI
 
         void OnEnable() => this.Enabled?.Invoke();
 
+        private const float DimmedAlpha = 0.35f;
+
+        public void SetDimmed(bool dimmed)
+        {
+            if (!TryGetComponent(out CanvasGroup group)) group = this.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = dimmed ? DimmedAlpha : 1f;
+        }
+
         public Vector2 CellToLocal(Vector2Int cell)
         {
             float x = cell.x * this.cellSize - this.columns * this.cellSize * 0.5f;

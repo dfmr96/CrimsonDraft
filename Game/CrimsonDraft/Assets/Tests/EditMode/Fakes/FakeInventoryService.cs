@@ -60,6 +60,11 @@ namespace CrimsonDraft.Tests
 
         public bool HasItem(string itemId) => this.OwnedIds.Contains(itemId);
 
+        public readonly HashSet<ContainerId> Inaccessible = new HashSet<ContainerId>();
+
+        public bool IsCarried(ContainerId id)    => id != ContainerId.Storage && !this.Inaccessible.Contains(id);
+        public bool IsAccessible(ContainerId id) => !this.Inaccessible.Contains(id);
+
         public InventoryItem? Held         => null;
         public int            HeldRotation => 0;
         public bool           HeldIsSplit  => false;
@@ -96,6 +101,9 @@ namespace CrimsonDraft.Tests
         public void Unequip(WeaponItem weapon)                 { }
         public bool HasEquippedWeapon(int operatorSlot)        => this.HasEquipped;
         public KeyUseOutcome TryUseKey(string keyItemId)       => this.NextKeyOutcome;
+
+        public int  ReleaseCalls;
+        public void ReleaseDeadOperatorWeapons() => this.ReleaseCalls++;
 
         public void Restore(IReadOnlyList<InventoryItemEntry> entries, ItemDatabase database) => this.RestoredEntries = entries;
     }

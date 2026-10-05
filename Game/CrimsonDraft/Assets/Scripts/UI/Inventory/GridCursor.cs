@@ -65,6 +65,7 @@ namespace CrimsonDraft.UI
             if (!this.presenters.HasStorage)
                 throw new System.InvalidOperationException("GridCursor: no StorageWindow is wired into the InventoryGridGroup.");
 
+            this.presenters.RefreshAccess();
             this.transferMode  = true;
             this.isCombineMode = false;
             this.onMeleeSlot   = false;
@@ -276,6 +277,13 @@ namespace CrimsonDraft.UI
             }
 
             var view = CurrentPresenter.ViewAt(Navigator.Cell);
+            if (!this.inventory.IsCarried(Navigator.Grid))
+            {
+                if (this.isCombineMode) this.sfx.PlayInvalidAction(this.gameObject);
+                else                    PickUpAtCursor();
+                return;
+            }
+
             if (this.isCombineMode)
             {
                 if (view != null) OnCombineTargetConfirmed?.Invoke(view);
@@ -434,6 +442,8 @@ namespace CrimsonDraft.UI
 
         public void ResetCursorToOrigin()
         {
+            if (!this.transferMode) this.navigator = null;
+            this.presenters.RefreshAccess();
             Navigator.Reset(this.presenters.FirstGrid, Vector2Int.zero);
             this.holdingDirection = false;
             this.lastDir          = Vector2Int.zero;
@@ -462,7 +472,7 @@ namespace CrimsonDraft.UI
         {
             foreach (var container in this.inventory.OperatorContainers)
             {
-                if (!this.presenters.Has(container.Id)) continue;
+                if (!this.presenters.Has(container.Id) || !this.inventory.IsAccessible(container.Id)) continue;
                 var placement = container.Placements.FirstOrDefault(p => p.Item.Data.ItemId == itemId);
                 if (placement == null) continue;
 
@@ -484,6 +494,7 @@ namespace CrimsonDraft.UI
 
         private bool TryEnterMeleeSlot()
         {
+            if (!this.inventory.IsCarried(Navigator.Grid)) return false;
             var widget = CurrentWidget();
             if (widget == null || !widget.HasMeleeWeapon) return false;
 

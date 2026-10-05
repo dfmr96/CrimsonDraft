@@ -24,7 +24,7 @@ namespace CrimsonDraft.Tests
         public void SetUp()
         {
             this.roster    = FakeRoster.WithOperators(4);
-            this.inventory = new InventoryService(this.roster, FakeCombineService.None);
+            this.inventory = new InventoryService(this.roster, FakeCombineService.None, FakeCorpseAccess.None);
             this.registry  = new InventoryStateRegistry();
             this.med       = Consumable(id: "med");
         }

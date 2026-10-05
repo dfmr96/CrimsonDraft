@@ -25,7 +25,7 @@ namespace CrimsonDraft.UI
 
         public event Action<ContainerId>? Rendered;
 
-        public ContainerId FirstGrid => this.order[0];
+        public ContainerId FirstGrid => this.order.First(this.inventory.IsAccessible);
 
         public void Initialize()
         {
@@ -60,10 +60,16 @@ namespace CrimsonDraft.UI
             new List<IReadOnlyList<ContainerId>>
             {
                 new[] { ContainerId.Storage },
-                this.order.ToArray(),
+                this.order.Where(this.inventory.IsAccessible).ToArray(),
             };
 
         public bool Has(ContainerId id) => this.presenters.ContainsKey(id);
+
+        public void RefreshAccess()
+        {
+            foreach (var id in this.order)
+                this.presenters[id].Grid.SetDimmed(!this.inventory.IsAccessible(id));
+        }
 
         public ContainerGridPresenter Get(ContainerId id) => this.presenters[id];
 
@@ -89,11 +95,13 @@ namespace CrimsonDraft.UI
             this.order.Clear();
         }
 
+        private bool IsNavigable(ContainerId id) => this.presenters.ContainsKey(id) && this.inventory.IsAccessible(id);
+
         private ContainerId? NextPresented(InventoryGrid from, Func<InventoryGrid, InventoryGrid?> step)
         {
             var visited = new HashSet<InventoryGrid> { from };
             var next    = step(from);
-            while (next != null && !this.presenters.ContainsKey(next.ContainerId))
+            while (next != null && !IsNavigable(next.ContainerId))
             {
                 if (!visited.Add(next)) return null;
                 next = step(next);

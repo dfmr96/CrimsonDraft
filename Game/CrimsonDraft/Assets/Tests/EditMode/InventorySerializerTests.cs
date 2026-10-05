@@ -16,7 +16,7 @@ namespace CrimsonDraft.Tests
     public sealed class InventorySerializerTests
     {
         private static InventoryService Service(FakeRoster? roster = null) =>
-            new InventoryService(roster ?? FakeRoster.WithOperators(2), FakeCombineService.None);
+            new InventoryService(roster ?? FakeRoster.WithOperators(2), FakeCombineService.None, FakeCorpseAccess.None);
 
         private static ItemContainer Op(InventoryService s, int i) => s.GetContainer(ContainerId.Operator(i));
 
@@ -263,6 +263,24 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0, entries[1].containerIndex);
             Assert.AreEqual(2, entries[1].quantity);
             Assert.AreEqual(-1, entries[1].col);
+        }
+    
+        [Test]
+        public void Restore_doesNotEquipWeaponToDeadOperator()
+        {
+            var weaponData = Weapon(id: "pistol");
+            var source     = Service();
+            source.TryAdd(weaponData, ContainerId.Operator(0));
+            source.Equip((WeaponItem)Op(source, 0).Placements.Single().Item, 0);
+            var entries = InventorySerializer.Capture(source);
+
+            var deadRoster = new FakeRoster(Dead(0), Alive(1));
+            var restored   = Service(deadRoster);
+            restored.Restore(entries, Database(weaponData));
+
+            var weapon = (WeaponItem)Op(restored, 0).Placements.Single().Item;
+            Assert.IsFalse(weapon.IsEquipped);
+            Assert.IsNull(deadRoster[0].PrimaryWeapon);
         }
     }
 }

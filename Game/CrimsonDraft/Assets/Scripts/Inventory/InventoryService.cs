@@ -13,14 +13,16 @@ namespace CrimsonDraft.Inventory
     {
         private readonly IOperatorRoster roster;
         private readonly ICombineService combineService;
+        private readonly ICorpseAccess   corpseAccess;
         private ItemContainer[]? operatorContainers;
         private ItemContainer?   storageContainer;
 
         [Preserve]
-        public InventoryService(IOperatorRoster roster, ICombineService combineService)
+        public InventoryService(IOperatorRoster roster, ICombineService combineService, ICorpseAccess corpseAccess)
         {
             this.roster         = roster;
             this.combineService = combineService;
+            this.corpseAccess   = corpseAccess;
         }
 
         public IReadOnlyList<ItemContainer> OperatorContainers => EnsureContainers();
@@ -36,7 +38,7 @@ namespace CrimsonDraft.Inventory
 
         public ContainerId? FindContainerOf(InventoryItem item) => FindContainerObjectOf(item)?.Id;
 
-        public bool TryAdd(ItemData data, int quantity = 0) => TryAddTo(EnsureContainers(), data, quantity);
+        public bool TryAdd(ItemData data, int quantity = 0) => TryAddTo(CarriedContainers().ToArray(), data, quantity);
 
         public bool TryAdd(ItemData data, ContainerId target, int quantity = 0) =>
             TryAddTo(new[] { GetContainer(target) }, data, quantity);
@@ -60,6 +62,14 @@ namespace CrimsonDraft.Inventory
         }
 
         public bool HasItem(string itemId) => AllPlacements().Any(p => p.Item.Data.ItemId == itemId);
+
+        public bool IsCarried(ContainerId id) =>
+            id.Kind == ContainerKind.Operator && id.Index >= 0 && id.Index < this.roster.Count && this.roster[id.Index].IsAlive;
+
+        public bool IsAccessible(ContainerId id) =>
+            id == ContainerId.Storage
+            || IsCarried(id)
+            || (id.Kind == ContainerKind.Operator && this.corpseAccess.CanAccess(id.Index));
 
         private bool TryAddTo(IReadOnlyList<ItemContainer> candidates, ItemData data, int quantity)
         {
@@ -127,10 +137,12 @@ namespace CrimsonDraft.Inventory
         private ItemContainer? FindContainerObjectOf(InventoryItem item) =>
             AllContainers().FirstOrDefault(c => c.Contains(item));
 
-        private ItemContainer? FindCarriedContainerOf(InventoryItem item) =>
-            EnsureContainers().FirstOrDefault(c => c.Contains(item));
+        private IEnumerable<ItemContainer> CarriedContainers() => EnsureContainers().Where(c => IsCarried(c.Id));
 
-        private IEnumerable<ItemPlacement> AllPlacements() => EnsureContainers().SelectMany(c => c.Placements);
+        private ItemContainer? FindCarriedContainerOf(InventoryItem item) =>
+            CarriedContainers().FirstOrDefault(c => c.Contains(item));
+
+        private IEnumerable<ItemPlacement> AllPlacements() => CarriedContainers().SelectMany(c => c.Placements);
 
         private void UnequipInternal(WeaponItem weapon)
         {

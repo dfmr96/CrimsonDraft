@@ -69,10 +69,12 @@ namespace CrimsonDraft.Tests
             public int SpawnCallCount;
             public RoomController? LastRoom;
             public Vector3 LastPosition;
+            public int LastSlot = -1;
 
-            public void Spawn(RoomController room, Vector3 position, Quaternion rotation)
+            public void Spawn(int slot, RoomController room, Vector3 position, Quaternion rotation)
             {
                 this.SpawnCallCount++;
+                this.LastSlot     = slot;
                 this.LastRoom     = room;
                 this.LastPosition = position;
             }
@@ -132,6 +134,7 @@ namespace CrimsonDraft.Tests
                 Assert.IsFalse(registry.IsRecorded(0));
                 Assert.AreEqual(1, spawner.SpawnCallCount);
                 Assert.AreEqual(room, spawner.LastRoom);
+                Assert.AreEqual(1, spawner.LastSlot);
                 // Must be the player's *foot* position (transform.position minus footOffset on Y),
                 // not the raw Rigidbody-pivot transform.position — otherwise the corpse floats.
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), spawner.LastPosition);
