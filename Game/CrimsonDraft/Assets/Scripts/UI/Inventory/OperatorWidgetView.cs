@@ -15,6 +15,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image       portrait    = null!;
         [SerializeField] private TMP_Text    nameLabel   = null!;
         [SerializeField] private GameObject  deadOverlay = null!;
+        [SerializeField] private TMP_Text?   deadLabel;
 
         [Header("HP ECG")]
         [SerializeField] private ECGSweepAnimator?  ecgLine;
@@ -42,7 +43,7 @@ namespace CrimsonDraft.UI
                 RefreshWeaponSlot(weapon, this.weaponSlot0Root, this.weaponSlot0Icon, this.weaponSlot0AmmoLabel);
         }
 
-        public void Bind(OperatorRuntime op, bool canLoot)
+        public void Bind(OperatorRuntime op, bool canLoot, string? corpseRoomId)
         {
             if (!op.IsPresent)
             {
@@ -54,7 +55,13 @@ namespace CrimsonDraft.UI
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
-            if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive && !canLoot);
+            bool showDead = !op.IsAlive && !canLoot;
+            if (this.deadOverlay != null) this.deadOverlay.SetActive(showDead);
+            if (this.deadLabel   != null)
+            {
+                this.deadLabel.gameObject.SetActive(showDead);
+                this.deadLabel.text = corpseRoomId != null ? $"RETRIEVE ITEMS IN\n{corpseRoomId}" : "KIA";
+            }
 
             this.ApplyHealthState(op.HpRatio, op.IsAlive);
 

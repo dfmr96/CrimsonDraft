@@ -54,5 +54,16 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(registry.IsRecorded(0));
             Assert.AreEqual(0, registry.GetAll().Count);
         }
+    
+        [Test]
+        public void TryGet_returnsRecordedEntry_orFalse()
+        {
+            var registry = new OperatorCorpseRegistry();
+            registry.Record(1, "HALLWAY_B1", Vector3.zero, Quaternion.identity);
+
+            Assert.IsTrue(registry.TryGet(1, out var entry));
+            Assert.AreEqual("HALLWAY_B1", entry.RoomId);
+            Assert.IsFalse(registry.TryGet(2, out _));
+        }
     }
 }
