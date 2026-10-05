@@ -1,8 +1,6 @@
 #nullable enable
 
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using VContainer;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Input;
@@ -13,101 +11,73 @@ using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.UI
 {
-    /// <summary>Drives the map inside its inventory tab: generates the current deck on
-    /// enable, pans while focused, and cycles zoom on Confirm. Cancel is handled centrally
-    /// by TabManager (Map doesn't own it — see TabManager.OnCancelTab), so this class only
-    /// reacts to Confirm and navigation while the tab bar isn't active.
-    /// KnownDecks/deck-cycling is kept ready but unwired: only one deck is known at a time
-    /// today, and Confirm (the only free single-press input in this tab) was repurposed for
-    /// zoom — wire a dedicated input for deck-cycling once there's more than one deck to test.</summary>
+    /// <summary>Drives the MAP tab: opens on the player's floor and steps between the
+    /// available floors with the vertical axis (one step per press). Cancel is handled
+    /// centrally by TabManager; nothing here reacts while the tab bar is active.</summary>
     public sealed class MapTabController : MonoBehaviour
     {
         [SerializeField] private MapScreenView mapScreenView = null!;
-        [SerializeField] private float         panSpeed      = 12f;
 
         [Inject] private IInputService     inputService     = null!;
         [Inject] private TabManager        tabManager       = null!;
-        [Inject] private MapRenderer       mapRenderer      = null!;
         [Inject] private MapSceneConfig    sceneConfig      = null!;
         [Inject] private MapDataSet        mapSet           = null!;
         [Inject] private IRoomOrchestrator roomOrchestrator = null!;
         [Inject] private RoomStateRegistry rooms            = null!;
+        [Inject] private PickupRegistry    pickups          = null!;
         [Inject] private KnownMapsRegistry knownMaps        = null!;
 
-        private MapData? shownMap;
+        private readonly AxisStepper stepper = new();
+        private MapFloors? floors;
 
         void OnEnable()
         {
             if (this.inputService == null) return;
-            this.inputService.InventoryConfirm.performed += OnConfirm;
 
-            ShowCurrentDeck();
+            var playerFloor = this.sceneConfig != null ? this.sceneConfig.Map : null;
+            this.floors = new MapFloors(
+                MapFloors.Available(this.mapSet.Maps, this.rooms, this.knownMaps, playerFloor),
+                playerFloor);
+            this.stepper.Reset();
+            ShowCurrentFloor();
         }
 
         void OnDisable()
         {
-            if (this.inputService == null) return;
-            this.inputService.InventoryConfirm.performed -= OnConfirm;
-
-            this.mapRenderer?.SetVisible(false);
             this.mapScreenView?.Hide();
-            this.shownMap = null;
+            this.floors = null;
         }
 
         void Update()
         {
-            if (this.tabManager == null || this.tabManager.IsTabBarActive) return;
+            if (this.tabManager == null || this.floors == null) return;
 
-            var nav = this.inputService.InventoryNavigate.ReadValue<Vector2>();
-            if (nav.sqrMagnitude < 0.01f) return;
-
-            this.mapRenderer.Pan(nav * (this.panSpeed * Time.unscaledDeltaTime));
-        }
-
-        void OnConfirm(InputAction.CallbackContext _)
-        {
-            if (this.tabManager.IsTabBarActive || this.shownMap == null) return;
-
-            this.mapRenderer.CycleZoom();
-        }
-
-        private void ShowCurrentDeck()
-        {
-            var current = this.sceneConfig != null ? this.sceneConfig.Map : null;
-            if (current == null)
+            if (this.tabManager.IsTabBarActive)
             {
-                Debug.LogWarning("[MapTab] No MapData bound to MapSceneConfig.", this);
+                this.stepper.Reset();
                 return;
             }
-            ShowDeck(current);
+
+            int step = this.stepper.Update(this.inputService.InventoryNavigate.ReadValue<Vector2>().y);
+            if (step != 0 && this.floors.Step(step))
+                ShowCurrentFloor();
         }
 
-        private void ShowDeck(MapData map)
+        private void ShowCurrentFloor()
         {
-            this.shownMap = map;
+            var map = this.floors?.Current;
+            if (map == null)
+            {
+                this.mapScreenView.Hide();
+                return;
+            }
 
-            // Highlight the player's room only when showing the deck the player is on.
             string? currentRoomId = ReferenceEquals(map, this.sceneConfig.Map)
                 ? this.roomOrchestrator.CurrentRoom?.RoomId
                 : null;
 
-            this.mapRenderer.SetVisible(true);
-            this.mapRenderer.Generate(map, currentRoomId);
-
-            var texture = this.mapRenderer.Texture;
-            if (texture != null)
-                this.mapScreenView.Show(texture, map.DisplayName);
-        }
-
-        private List<MapData> KnownDecks()
-        {
-            var result = new List<MapData>();
-            foreach (var map in this.mapSet.Maps)
-            {
-                if (MapStateResolver.IsDeckKnown(map, this.rooms, this.knownMaps))
-                    result.Add(map);
-            }
-            return result;
+            var visuals = MapRoomVisuals.Resolve(map, this.rooms, this.pickups, this.knownMaps, currentRoomId);
+            this.mapScreenView.Show(visuals, map.DisplayName, this.floors!.HasUp, this.floors.HasDown);
         }
     }
 }

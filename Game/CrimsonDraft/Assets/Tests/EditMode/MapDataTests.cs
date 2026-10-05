@@ -10,7 +10,7 @@ namespace CrimsonDraft.Tests
     public sealed class MapDataTests
     {
         [Test]
-        public void MapData_defaults_are_empty_and_grid_is_sane()
+        public void MapData_defaults_are_empty()
         {
             var map = ScriptableObject.CreateInstance<MapData>();
 
@@ -18,10 +18,21 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(string.Empty, map.DisplayName);
             Assert.AreEqual(string.Empty, map.Abbreviation);
             Assert.AreEqual(string.Empty, map.MapItemId);
-            Assert.AreEqual(new Vector2Int(25, 25), map.GridSize);
-            Assert.AreEqual(1f, map.CellSize);
             Assert.IsEmpty(map.Rooms);
             Assert.IsEmpty(map.Doors);
+        }
+
+        [Test]
+        public void MapRoomData_defaults_haveNoLayout()
+        {
+            var room = new MapRoomData();
+            Assert.IsNull(room.IncompleteSprite);
+            Assert.IsNull(room.CompleteSprite);
+            Assert.AreEqual(Vector2Int.zero, room.Position);
+            Assert.AreEqual(0, room.QuarterTurns);
+            Assert.IsFalse(room.IsOrphan);
+            Assert.IsEmpty(room.PickupIds);
+            Assert.IsEmpty(room.DoorIds);
         }
 
 #if UNITY_EDITOR

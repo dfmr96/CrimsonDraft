@@ -88,7 +88,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<CinemachineBrain>();
             builder.Register<CameraRelativeMovementService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MapSceneConfig>();
-            builder.RegisterComponentInHierarchy<MapRenderer>();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();

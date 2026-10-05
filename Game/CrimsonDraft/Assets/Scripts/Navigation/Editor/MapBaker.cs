@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -12,7 +13,8 @@ using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Editor
 {
-    /// <summary>Bakes scene-authored map geometry into the scene's MapData asset.</summary>
+    /// <summary>Bakes each room's pickup and door ids from the open scene into its MapData,
+    /// upserting by RoomId so the layout authored in the Map Editor is never touched.</summary>
     [InitializeOnLoad]
     public static class MapBaker
     {
@@ -52,45 +54,27 @@ namespace CrimsonDraft.Navigation.Editor
             if (config.Map == null)
                 return;
 
-            var shapes = Object.FindObjectsByType<MapRoomShape>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-            var markers = Object.FindObjectsByType<MapDoorMarker>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-            var pickups = Object.FindObjectsByType<PickupInteractable>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var scene       = config.gameObject.scene;
+            var controllers = InScene<RoomController>(scene);
+            var markers     = InScene<MapDoorMarker>(scene);
+            var pickups     = InScene<PickupInteractable>(scene);
 
-            var rooms = new List<MapRoomData>(shapes.Length);
-            var doors = new List<MapDoorData>(markers.Length);
-            var roomByController = new Dictionary<RoomController, MapRoomData>();
+            var pickupIds = new Dictionary<string, SortedSet<string>>();
+            var doorIds   = new Dictionary<string, SortedSet<string>>();
 
-            foreach (var shape in shapes)
+            foreach (var controller in controllers)
             {
-                var room = shape.Room;
-                if (string.IsNullOrWhiteSpace(room.RoomId))
+                if (string.IsNullOrWhiteSpace(controller.RoomId))
                 {
-                    Debug.LogWarning("[MapBaker] MapRoomShape has no RoomId.", shape);
+                    Debug.LogWarning("[MapBaker] RoomController has no RoomId; it will not appear on the map.", controller);
                     continue;
                 }
 
-                var roomData = new MapRoomData
-                {
-                    RoomId = room.RoomId,
-                    Polygon = shape.LocalPoints,
-                    Transform = new MapElementTransform
-                    {
-                        Offset = shape.MapOffset,
-                        Rotation = shape.MapRotation,
-                        Scale = shape.MapScale,
-                        ZOrder = shape.ZOrder,
-                    },
-                    DoorIds = System.Array.Empty<string>(),
-                    PickupIds = System.Array.Empty<string>(),
-                };
-
-                rooms.Add(roomData);
-                roomByController[room] = roomData;
+                pickupIds.TryAdd(controller.RoomId, new SortedSet<string>());
+                doorIds.TryAdd(controller.RoomId, new SortedSet<string>());
             }
 
+            var doors = new List<MapDoorData>(markers.Count);
             foreach (var marker in markers)
             {
                 if (marker.ExcludeFromMap)
@@ -117,11 +101,8 @@ namespace CrimsonDraft.Navigation.Editor
                 });
 
                 var room = marker.GetComponentInParent<RoomController>();
-                if (room != null && roomByController.TryGetValue(room, out var roomData))
-                {
-                    var ids = new List<string>(roomData.DoorIds) { doorId! };
-                    roomData.DoorIds = ids.ToArray();
-                }
+                if (room != null && doorIds.TryGetValue(room.RoomId, out var set))
+                    set.Add(doorId!);
             }
 
             foreach (var pickup in pickups)
@@ -130,16 +111,31 @@ namespace CrimsonDraft.Navigation.Editor
                     continue;
 
                 var room = pickup.GetComponentInParent<RoomController>();
-                if (room == null || !roomByController.TryGetValue(room, out var roomData))
-                    continue;
-
-                var ids = new List<string>(roomData.PickupIds) { pickup.PickupId };
-                roomData.PickupIds = ids.ToArray();
+                if (room != null && pickupIds.TryGetValue(room.RoomId, out var set))
+                    set.Add(pickup.PickupId);
             }
 
-            config.Map.EditorSetBakedContent(rooms, doors);
+            var baked = pickupIds.Keys
+                .OrderBy(id => id, System.StringComparer.Ordinal)
+                .Select(id => new MapRoomData
+                {
+                    RoomId    = id,
+                    PickupIds = pickupIds[id].ToArray(),
+                    DoorIds   = doorIds[id].ToArray(),
+                })
+                .ToList();
+
+            var rooms = MapLayoutMerge.Upsert(config.Map.Rooms, baked);
+            config.Map.EditorSetBakedContent(rooms, doors.OrderBy(d => d.DoorId, System.StringComparer.Ordinal).ToList());
             EditorUtility.SetDirty(config.Map);
             AssetDatabase.SaveAssets();
         }
+
+        // Only the config's own scene: with several decks (or a test scene) open at once, a
+        // floor must never absorb another scene's rooms, since the upsert keeps them for good.
+        private static List<T> InScene<T>(Scene scene) where T : Component
+            => Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(component => component.gameObject.scene == scene)
+                .ToList();
     }
 }

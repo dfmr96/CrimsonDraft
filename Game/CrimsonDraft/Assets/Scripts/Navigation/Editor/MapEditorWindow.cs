@@ -1,433 +1,353 @@
 #nullable enable
 
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Infrastructure.Map;
-using CrimsonDraft.Navigation.Map;
 
 namespace CrimsonDraft.Navigation.Editor
 {
-    /// <summary>2D grid view of the current scene's map layout.</summary>
+    /// <summary>Lays out a floor's room sprites on a free canvas. Edits the MapData asset only
+    /// (never the scene): sprites, pixel position and 90° rotation. Rooms and their pickup/door
+    /// ids come from the scene bake (MapBaker); rooms no longer in the scene show as orphans.</summary>
     public sealed class MapEditorWindow : EditorWindow
     {
-        private const float PixelsPerUnit = 20f;
+        private const string SnapPrefKey = "CrimsonDraft.MapEditor.Snap";
+        private const float  ListWidth   = 280f;
+        private const float  MinZoom     = 0.1f;
+        private const float  MaxZoom     = 8f;
+        private static readonly int[]    SnapOptions = { 1, 4, 8 };
+        private static readonly string[] SnapLabels  = { "Snap 1px", "Snap 4px", "Snap 8px" };
 
-        private const float CenterHandleRadius = 8f;
-        private const float CenterHandlePickRadius = 10f;
+        [SerializeField] private MapData? map;
+        [SerializeField] private string   selectedRoomId = "";
+        [SerializeField] private Vector2  pan;
+        [SerializeField] private float    zoom = 1f;
+        [SerializeField] private int      snap = 1;
+        [SerializeField] private bool     previewComplete;
+        [SerializeField] private Vector2  listScroll;
 
-        private Vector2 pan;
-        private float zoom = 1f;
-        private MapRoomShape? draggingRoom;
-        private MapDoorMarker? draggingDoor;
-        private bool draggingCenter;
-
-        private MapData? gridSettingsTarget;
-        private SerializedObject? gridSettingsSerialized;
-        private bool gridSettingsExpanded = true;
-        private Rect canvasRect;
+        private bool       dragging;
+        private Vector2    dragStartMouse;
+        private Vector2Int dragStartPosition;
 
         [MenuItem("Tools/CrimsonDraft/Map Editor")]
         public static void Open()
         {
             var window = GetWindow<MapEditorWindow>("Map Editor");
-            window.minSize = new Vector2(500f, 400f);
+            window.minSize = new Vector2(720f, 420f);
         }
+
+        private void OnEnable()
+        {
+            this.snap = EditorPrefs.GetInt(SnapPrefKey, this.snap);
+            Undo.undoRedoPerformed += Repaint;
+        }
+
+        private void OnDisable() => Undo.undoRedoPerformed -= Repaint;
 
         private void OnGUI()
         {
-            var config = FindFirstObjectByType<MapSceneConfig>();
-            if (config == null || config.Map == null)
+            DrawToolbar();
+
+            if (this.map == null)
             {
-                EditorGUILayout.HelpBox(
-                    "No MapSceneConfig with a MapData asset in the open scene.",
-                    MessageType.Info);
+                EditorGUILayout.HelpBox("Pick a MapData asset in the toolbar.", MessageType.Info);
                 return;
             }
 
-            GUILayout.BeginVertical();
-            DrawToolbar(config);
-            DrawGridSettings(config);
-            GUILayout.EndVertical();
+            EditorGUILayout.BeginHorizontal();
+            DrawRoomPanel(this.map);
+            var canvas = GUILayoutUtility.GetRect(0f, 0f, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            EditorGUILayout.EndHorizontal();
 
-            // Reserve all remaining space below the header for the free-form canvas.
-            this.canvasRect = GUILayoutUtility.GetRect(
-                0f, 0f, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
-
-            // BeginGroup makes mouse coordinates and draw calls relative to canvasRect AND
-            // clips anything drawn outside it — without this, grid lines/labels are drawn in
-            // absolute window coordinates with no clipping and bleed up into the header.
-            GUI.BeginGroup(this.canvasRect);
-
-            HandleInput(config);
-            DrawGrid(config);
-
-            foreach (var shape in FindObjectsByType<MapRoomShape>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
-                DrawRoom(shape);
-
-            foreach (var marker in FindObjectsByType<MapDoorMarker>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
-                DrawDoor(marker);
-
-            DrawCenterHandle(config);
-
+            GUI.BeginGroup(canvas);
+            var local = new Rect(Vector2.zero, canvas.size);
+            HandleCanvasInput(this.map, local);
+            DrawCanvas(this.map, local);
             GUI.EndGroup();
-
-            Repaint();
         }
 
-        private void DrawToolbar(MapSceneConfig config)
+        // ---------- Toolbar ----------
+
+        private void DrawToolbar()
         {
-            GUILayout.BeginHorizontal(EditorStyles.toolbar);
-            GUILayout.Label($"Map: {config.Map.name}", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+
+            var maps   = AssetDatabase.FindAssets("t:MapData")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<MapData>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(m => m != null)
+                .ToArray();
+            int index  = System.Array.IndexOf(maps, this.map);
+            int picked = EditorGUILayout.Popup(index, maps.Select(m => m.name).ToArray(), EditorStyles.toolbarPopup, GUILayout.Width(200f));
+            if (picked != index && picked >= 0)
+            {
+                this.map = maps[picked];
+                this.selectedRoomId = "";
+            }
+
+            this.previewComplete = GUILayout.Toggle(this.previewComplete, this.previewComplete ? "Preview: Complete" : "Preview: Incomplete", EditorStyles.toolbarButton, GUILayout.Width(130f));
+
+            int snapIndex = Mathf.Max(0, System.Array.IndexOf(SnapOptions, this.snap));
+            EditorGUI.BeginChangeCheck();
+            snapIndex = EditorGUILayout.Popup(snapIndex, SnapLabels, EditorStyles.toolbarPopup, GUILayout.Width(80f));
+            if (EditorGUI.EndChangeCheck())
+            {
+                this.snap = SnapOptions[snapIndex];
+                EditorPrefs.SetInt(SnapPrefKey, this.snap);
+            }
+
+            if (GUILayout.Button("Frame", EditorStyles.toolbarButton, GUILayout.Width(50f)))
+                Frame();
+
             GUILayout.FlexibleSpace();
-
-            var selectedShape = Selection.activeGameObject != null
-                ? Selection.activeGameObject.GetComponent<MapRoomShape>()
-                : null;
-
-            using (new EditorGUI.DisabledScope(selectedShape == null))
-            {
-                if (GUILayout.Button("Straighten Room", EditorStyles.toolbarButton))
-                    StraightenRoom(selectedShape!);
-            }
-
-            if (GUILayout.Button("Straighten All", EditorStyles.toolbarButton))
-                StraightenAllRooms();
-
-            if (GUILayout.Button("Bake Now", EditorStyles.toolbarButton))
-                MapBaker.Bake(config);
-            GUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
         }
 
-        private static void StraightenRoom(MapRoomShape shape)
+        private void Frame()
         {
-            Undo.RecordObject(shape, "Straighten Room");
-            shape.LocalPoints = StraightenPolygon(shape.LocalPoints);
-            EditorUtility.SetDirty(shape);
+            if (this.map == null) return;
+            var bounds = MapLayoutBounds.Compute(MapRoomVisuals.Preview(this.map, this.previewComplete));
+            this.pan = new Vector2(-bounds.center.x, bounds.center.y) * this.zoom;
         }
 
-        private static void StraightenAllRooms()
+        // ---------- Room list + inspector ----------
+
+        private void DrawRoomPanel(MapData target)
         {
-            var shapes = FindObjectsByType<MapRoomShape>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            EditorGUILayout.BeginVertical(GUILayout.Width(ListWidth));
+            var standard = MapSpriteStandard.Majority(target.Rooms.SelectMany(r => new[] { r.IncompleteSprite, r.CompleteSprite }));
 
-            Undo.SetCurrentGroupName("Straighten All Rooms");
-            int group = Undo.GetCurrentGroup();
-
-            foreach (var shape in shapes)
-                StraightenRoom(shape);
-
-            Undo.CollapseUndoOperations(group);
-        }
-
-        // Snaps every edge of a room's polygon to the nearest cardinal direction
-        // (0/90/180/270), preserving whichever axis each edge was already closest to.
-        // Vertex 0 is the anchor and is never modified.
-        private static Vector2[] StraightenPolygon(Vector2[] points)
-        {
-            if (points.Length < 3)
-                return points;
-
-            var result = (Vector2[])points.Clone();
-            for (int i = 1; i < result.Length; i++)
+            this.listScroll = EditorGUILayout.BeginScrollView(this.listScroll, GUILayout.ExpandHeight(true));
+            foreach (var room in target.Rooms)
             {
-                var prev = result[i - 1];
-                var cur = result[i];
-                var delta = cur - prev;
-                result[i] = Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)
-                    ? new Vector2(cur.x, prev.y)
-                    : new Vector2(prev.x, cur.y);
+                var style = room.RoomId == this.selectedRoomId ? EditorStyles.boldLabel : EditorStyles.label;
+                if (GUILayout.Button($"{Status(room, standard)}  {room.RoomId}", style))
+                    this.selectedRoomId = room.RoomId;
             }
+            EditorGUILayout.EndScrollView();
 
-            const float closureEpsilon = 0.01f;
-            var closingDelta = result[0] - result[^1];
-            if (Mathf.Abs(closingDelta.x) > closureEpsilon
-                && Mathf.Abs(closingDelta.y) > closureEpsilon)
-            {
-                Debug.LogWarning(
-                    "[MapEditorWindow] Straightened polygon did not close as a " +
-                    "rectilinear shape — the room may not be axis-aligned.");
-            }
+            var selected = target.Rooms.FirstOrDefault(r => r.RoomId == this.selectedRoomId);
+            if (selected != null)
+                DrawRoomInspector(target, selected, standard);
 
-            return result;
-        }
-
-        private void DrawGridSettings(MapSceneConfig config)
-        {
-            if (this.gridSettingsTarget != config.Map || this.gridSettingsSerialized == null)
-            {
-                this.gridSettingsTarget     = config.Map;
-                this.gridSettingsSerialized = new SerializedObject(config.Map);
-            }
-
-            this.gridSettingsExpanded = EditorGUILayout.Foldout(
-                this.gridSettingsExpanded, "Grid Settings", true);
-            if (!this.gridSettingsExpanded)
-                return;
-
-            this.gridSettingsSerialized.Update();
-
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("gridSize"));
-            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("cellSize"));
-            EditorGUILayout.PropertyField(this.gridSettingsSerialized.FindProperty("center"));
-            EditorGUILayout.HelpBox(
-                "Grid Size × Cell Size sets the camera's orthographic size (half of the larger " +
-                "extent). Center is where the camera looks by default — set it to the deck's " +
-                "actual world coordinates, since room offsets are authored in world space.",
-                MessageType.None);
             EditorGUILayout.EndVertical();
-
-            this.gridSettingsSerialized.ApplyModifiedProperties();
         }
 
-        // Shares gridSettingsSerialized with DrawGridSettings so dragging the handle and
-        // typing into the Grid Settings field stay consistent (same SerializedObject, same
-        // Undo group).
-        private void MoveCenter(MapSceneConfig config, Vector2 deltaMap)
+        private static string Status(MapRoomData room, (float PixelsPerUnit, FilterMode Filter)? standard)
         {
-            if (this.gridSettingsSerialized == null || this.gridSettingsTarget != config.Map)
+            if (room.IsOrphan) return "✖";
+            if (room.IncompleteSprite == null || room.CompleteSprite == null) return "⚠";
+            if (standard != null && (!MapSpriteStandard.Matches(room.IncompleteSprite, standard.Value) || !MapSpriteStandard.Matches(room.CompleteSprite, standard.Value))) return "⚠ PPU";
+            return "✔";
+        }
+
+        private void DrawRoomInspector(MapData target, MapRoomData room, (float PixelsPerUnit, FilterMode Filter)? standard)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField(room.RoomId, EditorStyles.boldLabel);
+            if (room.IsOrphan)
+                EditorGUILayout.HelpBox("Not found in the scene at the last bake.", MessageType.Warning);
+
+            bool hadSprite = room.IncompleteSprite != null || room.CompleteSprite != null;
+
+            EditorGUI.BeginChangeCheck();
+            var incomplete = (Sprite?)EditorGUILayout.ObjectField("Incomplete", room.IncompleteSprite, typeof(Sprite), false);
+            var complete   = (Sprite?)EditorGUILayout.ObjectField("Complete",   room.CompleteSprite,   typeof(Sprite), false);
+            var position   = EditorGUILayout.Vector2IntField("Position", room.Position);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(target, "Edit map room");
+                room.IncompleteSprite = incomplete;
+                room.CompleteSprite   = complete;
+                room.Position         = position;
+                if (!hadSprite && (incomplete != null || complete != null))
+                    room.Position = VisibleCentre();
+                EditorUtility.SetDirty(target);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("⟲ 90°")) Rotate(target, room, +1);
+            if (GUILayout.Button("⟳ 90°")) Rotate(target, room, -1);
+            EditorGUILayout.EndHorizontal();
+
+            if (standard != null)
+            {
+                FixButton(room.IncompleteSprite, standard.Value);
+                FixButton(room.CompleteSprite, standard.Value);
+            }
+
+            if (room.IsOrphan && GUILayout.Button("Delete orphan"))
+            {
+                Undo.RecordObject(target, "Delete map room");
+                target.EditorRemoveRoom(room.RoomId);
+                this.selectedRoomId = "";
+                EditorUtility.SetDirty(target);
+            }
+        }
+
+        private static void Rotate(MapData target, MapRoomData room, int quarterTurns)
+        {
+            Undo.RecordObject(target, "Rotate map room");
+            room.QuarterTurns = ((room.QuarterTurns + quarterTurns) % 4 + 4) % 4;
+            EditorUtility.SetDirty(target);
+        }
+
+        private static void FixButton(Sprite? sprite, (float PixelsPerUnit, FilterMode Filter) standard)
+        {
+            if (sprite == null || MapSpriteStandard.Matches(sprite, standard))
                 return;
 
-            this.gridSettingsSerialized.Update();
-            var centerProp = this.gridSettingsSerialized.FindProperty("center");
-            centerProp.vector2Value += deltaMap;
-            this.gridSettingsSerialized.ApplyModifiedProperties();
-        }
-
-        // Drawing happens inside GUI.BeginGroup(canvasRect), so (0,0) is the group's own
-        // top-left corner — center on canvasRect's local size, not its absolute position.
-        private Vector2 CanvasCenter => this.canvasRect.size * 0.5f;
-
-        private Vector2 MapToScreen(Vector2 mapPos)
-            => new Vector2(mapPos.x, -mapPos.y) * (PixelsPerUnit * this.zoom)
-               + this.pan
-               + CanvasCenter;
-
-        private Vector2 ScreenToMap(Vector2 screenPos)
-        {
-            var p = (screenPos - this.pan - CanvasCenter) / (PixelsPerUnit * this.zoom);
-            return new Vector2(p.x, -p.y);
-        }
-
-        private void DrawGrid(MapSceneConfig config)
-        {
-            var size = config.Map.GridSize;
-            var cell = config.Map.CellSize;
-
-            Handles.BeginGUI();
-            Handles.color = new Color(0.35f, 0.35f, 0.35f, 1f);
-            for (int x = -size.x / 2; x <= size.x / 2; x++)
-            {
-                var a = MapToScreen(new Vector2(x * cell, -size.y * 0.5f * cell));
-                var b = MapToScreen(new Vector2(x * cell, size.y * 0.5f * cell));
-                Handles.DrawLine(a, b);
-            }
-
-            for (int y = -size.y / 2; y <= size.y / 2; y++)
-            {
-                var a = MapToScreen(new Vector2(-size.x * 0.5f * cell, y * cell));
-                var b = MapToScreen(new Vector2(size.x * 0.5f * cell, y * cell));
-                Handles.DrawLine(a, b);
-            }
-            Handles.EndGUI();
-        }
-
-        private void DrawRoom(MapRoomShape shape)
-        {
-            var points = shape.LocalPoints;
-            if (points.Length < 3)
+            if (!GUILayout.Button($"Fix {sprite.name} → {standard.PixelsPerUnit} PPU, {standard.Filter}"))
                 return;
 
-            bool selected = Selection.activeGameObject == shape.gameObject;
-            var rot = Quaternion.Euler(0f, 0f, -shape.MapRotation);
+            var path = AssetDatabase.GetAssetPath(sprite);
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                return;
 
-            var screen = new Vector3[points.Length + 1];
-            for (int i = 0; i <= points.Length; i++)
+            importer.spritePixelsPerUnit = standard.PixelsPerUnit;
+            importer.filterMode          = standard.Filter;
+            importer.SaveAndReimport();
+            Debug.LogWarning($"[MapEditor] {path}: set to {standard.PixelsPerUnit} PPU, {standard.Filter} to match the floor.", sprite);
+        }
+
+        // ---------- Canvas ----------
+
+        private Vector2 ToScreen(Rect canvas, Vector2 map)
+            => canvas.center + this.pan + new Vector2(map.x, -map.y) * this.zoom;
+
+        private Vector2 ToMap(Rect canvas, Vector2 screen)
+        {
+            var v = (screen - canvas.center - this.pan) / this.zoom;
+            return new Vector2(v.x, -v.y);
+        }
+
+        private Vector2Int VisibleCentre()
+        {
+            var centre = new Vector2(-this.pan.x, this.pan.y) / this.zoom;
+            return Snap(centre);
+        }
+
+        private Vector2Int Snap(Vector2 p)
+            => new(Mathf.RoundToInt(p.x / this.snap) * this.snap, Mathf.RoundToInt(p.y / this.snap) * this.snap);
+
+        private Rect ScreenRect(Rect canvas, MapRoomVisual visual)
+        {
+            var size   = MapLayoutBounds.SizeOf(visual.Sprite, visual.QuarterTurns) * this.zoom;
+            var centre = ToScreen(canvas, visual.Position);
+            return new Rect(centre - size * 0.5f, size);
+        }
+
+        private void DrawCanvas(MapData target, Rect canvas)
+        {
+            EditorGUI.DrawRect(canvas, new Color(0.13f, 0.13f, 0.13f));
+
+            var visuals = MapRoomVisuals.Preview(target, this.previewComplete);
+            foreach (var visual in visuals)
+                DrawSprite(canvas, visual);
+
+            foreach (var visual in visuals)
+                if (visual.RoomId == this.selectedRoomId)
+                    DrawOutline(ScreenRect(canvas, visual), Color.yellow);
+
+            if (visuals.Count > 0)
             {
-                var p = points[i % points.Length];
-                var mapPos = (Vector2)(rot * Vector2.Scale(p, shape.MapScale)) + shape.MapOffset;
-                screen[i] = MapToScreen(mapPos);
+                var c = ToScreen(canvas, MapLayoutBounds.Compute(visuals).center);
+                EditorGUI.DrawRect(new Rect(c.x - 6f, c.y - 0.5f, 12f, 1f), Color.cyan);
+                EditorGUI.DrawRect(new Rect(c.x - 0.5f, c.y - 6f, 1f, 12f), Color.cyan);
             }
-
-            Handles.BeginGUI();
-            Handles.color = selected ? Color.yellow : Color.cyan;
-            Handles.DrawPolyLine(screen);
-            Handles.EndGUI();
-
-            var label = MapToScreen(shape.MapOffset);
-            GUI.Label(new Rect(label.x - 40f, label.y - 8f, 120f, 16f),
-                shape.Room.RoomId, EditorStyles.miniBoldLabel);
         }
 
-        private void DrawDoor(MapDoorMarker marker)
+        private void DrawSprite(Rect canvas, MapRoomVisual visual)
         {
-            bool selected = Selection.activeGameObject == marker.gameObject;
-            var center = MapToScreen(marker.MapOffset);
-            var size = marker.Size * PixelsPerUnit * this.zoom;
+            var sprite  = visual.Sprite;
+            var size    = sprite.rect.size * this.zoom;
+            var centre  = ToScreen(canvas, visual.Position);
+            var rect    = new Rect(centre - size * 0.5f, size);
+            var tex     = sprite.texture;
+            var uv      = new Rect(
+                sprite.textureRect.x / tex.width,
+                sprite.textureRect.y / tex.height,
+                sprite.textureRect.width / tex.width,
+                sprite.textureRect.height / tex.height);
 
-            var color = selected ? Color.yellow : new Color(0.9f, 0.4f, 0.3f);
-            if (marker.ExcludeFromMap)
-                color.a = 0.35f;
-
-            var oldMatrix = GUI.matrix;
-            GUIUtility.RotateAroundPivot(marker.MapRotation, center);
-            EditorGUI.DrawRect(
-                new Rect(center.x - size.x * 0.5f, center.y - size.y * 0.5f, size.x, size.y),
-                color);
-            GUI.matrix = oldMatrix;
+            var matrix = GUI.matrix;
+            GUIUtility.RotateAroundPivot(-visual.QuarterTurns * 90f, centre);
+            GUI.DrawTextureWithTexCoords(rect, tex, uv);
+            GUI.matrix = matrix;
         }
 
-        private void DrawCenterHandle(MapSceneConfig config)
+        private static void DrawOutline(Rect rect, Color color)
         {
-            var pos = MapToScreen(config.Map.Center);
-            const float r = CenterHandleRadius;
-
-            var diamond = new Vector3[]
-            {
-                new(pos.x, pos.y - r),
-                new(pos.x + r, pos.y),
-                new(pos.x, pos.y + r),
-                new(pos.x - r, pos.y),
-                new(pos.x, pos.y - r),
-            };
-
-            Handles.BeginGUI();
-            Handles.color = this.draggingCenter ? Color.yellow : new Color(0.4f, 1f, 0.4f, 1f);
-            Handles.DrawPolyLine(diamond);
-            Handles.EndGUI();
-
-            GUI.Label(new Rect(pos.x + r + 4f, pos.y - 8f, 60f, 16f), "Center", EditorStyles.miniBoldLabel);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, rect.width, 1f), color);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMax - 1f, rect.width, 1f), color);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, 1f, rect.height), color);
+            EditorGUI.DrawRect(new Rect(rect.xMax - 1f, rect.yMin, 1f, rect.height), color);
         }
 
-        private void HandleInput(MapSceneConfig config)
+        private void HandleCanvasInput(MapData target, Rect canvas)
         {
             var e = Event.current;
+            if (!canvas.Contains(e.mousePosition) && !this.dragging)
+                return;
 
-            if (e.type == EventType.ScrollWheel)
+            switch (e.type)
             {
-                this.zoom = Mathf.Clamp(this.zoom * (e.delta.y > 0 ? 0.9f : 1.1f), 0.2f, 5f);
-                e.Use();
-            }
-            else if (e.type == EventType.MouseDrag && e.button == 2)
-            {
-                this.pan += e.delta;
-                e.Use();
-            }
-            else if (e.type == EventType.MouseDown && e.button == 0)
-            {
-                if (Vector2.Distance(e.mousePosition, MapToScreen(config.Map.Center)) <= CenterHandlePickRadius)
+                case EventType.ScrollWheel:
                 {
-                    this.draggingCenter = true;
+                    var before = ToMap(canvas, e.mousePosition);
+                    this.zoom = Mathf.Clamp(this.zoom * (1f - e.delta.y * 0.05f), MinZoom, MaxZoom);
+                    var after = ToScreen(canvas, before);
+                    this.pan += e.mousePosition - after;
                     e.Use();
+                    break;
                 }
-                else
-                {
-                    var hit = PickAt(e.mousePosition);
-                    Selection.activeGameObject = hit;
-                    this.draggingRoom = hit != null ? hit.GetComponent<MapRoomShape>() : null;
-                    this.draggingDoor = hit != null ? hit.GetComponent<MapDoorMarker>() : null;
-                    if (hit != null)
-                        e.Use();
-                }
-            }
-            else if (e.type == EventType.MouseDrag && e.button == 0)
-            {
-                var deltaMap = new Vector2(e.delta.x, -e.delta.y) / (PixelsPerUnit * this.zoom);
-                if (this.draggingCenter)
-                {
-                    MoveCenter(config, deltaMap);
+                case EventType.MouseDrag when e.button == 2:
+                    this.pan += e.delta;
                     e.Use();
-                }
-                else if (this.draggingRoom != null)
+                    break;
+                case EventType.MouseDown when e.button == 0:
                 {
-                    Undo.RecordObject(this.draggingRoom, "Move Map Room");
-                    this.draggingRoom.MapOffset += deltaMap;
-                    EditorUtility.SetDirty(this.draggingRoom);
+                    var hit = MapRoomVisuals.Preview(target, this.previewComplete)
+                        .Reverse()
+                        .FirstOrDefault(v => ScreenRect(canvas, v).Contains(e.mousePosition));
+                    this.selectedRoomId = hit.Sprite != null ? hit.RoomId : "";
+                    var room = target.Rooms.FirstOrDefault(r => r.RoomId == this.selectedRoomId);
+                    if (room != null)
+                    {
+                        Undo.RecordObject(target, "Move map room");
+                        this.dragging          = true;
+                        this.dragStartMouse    = e.mousePosition;
+                        this.dragStartPosition = room.Position;
+                    }
                     e.Use();
+                    break;
                 }
-                else if (this.draggingDoor != null)
+                case EventType.MouseDrag when e.button == 0 && this.dragging:
                 {
-                    Undo.RecordObject(this.draggingDoor, "Move Map Door");
-                    this.draggingDoor.MapOffset += deltaMap;
-                    EditorUtility.SetDirty(this.draggingDoor);
+                    var room = target.Rooms.FirstOrDefault(r => r.RoomId == this.selectedRoomId);
+                    if (room != null)
+                    {
+                        var delta = (e.mousePosition - this.dragStartMouse) / this.zoom;
+                        var moved = Snap(this.dragStartPosition + new Vector2(delta.x, -delta.y));
+                        if (moved != room.Position)
+                        {
+                            room.Position = moved;
+                            EditorUtility.SetDirty(target);
+                        }
+                    }
                     e.Use();
+                    break;
                 }
-            }
-            else if (e.type == EventType.MouseUp)
-            {
-                this.draggingRoom = null;
-                this.draggingDoor = null;
-                this.draggingCenter = false;
-            }
-            else if (e.type == EventType.KeyDown && e.keyCode == KeyCode.R)
-            {
-                var go = Selection.activeGameObject;
-                var shape = go != null ? go.GetComponent<MapRoomShape>() : null;
-                var marker = go != null ? go.GetComponent<MapDoorMarker>() : null;
-                if (shape != null)
-                {
-                    Undo.RecordObject(shape, "Rotate Map Room");
-                    shape.MapRotation = (shape.MapRotation + 90f) % 360f;
-                    EditorUtility.SetDirty(shape);
+                case EventType.MouseUp when e.button == 0:
+                    this.dragging = false;
                     e.Use();
-                }
-                else if (marker != null)
-                {
-                    Undo.RecordObject(marker, "Rotate Map Door");
-                    marker.MapRotation = (marker.MapRotation + 90f) % 360f;
-                    EditorUtility.SetDirty(marker);
-                    e.Use();
-                }
-            }
-        }
-
-        private GameObject? PickAt(Vector2 mousePos)
-        {
-            var mapPos = ScreenToMap(mousePos);
-
-            foreach (var marker in FindObjectsByType<MapDoorMarker>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                var half = marker.Size * 0.5f;
-                var local = mapPos - marker.MapOffset;
-                if (Mathf.Abs(local.x) <= half.x && Mathf.Abs(local.y) <= half.y)
-                    return marker.gameObject;
+                    break;
             }
 
-            foreach (var shape in FindObjectsByType<MapRoomShape>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                if (Vector2.Distance(mapPos, shape.MapOffset) * PixelsPerUnit * this.zoom < 400f
-                    && ContainsPoint(shape, mapPos))
-                    return shape.gameObject;
-            }
-
-            return null;
-        }
-
-        private static bool ContainsPoint(MapRoomShape shape, Vector2 mapPos)
-        {
-            var rot = Quaternion.Euler(0f, 0f, shape.MapRotation);
-            var local = (Vector2)(rot * (mapPos - shape.MapOffset));
-            local = new Vector2(
-                shape.MapScale.x != 0 ? local.x / shape.MapScale.x : local.x,
-                shape.MapScale.y != 0 ? local.y / shape.MapScale.y : local.y);
-
-            var points = shape.LocalPoints;
-            bool inside = false;
-            for (int i = 0, j = points.Length - 1; i < points.Length; j = i++)
-            {
-                if ((points[i].y > local.y) != (points[j].y > local.y)
-                    && local.x < (points[j].x - points[i].x) * (local.y - points[i].y)
-                        / (points[j].y - points[i].y) + points[i].x)
-                {
-                    inside = !inside;
-                }
-            }
-
-            return inside;
+            if (e.type == EventType.Used)
+                Repaint();
         }
     }
 }

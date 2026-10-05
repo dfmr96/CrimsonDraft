@@ -13772,7 +13772,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5657470409267998554}
   - component: {fileID: 8589300061817933664}
-  - component: {fileID: 4618760393600425288}
   - component: {fileID: 1008085194962246655}
   m_Layer: 0
   m_Name: Hallway_A
@@ -13921,35 +13920,6 @@ MonoBehaviour:
     spawnPoint: {fileID: 5994178747464036113}
   - enemy: {fileID: 262110967819021189}
     spawnPoint: {fileID: 3475495743927251782}
---- !u!114 &4618760393600425288
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5955768853396820527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a2c6ff8d8ad4d1eb1e4f71d2f0a6c21, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Map.MapRoomShape
-  localPoints:
-  - {x: -1.9180367, y: -10.112243}
-  - {x: -1.9180367, y: -1.569365}
-  - {x: 1.8108449, y: -1.569365}
-  - {x: 1.8108449, y: -10.068007}
-  - {x: 14.620784, y: -10.068007}
-  - {x: 14.620784, y: -14.248533}
-  - {x: -4.2478967, y: -14.248533}
-  - {x: -4.2478967, y: -20.869888}
-  - {x: -8.428657, y: -20.869888}
-  - {x: -8.428657, y: -14.436822}
-  - {x: -17.924274, y: -14.436822}
-  - {x: -17.924274, y: -10.109424}
-  mapOffset: {x: -13.658227, y: -10.644477}
-  mapRotation: 90
-  mapScale: {x: 1, y: 1}
-  zOrder: 0
 --- !u!114 &1008085194962246655
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28472,30 +28442,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5657470409267998554}
     m_Modifications:
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Size.x
-      value: 1.8577702
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Size.y
-      value: 1.5241377
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Size.z
-      value: 0.5878595
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Center.x
-      value: 0.01409954
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Center.y
-      value: 0.2620686
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
-      propertyPath: m_Center.z
-      value: -0.2060703
-      objectReference: {fileID: 0}
     - target: {fileID: 2697211701525915243, guid: 5401428e102a75046ae00b64dcfdd561, type: 3}
       propertyPath: m_LocalPosition.x
       value: -5.72
@@ -28539,6 +28485,30 @@ PrefabInstance:
     - target: {fileID: 5398070321441247820, guid: 5401428e102a75046ae00b64dcfdd561, type: 3}
       propertyPath: m_Name
       value: 9mm_Box_Pickeable
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Size.x
+      value: 1.8577702
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Size.y
+      value: 1.5241377
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Size.z
+      value: 0.5878595
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Center.x
+      value: 0.01409954
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Center.y
+      value: 0.2620686
+      objectReference: {fileID: 0}
+    - target: {fileID: 3883580039475997433, guid: 2b26fd95e4f0dd8458559739d23a52b2, type: 3}
+      propertyPath: m_Center.z
+      value: -0.2060703
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
