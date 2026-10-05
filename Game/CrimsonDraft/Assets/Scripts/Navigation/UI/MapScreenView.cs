@@ -8,8 +8,8 @@ using CrimsonDraft.Infrastructure.Map;
 
 namespace CrimsonDraft.Navigation.UI
 {
-    /// <summary>Draws one floor of the map as room sprites, centred on the floor's bounds and
-    /// shrunk to fit the viewport. The player's current room tints back and forth.</summary>
+    /// <summary>Draws one floor of the map as room sprites, centred (to the whole pixel) on the
+    /// floor's bounds and shrunk to fit the viewport. The player's current room tints back and forth.</summary>
     public sealed class MapScreenView : MonoBehaviour
     {
         [SerializeField] private GameObject      root      = null!;
@@ -36,6 +36,7 @@ namespace CrimsonDraft.Navigation.UI
             this.downArrow.SetActive(hasDown);
 
             var bounds = MapLayoutBounds.Compute(visuals);
+            var centre = new Vector2(Mathf.Round(bounds.center.x), Mathf.Round(bounds.center.y));
             this.currentImage = null;
 
             for (int i = 0; i < visuals.Count; i++)
@@ -47,7 +48,7 @@ namespace CrimsonDraft.Navigation.UI
                 image.sprite           = visual.Sprite;
                 image.color            = Color.white;
                 rect.sizeDelta         = visual.Sprite.rect.size;
-                rect.anchoredPosition  = (Vector2)visual.Position - bounds.center;
+                rect.anchoredPosition  = (Vector2)visual.Position + MapLayoutBounds.SizeOf(visual.Sprite, visual.QuarterTurns) * 0.5f - centre;
                 rect.localEulerAngles  = new Vector3(0f, 0f, visual.QuarterTurns * 90f);
 
                 if (visual.IsCurrent)

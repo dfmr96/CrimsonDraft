@@ -42,7 +42,7 @@ asset-based editor, shown centred in the MAP tab with vertical input switching f
 | `RoomId` | `string` | bake |
 | `IncompleteSprite` | `Sprite?` | editor |
 | `CompleteSprite` | `Sprite?` | editor |
-| `Position` | `Vector2Int` (map pixels, arbitrary origin) | editor |
+| `Position` | `Vector2Int` — bottom-left corner of the footprint, map pixels, arbitrary origin | editor |
 | `QuarterTurns` | `int` 0–3 | editor |
 | `IsOrphan` | `bool` (room missing from the scene at the last bake) | bake |
 | `PickupIds` | `string[]` | bake |
@@ -93,7 +93,8 @@ Replaces the current `MapEditorWindow`.
   Selecting shows: both sprite fields, `Position` X/Y ints, ⟲ / ⟳ 90° buttons, **Delete** (orphans only).
 - **Canvas:**
   - Draws each room sprite at `Position` with `QuarterTurns`; selected room outlined.
-  - Click selects; drag moves with snap.
+  - Click selects; drag moves with grid snap and an edge magnet (edges within 4 px snap to another room's edge; hold Alt to drag freely).
+  - **Align** (toolbar): snaps the selected room's edges to its neighbours within 4 px, or every room in list order when nothing is selected. Undoable.
   - Mouse wheel zoom and middle-drag pan — editor only.
   - A room without a sprite is not drawn; assigning its first sprite places it at the visible canvas centre.
   - A cross marks the bounding-box centre (what the game centres on).

@@ -5,8 +5,9 @@ using UnityEngine;
 
 namespace CrimsonDraft.Infrastructure.Map
 {
-    /// <summary>Axis-aligned bounds of a floor in map pixels. Each sprite is centred on its
-    /// Position; odd quarter turns swap its width and height.</summary>
+    /// <summary>Axis-aligned bounds of a floor in map pixels. A room's Position is the
+    /// bottom-left corner of its footprint, so every edge lands on a whole pixel; odd quarter
+    /// turns swap the footprint's width and height.</summary>
     public static class MapLayoutBounds
     {
         public static Rect Compute(IReadOnlyList<MapRoomVisual> visuals)
@@ -19,13 +20,18 @@ namespace CrimsonDraft.Infrastructure.Map
 
             foreach (var visual in visuals)
             {
-                var half   = SizeOf(visual.Sprite, visual.QuarterTurns) * 0.5f;
-                var centre = (Vector2)visual.Position;
-                min = Vector2.Min(min, centre - half);
-                max = Vector2.Max(max, centre + half);
+                var rect = RectOf(visual);
+                min = Vector2.Min(min, rect.min);
+                max = Vector2.Max(max, rect.max);
             }
 
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        public static RectInt RectOf(MapRoomVisual visual)
+        {
+            var size = SizeOf(visual.Sprite, visual.QuarterTurns);
+            return new RectInt(visual.Position, new Vector2Int(Mathf.RoundToInt(size.x), Mathf.RoundToInt(size.y)));
         }
 
         public static Vector2 SizeOf(Sprite sprite, int quarterTurns)

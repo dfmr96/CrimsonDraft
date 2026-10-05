@@ -72,6 +72,16 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Show_oddSizedRoom_keepsEdgesOnWholePixels()
+        {
+            this.view.Show(new[] { new MapRoomVisual("r", MapTestData.Sprite(11, 9), new Vector2Int(0, 0), 0, false) }, "DECK B", false, false);
+            var left   = Room(0).anchoredPosition.x - Room(0).sizeDelta.x * 0.5f;
+            var bottom = Room(0).anchoredPosition.y - Room(0).sizeDelta.y * 0.5f;
+            Assert.AreEqual(Mathf.Round(left), left, 0.0001f);
+            Assert.AreEqual(Mathf.Round(bottom), bottom, 0.0001f);
+        }
+
+        [Test]
         public void Show_again_hidesSurplusImages()
         {
             this.view.Show(new[] { Visual(0, 0), Visual(20, 0) }, "DECK B", false, false);
