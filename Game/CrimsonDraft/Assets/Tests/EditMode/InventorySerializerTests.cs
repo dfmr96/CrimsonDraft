@@ -135,16 +135,93 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(Vector2Int.zero, placement.Origin);
         }
 
+        private static InventoryItemEntry StorageEntry(string id, int col, int row, int quantity = 0) =>
+            new InventoryItemEntry
+            {
+                containerKind = (int)ContainerKind.Storage,
+                itemId        = id,
+                col           = col,
+                row           = row,
+                quantity      = quantity,
+            };
+
         [Test]
-        public void Restore_withNoRoomAnywhere_dropsItemAndLogsError()
+        public void CaptureThenRestore_roundTripsStorageItems()
+        {
+            var ammo   = Ammo(defaultQuantity: 30, id: "ammo");
+            var source = Service();
+            source.TryAdd(ammo, ContainerId.Storage, 17);
+            var stored = source.GetContainer(ContainerId.Storage).Placements.Single();
+            source.TryPickUp(stored.Item);
+            source.TryDrop(ContainerId.Storage, new Vector2Int(9, 3));
+
+            var entries  = InventorySerializer.Capture(source);
+            var restored = Service();
+            restored.Restore(entries, Database(ammo));
+
+            var placement = restored.GetContainer(ContainerId.Storage).Placements.Single();
+            Assert.AreEqual(new Vector2Int(9, 3), placement.Origin);
+            Assert.AreEqual(17, placement.Item.Quantity);
+            Assert.AreEqual(0, Op(restored, 0).Count);
+        }
+
+        [Test]
+        public void Restore_storageEntryWithoutRoom_fallsBackToOperators()
+        {
+            var huge  = Sized(Consumable(id: "huge"), 12, 4);
+            var small = Consumable(id: "small");
+            var s     = Service();
+
+            s.Restore(new[] { StorageEntry("huge", 0, 0), StorageEntry("small", 0, 0) }, Database(huge, small));
+
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
+            Assert.AreEqual(1, Op(s, 0).Count);
+        }
+
+        [Test]
+        public void Restore_operatorEntryWithoutRoom_fallsBackToStorage()
         {
             var big   = Sized(Consumable(id: "big"), 4, 4);
             var small = Consumable(id: "small");
             var s     = Service(FakeRoster.WithOperators(1));
 
-            LogAssert.Expect(LogType.Error, new Regex("small"));
             s.Restore(new[] { Entry("big", 0, 0, 0), Entry("small", 0, 0, 0) }, Database(big, small));
+
             Assert.AreEqual(1, Op(s, 0).Count);
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
+        }
+
+        [Test]
+        public void Restore_equippedWeaponFallingBackToStorage_isNotEquipped()
+        {
+            var big    = Sized(Consumable(id: "big"), 4, 4);
+            var gun    = Weapon(id: "gun");
+            var roster = FakeRoster.WithOperators(1);
+            var s      = Service(roster);
+            var gunEntry = Entry("gun", 0, 0, 0);
+            gunEntry.equippedOperatorSlot = 0;
+            gunEntry.equippedWeaponSlot   = 0;
+
+            s.Restore(new[] { Entry("big", 0, 0, 0), gunEntry }, Database(big, gun));
+
+            var stored = s.GetContainer(ContainerId.Storage).Placements.Single().Item;
+            Assert.AreSame(gun, stored.Data);
+            Assert.IsFalse(stored.IsEquipped);
+            Assert.IsNull(roster[0].PrimaryWeapon);
+        }
+
+        [Test]
+        public void Restore_withNoRoomAnywhere_dropsItemAndLogsError()
+        {
+            var big    = Sized(Consumable(id: "big"), 4, 4);
+            var boxful = Sized(Consumable(id: "boxful"), 12, 4);
+            var small  = Consumable(id: "small");
+            var s      = Service(FakeRoster.WithOperators(1));
+
+            LogAssert.Expect(LogType.Error, new Regex("small"));
+            s.Restore(new[] { Entry("big", 0, 0, 0), StorageEntry("boxful", 0, 0), Entry("small", 0, 0, 0) }, Database(big, boxful, small));
+            Assert.AreEqual(1, Op(s, 0).Count);
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
         }
 
         [Test]

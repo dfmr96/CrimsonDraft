@@ -16,6 +16,7 @@ namespace CrimsonDraft.Inventory
                 throw new InvalidOperationException("Cannot capture the inventory while an item is held; call CancelHeld first.");
 
             return inventory.OperatorContainers
+                .Append(inventory.GetContainer(ContainerId.Storage))
                 .SelectMany(c => c.Placements.Select(p => ToEntry(c.Id, p.Item, p.Origin, p.Rotation)))
                 .ToList();
         }

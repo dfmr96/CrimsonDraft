@@ -54,6 +54,9 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in this.loadout.Items)
                 this.inventory.TryAdd(entry.item, ContainerId.Operator(entry.operatorSlot), entry.quantity);
 
+            foreach (var entry in this.loadout.StorageItems)
+                this.inventory.TryAdd(entry.item, ContainerId.Storage, entry.quantity);
+
             for (int slot = 0; slot < this.loadout.DefaultWeapons.Length; slot++)
             {
                 var weaponData = this.loadout.DefaultWeapons[slot];

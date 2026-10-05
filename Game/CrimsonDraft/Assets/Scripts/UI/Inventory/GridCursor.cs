@@ -34,6 +34,7 @@ namespace CrimsonDraft.UI
         private bool           inputBound;
         private bool           isCombineMode;
         private bool           onMeleeSlot;
+        private bool           transferMode;
         private bool           holdingDirection;
         private Vector2Int     lastDir;
         private float          nextMoveTime;
@@ -55,6 +56,30 @@ namespace CrimsonDraft.UI
 
         public bool       IsHoldingItem => this.inventory.Held != null;
         public Vector2Int CurrentCell   => Navigator.Cell;
+
+        public bool IsTransferMode => this.transferMode;
+        public bool CanEnterTransferMode => this.presenters.HasStorage;
+
+        public void EnterTransferMode()
+        {
+            if (!this.presenters.HasStorage)
+                throw new System.InvalidOperationException("GridCursor: no StorageWindow is wired into the InventoryGridGroup.");
+
+            this.transferMode  = true;
+            this.isCombineMode = false;
+            this.onMeleeSlot   = false;
+            this.navigator     = new GridNavigator(
+                this.inventory.GetContainer, this.presenters.BuildLinks(), ContainerId.Storage, this.presenters.BuildStorageRows());
+            this.navigator.Reset(ContainerId.Storage, Vector2Int.zero);
+            this.selector.SetVisible(true);
+            Refresh();
+        }
+
+        public void ExitTransferMode()
+        {
+            this.transferMode = false;
+            this.navigator    = null;
+        }
 
         private GridNavigator Navigator => this.navigator ??=
             new GridNavigator(this.inventory.GetContainer, this.presenters.BuildLinks(), this.presenters.FirstGrid);
@@ -168,6 +193,7 @@ namespace CrimsonDraft.UI
 
             if (Navigator.Move(dir, this.IsHoldingItem) == NavigationExit.Up)
             {
+                if (this.transferMode) return;
                 if (!TryEnterMeleeSlot()) this.tabManager?.EnterTabBar();
                 return;
             }
@@ -189,6 +215,7 @@ namespace CrimsonDraft.UI
             {
                 var footprint = ItemPlacement.FootprintOf(held.Data.GridSize, this.inventory.HeldRotation);
                 this.selector.ShowAtCell(presenter.Grid, cell, null, footprint, holdStyle: true, showTooltip: false);
+                this.selector.HideTooltip();
                 this.heldView.Show(held, this.inventory.HeldRotation, presenter.Grid, cell, CanDropAt(presenter.Container, footprint, cell));
                 return;
             }
@@ -221,6 +248,13 @@ namespace CrimsonDraft.UI
         {
             if (this.tabManager != null && (this.tabManager.IsTabBarActive || this.tabManager.IsConsumingTabInput)) return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
+
+            if (this.transferMode)
+            {
+                if (this.IsHoldingItem) Drop();
+                else                    PickUpAtCursor();
+                return;
+            }
 
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
@@ -272,6 +306,11 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            PickUpAtCursor();
+        }
+
+        private void PickUpAtCursor()
+        {
             var container = CurrentPresenter.Container;
             var item      = container.GetItemAt(Navigator.Cell);
             if (item == null) return;
@@ -320,6 +359,13 @@ namespace CrimsonDraft.UI
         // tab's own submenus/held-item state get first chance to consume Cancel.
         public bool TryConsumeCancel()
         {
+            if (this.transferMode)
+            {
+                if (this.IsHoldingItem) Drop();
+                else                    RequestClose();
+                return true;
+            }
+
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
             {
                 this.inspectPanel.Close();

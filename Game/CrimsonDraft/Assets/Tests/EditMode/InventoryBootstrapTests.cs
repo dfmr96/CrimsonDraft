@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Save;
@@ -62,6 +63,37 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(1, saved.Count);
             Assert.AreEqual(0, saved[0].col);
             Assert.AreEqual(0, saved[0].row);
+        }
+
+        private InventoryBootstrap BuildWithStorage(ItemData data, int quantity)
+        {
+            var loadout = ScriptableObject.CreateInstance<StartingLoadout>();
+            var so      = new SerializedObject(loadout);
+            var items   = so.FindProperty("storageItems");
+            items.arraySize = 1;
+            items.GetArrayElementAtIndex(0).FindPropertyRelative("item").objectReferenceValue = data;
+            items.GetArrayElementAtIndex(0).FindPropertyRelative("quantity").intValue         = quantity;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return new InventoryBootstrap(loadout, this.inventory, this.registry, this.roster, Database(this.med, data));
+        }
+
+        [Test]
+        public void Initialize_newGame_addsStorageItemsToStorage()
+        {
+            var ammo = Ammo(defaultQuantity: 30, id: "ammo");
+            BuildWithStorage(ammo, 12).Initialize();
+
+            var stored = this.inventory.GetContainer(ContainerId.Storage).Placements.Single();
+            Assert.AreSame(ammo, stored.Item.Data);
+            Assert.AreEqual(12, stored.Item.Quantity);
+        }
+
+        [Test]
+        public void Initialize_withSavedState_ignoresStorageItems()
+        {
+            this.registry.Save(new List<InventoryItemEntry>());
+            BuildWithStorage(Ammo(id: "ammo"), 12).Initialize();
+            Assert.AreEqual(0, this.inventory.GetContainer(ContainerId.Storage).Count);
         }
     }
 }

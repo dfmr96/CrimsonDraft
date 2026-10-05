@@ -35,4 +35,8 @@ namespace CrimsonDraft.Navigation
             IsActive = isActive;
         }
     }
+
+    public readonly struct StorageOpenRequestedEvent
+    {
+    }
 }

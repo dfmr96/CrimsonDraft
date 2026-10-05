@@ -147,6 +147,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterMessageBroker<EnemyAlertChangedEvent>(msgOptions);
             builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
             builder.RegisterMessageBroker<DialogueActiveChangedEvent>(msgOptions);
+            builder.RegisterMessageBroker<StorageOpenRequestedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()

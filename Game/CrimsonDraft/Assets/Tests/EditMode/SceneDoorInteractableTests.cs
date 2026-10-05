@@ -71,7 +71,7 @@ namespace CrimsonDraft.Tests
         }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventoryService inventory)
-            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!);
+            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
 
         // ── tests ─────────────────────────────────────────────────────────────
 

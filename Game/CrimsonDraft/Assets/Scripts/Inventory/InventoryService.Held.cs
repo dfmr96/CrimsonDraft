@@ -32,7 +32,7 @@ namespace CrimsonDraft.Inventory
 
         public bool CanSplit(InventoryItem stack)
         {
-            if (this.held != null || !stack.Data.Stackable || stack.Quantity <= 1 || FindContainerObjectOf(stack) == null)
+            if (this.held != null || !stack.Data.Stackable || stack.Quantity <= 1 || FindCarriedContainerOf(stack) == null)
                 return false;
             var size = stack.Data.GridSize;
             return EnsureContainers().Any(c =>

@@ -42,9 +42,12 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void GetContainer_storage_throws()
+        public void GetContainer_storage_isTwelveByFour()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => Service().GetContainer(ContainerId.Storage));
+            var storage = Service().GetContainer(ContainerId.Storage);
+            Assert.AreEqual(ContainerId.Storage, storage.Id);
+            Assert.AreEqual(12, storage.Width);
+            Assert.AreEqual(4, storage.Height);
         }
 
         [Test]

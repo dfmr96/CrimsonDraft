@@ -12,8 +12,8 @@ namespace CrimsonDraft.Inventory
         {
             result = null;
             if (a == b) return false;
-            var containerA = FindContainerObjectOf(a);
-            var containerB = FindContainerObjectOf(b);
+            var containerA = FindCarriedContainerOf(a);
+            var containerB = FindCarriedContainerOf(b);
             if (containerA == null || containerB == null) return false;
 
             if (a.Data.ItemId == b.Data.ItemId && a.Data.Stackable)
@@ -34,7 +34,7 @@ namespace CrimsonDraft.Inventory
         public bool TryUseConsumable(InventoryItem item, int operatorSlot)
         {
             if (item.Data is not ConsumableData consumable) return false;
-            var container = FindContainerObjectOf(item);
+            var container = FindCarriedContainerOf(item);
             if (container == null) return false;
 
             var target = this.roster[operatorSlot];
@@ -48,7 +48,7 @@ namespace CrimsonDraft.Inventory
 
         public bool CanReload(InventoryItem ammo, int operatorSlot)
         {
-            if (ammo is not AmmoBoxItem box || box.Quantity <= 0 || FindContainerObjectOf(box) == null) return false;
+            if (ammo is not AmmoBoxItem box || box.Quantity <= 0 || FindCarriedContainerOf(box) == null) return false;
             var op     = this.roster[operatorSlot];
             var weapon = op.ActiveWeapon;
             return op.IsAlive && weapon != null && weapon.Caliber == box.Data.Caliber && weapon.CurrentAmmo < weapon.MaxAmmo;
@@ -59,6 +59,7 @@ namespace CrimsonDraft.Inventory
 
         public void Equip(WeaponItem weapon, int operatorSlot)
         {
+            if (FindCarriedContainerOf(weapon) == null) return;
             int weaponSlot = (int)weapon.Data.WeaponSlot;
             var replaced   = AllPlacements()
                 .Select(p => p.Item)

@@ -43,7 +43,25 @@ namespace CrimsonDraft.UI
                 this.presenters[id] = presenter;
                 this.order.Add(id);
             }
+
+            var storageWindow = this.gridGroup.StorageWindow;
+            if (storageWindow != null)
+            {
+                var storagePresenter = new ContainerGridPresenter(
+                    this.inventory.GetContainer(ContainerId.Storage), storageWindow.Grid, this.gridGroup.ItemViewPrefab);
+                storagePresenter.Rendered += () => this.Rendered?.Invoke(ContainerId.Storage);
+                this.presenters[ContainerId.Storage] = storagePresenter;
+            }
         }
+
+        public bool HasStorage => this.presenters.ContainsKey(ContainerId.Storage);
+
+        public IReadOnlyList<IReadOnlyList<ContainerId>> BuildStorageRows() =>
+            new List<IReadOnlyList<ContainerId>>
+            {
+                new[] { ContainerId.Storage },
+                this.order.ToArray(),
+            };
 
         public bool Has(ContainerId id) => this.presenters.ContainsKey(id);
 

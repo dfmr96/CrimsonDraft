@@ -1,5 +1,6 @@
 #nullable enable
 
+using MessagePipe;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
@@ -19,6 +20,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly PickupPreviewController PickupPreviewController;
         public readonly SaveController         SaveController;
         public readonly InspectionController   InspectionController;
+        public readonly IPublisher<StorageOpenRequestedEvent> StorageOpenPublisher;
 
         public InteractionContext(
             IInventoryService      inventoryService,
@@ -30,7 +32,8 @@ namespace CrimsonDraft.Navigation.Interactables
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
             SaveController          saveController,
-            InspectionController    inspectionController)
+            InspectionController    inspectionController,
+            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher)
         {
             InventoryService      = inventoryService;
             InputService          = inputService;
@@ -42,6 +45,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PickupPreviewController = pickupPreviewController;
             SaveController          = saveController;
             InspectionController    = inspectionController;
+            StorageOpenPublisher    = storageOpenPublisher;
         }
     }
 }

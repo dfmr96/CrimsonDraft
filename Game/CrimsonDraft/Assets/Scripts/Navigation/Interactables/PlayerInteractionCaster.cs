@@ -40,6 +40,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private PickupPreviewController pickupPreviewController = null!;
         private SaveController          saveController          = null!;
         private InspectionController    inspectionController    = null!;
+        private IPublisher<StorageOpenRequestedEvent> storageOpenPublisher = null!;
 
         private ISubscriber<DialogueActiveChangedEvent>? dialogueActiveSubscriber;
         private IDisposable?                              dialogueActiveSub;
@@ -56,6 +57,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PickupPreviewController pickupPreviewController,
             SaveController          saveController,
             InspectionController    inspectionController,
+            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
             ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber)
         {
             this.inputService          = inputService;
@@ -68,6 +70,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.pickupPreviewController = pickupPreviewController;
             this.saveController          = saveController;
             this.inspectionController    = inspectionController;
+            this.storageOpenPublisher    = storageOpenPublisher;
             this.dialogueActiveSubscriber = dialogueActiveSubscriber;
             this.inputService.Interact.performed += OnInteract;
             this.dialogueActiveSub = this.dialogueActiveSubscriber?.Subscribe(OnDialogueActiveChanged);
@@ -121,7 +124,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.screenFader,
                 this.pickupPreviewController,
                 this.saveController,
-                this.inspectionController);
+                this.inspectionController,
+                this.storageOpenPublisher);
             interactable.Interact(context);
         }
 

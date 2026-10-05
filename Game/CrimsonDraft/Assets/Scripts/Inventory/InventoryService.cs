@@ -14,6 +14,7 @@ namespace CrimsonDraft.Inventory
         private readonly IOperatorRoster roster;
         private readonly ICombineService combineService;
         private ItemContainer[]? operatorContainers;
+        private ItemContainer?   storageContainer;
 
         [Preserve]
         public InventoryService(IOperatorRoster roster, ICombineService combineService)
@@ -26,6 +27,7 @@ namespace CrimsonDraft.Inventory
 
         public ItemContainer GetContainer(ContainerId id)
         {
+            if (id == ContainerId.Storage) return EnsureStorage();
             var containers = EnsureContainers();
             if (id.Kind == ContainerKind.Operator && id.Index >= 0 && id.Index < containers.Length)
                 return containers[id.Index];
@@ -114,7 +116,18 @@ namespace CrimsonDraft.Inventory
             return this.operatorContainers;
         }
 
+        private ItemContainer EnsureStorage() =>
+            this.storageContainer ??= new ItemContainer(
+                ContainerId.Storage,
+                InventoryConstants.StorageGridWidth,
+                InventoryConstants.StorageGridHeight);
+
+        private IEnumerable<ItemContainer> AllContainers() => EnsureContainers().Append(EnsureStorage());
+
         private ItemContainer? FindContainerObjectOf(InventoryItem item) =>
+            AllContainers().FirstOrDefault(c => c.Contains(item));
+
+        private ItemContainer? FindCarriedContainerOf(InventoryItem item) =>
             EnsureContainers().FirstOrDefault(c => c.Contains(item));
 
         private IEnumerable<ItemPlacement> AllPlacements() => EnsureContainers().SelectMany(c => c.Placements);

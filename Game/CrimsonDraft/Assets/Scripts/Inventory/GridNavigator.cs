@@ -32,14 +32,17 @@ namespace CrimsonDraft.Inventory
     {
         private readonly Func<ContainerId, ItemContainer>            resolve;
         private readonly IReadOnlyDictionary<ContainerId, GridLinks> links;
+        private readonly IReadOnlyList<IReadOnlyList<ContainerId>>? rows;
 
         public GridNavigator(
             Func<ContainerId, ItemContainer> resolve,
             IReadOnlyDictionary<ContainerId, GridLinks> links,
-            ContainerId start)
+            ContainerId start,
+            IReadOnlyList<IReadOnlyList<ContainerId>>? rows = null)
         {
             this.resolve = resolve;
             this.links   = links;
+            this.rows    = rows;
             this.Grid    = start;
         }
 
@@ -71,16 +74,28 @@ namespace CrimsonDraft.Inventory
 
             var gridLinks = this.links.TryGetValue(this.Grid, out var found) ? found : default;
 
-            if (next.y < 0)
+            if (next.y < 0 || next.y >= container.Height)
             {
-                if (gridLinks.Up is { } up) { EnterVertical(up, next.x, atBottom: true); return NavigationExit.None; }
-                if (!isHolding) return NavigationExit.Up;
-                next.y = container.Height - 1;
-            }
-            else if (next.y >= container.Height)
-            {
-                if (gridLinks.Down is { } down) { EnterVertical(down, next.x, atBottom: false); return NavigationExit.None; }
-                next.y = 0;
+                bool up = next.y < 0;
+                if (TryLocateRow(this.Grid, out int rowIndex, out int position))
+                {
+                    int target = up ? rowIndex - 1 : rowIndex + 1;
+                    if (target >= 0 && target < this.rows!.Count)
+                        EnterRow(target, rowIndex, position, this.Cell.x, container.Width, enterFromBelow: up);
+                    return NavigationExit.None;
+                }
+
+                if (up)
+                {
+                    if (gridLinks.Up is { } upLink) { EnterVertical(upLink, next.x, atBottom: true); return NavigationExit.None; }
+                    if (!isHolding) return NavigationExit.Up;
+                    next.y = container.Height - 1;
+                }
+                else
+                {
+                    if (gridLinks.Down is { } downLink) { EnterVertical(downLink, next.x, atBottom: false); return NavigationExit.None; }
+                    next.y = 0;
+                }
             }
 
             if (next.x < 0)
@@ -110,6 +125,40 @@ namespace CrimsonDraft.Inventory
             var container = this.resolve(target);
             this.Grid = target;
             this.Cell = new Vector2Int(atRightEdge ? container.Width - 1 : 0, Mathf.Clamp(row, 0, container.Height - 1));
+        }
+
+        private bool TryLocateRow(ContainerId grid, out int rowIndex, out int position)
+        {
+            if (this.rows != null)
+                for (rowIndex = 0; rowIndex < this.rows.Count; rowIndex++)
+                {
+                    position = IndexOf(this.rows[rowIndex], grid);
+                    if (position >= 0) return true;
+                }
+
+            rowIndex = -1;
+            position = -1;
+            return false;
+        }
+
+        private void EnterRow(int targetRow, int fromRow, int fromPosition, int fromColumn, int fromWidth, bool enterFromBelow)
+        {
+            float fraction = (fromPosition + (fromColumn + 0.5f) / fromWidth) / this.rows![fromRow].Count;
+            var   row      = this.rows[targetRow];
+            float scaled   = fraction * row.Count;
+            int   gridIdx  = Mathf.Clamp(Mathf.FloorToInt(scaled), 0, row.Count - 1);
+            var   target   = this.resolve(row[gridIdx]);
+            int   column   = Mathf.Clamp(Mathf.FloorToInt((scaled - gridIdx) * target.Width), 0, target.Width - 1);
+
+            this.Grid = row[gridIdx];
+            this.Cell = new Vector2Int(column, enterFromBelow ? target.Height - 1 : 0);
+        }
+
+        private static int IndexOf(IReadOnlyList<ContainerId> row, ContainerId grid)
+        {
+            for (int i = 0; i < row.Count; i++)
+                if (row[i] == grid) return i;
+            return -1;
         }
     }
 }

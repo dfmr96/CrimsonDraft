@@ -11,5 +11,7 @@ namespace CrimsonDraft.Inventory
         public const int OperatorGridWidth  = 4;
         public const int OperatorGridHeight = 4;
         public const int SlotsPerOperator   = OperatorGridWidth * OperatorGridHeight;
+        public const int StorageGridWidth   = 12;
+        public const int StorageGridHeight  = 4;
     }
 }

@@ -33,11 +33,15 @@ namespace CrimsonDraft.Tests
             foreach (var id in ownedIds) this.OwnedIds.Add(id);
         }
 
+        private readonly ItemContainer storage = new ItemContainer(ContainerId.Storage, 12, 4);
+
         public ItemContainer Operator0 => this.containers[0];
+        public ItemContainer Storage   => this.storage;
 
         public IReadOnlyList<ItemContainer> OperatorContainers => this.containers;
-        public ItemContainer GetContainer(ContainerId id) => this.containers.First(c => c.Id == id);
-        public ContainerId? FindContainerOf(InventoryItem item) => this.containers.FirstOrDefault(c => c.Contains(item))?.Id;
+        public ItemContainer GetContainer(ContainerId id) => id == ContainerId.Storage ? this.storage : this.containers.First(c => c.Id == id);
+        public ContainerId? FindContainerOf(InventoryItem item) =>
+            this.storage.Contains(item) ? ContainerId.Storage : this.containers.FirstOrDefault(c => c.Contains(item))?.Id;
 
         public bool TryAdd(ItemData data, int quantity = 0)
         {

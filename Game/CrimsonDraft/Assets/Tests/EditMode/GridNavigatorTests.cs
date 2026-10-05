@@ -145,5 +145,65 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(Op0, nav.Grid);
             Assert.AreEqual(new Vector2Int(3, 0), nav.Cell);
         }
+
+        private static readonly ContainerId Op2 = ContainerId.Operator(2);
+
+        private GridNavigator RowNavigator(ContainerId grid, int col, int row)
+        {
+            this.containers[Op2]                 = new ItemContainer(Op2, 4, 4);
+            this.containers[ContainerId.Storage] = new ItemContainer(ContainerId.Storage, 12, 4);
+            this.links[Op0] = new GridLinks(Op2, Op1, null, null);
+            this.links[Op1] = new GridLinks(Op0, Op2, null, null);
+            this.links[Op2] = new GridLinks(Op1, Op0, null, null);
+            var rows = new List<IReadOnlyList<ContainerId>>
+            {
+                new[] { ContainerId.Storage },
+                new[] { Op0, Op1, Op2 },
+            };
+            var nav = new GridNavigator(id => this.containers[id], this.links, grid, rows);
+            nav.Reset(grid, new Vector2Int(col, row));
+            return nav;
+        }
+
+        [Test]
+        public void Rows_upFromOperator_entersStorageAtProportionalColumn()
+        {
+            var nav = RowNavigator(Op1, col: 2, row: 0);
+            Assert.AreEqual(NavigationExit.None, nav.Move(Vector2Int.up, isHolding: false));
+            Assert.AreEqual(ContainerId.Storage, nav.Grid);
+            Assert.AreEqual(new Vector2Int(6, 3), nav.Cell);
+        }
+
+        [Test]
+        public void Rows_downFromStorage_entersOperatorAtProportionalColumn()
+        {
+            var nav = RowNavigator(ContainerId.Storage, col: 10, row: 3);
+            nav.Move(Vector2Int.down, isHolding: true);
+            Assert.AreEqual(Op2, nav.Grid);
+            Assert.AreEqual(new Vector2Int(2, 0), nav.Cell);
+        }
+
+        [Test]
+        public void Rows_outerEdges_areNoOps()
+        {
+            var top = RowNavigator(ContainerId.Storage, col: 4, row: 0);
+            Assert.AreEqual(NavigationExit.None, top.Move(Vector2Int.up, isHolding: false));
+            Assert.AreEqual(ContainerId.Storage, top.Grid);
+            Assert.AreEqual(new Vector2Int(4, 0), top.Cell);
+
+            var bottom = RowNavigator(Op0, col: 1, row: 3);
+            bottom.Move(Vector2Int.down, isHolding: false);
+            Assert.AreEqual(Op0, bottom.Grid);
+            Assert.AreEqual(new Vector2Int(1, 3), bottom.Cell);
+        }
+
+        [Test]
+        public void Rows_horizontalMovesStillFollowLinks()
+        {
+            var nav = RowNavigator(Op0, col: 3, row: 1);
+            nav.Move(Vector2Int.right, isHolding: false);
+            Assert.AreEqual(Op1, nav.Grid);
+            Assert.AreEqual(new Vector2Int(0, 1), nav.Cell);
+        }
     }
 }
