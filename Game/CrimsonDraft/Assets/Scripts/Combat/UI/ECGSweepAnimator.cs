@@ -22,6 +22,11 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0.01f, 0.5f)] private float trailFraction = 0.18f;
         [SerializeField, Range(0.1f, 4f)] private float fadeExponent = 1f;
 
+        // Shared with the aim debuff system (AimViewController) so the sprite the player sees
+        // here and the aim difficulty debuffs always agree on what "Yellow/Orange/Danger" means --
+        // null falls back to this component's original hardcoded 0.75/0.50/0.25 breakpoints.
+        [SerializeField] private HpTierConfig? hpTierConfig;
+
         [Header("Health States (Normal x4, Mercy, KIA)")]
         [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
         [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
@@ -194,11 +199,24 @@ namespace CrimsonDraft.Combat
             float duration;
             Color effectColor;
 
-            if (hpRatio <= 0f)         { sprite = this.stageSpriteMercy;    duration = this.stageDurationMercy;   effectColor = this.effectColorMercy;   }
-            else if (hpRatio <= 0.25f) { sprite = this.stageSpriteSevere;   duration = this.stageDurationSevere;   effectColor = this.effectColorSevere;   }
-            else if (hpRatio <= 0.50f) { sprite = this.stageSpriteWarning;  duration = this.stageDurationWarning;  effectColor = this.effectColorWarning;  }
-            else if (hpRatio <= 0.75f) { sprite = this.stageSpriteCaution;  duration = this.stageDurationCaution;  effectColor = this.effectColorCaution;  }
-            else                       { sprite = this.stageSpriteStable;  duration = this.stageDurationStable;   effectColor = this.effectColorStable;   }
+            if (hpRatio <= 0f)
+            {
+                sprite = this.stageSpriteMercy; duration = this.stageDurationMercy; effectColor = this.effectColorMercy;
+            }
+            else
+            {
+                HpTier tier = this.hpTierConfig != null
+                    ? HpTierCalculator.ComputeTier(hpRatio, this.hpTierConfig)
+                    : LegacyComputeTier(hpRatio);
+
+                switch (tier)
+                {
+                    case HpTier.Danger: sprite = this.stageSpriteSevere;  duration = this.stageDurationSevere;  effectColor = this.effectColorSevere;  break;
+                    case HpTier.Orange: sprite = this.stageSpriteWarning; duration = this.stageDurationWarning; effectColor = this.effectColorWarning; break;
+                    case HpTier.Yellow: sprite = this.stageSpriteCaution; duration = this.stageDurationCaution; effectColor = this.effectColorCaution; break;
+                    default:            sprite = this.stageSpriteStable; duration = this.stageDurationStable;  effectColor = this.effectColorStable;  break;
+                }
+            }
 
             if (sprite != null)
                 this.traceImage.sprite = sprite;
@@ -218,6 +236,16 @@ namespace CrimsonDraft.Combat
                 effectColor.a = this.effectBaseAlpha;
                 this.effectImage.color = effectColor;
             }
+        }
+
+        // Only used when hpTierConfig isn't assigned -- reproduces this component's original
+        // breakpoints (0.75/0.50/0.25) exactly, so unwired instances keep their old behavior.
+        private static HpTier LegacyComputeTier(float hpRatio)
+        {
+            if (hpRatio <= 0.25f) return HpTier.Danger;
+            if (hpRatio <= 0.50f) return HpTier.Orange;
+            if (hpRatio <= 0.75f) return HpTier.Yellow;
+            return HpTier.Full;
         }
 
         // Breathes the trace sprite and its background glow between full brightness and
