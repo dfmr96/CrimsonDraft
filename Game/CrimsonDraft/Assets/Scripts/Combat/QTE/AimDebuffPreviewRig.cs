@@ -20,8 +20,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image vignetteOverlay          = null!;
         [SerializeField] private Image breathingVignetteOverlay = null!;
         [SerializeField] private Image grainOverlay              = null!;
-        [SerializeField] private Image desaturationOverlay       = null!;
-        [SerializeField] private Image paletteOverlay            = null!;
         [SerializeField] private Image heartbeatOverlay          = null!;
 
         // The silhouette itself must always stay visible (it's the actual QTE target), so its
@@ -37,10 +35,8 @@ namespace CrimsonDraft.Combat
         public TunnelVignetteSlot    Vignette                 = new();
         public BreathingVignetteSlot BreathingVignette         = new();
         public GrainSlot             Grain                     = new();
-        public TintSlot              Desaturation              = new() { Color = new Color(0.6f, 0.6f, 0.6f) };
-        public TintSlot              PaletteShift              = new() { Color = new Color(1f, 0.55f, 0.5f) };
         public HeartbeatSlot         ScreenHeartbeat           = new();
-        public PulseDistortSlot      ChromaticAberrationPulse  = new() { PulseHz = 1.4f, MaxAmount = 0.02f };
+        public ChromaticAberrationSlot ChromaticAberrationPulse = new() { PulseHz = 1.4f, MaxAmount = 0.02f };
         public PulseDistortSlot      BlurPulse                 = new() { PulseHz = 0.5f, MaxAmount = 0.03f };
 
         private static readonly int ColorId      = Shader.PropertyToID("_Color");
@@ -48,14 +44,15 @@ namespace CrimsonDraft.Combat
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int ResponseId   = Shader.PropertyToID("_Response");
         private static readonly int ScaleId      = Shader.PropertyToID("_Scale");
-        private static readonly int AberrationId = Shader.PropertyToID("_Aberration");
+        private static readonly int AberrationId   = Shader.PropertyToID("_Aberration");
+        private static readonly int ChannelRedId   = Shader.PropertyToID("_ChannelRed");
+        private static readonly int ChannelGreenId = Shader.PropertyToID("_ChannelGreen");
+        private static readonly int ChannelBlueId  = Shader.PropertyToID("_ChannelBlue");
         private static readonly int BlurSizeId   = Shader.PropertyToID("_BlurSize");
 
         private Material vignetteMat   = null!;
         private Material breathingMat  = null!;
         private Material grainMat      = null!;
-        private Material desatMat      = null!;
-        private Material paletteMat    = null!;
         private Material heartbeatMat  = null!;
         private Material distortMat    = null!;
 
@@ -64,8 +61,6 @@ namespace CrimsonDraft.Combat
             this.vignetteMat  = this.CloneInto(this.vignetteOverlay);
             this.breathingMat = this.CloneInto(this.breathingVignetteOverlay);
             this.grainMat     = this.CloneInto(this.grainOverlay);
-            this.desatMat     = this.CloneInto(this.desaturationOverlay);
-            this.paletteMat   = this.CloneInto(this.paletteOverlay);
             this.heartbeatMat = this.CloneInto(this.heartbeatOverlay);
             this.distortMat   = this.CloneInto(this.silhouetteImage);
         }
@@ -92,10 +87,9 @@ namespace CrimsonDraft.Combat
             ApplyTunnelVignette(this.Vignette, this.vignetteMat, this.vignetteOverlay);
             ApplyBreathingVignette(this.BreathingVignette, this.breathingMat, this.breathingVignetteOverlay, dt);
             ApplyGrain(this.Grain, this.grainMat, this.grainOverlay);
-            ApplyTint(this.Desaturation, this.desatMat, this.desaturationOverlay);
-            ApplyTint(this.PaletteShift, this.paletteMat, this.paletteOverlay);
             ApplyHeartbeat(this.ScreenHeartbeat, this.heartbeatMat, this.heartbeatOverlay, dt);
             ApplyAberration(this.ChromaticAberrationPulse, this.distortMat, dt);
+            ApplyAberrationChannels(this.ChromaticAberrationPulse, this.distortMat);
             ApplyBlur(this.BlurPulse, this.distortMat, dt);
         }
 
@@ -137,15 +131,6 @@ namespace CrimsonDraft.Combat
             mat.SetFloat(IntensityId, slot.Intensity);
         }
 
-        private static void ApplyTint(TintSlot slot, Material mat, Image overlay)
-        {
-            overlay.enabled = slot.Enabled;
-            if (!slot.Enabled) return;
-
-            mat.SetColor(ColorId, slot.Color);
-            mat.SetFloat(IntensityId, slot.Intensity);
-        }
-
         private static void ApplyHeartbeat(HeartbeatSlot slot, Material mat, Image overlay, float dt)
         {
             overlay.enabled = slot.Enabled;
@@ -168,6 +153,13 @@ namespace CrimsonDraft.Combat
             mat.SetFloat(IntensityId, slot.Intensity * beat);
         }
 
+        private static void ApplyAberrationChannels(ChromaticAberrationSlot slot, Material mat)
+        {
+            mat.SetColor(ChannelRedId, slot.Enabled ? slot.ChannelRed : Color.red);
+            mat.SetColor(ChannelGreenId, slot.Enabled ? slot.ChannelGreen : Color.green);
+            mat.SetColor(ChannelBlueId, slot.Enabled ? slot.ChannelBlue : Color.blue);
+        }
+
         // Silhouette stays visible regardless -- Enabled=false just zeroes _Aberration, an exact
         // passthrough per AimDebuffDistort.shader.
         private static void ApplyAberration(PulseDistortSlot slot, Material mat, float dt)
@@ -180,8 +172,7 @@ namespace CrimsonDraft.Combat
             }
 
             slot.ElapsedTotal += dt;
-            float pulse = Mathf.Abs(Mathf.Sin(slot.ElapsedTotal * slot.PulseHz * Mathf.PI));
-            mat.SetFloat(AberrationId, slot.Intensity * slot.MaxAmount * pulse);
+            mat.SetFloat(AberrationId, slot.Intensity * slot.MaxAmount * slot.Evaluate(slot.ElapsedTotal));
         }
 
         // Silhouette stays visible regardless -- Enabled=false just zeroes _BlurSize, an exact
@@ -196,8 +187,7 @@ namespace CrimsonDraft.Combat
             }
 
             slot.ElapsedTotal += dt;
-            float pulse = 0.5f * (1f + Mathf.Sin(slot.ElapsedTotal * slot.PulseHz * Mathf.PI * 2f));
-            mat.SetFloat(BlurSizeId, slot.Intensity * slot.MaxAmount * pulse);
+            mat.SetFloat(BlurSizeId, slot.Intensity * slot.MaxAmount * slot.Evaluate(slot.ElapsedTotal));
         }
 
         private static float PulseEnvelope(float t, float decay) => t < 0f ? 0f : Mathf.Exp(-decay * t);

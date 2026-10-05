@@ -14,23 +14,21 @@ namespace CrimsonDraft.Combat
     {
         private static readonly int BlurSizeId = Shader.PropertyToID("_BlurSize");
 
-        private readonly Material material;
-        private readonly float    pulseHz;
-        private readonly float    maxAmount;
+        private readonly Material        material;
+        private readonly PulseDistortSlot slot;
 
-        public BlurPulseDebuffEffect(Material material, float pulseHz, float maxAmount)
+        public BlurPulseDebuffEffect(Material material, PulseDistortSlot slot)
         {
-            this.material  = material;
-            this.pulseHz   = pulseHz;
-            this.maxAmount = maxAmount;
+            this.material = material;
+            this.slot     = slot;
         }
 
         protected override void OnActivate() { }
 
         protected override void Apply(float envelope01)
         {
-            float pulse = 0.5f * (1f + Mathf.Sin(this.ElapsedTotal * this.pulseHz * Mathf.PI * 2f));
-            this.material.SetFloat(BlurSizeId, envelope01 * this.TargetIntensity * this.maxAmount * pulse);
+            float pulse = this.slot.Evaluate(this.ElapsedTotal);
+            this.material.SetFloat(BlurSizeId, envelope01 * this.TargetIntensity * this.slot.MaxAmount * pulse);
         }
 
         protected override void OnDeactivate() =>

@@ -20,7 +20,6 @@ namespace CrimsonDraft.Combat
         [Header("Overlay Materials (washes scoped to the AimView panel -- see the overlay GameObjects' own Y scale for framing)")]
         [SerializeField] private Material? vignetteMaterial;     // BreathingVignetteDebuffEffect
         [SerializeField] private Material? grainMaterial;
-        [SerializeField] private Material? desaturationMaterial; // Yellow
 
         [Header("Distort Material (assigned directly on the selectors/silhouette Images)")]
         [SerializeField] private Material? distortMaterial;      // shared: ChromaticAberrationPulse + BlurPulse (Orange)
@@ -89,10 +88,6 @@ namespace CrimsonDraft.Combat
                 this.grainMaterial != null ? new GrainDebuffEffect(this.grainMaterial, profile.Grain.Color, profile.Grain.Response, profile.Grain.Scale) : null,
                 profile.Grain.Intensity);
 
-            this.TryBegin(profile.Desaturation.Enabled, profile,
-                this.desaturationMaterial != null ? new TintOverlayDebuffEffect(this.desaturationMaterial, profile.Desaturation.Color) : null,
-                profile.Desaturation.Intensity);
-
             this.TryBegin(profile.ScreenHeartbeat.Enabled, profile,
                 this.heartbeatMaterial != null
                     ? new ScreenHeartbeatDebuffEffect(this.heartbeatMaterial, profile.ScreenHeartbeat.Color,
@@ -102,11 +97,11 @@ namespace CrimsonDraft.Combat
                 profile.ScreenHeartbeat.Intensity);
 
             this.TryBegin(profile.ChromaticAberrationPulse.Enabled, profile,
-                this.distortMaterial != null ? new ChromaticAberrationPulseDebuffEffect(this.distortMaterial, profile.ChromaticAberrationPulse.PulseHz, profile.ChromaticAberrationPulse.MaxAmount) : null,
+                this.distortMaterial != null ? new ChromaticAberrationPulseDebuffEffect(this.distortMaterial, profile.ChromaticAberrationPulse) : null,
                 profile.ChromaticAberrationPulse.Intensity);
 
             this.TryBegin(profile.BlurPulse.Enabled, profile,
-                this.distortMaterial != null ? new BlurPulseDebuffEffect(this.distortMaterial, profile.BlurPulse.PulseHz, profile.BlurPulse.MaxAmount) : null,
+                this.distortMaterial != null ? new BlurPulseDebuffEffect(this.distortMaterial, profile.BlurPulse) : null,
                 profile.BlurPulse.Intensity);
         }
 

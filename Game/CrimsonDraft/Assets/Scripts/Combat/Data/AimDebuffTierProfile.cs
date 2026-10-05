@@ -15,17 +15,15 @@ namespace CrimsonDraft.Combat
     [CreateAssetMenu(fileName = "AimDebuffTierProfile", menuName = "CrimsonDraft/Combat/Aim Debuff Tier Profile")]
     public sealed class AimDebuffTierProfile : ScriptableObject
     {
-        // Vignette (held tunnel close-in) and PaletteShift aren't wired here -- no shipped tier
-        // currently uses them (every tier uses BreathingVignette instead, and none use a palette
-        // wash). Both effects still exist and are fully testable in AimDebuffPreviewRig/
-        // AimDebuffPreview.unity if a future tier wants them; re-add the field here and the
-        // corresponding TryBegin call in AimDebuffController.Accumulate() to wire one back in.
+        // Vignette (held tunnel close-in) isn't wired here -- no shipped tier uses it (every tier
+        // uses BreathingVignette instead). It still exists and is testable in AimDebuffPreviewRig/
+        // AimDebuffPreview.unity; re-add the field here and the corresponding TryBegin call in
+        // AimDebuffController.Accumulate() to wire it back in.
         [Header("Effect Slots -- the actual shader data per tier")]
         public BreathingVignetteSlot BreathingVignette         = new();
         public GrainSlot             Grain                     = new();
-        public TintSlot              Desaturation              = new();
         public HeartbeatSlot         ScreenHeartbeat           = new();
-        public PulseDistortSlot      ChromaticAberrationPulse  = new();
+        public ChromaticAberrationSlot ChromaticAberrationPulse = new();
         public PulseDistortSlot      BlurPulse                 = new();
 
         // Applied instantly at shot start (no fade-in -- see AimDebuffController.TryBegin), but

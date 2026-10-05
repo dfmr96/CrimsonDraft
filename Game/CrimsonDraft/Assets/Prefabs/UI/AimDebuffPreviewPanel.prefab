@@ -35,81 +35,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &717628719935857653
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4604606986128528162}
-  - component: {fileID: 9157355495017846994}
-  - component: {fileID: 1990635786874308838}
-  m_Layer: 0
-  m_Name: AimDebuffDesaturationOverlay
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!224 &4604606986128528162
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 717628719935857653}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 0.71, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 3193175617688440021}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &9157355495017846994
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 717628719935857653}
-  m_CullTransparentMesh: 1
---- !u!114 &1990635786874308838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 717628719935857653}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: 0f06117f5fcf39a43bf1c43b608018f4, type: 2}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &1153443813203206241
 GameObject:
   m_ObjectHideFlags: 0
@@ -282,8 +207,6 @@ MonoBehaviour:
   vignetteOverlay: {fileID: 7241563260513319576}
   breathingVignetteOverlay: {fileID: 8785684718157999026}
   grainOverlay: {fileID: 3272641708294160193}
-  desaturationOverlay: {fileID: 1990635786874308838}
-  paletteOverlay: {fileID: 7514695939795479249}
   heartbeatOverlay: {fileID: 6410083350212663526}
   silhouetteImage: {fileID: 325818092912150837}
   aimView: {fileID: 5455374506517848635}
@@ -299,21 +222,12 @@ MonoBehaviour:
     Smoothness: 0.35
     BreathHz: 0.35
     BreathDepth: 0.35
-    ElapsedTotal: 0
   Grain:
     Enabled: 0
     Intensity: 0.5
     Color: {r: 1, g: 1, b: 1, a: 1}
     Response: 1.2
     Scale: 2.5
-  Desaturation:
-    Enabled: 0
-    Intensity: 0.5
-    Color: {r: 0.6, g: 0.6, b: 0.6, a: 1}
-  PaletteShift:
-    Enabled: 0
-    Intensity: 0.5
-    Color: {r: 1, g: 0.55, b: 0.5, a: 1}
   ScreenHeartbeat:
     Enabled: 0
     Intensity: 0.5
@@ -323,19 +237,19 @@ MonoBehaviour:
     DubStrength: 0.5
     DubOffsetFraction: 0.16
     PulseDecay: 16
-    ElapsedTotal: 0
   ChromaticAberrationPulse:
     Enabled: 0
     Intensity: 0.5
     PulseHz: 1.4
     MaxAmount: 0.02
-    ElapsedTotal: 0
+    ChannelRed: {r: 1, g: 0, b: 0, a: 1}
+    ChannelGreen: {r: 0, g: 1, b: 0, a: 1}
+    ChannelBlue: {r: 0, g: 0, b: 1, a: 1}
   BlurPulse:
     Enabled: 0
     Intensity: 0.5
     PulseHz: 0.5
     MaxAmount: 0.03
-    ElapsedTotal: 0
 --- !u!1 &2055457821948010734
 GameObject:
   m_ObjectHideFlags: 0
@@ -858,81 +772,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!1 &6710777500489953258
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4727760936416711848}
-  - component: {fileID: 586930468637331639}
-  - component: {fileID: 7514695939795479249}
-  m_Layer: 0
-  m_Name: AimDebuffPaletteOverlay
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!224 &4727760936416711848
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6710777500489953258}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 0.71, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 3193175617688440021}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &586930468637331639
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6710777500489953258}
-  m_CullTransparentMesh: 1
---- !u!114 &7514695939795479249
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6710777500489953258}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: ad0f8e8966bbdc84dbb0b04b3e14724b, type: 2}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &7693084877264927058
 GameObject:
   m_ObjectHideFlags: 0
@@ -1232,8 +1071,6 @@ RectTransform:
   - {fileID: 1986767138783395145}
   - {fileID: 8992908481981919525}
   - {fileID: 7136009702529051628}
-  - {fileID: 4604606986128528162}
-  - {fileID: 4727760936416711848}
   - {fileID: 1369974863311405746}
   - {fileID: 5046350148171569654}
   - {fileID: 1080784806266494478}

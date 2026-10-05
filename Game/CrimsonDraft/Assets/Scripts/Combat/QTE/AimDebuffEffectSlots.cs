@@ -43,14 +43,6 @@ namespace CrimsonDraft.Combat
     }
 
     [System.Serializable]
-    public sealed class TintSlot
-    {
-        public bool Enabled;
-        [Range(0f, 1f)] public float Intensity = 0.5f;
-        public Color Color = Color.white;
-    }
-
-    [System.Serializable]
     public sealed class HeartbeatSlot
     {
         public bool Enabled;
@@ -67,14 +59,33 @@ namespace CrimsonDraft.Combat
     }
 
     [System.Serializable]
-    public sealed class PulseDistortSlot
+    public class PulseDistortSlot
     {
         public bool Enabled;
         [Range(0f, 1f)] public float Intensity = 0.5f;
         public float PulseHz = 1f;
         [Range(0f, 0.05f)] public float MaxAmount = 0.02f;
+        // true: smooth sine wave (0 -> 1 -> 0). false: sharp rectified pulse, |sin|.
+        public bool SineWave = true;
 
         // Runtime-only -- see BreathingVignetteSlot.ElapsedTotal.
         [System.NonSerialized] public float ElapsedTotal;
+
+        public float Evaluate(float elapsed)
+        {
+            if (this.SineWave)
+                return 0.5f * (1f + Mathf.Sin(elapsed * this.PulseHz * Mathf.PI * 2f));
+            return Mathf.Abs(Mathf.Sin(elapsed * this.PulseHz * Mathf.PI));
+        }
+    }
+
+    [System.Serializable]
+    public sealed class ChromaticAberrationSlot : PulseDistortSlot
+    {
+        public Color ChannelRed   = new Color(1f, 0f, 0f, 1f);
+        public Color ChannelGreen = new Color(0f, 1f, 0f, 1f);
+        public Color ChannelBlue  = new Color(0f, 0f, 1f, 1f);
+
+        public ChromaticAberrationSlot() => this.SineWave = false;
     }
 }

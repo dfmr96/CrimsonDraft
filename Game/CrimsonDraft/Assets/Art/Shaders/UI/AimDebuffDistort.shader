@@ -11,6 +11,9 @@ Shader "CrimsonDraft/UI/AimDebuffDistort"
         _Color("Tint", Color) = (1,1,1,1)
         _BlurSize("Blur Size (UV)", Range(0, 0.05)) = 0
         _Aberration("Chromatic Aberration (UV)", Range(0, 0.05)) = 0
+        _ChannelRed("Aberration Red Channel Color", Color) = (1,0,0,1)
+        _ChannelGreen("Aberration Green Channel Color", Color) = (0,1,0,1)
+        _ChannelBlue("Aberration Blue Channel Color", Color) = (0,0,1,1)
     }
 
     SubShader
@@ -67,6 +70,9 @@ Shader "CrimsonDraft/UI/AimDebuffDistort"
             float4 _ClipRect;
             float _BlurSize;
             float _Aberration;
+            fixed4 _ChannelRed;
+            fixed4 _ChannelGreen;
+            fixed4 _ChannelBlue;
 
             v2f vert(appdata_t v)
             {
@@ -105,7 +111,8 @@ Shader "CrimsonDraft/UI/AimDebuffDistort"
                 fixed4 g = SampleBlurred(uv, float2(0, 0));
                 fixed4 b = SampleBlurred(uv, -shift);
 
-                fixed4 tex = fixed4(r.r, g.g, b.b, g.a) + _TextureSampleAdd;
+                fixed3 rgb = saturate(r.r * _ChannelRed.rgb + g.g * _ChannelGreen.rgb + b.b * _ChannelBlue.rgb);
+                fixed4 tex = fixed4(rgb, g.a) + _TextureSampleAdd;
                 fixed4 col = tex * i.color;
 
                 #ifdef UNITY_UI_CLIP_RECT
