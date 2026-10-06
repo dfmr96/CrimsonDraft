@@ -603,6 +603,30 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ComputeShotDamage_torso_armorQuarter_returns5()
+        {
+            Assert.AreEqual(5, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 1f, 20, 0.25f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_head_graze_armorHalf_returns10()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputeShotDamage(ShotZone.Head, 0.5f, 20, 0.5f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_armorMultiplierOne_isUnchanged()
+        {
+            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 1f, 20, 1f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_miss_withArmor_returns0()
+        {
+            Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss, 1f, 20, 0.25f));
+        }
+
+        [Test]
         public void ComputePoiseDamage_torso_returnsWeaponValueUnchanged()
         {
             Assert.AreEqual(10, CombatMenuController.ComputePoiseDamage(ShotZone.Torso, 10));

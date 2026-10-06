@@ -252,7 +252,7 @@ namespace CrimsonDraft.Combat
             this.orchestrator.SetWaitMode(false);
         }
 
-        internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier, int baseDamage = BaseDamage)
+        internal static int ComputeShotDamage(ShotZone zone, float precisionMultiplier, int baseDamage = BaseDamage, float armorMultiplier = 1f)
         {
             float zoneMult = zone switch
             {
@@ -263,7 +263,7 @@ namespace CrimsonDraft.Combat
                 ShotZone.Hit   => 1.0f,
                 _              => 0.0f,
             };
-            return Mathf.RoundToInt(baseDamage * zoneMult * precisionMultiplier);
+            return Mathf.RoundToInt(baseDamage * zoneMult * precisionMultiplier * armorMultiplier);
         }
 
         internal static int ComputePoiseDamage(ShotZone zone, int weaponPoiseDamage) =>
