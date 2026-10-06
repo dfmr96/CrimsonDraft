@@ -48,6 +48,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private int           maxConcurrentFeedback  = 3;
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
+        [SerializeField] private Color         armorBlockedFeedbackColor = new Color(0.2f, 0.88f, 1f, 1f); // #33E0FF
 
         // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
         // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
@@ -466,8 +467,11 @@ namespace CrimsonDraft.Combat
                     ShotZone            zone       = def?.zone ?? ShotZone.Miss;
                     ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
                     float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
-                    int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
-                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage));
+                    bool                armorBlocked = ArmorRules.IsBlocked(
+                        zone, this.IsOverlayCovered(shotLocal), this.activeOverlayKind, this.activeArmorDamageMultiplier);
+                    int                 damage     = CombatMenuController.ComputeShotDamage(
+                        zone, precMult, this.activeBaseDamage, armorBlocked ? this.activeArmorDamageMultiplier : 1f);
+                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage, armorBlocked));
                     flatIndex++;
                 }
             }
@@ -492,7 +496,7 @@ namespace CrimsonDraft.Combat
                 var shot = this.pendingResolvedShots[i];
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
                 this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss, shot.ArmorBlocked);
 
                 // Only pause between distinct bullets, not between pellets of the same shell -
                 // a shotgun blast should read as one simultaneous spread, not a slow trickle.
@@ -527,7 +531,7 @@ namespace CrimsonDraft.Combat
             img.SetNativeSize();
         }
 
-        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
+        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked = false)
         {
             if (this.feedbackTextPrefab == null)
             {
@@ -570,7 +574,9 @@ namespace CrimsonDraft.Combat
             }
 
             text.text = isMiss ? "MISS" : $"-{damage}";
-            var baseColor = isMiss ? this.missFeedbackColor : this.hitFeedbackColor;
+            var baseColor = isMiss ? this.missFeedbackColor
+                : armorBlocked ? this.armorBlockedFeedbackColor
+                : this.hitFeedbackColor;
             baseColor.a = 1f;
             text.color = baseColor;
 
@@ -658,6 +664,25 @@ namespace CrimsonDraft.Combat
         internal static int CountBullets(ResolvedShot[] shots) =>
             shots.Length == 0 ? 1 : shots[shots.Length - 1].BulletIndex + 1;
 
+        // Shot position (aimSpace local) -> normalized UV inside the silhouette's rect. Shared by
+        // the zone mask and the overlay mask, which are both laid out in that same rect.
+        private bool TryGetSilhouetteUv(Vector2 shotLocal, out float u, out float v)
+        {
+            u = 0f;
+            v = 0f;
+            if (this.silhouetteImage == null) return false;
+
+            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
+            var silRt      = this.silhouetteImage.rectTransform;
+            var localInSil = silRt.InverseTransformPoint(worldPos);
+            var rect       = silRt.rect;
+            if (rect.width <= 0f || rect.height <= 0f) return false;
+
+            u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
+            v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            return true;
+        }
+
         private ShotZoneDefinition? SampleSilhouette(Vector2 shotLocal)
         {
             if (this.silhouetteImage == null)
@@ -672,15 +697,10 @@ namespace CrimsonDraft.Combat
                 return null;
             }
 
-            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
-            var silRt      = this.silhouetteImage.rectTransform;
-            var localInSil = silRt.InverseTransformPoint(worldPos);
-            var rect       = silRt.rect;
-            if (rect.width <= 0f || rect.height <= 0f)
+            if (!this.TryGetSilhouetteUv(shotLocal, out float u, out float v))
                 return null;
-
-            float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
-            float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            var silRt = this.silhouetteImage.rectTransform;
+            var rect  = silRt.rect;
 
             var sprite     = this.activeZoneMaskSprite;
             var tex        = sprite.texture;
@@ -707,6 +727,25 @@ namespace CrimsonDraft.Combat
             this.lastSampleHex      = hex;
 #endif
             return def;
+        }
+
+        private bool IsOverlayCovered(Vector2 shotLocal)
+        {
+            Sprite? mask = this.activeOverlayMaskSprite;
+            if (mask == null) return false;
+
+            if (!mask.texture.isReadable)
+            {
+                if (!this.warnedUnreadableOverlayMask)
+                {
+                    Debug.LogWarning($"[AimView] Overlay mask '{mask.name}' is not Read/Write enabled -- every shot is treated as uncovered.");
+                    this.warnedUnreadableOverlayMask = true;
+                }
+                return false;
+            }
+
+            return this.TryGetSilhouetteUv(shotLocal, out float u, out float v)
+                && OverlayCoverage.IsCovered(mask, u, v);
         }
 
         internal static Vector2Int MapUvToTexturePixel(Sprite sprite, float u, float v)

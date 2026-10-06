@@ -48,5 +48,19 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0.25f, melee.ArmorDamageMultiplier, 1e-6f);
             Object.DestroyImmediate(melee);
         }
+
+        [Test]
+        public void ResolvedShot_defaultsToNotArmorBlocked()
+        {
+            var shot = new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
+            Assert.IsFalse(shot.ArmorBlocked);
+        }
+
+        [Test]
+        public void ResolvedShot_carriesArmorBlocked()
+        {
+            var shot = new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 5, armorBlocked: true);
+            Assert.IsTrue(shot.ArmorBlocked);
+        }
     }
 }
