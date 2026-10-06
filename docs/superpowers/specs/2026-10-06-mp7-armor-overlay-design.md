@@ -172,9 +172,9 @@ public static class TotalFeedback
 - **Does not fade**: stays until the player dismisses the QTE, then is destroyed in `Hide()`. Not tracked in `activeFeedback`, so it never counts against `maxConcurrentFeedback` and is never detached to linger on the battlefield.
 - If `totalFeedbackAnchor` is unassigned, the total is skipped with a single editor warning (same pattern as the missing feedback prefab).
 
-### QTE prefab
+### QTE scene objects
 
-Two new children wired to the new fields: `OverlayImage` (under the silhouette image, stretched to its rect, raycast target off) and `TotalFeedbackAnchor`. Created via the editor during implementation.
+The QTE's `AimViewController` lives directly in `Scenes/Production/Combat.unity` and `Scenes/Test/Combat_Decor.unity` (not in a prefab). Two new children of its silhouette image, wired to the new fields: `OverlayImage` (stretched to the silhouette rect, raycast target off) and `TotalFeedbackAnchor`. Created via the editor during implementation.
 
 ---
 
