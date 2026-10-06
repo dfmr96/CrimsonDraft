@@ -49,6 +49,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
         [SerializeField] private Color         armorBlockedFeedbackColor = new Color(0.2f, 0.88f, 1f, 1f); // #33E0FF
+        // Where the end-of-QTE total popup appears (above the silhouette, outside aimSpace so
+        // Hide()'s aimSpace sweep never touches it). Optional: without it the total is skipped.
+        [SerializeField] private RectTransform? totalFeedbackAnchor;
+        [SerializeField] private float          totalFeedbackScale = 1.6f;
 
         // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
         // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
@@ -104,6 +108,8 @@ namespace CrimsonDraft.Combat
         private OverlayKind?         activeOverlayKind;
         private float                activeArmorDamageMultiplier = 1f;
         private bool                 warnedUnreadableOverlayMask;
+        private GameObject?          totalFeedbackInstance;
+        private bool                 warnedMissingTotalAnchor;
         private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
@@ -219,6 +225,7 @@ namespace CrimsonDraft.Combat
 
         public void Show()
         {
+            this.ClearTotalFeedback();
             this.gameObject.SetActive(true);
             this.basePanelLocalPos = this.transform.localPosition;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
@@ -291,6 +298,7 @@ namespace CrimsonDraft.Combat
             this.verticalTween   = null;
             this.horizontalTween = null;
             this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
+            this.ClearTotalFeedback();
             this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
@@ -506,6 +514,7 @@ namespace CrimsonDraft.Combat
                     await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
             }
 
+            this.SpawnTotalFeedback(this.pendingResolvedShots);
             this.OnShotsResolved?.Invoke(this.pendingResolvedShots);
             this.isResolvingSequence = false;
             this.phase = AimPhase.WaitingDismiss;
@@ -529,6 +538,47 @@ namespace CrimsonDraft.Combat
             if (this.activeDispersionSprite != null)
                 img.sprite = this.activeDispersionSprite;
             img.SetNativeSize();
+        }
+
+        // Unlike per-shot popups this one never fades and isn't tracked in activeFeedback, so it
+        // can't be pruned by maxConcurrentFeedback -- it stays until the QTE is dismissed.
+        private void SpawnTotalFeedback(ResolvedShot[] shots)
+        {
+            string? label = TotalFeedback.Format(shots);
+            if (label == null || this.feedbackTextPrefab == null) return;
+
+            if (this.totalFeedbackAnchor == null)
+            {
+                if (!this.warnedMissingTotalAnchor)
+                {
+                    Debug.LogWarning("[AimView] Total feedback anchor is not assigned -- skipping the total popup.");
+                    this.warnedMissingTotalAnchor = true;
+                }
+                return;
+            }
+
+            this.ClearTotalFeedback();
+            var go = Instantiate(this.feedbackTextPrefab, this.totalFeedbackAnchor);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localScale    = Vector3.one * this.totalFeedbackScale;
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text != null)
+            {
+                text.text = label;
+                var color = label == TotalFeedback.MissText ? this.missFeedbackColor : this.hitFeedbackColor;
+                color.a    = 1f;
+                text.color = color;
+            }
+
+            this.totalFeedbackInstance = go;
+        }
+
+        private void ClearTotalFeedback()
+        {
+            if (this.totalFeedbackInstance != null)
+                Destroy(this.totalFeedbackInstance);
+            this.totalFeedbackInstance = null;
         }
 
         private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked = false)
