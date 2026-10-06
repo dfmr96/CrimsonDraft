@@ -181,6 +181,7 @@ namespace CrimsonDraft.Navigation
                 builder.RegisterComponent(tighten);
 
             builder.RegisterInstance(this.cachedEnemies);
+            builder.Register<NavigationTimeScale>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterInstance(this.corpseSettings);

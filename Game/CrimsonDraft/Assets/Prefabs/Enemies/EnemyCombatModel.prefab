@@ -49,7 +49,7 @@ Animator:
   m_GameObject: {fileID: 2350718203404714951}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
-  m_Controller: {fileID: 9100000, guid: b44e4eb8567e0e840bacd55b3fa43d77, type: 2}
+  m_Controller: {fileID: 9100000, guid: c314794c7a4653c45b8c5a7ab75de982, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -91,6 +91,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.EnemyDeathMarker
   bloodPool: {fileID: 3067606022537090538}
   hitFxPoint: {fileID: 8898815198981732231}
+  headRenderer: {fileID: 2825362823730800960}
+  headBone: {fileID: 5603210275461808386}
 --- !u!114 &4564147426710838719
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -236,6 +238,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 9
       objectReference: {fileID: 0}
+    - target: {fileID: -8017449571587430431, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 4c4b5466299932b4bb53815de95c9f94, type: 2}
     - target: {fileID: -7372195007336222382, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
       propertyPath: m_Layer
       value: 9
@@ -436,6 +442,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 9
       objectReference: {fileID: 0}
+    - target: {fileID: 4101161180453605438, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+      propertyPath: m_Name
+      value: Head
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101161180453605438, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 4261652038520443612, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
       propertyPath: m_Layer
       value: 9
@@ -510,9 +524,19 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+--- !u!137 &2825362823730800960 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8017449571587430431, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+  m_PrefabInstance: {fileID: 4002003054256574113}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3459681431226198346 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
+  m_PrefabInstance: {fileID: 4002003054256574113}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5603210275461808386 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -411126510493790301, guid: c3a50a347ea0673469640e5d06266cea, type: 3}
   m_PrefabInstance: {fileID: 4002003054256574113}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6349911704890049922

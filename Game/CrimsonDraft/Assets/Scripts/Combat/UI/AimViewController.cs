@@ -66,6 +66,22 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0f, 1f)] private float dubStrength       = 0.55f; // "dub" vs "lub" strength
         [SerializeField, Range(0f, 1f)] private float dubOffsetFraction = 0.16f; // "dub" timing within the beat
 
+        // Randomizes where each selector's first leg starts along its rail instead of always the
+        // near edge, scaling with HP. Null config keeps the original fixed-start behavior.
+        [Header("Spawn Variability")]
+        [SerializeField] private AimSpawnConfig? spawnConfig;
+
+        // Shared Full/Yellow/Orange/Danger breakpoints -- also drives AimDebuffController so both
+        // systems agree on what counts as "low HP" instead of each having its own thresholds.
+        [Header("HP Tier")]
+        [SerializeField] private HpTierConfig? hpTierConfig;
+        [SerializeField] private AimDebuffController? debuffController;
+
+        private IRandomSource random = new UnityRandomSource();
+        private float? previousVerticalOffset;
+        private float? previousHorizontalOffset;
+        private float  spawnDanger01; // 0..1, stepped by HpTier -- see SetOperatorHpRatio
+
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
         private int               shotCount              = 1;
@@ -163,7 +179,20 @@ namespace CrimsonDraft.Combat
 
         public void SetOperatorHpRatio(float hpRatio)
         {
+            // Heartbeat shake stays continuous with raw HP% -- untouched by the tier system below.
             this.shakeIntensity01 = 1f - Mathf.Clamp01(hpRatio);
+
+            HpTier tier = this.hpTierConfig != null
+                ? HpTierCalculator.ComputeTier(hpRatio, this.hpTierConfig)
+                : HpTier.Full;
+
+            // Spawn radius now steps with the same tier the debuffs use, instead of following raw
+            // HP% -- falls back to the old continuous behavior if no tier config is assigned.
+            this.spawnDanger01 = this.hpTierConfig != null
+                ? HpTierCalculator.TierToDanger01(tier)
+                : this.shakeIntensity01;
+
+            this.debuffController?.SetTier(tier);
         }
 
         public void Show()
@@ -175,6 +204,7 @@ namespace CrimsonDraft.Combat
             this.phase = AimPhase.VerticalAiming;
             this.pendingResolvedShots = Array.Empty<ResolvedShot>();
             this.isResolvingSequence = false;
+            this.debuffController?.BeginForShot();
         }
 
         public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss) =>
@@ -215,6 +245,10 @@ namespace CrimsonDraft.Combat
                 var firstShotLocal = this.ComputeRandomShotLocal();
                 this.pendingResolvedShots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
                 this.phase = AimPhase.WaitingResolve;
+
+                // Both axes are locked in -- the debuffs have done their job, let them fade out
+                // instead of holding through the resolve/dismiss phases.
+                this.debuffController?.EndForShot();
                 return;
             }
 
@@ -248,6 +282,10 @@ namespace CrimsonDraft.Combat
 
         public void Hide()
         {
+            // Guaranteed shutdown: whatever debuff effects are mid-fade get force-stopped here,
+            // regardless of why the aim view is closing (normal dismiss, cancel, or death).
+            this.debuffController?.EndAll();
+
             this.verticalSelector.DOKill();
             this.verticalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOKill();
@@ -275,11 +313,32 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.DOKill();
             this.verticalSelector.rectTransform.DOKill();
             this.verticalSelector.DOFade(1f, 0f);
-            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, -halfH, 0f);
+
+            float startY = this.spawnConfig != null
+                ? AimSpawnPlanner.ComputeSignedOffset(halfH, this.spawnDanger01, this.previousVerticalOffset, this.spawnConfig, this.random)
+                : -halfH;
+            this.previousVerticalOffset = startY;
+            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, startY, 0f);
+
             this.verticalLoopLegs  = 0;
             this.verticalRampStage = 0;
+
+            // First leg heads to the top at the same px/sec rate as every normal leg (full range
+            // 2*halfH covered in `speed` seconds) -- so a spawn closer to the top just takes
+            // proportionally less time, exactly as if the oscillation had been running the whole
+            // time and we started watching it partway through.
+            float firstLegDuration = this.ComputeFirstLegDuration(halfH, startY);
             this.verticalTween = this.verticalSelector.rectTransform
-                .DOLocalMoveY(halfH, this.speed, snapping: true)
+                .DOLocalMoveY(halfH, firstLegDuration, snapping: true)
+                .SetEase(Ease.InOutSine)
+                .OnComplete(() => this.BeginVerticalSteadyLoop(halfH));
+        }
+
+        private void BeginVerticalSteadyLoop(float halfH)
+        {
+            this.verticalLoopLegs = 1; // the randomized first leg (spawn -> top) already counts as leg 1
+            this.verticalTween = this.verticalSelector.rectTransform
+                .DOLocalMoveY(-halfH, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .OnStepComplete(HandleVerticalLoopLeg);
@@ -291,11 +350,41 @@ namespace CrimsonDraft.Combat
             this.horizontalSelector.DOKill();
             this.horizontalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOFade(1f, 0f);
-            this.horizontalSelector.rectTransform.localPosition = new Vector3(-halfW, 0f, 0f);
+
+            float startX = this.spawnConfig != null
+                ? AimSpawnPlanner.ComputeSignedOffset(halfW, this.spawnDanger01, this.previousHorizontalOffset, this.spawnConfig, this.random)
+                : -halfW;
+            this.previousHorizontalOffset = startX;
+            this.horizontalSelector.rectTransform.localPosition = new Vector3(startX, 0f, 0f);
+
             this.horizontalLoopLegs  = 0;
             this.horizontalRampStage = 0;
+
+            // Same rate-matched first leg as the vertical bar -- see StartVerticalOscillation.
+            float firstLegDuration = this.ComputeFirstLegDuration(halfW, startX);
             this.horizontalTween = this.horizontalSelector.rectTransform
-                .DOLocalMoveX(halfW, this.speed, snapping: true)
+                .DOLocalMoveX(halfW, firstLegDuration, snapping: true)
+                .SetEase(Ease.InOutSine)
+                .OnComplete(() => this.BeginHorizontalSteadyLoop(halfW));
+        }
+
+        // Same px/sec rate as a normal full-range leg (2*halfExtent covered in `speed` seconds),
+        // applied to the shorter/longer distance from a randomized spawn point to the extreme.
+        private float ComputeFirstLegDuration(float halfExtent, float startOffset)
+        {
+            float fullRange = 2f * halfExtent;
+            if (fullRange <= 0f)
+                return this.speed;
+
+            float distanceToExtreme = halfExtent - startOffset;
+            return this.speed * (distanceToExtreme / fullRange);
+        }
+
+        private void BeginHorizontalSteadyLoop(float halfW)
+        {
+            this.horizontalLoopLegs = 1; // the randomized first leg (spawn -> right) already counts as leg 1
+            this.horizontalTween = this.horizontalSelector.rectTransform
+                .DOLocalMoveX(-halfW, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .OnStepComplete(HandleHorizontalLoopLeg);

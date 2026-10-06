@@ -87,6 +87,11 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (player == null) return;
 
+            // NavigationTimeScale (no Time.timeScale global) también congela la reproducción
+            // del Animator mientras dure el combate: nada de idle/twitch/caminata de fondo.
+            animator.speed = owner.TimeScale;
+            if (owner.TimeScale <= 0f) return;
+
             UpdateProximity();
             UpdateLocomotion();
             UpdateTwitch();
@@ -96,7 +101,12 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void UpdateLocomotion()
         {
-            var moving = navAgent.velocity.sqrMagnitude > movingSpeedThreshold * movingSpeedThreshold;
+            // Se corta por owner.State (no por esperar a que decaiga navAgent.velocity) para que
+            // IsMoving caiga a false en el mismo frame en que se dispara el trigger Attack —
+            // de lo contrario el Animator alcanza a pasar por Idle un frame antes de recibir el
+            // trigger, y se ve un flash de Idle entre caminar y atacar.
+            var moving = owner.State != EnemyAlertState.Attack
+                && navAgent.velocity.sqrMagnitude > movingSpeedThreshold * movingSpeedThreshold;
 
             if (moving && !wasMoving)
                 animator.SetInteger(WalkVariantHash, Random.Range(0, 2)); // 0 = Walk01, 1 = Walk02
@@ -128,7 +138,13 @@ namespace CrimsonDraft.Navigation.Enemy
         private void UpdateAttackTrigger()
         {
             if (owner.State == EnemyAlertState.Attack && previousState != EnemyAlertState.Attack)
+            {
+                var current = animator.GetCurrentAnimatorStateInfo(0);
+                var inTransition = animator.IsInTransition(0);
+                var next = inTransition ? animator.GetNextAnimatorStateInfo(0) : default;
+                Debug.Log($"[EnemyAnimationReactor] Attack trigger fired — currentState=(Idle:{current.IsName("Idle")},Walk01:{current.IsName("Walk01")},Walk02:{current.IsName("Walk02")},WalkEnemyClose:{current.IsName("WalkEnemyClose")}) normalizedTime={current.normalizedTime:F2} inTransition={inTransition} nextState=(Idle:{next.IsName("Idle")},Walk01:{next.IsName("Walk01")},Walk02:{next.IsName("Walk02")}) IsMoving={animator.GetBool(IsMovingHash)} navVelocity={navAgent.velocity.magnitude:F3}");
                 animator.SetTrigger(AttackHash);
+            }
             previousState = owner.State;
         }
 
@@ -169,6 +185,12 @@ namespace CrimsonDraft.Navigation.Enemy
             animator.SetTrigger(Random.value < 0.5f ? Twitch1Hash : Twitch2Hash);
             twitchTimer = RandomTwitchInterval();
         }
+
+        // The Attack clip (ZombieRigged Zombie_Attack_37) is shared with Enemy_Combat_Controller v2,
+        // where its OnAttackImpact Animation Event drives the combat hit (EnemyAttackEventRelay).
+        // Navigation has no hit to resolve at that frame -- this no-op receiver just keeps Unity
+        // from logging "AnimationEvent 'OnAttackImpact' has no receiver" every nav attack.
+        public void OnAttackImpact() { }
 
         private float RandomTwitchInterval()
             => Random.Range(twitchIntervalRange.x, twitchIntervalRange.y);

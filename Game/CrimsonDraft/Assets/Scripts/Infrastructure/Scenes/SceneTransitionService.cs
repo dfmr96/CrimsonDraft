@@ -3,6 +3,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
@@ -18,6 +19,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
     {
         private const string CombatSceneName   = "Combat";
         private const string MainMenuSceneName = "MainMenu";
+        private const float  HitStopDuration   = 0.12f; // beat de freeze-frame clásico (FF/Pokémon) al conectar el golpe que inicia combate
 
         private readonly IInputService inputService;
         private readonly IPublisher<CombatStartedEvent> combatStartedPublisher;
@@ -57,17 +59,29 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.combatEndedSubscription = this.combatEndedSubscriber.Subscribe(OnCombatEnded);
         }
 
-        public async UniTask StartCombatAsync(string encounterId, UnityEngine.ScriptableObject? encounterAsset = null, bool operatorsStartFull = false)
+        public async UniTask StartCombatAsync(string encounterId, UnityEngine.ScriptableObject? encounterAsset = null, bool operatorsStartFull = false, Action? onScreenCovered = null)
         {
             if (this.isInCombat)
                 return;
 
             this.isInCombat = true;
+
+            // NavigationEnemyData-side enemies freeze via NavigationTimeScale (set to 0 by the
+            // CombatStartedEvent published below) instead of the global Time.timeScale -- Combat,
+            // loaded additively right after, needs normal time for its own ATB ticking.
             this.combatStartedPublisher.Publish(new CombatStartedEvent { EncounterId = encounterId });
             this.encounterContext.Set(encounterId, encounterAsset, operatorsStartFull);
             this.inputService.SwitchToCombat();
 
+            // Freeze-frame breve sobre el golpe que dispara el combate (estilo FF/Pokémon) antes
+            // de que arranque la transición. Usar el Time.timeScale global acá es seguro porque
+            // Combat todavía no cargó -- nada ahí depende de tiempo normal hasta después de esto.
+            Time.timeScale = 0f;
+            await UniTask.Delay(TimeSpan.FromSeconds(HitStopDuration), DelayType.UnscaledDeltaTime);
+            Time.timeScale = 1f;
+
             await this.screenFader.FadeOutAsync();
+            onScreenCovered?.Invoke();
             await SceneManager.LoadSceneAsync(CombatSceneName, LoadSceneMode.Additive).ToUniTask();
             this.cameraService.ActivateCombatCamera();
             await this.screenFader.FadeInAsync();

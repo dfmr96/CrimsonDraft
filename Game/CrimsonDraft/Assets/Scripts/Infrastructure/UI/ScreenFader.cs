@@ -184,7 +184,7 @@ namespace CrimsonDraft.Infrastructure.UI
             float elapsed = 0f;
             while (elapsed < FadeDuration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 this.canvasGroup.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / FadeDuration));
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
