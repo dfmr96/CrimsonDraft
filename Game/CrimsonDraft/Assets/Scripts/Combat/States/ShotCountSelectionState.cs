@@ -65,6 +65,7 @@ namespace CrimsonDraft.Combat
                 WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
                 this.aimView.ConfigureWeapon(weaponData);
                 this.aimView.ConfigureHitMask(null);
+                this.aimView.ConfigureOverlay(null);
                 this.aimView.SetShotCount(this.context.SelectedShotCount);
                 this.context.TransitionTo(this.context.AimingState);
                 return;

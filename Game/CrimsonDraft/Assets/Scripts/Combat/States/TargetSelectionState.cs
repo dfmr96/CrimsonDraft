@@ -87,6 +87,10 @@ namespace CrimsonDraft.Combat
                 this.context.CurrentTargetSlot >= 0
                     ? this.battlefieldView.GetEnemyHitMaskProfile(this.context.CurrentTargetSlot)
                     : null);
+            this.aimView.ConfigureOverlay(
+                this.context.CurrentTargetSlot >= 0
+                    ? this.battlefieldView.GetEnemyOverlay(this.context.CurrentTargetSlot)
+                    : null);
             this.aimView.SetShotCount(this.context.SelectedShotCount);
             this.context.TransitionTo(this.context.AimingState);
         }

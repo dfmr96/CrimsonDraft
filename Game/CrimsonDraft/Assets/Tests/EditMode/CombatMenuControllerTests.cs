@@ -533,6 +533,54 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ConfirmTarget_configuresAimWithSelectedEnemyOverlay()
+        {
+            using var sprites = new TestSprites();
+            var overlay = new ActiveOverlay(OverlayKind.Armor, sprites.Solid(Color.cyan), sprites.Solid(Color.white));
+            this.battlefieldView.SetOccupiedSlots(new[] { 2 });
+            this.battlefieldView.SetOverlay(2, overlay);
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // shot count -> target selection
+            InvokeConfirm(c); // target -> aiming
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount);
+            Assert.IsTrue(this.aimView.LastConfiguredOverlay.HasValue);
+            Assert.AreSame(overlay.MaskSprite, this.aimView.LastConfiguredOverlay!.Value.MaskSprite);
+        }
+
+        [Test]
+        public void ConfirmTarget_enemyWithoutOverlay_clearsAimOverlay()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 2 });
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount); // called even with nothing to show
+            Assert.IsFalse(this.aimView.LastConfiguredOverlay.HasValue);
+        }
+
+        [Test]
+        public void ShotCountConfirm_noEnemies_clearsAimOverlay()
+        {
+            this.battlefieldView.SetOccupiedSlots(System.Array.Empty<int>());
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // no enemies -> straight to aiming
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount);
+            Assert.IsFalse(this.aimView.LastConfiguredOverlay.HasValue);
+        }
+
+        [Test]
         public void TargetSelection_excludesEnemyDeadButStillPlayingDeathAnimation()
         {
             // Slot 0's HP has already hit 0 (IsEnemyDead == true) but it's still mid death
@@ -962,6 +1010,13 @@ namespace CrimsonDraft.Tests
             public int LastFeedbackDamage { get; private set; }
             public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
+            public ActiveOverlay? LastConfiguredOverlay { get; private set; }
+            public int ConfigureOverlayCallCount { get; private set; }
+            public void ConfigureOverlay(ActiveOverlay? overlay)
+            {
+                this.ConfigureOverlayCallCount++;
+                this.LastConfiguredOverlay = overlay;
+            }
             public void ConfigureWeapon(CrimsonDraft.Inventory.WeaponData? weaponData) { }
             public void ConfigureMeleeWeapon(CrimsonDraft.Inventory.MeleeWeaponData? meleeData) { }
             public void SetShotCount(int shotCount) => this.LastShotCount = shotCount;
@@ -1007,6 +1062,10 @@ namespace CrimsonDraft.Tests
                 }
             }
             public void SetMaskProfile(int slot, AimHitMaskProfile? profile) => this.maskBySlot[slot] = profile;
+            private readonly Dictionary<int, ActiveOverlay> overlayBySlot = new Dictionary<int, ActiveOverlay>();
+            public void SetOverlay(int slotIndex, ActiveOverlay overlay) => this.overlayBySlot[slotIndex] = overlay;
+            public ActiveOverlay? GetEnemyOverlay(int slotIndex) =>
+                this.overlayBySlot.TryGetValue(slotIndex, out var overlay) ? overlay : (ActiveOverlay?)null;
             public void SetEnemyHp(int slot, int hp) => this.hpBySlot[slot] = hp;
 
             public void HoldNextBurst()        => this.pendingBurstSource = new UniTaskCompletionSource();

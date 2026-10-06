@@ -30,6 +30,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image         horizontalSelector     = null!;
         [SerializeField] private RectTransform aimSpace               = null!;
         [SerializeField] private Image         silhouetteImage        = null!;
+        // Child of silhouetteImage with the same rect -- draws the active overlay (vest) on top
+        // of the silhouette so it shakes with it. Optional: without it overlays still apply,
+        // they just aren't drawn.
+        [SerializeField] private Image?        overlayImage;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
         [SerializeField] private RectTransform feedbackRoot           = null!;
@@ -95,6 +99,10 @@ namespace CrimsonDraft.Combat
         private bool isResolvingSequence;
 
         private Sprite?              activeZoneMaskSprite;
+        private Sprite?              activeOverlayMaskSprite;
+        private OverlayKind?         activeOverlayKind;
+        private float                activeArmorDamageMultiplier = 1f;
+        private bool                 warnedUnreadableOverlayMask;
         private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
@@ -146,8 +154,20 @@ namespace CrimsonDraft.Combat
                 this.silhouetteImage.sprite = profile.SilhouetteSprite;
         }
 
+        public void ConfigureOverlay(ActiveOverlay? overlay)
+        {
+            this.activeOverlayMaskSprite     = overlay?.MaskSprite;
+            this.activeOverlayKind           = overlay?.Kind;
+            this.warnedUnreadableOverlayMask = false;
+
+            if (this.overlayImage == null) return;
+            this.overlayImage.sprite  = overlay?.VisibleSprite;
+            this.overlayImage.enabled = overlay.HasValue;
+        }
+
         public void ConfigureWeapon(WeaponData? weaponData)
         {
+            this.activeArmorDamageMultiplier = weaponData?.ArmorDamageMultiplier ?? 1f;
             this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
             this.activeBaseDamage       = weaponData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
@@ -160,6 +180,7 @@ namespace CrimsonDraft.Combat
 
         public void ConfigureMeleeWeapon(MeleeWeaponData? meleeData)
         {
+            this.activeArmorDamageMultiplier = meleeData?.ArmorDamageMultiplier ?? 1f;
             this.activeBaseDamage       = meleeData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = null;
             this.activeBurstPattern     = meleeData?.SlashPattern;
