@@ -235,6 +235,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Combat::CrimsonDraft.Combat.CombatDebugView
   text: {fileID: 9901010}
+  killOperatorAndEndCombatKey: 102
+  killAllOperatorsKey: 101
 --- !u!1 &9901007
 GameObject:
   m_ObjectHideFlags: 0
@@ -2096,6 +2098,7 @@ MonoBehaviour:
   defaultEnemyAttackDurSec: 4
   atbGaugeDivisor: 100
   freezeOperatorWhenActionQueued: 0
+  mercyTargetWeight: 0.35
 --- !u!4 &447943183
 Transform:
   m_ObjectHideFlags: 0
@@ -3227,8 +3230,6 @@ MonoBehaviour:
   enemyTargetIndicatorOffset: {x: 0, y: 1.8, z: 0}
   operatorDamageOffset: {x: 0, y: 0.9, z: 0}
   operatorDamageDuration: 0.6
-  enemyAttackShakeDuration: 0.2
-  enemyAttackShakeStrength: {x: 0.15, y: 0.15, z: 0}
   bloodHitFxPrefab: {fileID: 0}
 --- !u!4 &628344096
 Transform:
@@ -3730,15 +3731,19 @@ MonoBehaviour:
   - {fileID: 1396979544}
   - {fileID: 1825998388}
   - {fileID: 1844153715}
+  operatorNameLabels: []
   operatorAmmoLabels: []
   operatorEcgAnimators: []
   operatorWeaponIcons: []
-  operatorFocusFireMarkers: []
+  operatorActionPendingIcons: []
+  operatorTurnOrderLabels: []
   selectorMark: {fileID: 665841826}
   dimmingOverlay: {fileID: 1337339601}
   operatorsGroup: {fileID: 1839888237}
-  bobAmplitude: 2
-  bobDuration: 0.8
+  pulseDuration: 0.6
+  pulseMinAlpha: 0.55
+  selectorPadding: {x: 8, y: 8}
+  resizeDuration: 0.12
   weaponIconCellSize: 32
 --- !u!1 &760117126
 GameObject:
@@ -3789,6 +3794,81 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &771105727
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 771105728}
+  - component: {fileID: 771105730}
+  - component: {fileID: 771105729}
+  m_Layer: 9
+  m_Name: OverlayImage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &771105728
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771105727}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1827126265}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &771105729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771105727}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &771105730
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771105727}
+  m_CullTransparentMesh: 1
 --- !u!1001 &772389568
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4847,6 +4927,41 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: cd20e2c3c7e60e043bf58b9039665da5, type: 3}
   m_PrefabInstance: {fileID: 989359246}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1009378089
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1009378090}
+  m_Layer: 9
+  m_Name: TotalFeedbackAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1009378090
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1009378089}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1827126265}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: 12}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1033374678
 GameObject:
   m_ObjectHideFlags: 0
@@ -5007,7 +5122,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1082699778}
-  - component: {fileID: 1082699777}
   m_Layer: 9
   m_Name: WwiseGlobal
   m_TagString: Untagged
@@ -5015,31 +5129,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1082699777
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1082699776}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61c03dcf522c5a7458e39f05267cce26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkInitializer
-  InitializationSettings: {fileID: 11400000, guid: 27b138722310bf940b5f0ca657addafb, type: 2}
-  basePath: 
-  language: 
-  defaultPoolSize: 0
-  lowerPoolSize: 0
-  streamingPoolSize: 0
-  memoryCutoffThreshold: 0
-  monitorPoolSize: 0
-  monitorQueuePoolSize: 0
-  callbackManagerBufferSize: 0
-  spatialAudioPoolSize: 0
-  maxSoundPropagationDepth: 0
-  engineLogging: 0
 --- !u!4 &1082699778
 Transform:
   m_ObjectHideFlags: 0
@@ -5205,6 +5294,7 @@ MonoBehaviour:
   horizontalSelector: {fileID: 1683568931}
   aimSpace: {fileID: 1744413418}
   silhouetteImage: {fileID: 1827126266}
+  overlayImage: {fileID: 771105729}
   shotMarkerPrefab: {fileID: 3327235536182042751, guid: 240a512f6285a7243b9160e52fcaf6e5, type: 3}
   dispersionCirclePrefab: {fileID: 657012726417619515, guid: 9c1202c0dedc05642846337a7d23e922, type: 3}
   feedbackRoot: {fileID: 1152843100}
@@ -5219,6 +5309,21 @@ MonoBehaviour:
   maxConcurrentFeedback: 10
   hitFeedbackColor: {r: 1, g: 0, b: 0.09565163, a: 1}
   missFeedbackColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+  armorBlockedFeedbackColor: {r: 0.2, g: 0.88, b: 1, a: 1}
+  totalFeedbackAnchor: {fileID: 1009378090}
+  totalFeedbackScale: 1.6
+  speedRampStep: 0.1
+  maxSpeedRampStages: 4
+  calmBeatInterval: 1
+  panicBeatInterval: 0.45
+  minPulseAmplitude: 1.5
+  maxPulseAmplitude: 6
+  pulseDecay: 14
+  dubStrength: 0.55
+  dubOffsetFraction: 0.16
+  spawnConfig: {fileID: 0}
+  hpTierConfig: {fileID: 0}
+  debuffController: {fileID: 0}
 --- !u!1001 &1145992789
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8559,6 +8664,8 @@ RectTransform:
   - {fileID: 426167742}
   - {fileID: 1744413418}
   - {fileID: 1152843100}
+  - {fileID: 771105728}
+  - {fileID: 1009378090}
   m_Father: {fileID: 1128499453}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

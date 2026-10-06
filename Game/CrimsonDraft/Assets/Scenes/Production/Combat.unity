@@ -732,6 +732,81 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: cd20e2c3c7e60e043bf58b9039665da5, type: 3}
   m_PrefabInstance: {fileID: 96631329}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &106857035
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 106857036}
+  - component: {fileID: 106857038}
+  - component: {fileID: 106857037}
+  m_Layer: 9
+  m_Name: OverlayImage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &106857036
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 106857035}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1260169143}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &106857037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 106857035}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &106857038
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 106857035}
+  m_CullTransparentMesh: 1
 --- !u!1001 &109096155
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2337,7 +2412,6 @@ MonoBehaviour:
   defaultEnemyAttackDurSec: 1
   atbGaugeDivisor: 100
   freezeOperatorWhenActionQueued: 1
-  pendingFocusFireTriggerTargetWeight: 0.35
   mercyTargetWeight: 0.35
 --- !u!4 &447943183
 Transform:
@@ -4324,7 +4398,6 @@ MonoBehaviour:
   operatorAmmoLabels: []
   operatorEcgAnimators: []
   operatorWeaponIcons: []
-  operatorFocusFireMarkers: []
   operatorActionPendingIcons: []
   operatorTurnOrderLabels: []
   selectorMark: {fileID: 665841826}
@@ -6754,6 +6827,7 @@ MonoBehaviour:
   horizontalSelector: {fileID: 1683568931}
   aimSpace: {fileID: 1744413418}
   silhouetteImage: {fileID: 1260169144}
+  overlayImage: {fileID: 106857037}
   shotMarkerPrefab: {fileID: 3327235536182042751, guid: 240a512f6285a7243b9160e52fcaf6e5, type: 3}
   dispersionCirclePrefab: {fileID: 657012726417619515, guid: 9c1202c0dedc05642846337a7d23e922, type: 3}
   feedbackRoot: {fileID: 1152843100}
@@ -6768,6 +6842,9 @@ MonoBehaviour:
   maxConcurrentFeedback: 10
   hitFeedbackColor: {r: 1, g: 0, b: 0.09565163, a: 1}
   missFeedbackColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+  armorBlockedFeedbackColor: {r: 0.2, g: 0.88, b: 1, a: 1}
+  totalFeedbackAnchor: {fileID: 1197738475}
+  totalFeedbackScale: 1.6
   speedRampStep: 0.1
   maxSpeedRampStages: 4
   calmBeatInterval: 1
@@ -6984,6 +7061,41 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 5565654260718611596, guid: 516532d06e3d1ba4ab11c6efb5a4b8b9, type: 3}
   m_PrefabInstance: {fileID: 1396979543}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1197738474
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1197738475}
+  m_Layer: 9
+  m_Name: TotalFeedbackAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1197738475
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197738474}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1260169143}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: 12}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1237581718
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7085,6 +7197,8 @@ RectTransform:
   - {fileID: 666779521}
   - {fileID: 1690898656}
   - {fileID: 292714630}
+  - {fileID: 106857036}
+  - {fileID: 1197738475}
   m_Father: {fileID: 244415887}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -7294,7 +7408,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1371501072}
-  - component: {fileID: 1371501071}
   m_Layer: 0
   m_Name: WwiseGlobal
   m_TagString: Untagged
@@ -7302,31 +7415,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1371501071
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1371501070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61c03dcf522c5a7458e39f05267cce26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: AK.Wwise.Unity.MonoBehaviour::AkInitializer
-  InitializationSettings: {fileID: 11400000, guid: 27b138722310bf940b5f0ca657addafb, type: 2}
-  basePath: 
-  language: 
-  defaultPoolSize: 0
-  lowerPoolSize: 0
-  streamingPoolSize: 0
-  memoryCutoffThreshold: 0
-  monitorPoolSize: 0
-  monitorQueuePoolSize: 0
-  callbackManagerBufferSize: 0
-  spatialAudioPoolSize: 0
-  maxSoundPropagationDepth: 0
-  engineLogging: 0
 --- !u!4 &1371501072
 Transform:
   m_ObjectHideFlags: 0
