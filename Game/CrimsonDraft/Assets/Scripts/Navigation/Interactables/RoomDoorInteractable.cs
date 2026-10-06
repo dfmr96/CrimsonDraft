@@ -21,8 +21,32 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private GameObject    doorTransitionPrefab = null!;
         [SerializeField] private AK.Wwise.Event doorLockedEvent     = new();
 
+        // Opt-in override for doors whose lock state is driven entirely by gameplay (e.g. the
+        // Cheff_Room beeper mechanism) rather than DoorData's static Locked+KeyItem flow. When
+        // true, Interact() ignores data/keyItem/registry entirely and gates purely on
+        // mechanismLocked -- set at runtime via SetMechanismLocked, e.g. by BeeperDoorMechanism.
+        [SerializeField] private bool              useMechanismLock;
+        [SerializeField] private bool              mechanismLocked;
+        [SerializeField] private DialogueReference mechanismLockedDialogue = new();
+
+        // Optional pairing for doors that start mechanism-locked from one side (e.g. "locked
+        // from the other side") and open permanently once crossed from the far side. Set this
+        // on the door that does the unlocking, pointing at its counterpart elsewhere in the
+        // scene -- e.g. Door_B2 (mechanismLocked = true, shows the locked-from-other-side
+        // dialogue) is referenced by Door_B1.unlocksOnCross, so walking through Door_B1 clears
+        // Door_B2's lock and both sides behave as a normal two-way door from then on.
+        [SerializeField] private RoomDoorInteractable? unlocksOnCross;
+
+        // Optional feedback shown the first time this door is used while unlocksOnCross is still
+        // mechanism-locked (e.g. "You unlocked the door."). The player advances the dialogue and
+        // only then crosses. Skipped on later uses and when no node is set.
+        [SerializeField] private DialogueReference unlocksOnCrossDialogue = new();
+
         public string         DoorId      => this.doorId;
         public RoomController? Destination => this.destination;
+        public bool            MechanismLocked => this.mechanismLocked;
+
+        public void SetMechanismLocked(bool locked) => this.mechanismLocked = locked;
 
         // Doors have their own opening/transition animation — the player shouldn't also play
         // a generic Interact animation.
@@ -47,12 +71,24 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            if (this.useMechanismLock)
+            {
+                if (this.mechanismLocked)
+                {
+                    context.DialogueService.StartDialogue(this.mechanismLockedDialogue.nodeName ?? "");
+                    return;
+                }
+
+                this.unlocked = true;
+                this.registry.MarkUnlocked(this.doorId);
+                CrossDoorWithUnlockFeedback(context);
+                return;
+            }
+
             if (!this.data.Locked || this.unlocked)
             {
                 this.registry.MarkUnlocked(this.doorId);
-                this.roomOrchestrator
-                    .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                    .Forget();
+                CrossDoorWithUnlockFeedback(context);
                 return;
             }
 
@@ -89,9 +125,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.MarkUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            CrossDoor();
                         });
                     break;
 
@@ -108,12 +142,31 @@ namespace CrimsonDraft.Navigation.Interactables
                         {
                             this.unlocked = true;
                             this.registry.MarkUnlocked(this.doorId);
-                            this.roomOrchestrator
-                                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
-                                .Forget();
+                            CrossDoor();
                         });
                     break;
             }
+        }
+
+        private void CrossDoorWithUnlockFeedback(InteractionContext context)
+        {
+            var node = this.unlocksOnCrossDialogue.nodeName;
+
+            if (this.unlocksOnCross == null || !this.unlocksOnCross.MechanismLocked || string.IsNullOrEmpty(node))
+            {
+                CrossDoor();
+                return;
+            }
+
+            context.DialogueService.StartDialogue(node, onComplete: CrossDoor);
+        }
+
+        private void CrossDoor()
+        {
+            this.unlocksOnCross?.SetMechanismLocked(false);
+            this.roomOrchestrator
+                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                .Forget();
         }
     }
 }

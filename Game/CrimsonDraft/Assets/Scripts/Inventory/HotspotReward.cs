@@ -42,9 +42,16 @@ namespace CrimsonDraft.Inventory
     {
         [SerializeField] private DialogueReference announcementDialogue;
 
+        // Whether granting this reward also removes the item currently being inspected --
+        // true by default (existing behavior: e.g. open a case, get an item, case is gone).
+        // A hotspot that just reveals a note on an item you keep (a doll with something
+        // carved underneath, say) sets this false.
+        [SerializeField] private bool consumeInspectedItem = true;
+
         // The node InspectPanel types out after Grant() -- its $rewarded_name variable is
         // filled with Grant()'s return value (see InspectPanel.GrantReward).
         public DialogueReference AnnouncementDialogue => this.announcementDialogue;
+        public bool              ConsumeInspectedItem => this.consumeInspectedItem;
 
         // Mutates game state (grant an item, register a note, ...) and returns the display
         // name to substitute into AnnouncementDialogue's $rewarded_name.

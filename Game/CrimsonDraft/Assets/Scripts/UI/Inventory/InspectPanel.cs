@@ -305,7 +305,8 @@ namespace CrimsonDraft.UI
         // and reacting however that reward kind needs to -- see HotspotReward).
         void GrantReward(HotspotReward reward)
         {
-            string rewardName = reward.Grant(MakeRewardContext(this.currentItemData));
+            var consumedItem = reward.ConsumeInspectedItem ? this.currentItemData : null;
+            string rewardName = reward.Grant(MakeRewardContext(consumedItem));
             this.pendingReward = reward;
 
             // Yarn's compiled line text uses positional placeholders ({0}, {1}, ...) for

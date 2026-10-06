@@ -161,6 +161,16 @@ namespace CrimsonDraft.Navigation
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);
+
+            // Optional — only rooms gated by a remote ItemSocketInteractable (e.g. the
+            // Lavatory's steam, cleared once Deck C's handle socket is filled) have one.
+            foreach (var gate in FindObjectsByType<RemoteSocketGate>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(gate);
+
+            // Optional — only the pipe-valve socket (Deck C) has one.
+            foreach (var tighten in FindObjectsByType<SocketValveTighten>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(tighten);
+
             builder.RegisterInstance(this.cachedEnemies);
             builder.Register<NavigationTimeScale>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();

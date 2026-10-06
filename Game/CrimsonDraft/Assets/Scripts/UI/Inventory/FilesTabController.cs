@@ -56,6 +56,10 @@ namespace CrimsonDraft.UI
 
         [SerializeField] private YarnProject yarnProject = null!;
 
+        [Header("Note Layout")]
+        [Tooltip("Page-split limits plus spacing/alignment for note text. Empty = old behavior (no auto-split, TMP defaults).")]
+        [SerializeField] private NoteLayoutSettings? layoutSettings;
+
         [Inject] private IInputService                    inputService         = null!;
         [Inject] private TabManager                       tabManager           = null!;
         [Inject] private InventoryOpenCloseController     openCloseController  = null!;
@@ -658,6 +662,13 @@ namespace CrimsonDraft.UI
             var localization = this.yarnProject.baseLocalization;
             var pages        = new List<string>();
             var current      = new System.Text.StringBuilder();
+            int currentLines = 0;
+
+            // Voice notes keep one page per authored <page>: their playback timing is built per
+            // page, so auto-splitting would change the recording's pacing.
+            int maxLines = doc.Category == DocumentCategory.VoiceNotes || this.layoutSettings == null
+                ? int.MaxValue
+                : this.layoutSettings.MaxLinesPerPage;
 
             foreach (var id in lineIds)
             {
@@ -670,17 +681,32 @@ namespace CrimsonDraft.UI
                     {
                         pages.Add(current.ToString());
                         current.Clear();
+                        currentLines = 0;
                     }
                 }
                 else
                 {
+                    // Page is full -- continue on a new one instead of cramming more lines in.
+                    if (currentLines >= maxLines)
+                    {
+                        pages.Add(current.ToString());
+                        current.Clear();
+                        currentLines = 0;
+                    }
+
                     if (current.Length > 0) current.Append('\n');
                     current.Append(ApplyTextMarkup(text));
+                    currentLines++;
                 }
             }
 
             if (current.Length > 0)
                 pages.Add(current.ToString());
+
+            if (this.layoutSettings != null && this.layoutSettings.MaxPages > 0 && pages.Count > this.layoutSettings.MaxPages)
+                Debug.LogWarning($"[Notes] '{doc.NoteId}' has {pages.Count} pages (max {this.layoutSettings.MaxPages}). Consider trimming it.", doc);
+
+            this.detailView.SetLayout(this.layoutSettings, doc.Alignment);
 
             this.currentImage = doc.PageImage;
             if (pages.Count == 0 && this.currentImage == null) return;
