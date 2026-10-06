@@ -1,5 +1,7 @@
 # Focus Fire Implementation Plan
 
+> **Removed (2026-10-06):** Focus Fire was implemented from this plan and later removed from the game. Kept for history only.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let the player mark several ready operators for Focus Fire; when an unmarked operator fires, the whole group resolves as one shared aim QTE, each participant applying their own weapon's damage/recoil from that locked position.

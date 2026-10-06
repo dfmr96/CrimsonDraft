@@ -83,29 +83,6 @@ namespace CrimsonDraft.Infrastructure.Events
         }
     }
 
-    public readonly struct FocusFireConfigurationRequestedEvent
-    {
-        public int[] ParticipantSlots { get; }
-
-        public FocusFireConfigurationRequestedEvent(int[] participantSlots)
-        {
-            this.ParticipantSlots = participantSlots;
-        }
-    }
-
-    // Published when a pending synced-shot mark has to be released without ever firing --
-    // e.g. every operator who wasn't marked died before triggering it, which would otherwise
-    // leave the marked operators frozen forever waiting on a Shoot command nobody can send.
-    public readonly struct FocusFireCancelledEvent
-    {
-        public int[] ReleasedSlots { get; }
-
-        public FocusFireCancelledEvent(int[] releasedSlots)
-        {
-            this.ReleasedSlots = releasedSlots;
-        }
-    }
-
     public readonly struct EnemyAlertChangedEvent
     {
         public string EnemyId { get; init; }

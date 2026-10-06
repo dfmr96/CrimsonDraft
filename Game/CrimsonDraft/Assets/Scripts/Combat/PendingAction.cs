@@ -4,7 +4,7 @@ using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Combat
 {
-    public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover, FocusFire, Melee }
+    public enum PendingActionType { Shoot, UseItem, EnemyAttack, EnemyRecover, Melee }
 
     public readonly struct PendingAction
     {
@@ -13,22 +13,19 @@ namespace CrimsonDraft.Combat
         public InventoryItem?    Item               { get; }
         public int               TargetOperatorSlot { get; }
         public int               Damage             { get; }
-        public int[]             FocusFireParticipants { get; }
 
         private PendingAction(
             PendingActionType type,
             int slotIndex,
             InventoryItem? item     = null,
             int targetOperatorSlot = -1,
-            int damage             = 0,
-            int[]? focusFireParticipants = null)
+            int damage             = 0)
         {
             this.Type               = type;
             this.SlotIndex          = slotIndex;
             this.Item               = item;
             this.TargetOperatorSlot = targetOperatorSlot;
             this.Damage             = damage;
-            this.FocusFireParticipants = focusFireParticipants ?? System.Array.Empty<int>();
         }
 
         public static PendingAction Shoot(int operatorSlot) =>
@@ -43,9 +40,6 @@ namespace CrimsonDraft.Combat
 
         public static PendingAction EnemyRecover(int enemySlot) =>
             new PendingAction(PendingActionType.EnemyRecover, enemySlot);
-
-        public static PendingAction FocusFire(int triggerOperatorSlot, int[] participants) =>
-            new PendingAction(PendingActionType.FocusFire, triggerOperatorSlot, focusFireParticipants: participants);
 
         public static PendingAction Melee(int operatorSlot) =>
             new PendingAction(PendingActionType.Melee, operatorSlot);

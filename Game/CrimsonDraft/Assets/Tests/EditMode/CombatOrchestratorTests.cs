@@ -30,8 +30,6 @@ namespace CrimsonDraft.Tests
         private FakeEncounterContext     encounterContext = null!;
         private FakePublisher<ShootConfigurationRequestedEvent>     shootPublisher               = null!;
         private FakePublisher<MeleeConfigurationRequestedEvent>     meleePublisher               = null!;
-        private FakePublisher<FocusFireConfigurationRequestedEvent> focusFirePublisher           = null!;
-        private FakePublisher<FocusFireCancelledEvent>              focusFireCancelledPublisher  = null!;
         private FakePublisher<CombatEndedEvent>                     combatEndPublisher           = null!;
         private ATBSystem          atbSystem   = null!;
         private CombatActionQueue  actionQueue = null!;
@@ -47,8 +45,6 @@ namespace CrimsonDraft.Tests
             this.encounterContext = new FakeEncounterContext();
             this.shootPublisher              = new FakePublisher<ShootConfigurationRequestedEvent>();
             this.meleePublisher              = new FakePublisher<MeleeConfigurationRequestedEvent>();
-            this.focusFirePublisher          = new FakePublisher<FocusFireConfigurationRequestedEvent>();
-            this.focusFireCancelledPublisher = new FakePublisher<FocusFireCancelledEvent>();
             this.combatEndPublisher          = new FakePublisher<CombatEndedEvent>();
             this.atbSystem   = new ATBSystem();
             this.actionQueue = new CombatActionQueue();
@@ -56,7 +52,7 @@ namespace CrimsonDraft.Tests
             this.orchestrator = new GameObject("CombatOrchestrator").AddComponent<CombatOrchestrator>();
             this.orchestrator.Construct(
                 this.atbSystem, this.actionQueue,
-                this.shootPublisher, this.meleePublisher, this.focusFirePublisher, this.focusFireCancelledPublisher, this.combatEndPublisher,
+                this.shootPublisher, this.meleePublisher, this.combatEndPublisher,
                 this.battlefield, this.roster, this.encounterContext, this.inventory, this.menuView);
             ((IInitializable)this.orchestrator).Initialize();
         }
@@ -92,10 +88,10 @@ namespace CrimsonDraft.Tests
             return (int)method!.Invoke(this.orchestrator, new object[] { aliveOperatorSlots })!;
         }
 
-        // ── Enemy targeting bias while a synced-shot group is pending ──
+        // ── Enemy targeting ──
 
         [Test]
-        public void SelectEnemyTargetSlot_noPendingFocusFire_usesUniformRandomInt()
+        public void SelectEnemyTargetSlot_noMercy_usesUniformRandomInt()
         {
             var fakeRandom = new FakeRandomSource { NextIntReturnValue = 1 };
             SetRandom(fakeRandom);
@@ -106,56 +102,10 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(1, result);
         }
 
-        [Test]
-        public void SelectEnemyTargetSlot_pendingFocusFire_lowRoll_picksMarkedOperator()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-            SetRandom(new FakeRandomSource { NextFloat01Value = 0f });
-
-            int result = InvokeSelectEnemyTargetSlot(new List<int> { 0, 1, 2 });
-
-            Assert.AreEqual(0, result);
-        }
-
-        [Test]
-        public void SelectEnemyTargetSlot_pendingFocusFire_highRoll_canStillPickTheTriggerCandidate()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-
-            // Weights: slot0=1, slot1=1, slot2 (unmarked trigger candidate)=0.35 (default) ->
-            // total=2.35. Slot2's bucket is the last (2.0, 2.35] -- still reachable, just
-            // narrower than an equal 1/3 share under uniform selection.
-            SetRandom(new FakeRandomSource { NextFloat01Value = 2.1f / 2.35f });
-
-            int result = InvokeSelectEnemyTargetSlot(new List<int> { 0, 1, 2 });
-
-            Assert.AreEqual(2, result);
-        }
-
-        [Test]
-        public void SelectEnemyTargetSlot_allOperatorsMarked_fallsBackToUniform()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-            this.orchestrator.MarkOperatorForFocusFire(2);
-            var fakeRandom = new FakeRandomSource { NextIntReturnValue = 2 };
-            SetRandom(fakeRandom);
-
-            // Defensive fallback for a state SyncFocusFireDeadlock should never actually leave
-            // standing (every alive operator marked, none left to trigger) -- still shouldn't
-            // divide by a weight sum that excludes everyone.
-            int result = InvokeSelectEnemyTargetSlot(new List<int> { 0, 1, 2 });
-
-            Assert.AreEqual(1, fakeRandom.NextIntCallCount);
-            Assert.AreEqual(2, result);
-        }
-
         // ── Enemy targeting bias against an operator in Mercy ──
 
         [Test]
-        public void SelectEnemyTargetSlot_mercyOperator_weightedDown_evenWithoutPendingFocusFire()
+        public void SelectEnemyTargetSlot_mercyOperator_weightedDown()
         {
             this.roster[0].ApplyDamage(100); // 0 HP, still alive -> Mercy
             Assert.IsTrue(this.roster[0].IsMercy);
@@ -185,71 +135,6 @@ namespace CrimsonDraft.Tests
             Assert.IsTrue(this.roster[0].IsAlive);
             Assert.IsFalse(this.roster[0].IsMercy);
             Assert.AreEqual(1, this.roster[0].Hp);
-        }
-
-        [Test]
-        public void FocusFireTrigger_diesBeforeTriggering_releasesMarkedOperators()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-
-            // Operator 2 is the only one left unmarked -- the one who would have to select
-            // Shoot to trigger the group -- and dies before ever doing so. Two hits: the
-            // first drops them to Mercy (0 HP, still alive), the second confirms the kill.
-            this.roster[2].ApplyDamage(9999);
-            this.roster[2].ApplyDamage(9999);
-
-            Tick();
-
-            Assert.IsFalse(this.atbSystem.GetActor(0, ATBActorKind.Operator)!.IsFrozen);
-            Assert.IsFalse(this.atbSystem.GetActor(1, ATBActorKind.Operator)!.IsFrozen);
-            Assert.AreEqual(1, this.focusFireCancelledPublisher.PublishCount);
-            CollectionAssert.AreEquivalent(new[] { 0, 1 }, this.focusFireCancelledPublisher.LastMessage!.Value.ReleasedSlots);
-        }
-
-        [Test]
-        public void FocusFireTrigger_stillAlive_doesNotReleaseMarkedOperators()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-
-            Tick();
-
-            Assert.IsTrue(this.atbSystem.GetActor(0, ATBActorKind.Operator)!.IsFrozen);
-            Assert.IsTrue(this.atbSystem.GetActor(1, ATBActorKind.Operator)!.IsFrozen);
-            Assert.AreEqual(0, this.focusFireCancelledPublisher.PublishCount);
-        }
-
-        [Test]
-        public void MarkedOperatorDies_triggerStillAlive_doesNotFalselyRelease()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-
-            // A marked operator dies instead of the trigger -- operator 2 is still alive and
-            // unmarked, so the (now smaller) group can still be triggered normally. Two hits
-            // to actually confirm the kill (first only drops them to Mercy).
-            this.roster[0].ApplyDamage(9999);
-            this.roster[0].ApplyDamage(9999);
-
-            Tick();
-
-            Assert.IsTrue(this.atbSystem.GetActor(1, ATBActorKind.Operator)!.IsFrozen);
-            Assert.AreEqual(0, this.focusFireCancelledPublisher.PublishCount);
-        }
-
-        [Test]
-        public void FocusFireTrigger_diesBeforeTriggering_publishesReleasedSlotsForUiCleanup()
-        {
-            this.orchestrator.MarkOperatorForFocusFire(0);
-            this.orchestrator.MarkOperatorForFocusFire(1);
-            this.roster[2].ApplyDamage(9999);
-            this.roster[2].ApplyDamage(9999);
-
-            Tick();
-
-            Assert.IsTrue(this.menuView.DimmedByIndex.TryGetValue(0, out bool dimmed0) && !dimmed0);
-            Assert.IsTrue(this.menuView.DimmedByIndex.TryGetValue(1, out bool dimmed1) && !dimmed1);
         }
 
         // ── Fakes ──────────────────────────────────────────────────────
@@ -381,7 +266,6 @@ namespace CrimsonDraft.Tests
             public readonly Dictionary<int, bool> DimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.DimmedByIndex[index] = dimmed;
             public bool IsOperatorFocused(int index) => false;
-            public void SetOperatorFocusFireMarked(int index, bool marked) { }
         }
 
     }
