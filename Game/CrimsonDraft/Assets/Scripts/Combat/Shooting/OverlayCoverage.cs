@@ -17,7 +17,10 @@ namespace CrimsonDraft.Combat
             Texture2D? tex = mask.texture;
             if (tex == null || !tex.isReadable) return false;
 
-            Vector2Int px = AimViewController.MapUvToTexturePixel(mask, u, v);
+            if (!AimViewController.TryMapUvToSpritePixel(
+                    mask.rect, mask.textureRect, mask.textureRectOffset, tex.width, tex.height, u, v, out Vector2Int px))
+                return false;
+
             Color pixel = tex.GetPixel(px.x, px.y);
             return pixel.grayscale >= CoveredThreshold && pixel.a >= CoveredThreshold;
         }

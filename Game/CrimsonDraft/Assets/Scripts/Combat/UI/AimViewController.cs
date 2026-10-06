@@ -802,15 +802,37 @@ namespace CrimsonDraft.Combat
         {
             var tex     = sprite.texture;
             var texRect = sprite.textureRect;
-            int px = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)),
-                0,
-                tex.width - 1);
-            int py = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)),
-                0,
-                tex.height - 1);
-            return new Vector2Int(px, py);
+            if (TryMapUvToSpritePixel(sprite.rect, texRect, sprite.textureRectOffset, tex.width, tex.height, u, v, out var pixel))
+                return pixel;
+
+            // Outside a trimmed sprite's opaque area -- clamp onto its edge, matching the old
+            // behavior for callers that always want a pixel.
+            return new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)), 0, tex.width - 1),
+                Mathf.Clamp(Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)), 0, tex.height - 1));
+        }
+
+        // UV (0..1 across the sprite's full rect -- the silhouette's own layout) -> texture pixel.
+        // A Tight sprite with transparent margins is trimmed on import: textureRect then covers only
+        // the opaque area and textureRectOffset says where it sits inside the full rect, so the UV is
+        // mapped through the full rect first. False when the UV lands in the trimmed-away margin.
+        internal static bool TryMapUvToSpritePixel(
+            Rect spriteRect, Rect textureRect, Vector2 textureRectOffset, int texWidth, int texHeight,
+            float u, float v, out Vector2Int pixel)
+        {
+            float x = Mathf.Clamp01(u) * (spriteRect.width  - 1f) - textureRectOffset.x;
+            float y = Mathf.Clamp01(v) * (spriteRect.height - 1f) - textureRectOffset.y;
+
+            if (x < -0.5f || y < -0.5f || x > textureRect.width - 0.5f || y > textureRect.height - 0.5f)
+            {
+                pixel = default;
+                return false;
+            }
+
+            pixel = new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.xMin + x), 0, texWidth - 1),
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.yMin + y), 0, texHeight - 1));
+            return true;
         }
 
         internal static ShotZoneDefinition? ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)
