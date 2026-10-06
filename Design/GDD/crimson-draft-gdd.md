@@ -1,5 +1,5 @@
 # Crimson Draft — Game Design Document
-*Versión 0.17 — 6 de octubre de 2026 — Estado: borrador inicial*
+*Versión 0.18 — 6 de octubre de 2026 — Estado: borrador inicial*
 
 ## 1. Overview
 
@@ -107,28 +107,20 @@ Este loop está atravesado por dos sistemas transversales:
 
 Darius tiene deliberadamente el armamento más fuerte del roster, para que el jugador sienta una pérdida de poder real cuando Darius sale del party (ver 5.i para el detalle narrativo/mecánico de por qué Darius entra y sale).
 
-**Valores de daño tentativos (por disparo, contra zona sin blindaje):**
+**Valores de daño tentativos (por disparo):**
 
-| Arma | Calibre | Operador | Daño (Rip) | Daño (Armor Piercing) |
+La armadura depende del **arma**, no de la munición: cada arma tiene un multiplicador de daño contra chaleco (1.0 = lo atraviesa por completo). Un impacto bloqueado por el chaleco conserva todo su daño a Poise.
+
+| Arma | Calibre | Operador | Daño | Multiplicador vs. chaleco |
 |---|---|---|---|---|
-| Mk18 | 5.56 | Ethan (primaria) | 32 | 24 |
-| MCX Rattler | 5.56 (cañón corto) | Lilou (primaria) | 28 | 20 |
-| Benelli M4 | 12ga (postas) | Marcus (primaria) | 45 (multi-perdigón, alto a corta distancia) | — (sin munición AP para escopeta en esta versión) |
-| MP7 | 4.6×30 | Darius (primaria) | 16 por impacto, alta cadencia | 12 |
-| P229 | 9mm | Ethan (secundaria) | 18 | 13 |
-| P226 | 9mm | Lilou / Marcus (secundaria) | 18 | 13 |
-| Five-Seven | 5.7×28 | Darius (secundaria) | 15 | 11 |
-
-**Daño contra zonas blindadas** (el Rip pierde efectividad drásticamente contra blindaje; el Armor Piercing está pensado justo para esto — con la excepción del Five-Seven, cuyo calibre 5.7×28 es conocido en la realidad por su capacidad de penetración, por lo que conserva una ventaja natural contra blindaje ligero incluso con munición Rip):
-
-| Arma | Daño Rip vs. blindaje | Daño AP vs. blindaje |
-|---|---|---|
-| Mk18 | 10 | 28 |
-| MCX Rattler | 8 | 24 |
-| Benelli M4 | 12 (pierde la mayoría de perdigones) | — |
-| MP7 | 5 | 14 |
-| P229 / P226 | 6 | 15 |
-| Five-Seven | 9 | 19 |
+| Mk18 | 5.56 | Ethan (primaria) | 32 | 0.25 |
+| MCX Rattler | 5.56 (cañón corto) | Lilou (primaria) | 28 | 0.25 |
+| Benelli M4 | 12ga (postas) | Marcus (primaria) | 45 (multi-perdigón, alto a corta distancia) | 0.25 (por perdigón) |
+| MP7 | 4.6×30 | Darius (primaria) | 16 por impacto, alta cadencia | **1.0** — única arma que atraviesa el chaleco por completo |
+| P229 | 9mm | Ethan (secundaria) | 18 | 0.25 |
+| P226 | 9mm | Lilou / Marcus (secundaria) | 18 | 0.25 |
+| Five-Seven | 5.7×28 | Darius (secundaria) | 15 | 0.25 (candidata a un valor mayor por la capacidad de penetración real del 5.7×28) |
+| Cuchillo / Hacha | — | melee | según arma | 0.25 |
 
 **Puntos débiles (ampollas):** un impacto en un punto débil aplica un multiplicador de daño (tentativo: ×1.5 a ×2) independientemente de si esa zona específica tiene blindaje o no.
 
@@ -149,9 +141,8 @@ Cada Wanderer tiene un contador oculto de **Poise** (estabilidad), con un valor 
 - **Silueta derribada:** al caer (knockdown), la silueta del Wanderer cambia visualmente a una pose derribada. Esto tiene una consecuencia directa en el QTE (5.p/5.q): el patrón de recoil de una ráfaga, calculado para una silueta de pie (donde varios disparos consecutivos pueden ser certeros a la cabeza), ahora "sube" contra una silueta tumbada — los disparos siguientes de una ráfaga alta terminan impactando espalda y/o piernas en vez de la cabeza. Esto le agrega dinamismo táctico: derribar a un Wanderer cambia qué zonas son alcanzables por el resto de la ráfaga, no solo si puede o no devolver el golpe.
 - **Multiplicadores ocultos de daño a Poise:**
   - Los disparos a las **piernas** aplican un multiplicador extra de daño a Poise (además de su daño normal a HP) — apuntar bajo es una estrategia válida para forzar un derribo, no solo para reducir movilidad narrativamente.
-  - Las balas **Rip** también aplican un multiplicador oculto de daño a Poise, por la liberación de energía propia de ese tipo de munición al impactar — una razón mecánica adicional (más allá del daño a blindaje, ver 5.r) para elegir Rip sobre Armor Piercing en ciertas situaciones tácticas.
 
-`[TODO: definir los valores exactos de resta de Poise por arma, el umbral de HP que habilita el stagger/knockdown, y los multiplicadores exactos de piernas/Rip sobre Poise]`
+`[TODO: definir los valores exactos de resta de Poise por arma, el umbral de HP que habilita el stagger/knockdown, y los multiplicador exacto de piernas sobre Poise]`
 
 ### 5.h Mercy (tolerancia a la muerte súbita)
 
@@ -250,15 +241,16 @@ El QTE de puntería (5.p) no es estático: su dificultad escala según la salud 
 
 Este diseño convierte el estado Fine/Caution/Danger (5.b) en algo con consecuencia mecánica directa en combate, no solo un indicador visual.
 
-### 5.r Tipos de bala y zonas de armadura
+### 5.r Capas de silueta: chaleco y puntos débiles
 
-Para profundizar el QTE como diferenciador del juego (más allá de "apuntar a la cabeza"):
+Para profundizar el QTE como diferenciador del juego (más allá de "apuntar a la cabeza"), ciertos Wanderers llevan una **capa** dibujada sobre su silueta. La silueta base sigue decidiendo qué zona se impactó (cabeza, torso, brazos, piernas, roce); la capa solo agrega un modificador encima.
 
-- **Tipos de munición:** al menos dos definidos — **Armor Piercing** y **Rip** (expansivas). El daño de cada disparo depende de la combinación bala elegida + zona impactada.
-- **Enemigos con armadura:** algunos Wanderers tienen zonas del cuerpo protegidas en su silueta; una bala Rip contra una zona blindada rinde menos que una Armor Piercing, y viceversa contra tejido expuesto.
-- **Puntos débiles (ampollas):** ciertos enemigos presentan ampollas visibles como puntos débiles en su silueta, en zonas distintas a la cabeza — esto evita que la estrategia óptima sea siempre "apuntar a la cabeza" y obliga a leer la silueta de cada tipo de Wanderer antes de disparar.
+- **Chaleco (implementado):** un tipo de Wanderer lleva un chaleco visible en su silueta, en un color propio que lo identifica como armadura. Un impacto sobre el chaleco multiplica el daño por el multiplicador del arma (ver tabla de daño): la MP7 lo atraviesa al 100%, el resto pierde la mayor parte del daño. El Poise no se reduce — el chaleco frena la bala, no el impacto —, así que las demás armas siguen sirviendo para derribarlo. El popup de daño de un impacto bloqueado aparece en un color destacado.
+- **Puntos débiles / ampollas (próximo):** ciertos enemigos presentarán ampollas visibles en zonas distintas a la cabeza que multiplican el daño (tentativo: ×1.5 a ×2), elegidas al azar de un pool de variantes cada vez que aparece el enemigo. Esto evita que la estrategia óptima sea siempre "apuntar a la cabeza".
+- **Una capa por enemigo:** cada enemigo elige como máximo una capa de su pool al aparecer — nunca lleva chaleco y ampollas a la vez.
+- **Total de la ráfaga:** al terminar el QTE, un popup muestra el daño total de todas las balas.
 
-`[TODO: definir la tabla completa de multiplicadores (tipo de bala × zona × ¿armadura o ampolla?); definir cuántos tipos de bala existen en total y su disponibilidad/rareza como recurso]`
+`[TODO: ajustar los multiplicadores vs. chaleco con playtesting; definir las variantes de ampollas y su multiplicador exacto.]`
 
 ### 5.s Animation Lock
 
@@ -363,6 +355,7 @@ Adrian, al identificar la pérdida total de contención, intentó activar un pro
 
 ## 12. Changelog
 
+- **v0.18 — 06/10/2026:** Reemplazado el sistema de munición Rip/Armor Piercing por armadura por arma (multiplicador vs. chaleco; la MP7 lo atraviesa al 100%). §5.r reescrita como sistema de capas de silueta (chaleco implementado, ampollas a futuro, una capa por enemigo) y popup de daño total al final del QTE.
 - **v0.17 — 06/10/2026:** Eliminada la acción Synced Shoot (Focus Fire) de §5.s: no tenía utilidad táctica real. Se conserva el Animation Lock.
 - **v0.16 — 01/09/2026:** Documentado el edge case de Synced Shoot donde el operador libre para gatillarlo podía morir antes de hacerlo, trabando el combate: se agregó liberación automática de los operadores marcados cuando ya no queda nadie sin marcar que pueda disparar, y una reducción (no eliminación) de la probabilidad de que los enemigos ataquen al operador todavía libre mientras el grupo está pendiente, para que esa liberación sea una salvaguarda poco frecuente en vez de la forma habitual en la que termina la mecánica.
 - **v0.15 — 16/07/2026:** Corregida la lógica del Animation Lock — las armas de alta cadencia permiten liberarse antes del bloqueo (no al revés como se había registrado inicialmente).
