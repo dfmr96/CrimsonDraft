@@ -28,6 +28,10 @@ namespace CrimsonDraft.Combat
         // bosses that shouldn't die to a lucky point-blank shot).
         [SerializeField, Min(0)] private int   decapitationPelletThreshold = 4;
 
+        // Overlays this enemy may wear (vest, blister variants...). One is picked at random when
+        // it spawns in combat (BattlefieldView.Populate); empty = no overlay.
+        [SerializeField] private SilhouetteOverlay[] overlayPool = System.Array.Empty<SilhouetteOverlay>();
+
         public string EnemyId                    => this.enemyId;
         public GameObject? BattlefieldPrefab     => this.battlefieldPrefab;
         public Sprite Sprite                     => this.sprite;
@@ -43,5 +47,6 @@ namespace CrimsonDraft.Combat
         public float StaggerHpThresholdPct       => this.staggerHpThresholdPct;
         public int   StaggerRecoveryActionCount  => this.staggerRecoveryActionCount;
         public int   DecapitationPelletThreshold => this.decapitationPelletThreshold;
+        public SilhouetteOverlay[] OverlayPool   => this.overlayPool;
     }
 }
