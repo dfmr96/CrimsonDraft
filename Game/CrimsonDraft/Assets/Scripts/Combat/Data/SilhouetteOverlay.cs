@@ -6,8 +6,9 @@ namespace CrimsonDraft.Combat
 {
     // A layer drawn over an enemy's aim silhouette (a vest now, weak-point blisters later).
     // The zone mask still decides where a pellet hit; the overlay's mask only adds a modifier
-    // on top. Every sprite must share the base silhouette sprite's size and pivot, and mask
-    // sprites need Read/Write enabled (sampled with GetPixel).
+    // on top. Every sprite must share the base silhouette sprite's size and pivot. Visible
+    // sprites are the art on a transparent background; mask sprites are black & white (white =
+    // covered) and need Read/Write enabled (sampled with GetPixel).
     [CreateAssetMenu(fileName = "SilhouetteOverlay", menuName = "CrimsonDraft/Combat/Silhouette Overlay")]
     public sealed class SilhouetteOverlay : ScriptableObject
     {

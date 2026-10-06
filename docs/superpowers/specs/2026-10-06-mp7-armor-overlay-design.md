@@ -40,7 +40,7 @@ This spec adds a second, independent layer on top of that silhouette: an **overl
 |-------|------|---------|
 | `kind` | `OverlayKind` | `enum OverlayKind { Armor = 0 }`. `WeakPoint` is added by the blisters spec. Values are pinned explicitly (serialized). |
 | `visibleSprite` | `Sprite` | What the player sees: the vest painted in its armor color, on a canvas identical in size and pivot to the base silhouette sprite, transparent elsewhere. |
-| `maskSprite` | `Sprite` | Coverage mask, never shown. Any pixel with alpha ≥ 0.5 counts as *covered*. No per-zone colors — zone/precision still come from the base zone mask. |
+| `maskSprite` | `Sprite` | Coverage mask, never shown. Black & white: a pixel counts as *covered* when it is white (grayscale ≥ 0.5) and opaque (alpha ≥ 0.5); black or transparent is uncovered. No per-zone colors — zone/precision still come from the base zone mask. |
 | `staggeredVisibleSprite` | `Sprite?` | Same, for the knocked-down pose (`AimHitMaskProfile` already swaps to a staggered profile). |
 | `staggeredMaskSprite` | `Sprite?` | Same. |
 
@@ -215,7 +215,7 @@ Create **`Assets/Art/Sprites/UI/QTE_Vest.png`** with the *same* sheet layout and
 
 | Sheet cell | Assign to `Overlay_Vest` field | Content |
 |------------|-------------------------------|---------|
-| bottom-left | `maskSprite` | vest shape in solid opaque color, transparent elsewhere (the "back") |
+| bottom-left | `maskSprite` | vest shape in solid opaque white, black (or transparent) elsewhere (the "back") |
 | bottom-right | `visibleSprite` | vest as the player sees it, in its armor color (the "front") |
 | top-left | `staggeredMaskSprite` | same, knocked-down pose (optional) |
 | top-right | `staggeredVisibleSprite` | same, knocked-down pose (optional) |

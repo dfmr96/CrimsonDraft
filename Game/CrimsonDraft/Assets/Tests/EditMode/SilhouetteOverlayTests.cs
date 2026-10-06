@@ -145,6 +145,22 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void IsCovered_opaqueBlackPixel_returnsFalse() =>
+            Assert.IsFalse(OverlayCoverage.IsCovered(this.sprites.Solid(Color.black), 0.5f, 0.5f));
+
+        [Test]
+        public void IsCovered_opaqueDarkGreyPixel_returnsFalse() =>
+            Assert.IsFalse(OverlayCoverage.IsCovered(this.sprites.Solid(new Color(0.3f, 0.3f, 0.3f, 1f)), 0.5f, 0.5f));
+
+        [Test]
+        public void IsCovered_whiteOnBlackMask_samplesTheRequestedUv()
+        {
+            Sprite mask = this.sprites.LeftHalf(Color.white, Color.black);
+            Assert.IsTrue(OverlayCoverage.IsCovered(mask, 0.1f, 0.5f));
+            Assert.IsFalse(OverlayCoverage.IsCovered(mask, 0.9f, 0.5f));
+        }
+
+        [Test]
         public void IsCovered_nonReadableTexture_returnsFalse() =>
             Assert.IsFalse(OverlayCoverage.IsCovered(this.sprites.Solid(Color.white, readable: false), 0.5f, 0.5f));
 
