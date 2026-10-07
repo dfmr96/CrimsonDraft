@@ -35,6 +35,34 @@ namespace CrimsonDraft.UI
             this.alignment = noteAlignment;
         }
 
+        /// <summary>Rows the body label would render for <paramref name="text"/> at its current width and font (wrapping included).</summary>
+        public int MeasureLineCount(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return 0;
+
+            // TMP's textInfo/GetTextInfo stay empty or throw while the label is inactive (the
+            // panel is hidden until a note is shown), but preferred height works either way.
+            // A text's height is a fixed base plus one row-step per extra row, so the row count
+            // is read off two reference texts (one and two rows) measured with the spacing
+            // zeroed, so the configured line/paragraph spacing doesn't inflate it. Passing the
+            // label's own width is what makes the measurement wrap; without it TMP measures on a
+            // single unbounded row.
+            float line = this.bodyLabel.lineSpacing;
+            float para = this.bodyLabel.paragraphSpacing;
+            this.bodyLabel.lineSpacing      = 0f;
+            this.bodyLabel.paragraphSpacing = 0f;
+
+            float width  = this.bodyLabel.rectTransform.rect.width;
+            float oneRow = this.bodyLabel.GetPreferredValues("A", width, 0f).y;
+            float step   = this.bodyLabel.GetPreferredValues("A\nA", width, 0f).y - oneRow;
+            float total  = this.bodyLabel.GetPreferredValues(text, width, 0f).y;
+
+            this.bodyLabel.lineSpacing      = line;
+            this.bodyLabel.paragraphSpacing = para;
+
+            return step <= 0f ? 1 : 1 + Mathf.Max(0, Mathf.RoundToInt((total - oneRow) / step));
+        }
+
         void ApplyBodyLayout()
         {
             if (this.layout == null) return;
