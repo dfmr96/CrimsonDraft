@@ -16,6 +16,8 @@ namespace CrimsonDraft.Tests
     public sealed class SavePointInteractableTests
     {
         private const string MissingItemNode = "save_no_ticker_tape";
+        private const string PromptNode      = "save_use_ticker_tape_prompt";
+        private const string SendCommand     = "send_report";
 
         private GameObject go = null!;
 
@@ -34,11 +36,21 @@ namespace CrimsonDraft.Tests
             var dialogueField = typeof(SavePointInteractable).GetField("missingItemDialogue", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var dialogue      = (DialogueReference)dialogueField.GetValue(savePoint)!;
             dialogue.nodeName = MissingItemNode;
+            var promptField = typeof(SavePointInteractable).GetField("promptDialogue", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            ((DialogueReference)promptField.GetValue(savePoint)!).nodeName = PromptNode;
             return savePoint;
         }
 
-        private static InteractionContext MakeContext(FakeInventoryService inventory, FakeDialogue dialogue, FakeSaveController save)
-            => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, save, null!, null!);
+        private static InteractionContext MakeContext(
+            FakeInventoryService inventory, FakeDialogue dialogue, FakeSaveController save, FakeDialogue? prompt = null)
+            => new(inventory, null!, dialogue, null!, prompt ?? new FakeDialogue(), null!, null!, null!, save, null!, null!);
+
+        // Plays the Yes/No prompt to the end: "Yes" runs the command, then the dialogue completes.
+        private static void Answer(FakeDialogue prompt, bool yes)
+        {
+            if (yes) prompt.LastCommands![SendCommand]();
+            prompt.LastOnComplete!();
+        }
 
         [Test]
         public void Interact_withoutRequiredItem_opensSaveForFree()
@@ -67,16 +79,46 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Interact_requiredItemCarried_opensSave_withoutSpendingItYet()
+        public void Interact_requiredItemCarried_asksBeforeOpening()
+        {
+            var tape   = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            var prompt = new FakeDialogue();
+            var save   = new FakeSaveController();
+
+            MakeSavePoint(tape).Interact(MakeContext(new FakeInventoryService(ownedIds: "ticker_tape"), new FakeDialogue(), save, prompt));
+
+            Assert.AreEqual(PromptNode, prompt.LastNodeName);
+            Assert.AreEqual(0, save.OpenCount, "the save menu waits for the player's answer");
+        }
+
+        [Test]
+        public void AnsweringYes_opensSave_withoutSpendingItYet()
         {
             var tape      = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
             var inventory = new FakeInventoryService(ownedIds: "ticker_tape");
+            var prompt    = new FakeDialogue();
             var save      = new FakeSaveController();
 
-            MakeSavePoint(tape).Interact(MakeContext(inventory, new FakeDialogue(), save));
+            MakeSavePoint(tape).Interact(MakeContext(inventory, new FakeDialogue(), save, prompt));
+            Answer(prompt, yes: true);
 
             Assert.AreEqual(1, save.OpenCount);
             Assert.AreEqual(0, inventory.ConsumedOne.Count, "closing the save menu without saving must not cost a tape");
+        }
+
+        [Test]
+        public void AnsweringNo_doesNotOpenSave()
+        {
+            var tape      = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            var inventory = new FakeInventoryService(ownedIds: "ticker_tape");
+            var prompt    = new FakeDialogue();
+            var save      = new FakeSaveController();
+
+            MakeSavePoint(tape).Interact(MakeContext(inventory, new FakeDialogue(), save, prompt));
+            Answer(prompt, yes: false);
+
+            Assert.AreEqual(0, save.OpenCount);
+            Assert.AreEqual(0, inventory.ConsumedOne.Count);
         }
 
         [Test]
@@ -84,9 +126,11 @@ namespace CrimsonDraft.Tests
         {
             var tape      = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
             var inventory = new FakeInventoryService(ownedIds: "ticker_tape");
+            var prompt    = new FakeDialogue();
             var save      = new FakeSaveController();
 
-            MakeSavePoint(tape).Interact(MakeContext(inventory, new FakeDialogue(), save));
+            MakeSavePoint(tape).Interact(MakeContext(inventory, new FakeDialogue(), save, prompt));
+            Answer(prompt, yes: true);
             save.LastOnSaved!.Invoke();
 
             CollectionAssert.AreEqual(new[] { tape }, inventory.ConsumedOne);
@@ -104,16 +148,23 @@ namespace CrimsonDraft.Tests
             }
         }
 
-        private sealed class FakeDialogue : IDialogueService
+        private sealed class FakeDialogue : IPickupDialogueService
         {
-            public bool    IsRunning    => false;
-            public string? LastNodeName { get; private set; }
+            public bool                                 IsRunning      => false;
+            public string?                              LastNodeName   { get; private set; }
+            public Action?                              LastOnComplete { get; private set; }
+            public IReadOnlyDictionary<string, Action>? LastCommands   { get; private set; }
 
             public void StartDialogue(
                 string                               nodeName,
                 IReadOnlyDictionary<string, object>? variables  = null,
                 Action?                              onComplete = null,
-                IReadOnlyDictionary<string, Action>? commands   = null) => this.LastNodeName = nodeName;
+                IReadOnlyDictionary<string, Action>? commands   = null)
+            {
+                this.LastNodeName   = nodeName;
+                this.LastOnComplete = onComplete;
+                this.LastCommands   = commands;
+            }
 
             public void SetVariable(string name, object value) { }
         }
