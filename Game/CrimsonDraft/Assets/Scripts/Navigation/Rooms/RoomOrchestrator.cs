@@ -2,6 +2,7 @@
 
 using Cysharp.Threading.Tasks;
 using MessagePipe;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
@@ -74,6 +75,7 @@ namespace CrimsonDraft.Navigation.Rooms
             }
 
             starting.Activate();
+            EnsureLiveCamera(starting, this.player.transform.position);
             this.currentRoom = starting;
         }
 
@@ -120,6 +122,7 @@ namespace CrimsonDraft.Navigation.Rooms
             var spawnTransform = spawnPoint != null ? spawnPoint.transform : destination.transform;
             this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
             spawnPoint?.ActivateCamera(this.zoneService);
+            EnsureLiveCamera(destination, spawnTransform.position);
 
             await tcs.Task;
 
@@ -157,7 +160,75 @@ namespace CrimsonDraft.Navigation.Rooms
             }
 
             target.Activate();
+            EnsureLiveCamera(target, this.player.transform.position);
             this.currentRoom = target;
+        }
+
+        // Guarantees the room the player just landed in has a camera actually rendering.
+        //
+        // Most SpawnPoints have no camera assigned, so a room's shot normally comes from a
+        // FixedCameraZoneTrigger reacting to the player via OnTriggerEnter. That's a
+        // physics-timed callback on a teleported transform: it can land a frame or more late,
+        // and never fires at all when the spawn position sits outside every zone volume. Until
+        // it fires, the brain is still on the camera of the room we just deactivated -- which
+        // renders the inside of a hidden room, i.e. a black screen.
+        //
+        // So resolve the same answer the trigger would give, immediately and deterministically,
+        // and fall back to any camera in the room so it can never be left with none. A trigger
+        // firing afterwards is harmless: it's normally the very camera picked here.
+        private void EnsureLiveCamera(RoomController room, Vector3 spawnPosition)
+        {
+            var current = this.zoneService.CurrentZoneCamera;
+            if (current != null && current.enabled && current.transform.IsChildOf(room.transform))
+                return;
+
+            var zoneCamera = FindZoneCameraAt(room, spawnPosition);
+            if (zoneCamera != null)
+            {
+                this.zoneService.ActivateZone(zoneCamera);
+                return;
+            }
+
+            var cameras = room.GetComponentsInChildren<CinemachineCamera>(includeInactive: true);
+            if (cameras.Length == 0)
+            {
+                Debug.LogWarning($"[RoomOrchestrator] Room '{room.name}' has no CinemachineCamera — screen will stay on the previous room's shot.", room);
+                return;
+            }
+
+            // Prefer whatever the room was authored to start on, same seed rule as
+            // FixedCameraZoneBootstrap uses when it normalizes a room's cameras.
+            foreach (var camera in cameras)
+            {
+                if (!camera.enabled) continue;
+                this.zoneService.ActivateZone(camera);
+                return;
+            }
+
+            this.zoneService.ActivateZone(cameras[0]);
+        }
+
+        private static CinemachineCamera? FindZoneCameraAt(RoomController room, Vector3 position)
+        {
+            foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true))
+            {
+                if (trigger.ZoneCamera == null) continue;
+
+                var collider = trigger.GetComponent<Collider>();
+                if (collider != null && Contains(collider, position))
+                    return trigger.ZoneCamera;
+            }
+            return null;
+        }
+
+        private static bool Contains(Collider collider, Vector3 position)
+        {
+            // ClosestPoint is exact for the convex volumes zone triggers are built from, but it
+            // throws on a non-convex MeshCollider -- those settle for the looser bounds test.
+            if (collider is MeshCollider mesh && !mesh.convex)
+                return collider.bounds.Contains(position);
+
+            return (collider.ClosestPoint(position) - position).sqrMagnitude < 0.0001f;
         }
 
         private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
