@@ -63,13 +63,9 @@ namespace CrimsonDraft.UI
         private void RefreshQuantity()
         {
             if (this.quantityLabel == null) return;
-            if (this.BoundItem is IHasDisplayCount counted)
-            {
-                this.quantityLabel.gameObject.SetActive(true);
-                this.quantityLabel.text = counted.DisplayCount.ToString();
-                return;
-            }
-            this.quantityLabel.gameObject.SetActive(false);
+            var count = ItemDisplayCount.For(this.BoundItem);
+            this.quantityLabel.gameObject.SetActive(count.HasValue);
+            if (count.HasValue) this.quantityLabel.text = count.Value.ToString();
         }
     }
 }
