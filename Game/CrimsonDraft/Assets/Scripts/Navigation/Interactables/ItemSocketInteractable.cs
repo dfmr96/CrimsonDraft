@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -18,6 +19,8 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string           socketId          = "";
         [SerializeField] private SocketItemData[] requiredItems = System.Array.Empty<SocketItemData>();
         [SerializeField] private UnityEvent       onActivated   = new();
+        [Tooltip("Fires once the socket is complete AND its insert dialogue has closed -- use this for follow-up sequences that should play after the player has read the message.")]
+        [SerializeField] private UnityEvent       onActivatedAfterDialogue = new();
         [SerializeField] private DialogueReference dialogueReference = new();
         [SerializeField] private Collider?        blockingCollider; // optional physical barrier; disabled once the socket is fully activated
         [SerializeField] private GameObject?      revealOnActivate; // optional visual (e.g. the inserted item's mesh); hidden until the socket is fully activated
@@ -31,6 +34,21 @@ namespace CrimsonDraft.Navigation.Interactables
         // Lets other scripts (e.g. GeneratorSwitchPanel) subscribe in code instead of only via
         // the Inspector's persistent-call list.
         public UnityEvent OnActivated => this.onActivated;
+
+        // Same, but delayed until the success dialogue has been dismissed.
+        public UnityEvent OnActivatedAfterDialogue => this.onActivatedAfterDialogue;
+
+        // Fires per slot as it gets filled: (slotIndex, animate). animate=false when the slot is
+        // restored from the registry (room revisit/loaded save) -- listeners should snap to the
+        // final state instead of replaying their transition. Subscribe in Awake: restoration
+        // happens in Construct, which runs after it.
+        public event Action<int, bool>? SlotFilled;
+
+        public bool IsSlotFilled(int index)
+        {
+            var ins = EnsureInserted();
+            return index >= 0 && index < ins.Length && ins[index];
+        }
 
         void Awake()
         {
@@ -53,6 +71,9 @@ namespace CrimsonDraft.Navigation.Interactables
             var saved = registry.GetInserted(this.socketId);
             if (saved.Length == this.requiredItems.Length)
                 this.inserted = (bool[])saved.Clone();
+
+            for (int i = 0; i < this.inserted.Length; i++)
+                if (this.inserted[i]) SlotFilled?.Invoke(i, false);
 
             if (IsComplete())
                 ApplyActivatedState();
@@ -83,8 +104,10 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (this.requiredItems[i].ItemId != item.ItemId) continue;
 
                 ins[i] = true;
+                SlotFilled?.Invoke(i, true);
                 this.registry.SetInserted(this.socketId, (bool[])ins.Clone());
-                int filled = CountFilled();
+                int filled   = CountFilled();
+                bool complete = IsComplete();
 
                 dialogueService?.StartDialogue(
                     this.dialogueReference.nodeName ?? "",
@@ -94,12 +117,17 @@ namespace CrimsonDraft.Navigation.Interactables
                         ["$item_name"]     = item.DisplayName,
                         ["$slots_filled"]  = filled,
                         ["$slots_total"]   = this.requiredItems.Length
-                    });
+                    },
+                    onComplete: complete ? () => this.onActivatedAfterDialogue.Invoke() : null);
 
-                if (IsComplete())
+                if (complete)
                 {
                     ApplyActivatedState();
                     this.onActivated.Invoke();
+
+                    // No dialogue service means no dialogue to wait for.
+                    if (dialogueService == null)
+                        this.onActivatedAfterDialogue.Invoke();
                 }
 
                 return true;

@@ -47,9 +47,15 @@ namespace CrimsonDraft.Navigation.Interactables
         }
 
         public string     PickupId   => this.pickupId;
+        public bool       IsCollected => this.pickupRegistry != null && this.pickupRegistry.IsCollected(this.pickupId);
         public UnityEvent OnPickedUp => this.onPickedUp;
 
-        public void Interact(InteractionContext context)
+        public void Interact(InteractionContext context) => Interact(context, null);
+
+        // onClosed runs after the prompt closes whether or not the item was taken (and after
+        // the dialogue service has already handed input back to Gameplay), so callers that
+        // run this from a UI-mode view (e.g. an inspection camera) can switch input back.
+        public void Interact(InteractionContext context, Action? onClosed)
         {
             bool pickupSucceeded = false;
             string itemName = !string.IsNullOrEmpty(this.item.SecondaryName)
@@ -68,7 +74,11 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () =>
                 {
                     context.PickupPreviewController.Hide();
-                    if (!pickupSucceeded) return;
+                    if (!pickupSucceeded)
+                    {
+                        onClosed?.Invoke();
+                        return;
+                    }
 
                     this.pickupRegistry.SetCollected(this.pickupId);
                     gameObject.SetActive(false);
@@ -80,6 +90,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     }
 
                     this.onPickedUp.Invoke();
+                    onClosed?.Invoke();
                 },
                 commands: new Dictionary<string, Action>
                 {

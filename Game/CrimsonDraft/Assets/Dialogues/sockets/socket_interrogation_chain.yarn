@@ -1,0 +1,12 @@
+title: socket_interrogation_chain
+---
+<<if $insert_result == "success">>
+You poured the acid over the chain. The rusted links hiss, and it gives way.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does nothing to the chain.
+<<elseif $activated>>
+The chain is broken.
+<<else>>
+The chain looks rusted. It seems about to break.
+<<endif>>
+===

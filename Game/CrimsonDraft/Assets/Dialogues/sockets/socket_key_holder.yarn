@@ -1,0 +1,12 @@
+title: socket_key_holder
+---
+<<if $insert_result == "success">>
+You use {$item_name}. The lock clicks and the little door swings open.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} doesn't fit here.
+<<elseif $activated>>
+The key holder is open.
+<<else>>
+It looks like a key holder, but the lock seems to be shut.
+<<endif>>
+===
