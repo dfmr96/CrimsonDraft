@@ -105,7 +105,11 @@ namespace CrimsonDraft.UI
             if (ammoLabel != null)
             {
                 ammoLabel.gameObject.SetActive(w != null);
-                if (w != null) ammoLabel.text = w.CurrentAmmo.ToString();
+                if (w != null)
+                {
+                    ammoLabel.text  = w.CurrentAmmo.ToString();
+                    ammoLabel.color = ItemCountColors.Loaded;
+                }
             }
         }
 

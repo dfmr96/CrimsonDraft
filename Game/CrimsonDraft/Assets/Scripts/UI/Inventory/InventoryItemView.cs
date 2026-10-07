@@ -65,7 +65,9 @@ namespace CrimsonDraft.UI
             if (this.quantityLabel == null) return;
             var count = ItemDisplayCount.For(this.BoundItem);
             this.quantityLabel.gameObject.SetActive(count.HasValue);
-            if (count.HasValue) this.quantityLabel.text = count.Value.ToString();
+            if (!count.HasValue) return;
+            this.quantityLabel.text  = count.Value.ToString();
+            this.quantityLabel.color = this.BoundItem is WeaponItem ? ItemCountColors.Loaded : ItemCountColors.Stack;
         }
     }
 }
