@@ -220,6 +220,23 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ShotFired_spendsAmmoThroughTheInventory()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+
+            // Going through IInventoryService (not IWeaponSlot.SetAmmo directly) is what makes the
+            // inventory grid redraw the weapon's ammo count after combat.
+            Assert.AreEqual(1, this.inventory.SpentAmmo.Count);
+            Assert.AreSame(this.roster[0].ActiveWeapon, this.inventory.SpentAmmo[0].Weapon);
+            Assert.AreEqual(c.SelectedShotCount, this.inventory.SpentAmmo[0].Shots);
+        }
+
+        [Test]
         public void ShotFired_keepsAimViewVisibleUntilExtraConfirm()
         {
             var c = BuildAndInit();

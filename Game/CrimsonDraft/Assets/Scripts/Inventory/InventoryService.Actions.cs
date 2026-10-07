@@ -54,6 +54,12 @@ namespace CrimsonDraft.Inventory
             return op.IsAlive && weapon != null && weapon.Caliber == box.Data.Caliber && weapon.CurrentAmmo < weapon.MaxAmmo;
         }
 
+        public void SpendAmmo(IWeaponSlot weapon, int shots)
+        {
+            weapon.SetAmmo(weapon.CurrentAmmo - Math.Max(0, shots));
+            if (weapon is InventoryItem item) NotifyChanged(FindContainerObjectOf(item));
+        }
+
         public bool TryReload(InventoryItem ammo, int operatorSlot) =>
             CanReload(ammo, operatorSlot) && TransferAmmo((AmmoBoxItem)ammo, this.roster[operatorSlot].ActiveWeapon!);
 

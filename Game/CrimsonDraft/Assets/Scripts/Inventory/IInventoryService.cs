@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using CrimsonDraft.Infrastructure.Save;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Inventory
 {
@@ -37,6 +38,9 @@ namespace CrimsonDraft.Inventory
         bool TryUseConsumable(InventoryItem item, int operatorSlot);
         bool CanReload(InventoryItem ammo, int operatorSlot);
         bool TryReload(InventoryItem ammo, int operatorSlot);
+        // Spends shots from an equipped weapon's magazine (never below 0) and notifies its
+        // container, so inventory views showing the weapon's ammo redraw.
+        void SpendAmmo(IWeaponSlot weapon, int shots);
         void Equip(WeaponItem weapon, int operatorSlot);
         void Unequip(WeaponItem weapon);
         bool HasEquippedWeapon(int operatorSlot);

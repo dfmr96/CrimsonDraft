@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Tests
 {
@@ -95,6 +96,13 @@ namespace CrimsonDraft.Tests
         {
             this.Reloaded.Add((ammo, operatorSlot));
             return this.ReloadResult;
+        }
+
+        public readonly List<(IWeaponSlot Weapon, int Shots)> SpentAmmo = new();
+        public void SpendAmmo(IWeaponSlot weapon, int shots)
+        {
+            this.SpentAmmo.Add((weapon, shots));
+            weapon.SetAmmo(weapon.CurrentAmmo - shots);
         }
 
         public void Equip(WeaponItem weapon, int operatorSlot) { }

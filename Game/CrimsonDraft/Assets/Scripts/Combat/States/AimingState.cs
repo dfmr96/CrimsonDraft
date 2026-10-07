@@ -17,6 +17,7 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView      battlefieldView;
         private readonly IAimView              aimView;
         private readonly IOperatorRoster       roster;
+        private readonly IInventoryService     inventory;
         private readonly CombatSfxData?        sfx;
 
         private bool awaitingDismiss;
@@ -32,6 +33,7 @@ namespace CrimsonDraft.Combat
             IBattlefieldView      battlefieldView,
             IAimView              aimView,
             IOperatorRoster       roster,
+            IInventoryService     inventory,
             CombatSfxData?        sfx = null)
         {
             this.context         = context;
@@ -40,6 +42,7 @@ namespace CrimsonDraft.Combat
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.inventory       = inventory;
             this.sfx             = sfx;
         }
 
@@ -136,7 +139,7 @@ namespace CrimsonDraft.Combat
             }
 
             if (weapon != null)
-                weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
+                this.inventory.SpendAmmo(weapon, this.context.SelectedShotCount);
 
             this.awaitingDismiss = true;
         }

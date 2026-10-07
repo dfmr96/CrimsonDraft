@@ -63,6 +63,31 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void SpendAmmo_reducesAmmo_andNotifiesTheWeaponsContainer()
+        {
+            var s      = Service();
+            var weapon = (WeaponItem)AddAt(s, Weapon(Caliber._9mm, magazine: 6), 0);
+            weapon.SetAmmo(6);
+
+            int changes = CountChanges(Op(s, 0), () => s.SpendAmmo(weapon, 2));
+
+            Assert.AreEqual(4, weapon.CurrentAmmo);
+            Assert.AreEqual(1, changes, "the inventory grid only redraws a weapon's ammo count when its container reports a change");
+        }
+
+        [Test]
+        public void SpendAmmo_neverGoesBelowZero()
+        {
+            var s      = Service();
+            var weapon = (WeaponItem)AddAt(s, Weapon(Caliber._9mm, magazine: 6), 0);
+            weapon.SetAmmo(1);
+
+            s.SpendAmmo(weapon, 3);
+
+            Assert.AreEqual(0, weapon.CurrentAmmo);
+        }
+
+        [Test]
         public void TryCombine_ammoAndWeapon_wrongCaliber_fails()
         {
             var s      = Service();
