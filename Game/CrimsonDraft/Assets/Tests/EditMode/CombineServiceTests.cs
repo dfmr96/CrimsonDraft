@@ -50,6 +50,27 @@ namespace CrimsonDraft.Tests
         // ── Tests ──────────────────────────────────────────────────────────────
 
         [Test]
+        public void Initialize_recipeWithMissingAssets_doesNotDisableTheOtherRecipes()
+        {
+            var key  = MakeItem("key");
+            var port = MakeItem("portfolio");
+            var docs = MakeItem("documents");
+            var svc  = MakeService(MakeLibrary((null!, null!, null!), (key, port, docs)));
+
+            Assert.AreEqual(docs, svc.TryGetResult(key, port));
+        }
+
+        [Test]
+        public void Initialize_recipeWithMissingOutput_isSkipped()
+        {
+            var key  = MakeItem("key");
+            var port = MakeItem("portfolio");
+            var svc  = MakeService(MakeLibrary((key, port, null!)));
+
+            Assert.IsNull(svc.TryGetResult(key, port));
+        }
+
+        [Test]
         public void TryGetResult_returnsOutput_whenRecipeExists()
         {
             var key  = MakeItem("key");
