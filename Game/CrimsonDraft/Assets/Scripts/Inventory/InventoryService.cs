@@ -38,7 +38,9 @@ namespace CrimsonDraft.Inventory
 
         public ContainerId? FindContainerOf(InventoryItem item) => FindContainerObjectOf(item)?.Id;
 
-        public bool TryAdd(ItemData data, int quantity = 0) => TryAddTo(CarriedContainers().ToArray(), data, quantity);
+        public bool TryAdd(ItemData data, int quantity = 0) =>
+            (data is AmmoBoxData ammo && TryAddToArmedOperators(ammo, quantity))
+            || TryAddTo(CarriedContainers().ToArray(), data, quantity);
 
         public bool TryAdd(ItemData data, ContainerId target, int quantity = 0) =>
             TryAddTo(new[] { GetContainer(target) }, data, quantity);
@@ -85,6 +87,32 @@ namespace CrimsonDraft.Inventory
             id == ContainerId.Storage
             || IsCarried(id)
             || (id.Kind == ContainerKind.Operator && this.corpseAccess.CanAccess(id.Index));
+
+        // Picked-up ammo goes, whole, to a living operator with a weapon of that calibre equipped,
+        // fewest rounds of that calibre first (loaded + boxed), roster order on ties. Returns false
+        // when nobody armed can take the whole box, so the caller falls back to any carried grid.
+        private bool TryAddToArmedOperators(AmmoBoxData ammo, int quantity)
+        {
+            var containers = EnsureContainers();
+
+            IEnumerable<WeaponItem> ArmedWith(int slot) => containers[slot].Placements
+                .Select(p => p.Item).OfType<WeaponItem>()
+                .Where(w => w.EquippedBySlot == slot && w.Caliber == ammo.Caliber);
+
+            int RoundsHeld(int slot) =>
+                ArmedWith(slot).Sum(w => w.CurrentAmmo)
+                + containers[slot].Placements.Select(p => p.Item).OfType<AmmoBoxItem>()
+                    .Where(b => b.Data.Caliber == ammo.Caliber).Sum(b => b.Quantity);
+
+            var candidates = Enumerable.Range(0, containers.Length)
+                .Where(slot => IsCarried(ContainerId.Operator(slot)) && ArmedWith(slot).Any())
+                .OrderBy(RoundsHeld)
+                .ThenBy(slot => slot);
+
+            foreach (int slot in candidates)
+                if (TryAddTo(new[] { containers[slot] }, ammo, quantity)) return true;
+            return false;
+        }
 
         private bool TryAddTo(IReadOnlyList<ItemContainer> candidates, ItemData data, int quantity)
         {
