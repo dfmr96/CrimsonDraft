@@ -63,6 +63,21 @@ namespace CrimsonDraft.Inventory
 
         public bool HasItem(string itemId) => AllPlacements().Any(p => p.Item.Data.ItemId == itemId);
 
+        // Spends a single unit of a carried stack (TryRemove drops the whole item) -- e.g. one
+        // Ticker Tape per save. Storage and dead operators' containers don't count.
+        public bool TryConsumeOne(ItemData data)
+        {
+            var placement = AllPlacements().FirstOrDefault(p => p.Item.Data.ItemId == data.ItemId);
+            if (placement == null) return false;
+
+            var item      = placement.Item;
+            var container = FindContainerObjectOf(item);
+            item.Quantity -= 1;
+            if (item.Quantity <= 0) container?.Remove(item);
+            container?.NotifyChanged();
+            return true;
+        }
+
         public bool IsCarried(ContainerId id) =>
             id.Kind == ContainerKind.Operator && id.Index >= 0 && id.Index < this.roster.Count && this.roster[id.Index].IsAlive;
 

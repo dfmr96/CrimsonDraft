@@ -19,6 +19,7 @@ namespace CrimsonDraft.Inventory
         void Remove(InventoryItem item);
         bool TryRemove(string itemId);
         bool HasItem(string itemId);
+        bool TryConsumeOne(ItemData data);
         bool IsCarried(ContainerId id);
         bool IsAccessible(ContainerId id);
 

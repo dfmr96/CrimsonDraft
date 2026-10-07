@@ -38,7 +38,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private PuzzleViewController    puzzleViewController   = null!;
         private ScreenFader             screenFader            = null!;
         private PickupPreviewController pickupPreviewController = null!;
-        private SaveController          saveController          = null!;
+        private ISaveController         saveController          = null!;
         private InspectionController    inspectionController    = null!;
         private IPublisher<StorageOpenRequestedEvent> storageOpenPublisher = null!;
 
@@ -55,7 +55,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
-            SaveController          saveController,
+            ISaveController         saveController,
             InspectionController    inspectionController,
             IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
             ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber)

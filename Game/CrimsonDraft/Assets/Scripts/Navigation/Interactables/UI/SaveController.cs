@@ -16,7 +16,7 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class SaveController : IInitializable, IDisposable
+    public sealed class SaveController : ISaveController, IInitializable, IDisposable
     {
         private readonly IInputService       inputService;
         private readonly ISaveGameService    saveGameService;
@@ -27,6 +27,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker     playtimeTracker;
         private readonly SaveSlotNavigator   navigator;
+        private Action?                      pendingOnSaved;
 
         [Preserve]
         public SaveController(
@@ -58,14 +59,17 @@ namespace CrimsonDraft.Navigation.Interactables
             this.inputService.UICancel.performed   += OnBack;
         }
 
-        public void Open()
+        public void Open(Action? onSaved = null)
         {
             if (this.navigator.IsOpen) return;
+            this.pendingOnSaved = onSaved;
             Time.timeScale = 0f;
             this.inputService.SwitchToUI();
             this.navigator.Open(this.saveGameService.ListSlotSummaries());
         }
 
+        // SaveSlotNavigator closes before it calls Save, so pendingOnSaved is NOT cleared here --
+        // it is replaced on every Open and cleared once Save has used it.
         private void OnNavigatorClosed()
         {
             Time.timeScale = 1f;
@@ -80,6 +84,10 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             int previousSaveCount = this.saveGameService.ReadFromDisk(slot)?.saveCount ?? 0;
             this.saveGameService.WriteToDisk(slot, BuildSaveData(previousSaveCount + 1));
+
+            var onSaved = this.pendingOnSaved;
+            this.pendingOnSaved = null;
+            onSaved?.Invoke();
         }
 
         private SaveGameData BuildSaveData(int saveCount)

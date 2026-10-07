@@ -61,6 +61,14 @@ namespace CrimsonDraft.Tests
 
         public bool HasItem(string itemId) => this.OwnedIds.Contains(itemId);
 
+        public readonly List<ItemData> ConsumedOne = new();
+        public bool TryConsumeOne(ItemData data)
+        {
+            if (!this.OwnedIds.Contains(data.ItemId)) return false;
+            this.ConsumedOne.Add(data);
+            return true;
+        }
+
         public readonly HashSet<ContainerId> Inaccessible = new HashSet<ContainerId>();
 
         public bool IsCarried(ContainerId id)    => id != ContainerId.Storage && !this.Inaccessible.Contains(id);

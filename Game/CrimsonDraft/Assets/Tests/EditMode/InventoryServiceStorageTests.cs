@@ -30,6 +30,52 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void TryConsumeOne_stack_removesOnlyOneUnit()
+        {
+            var s    = Service();
+            var tape = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            Assert.IsTrue(s.TryAdd(tape, ContainerId.Operator(0), 3));
+
+            Assert.IsTrue(s.TryConsumeOne(tape));
+
+            Assert.AreEqual(2, Only(Op(s, 0)).Quantity);
+        }
+
+        [Test]
+        public void TryConsumeOne_lastUnit_removesTheItem()
+        {
+            var s    = Service();
+            var tape = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            Assert.IsTrue(s.TryAdd(tape, ContainerId.Operator(0), 1));
+
+            Assert.IsTrue(s.TryConsumeOne(tape));
+
+            Assert.AreEqual(0, Op(s, 0).Count);
+            Assert.IsFalse(s.HasItem("ticker_tape"));
+        }
+
+        [Test]
+        public void TryConsumeOne_notifiesTheContainer()
+        {
+            var s    = Service();
+            var tape = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            Assert.IsTrue(s.TryAdd(tape, ContainerId.Operator(0), 3));
+
+            Assert.AreEqual(1, CountChanges(Op(s, 0), () => s.TryConsumeOne(tape)));
+        }
+
+        [Test]
+        public void TryConsumeOne_ignoresStorage()
+        {
+            var s    = Service();
+            var tape = Consumable(stackable: true, maxStack: 5, id: "ticker_tape");
+            var box  = Stored(s, tape, 3);
+
+            Assert.IsFalse(s.TryConsumeOne(tape));
+            Assert.AreEqual(3, box.Quantity);
+        }
+
+        [Test]
         public void TryUseKey_andHasItem_ignoreStorage()
         {
             var s = Service();

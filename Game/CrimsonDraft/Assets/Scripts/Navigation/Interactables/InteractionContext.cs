@@ -18,7 +18,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly PuzzleViewController    PuzzleViewController;
         public readonly ScreenFader            ScreenFader;
         public readonly PickupPreviewController PickupPreviewController;
-        public readonly SaveController         SaveController;
+        public readonly ISaveController        SaveController;
         public readonly InspectionController   InspectionController;
         public readonly IPublisher<StorageOpenRequestedEvent> StorageOpenPublisher;
 
@@ -31,7 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
-            SaveController          saveController,
+            ISaveController         saveController,
             InspectionController    inspectionController,
             IPublisher<StorageOpenRequestedEvent> storageOpenPublisher)
         {
