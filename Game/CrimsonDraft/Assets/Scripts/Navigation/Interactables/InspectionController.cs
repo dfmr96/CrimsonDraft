@@ -52,6 +52,10 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public bool IsInspecting => this.isInspecting;
 
+        // While set, Cancel (B) is ignored -- for sequences the player must sit through (e.g.
+        // the music box playing its melody). ExitNow() is programmatic and ignores it.
+        public bool ExitLocked { get; set; }
+
         void IInitializable.Initialize()
         {
             this.inputService.UICancel.performed += OnCancel;
@@ -75,7 +79,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private void OnCancel(InputAction.CallbackContext _)
         {
-            if (!this.isInspecting) return;
+            if (!this.isInspecting || this.ExitLocked) return;
             Exit();
         }
 
@@ -90,6 +94,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private void Exit()
         {
             this.isInspecting = false;
+            this.ExitLocked   = false;
             if (this.previousZoneCamera != null)
                 this.zoneService.ActivateZone(this.previousZoneCamera);
             this.previousZoneCamera = null;
