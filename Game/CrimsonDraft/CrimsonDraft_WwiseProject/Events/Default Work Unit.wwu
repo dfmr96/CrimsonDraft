@@ -251,6 +251,42 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_MusicBox_Melody" ID="{708A52D0-8852-4F9F-8FFA-C434BA5F7CC4}">
+					<ChildrenList>
+						<Action Name="Play_MusicBox_Melody" ID="{B92FCEB9-38A2-4EB9-A811-69696433E018}" ShortID="1015026431">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="MelodyBC" ID="{2B1374B0-B190-41F6-8B7A-70F38C8D9363}" WorkUnitID="{41356CDF-73ED-41E5-8949-DF8087CF7D29}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_MusicBox_Mechanism" ID="{37E3CC0C-EA6D-4EB3-98D9-588605696478}">
+					<ChildrenList>
+						<Action Name="Play_MusicBox_Mechanism" ID="{26000479-0C72-4BBC-99FA-59691E472425}" ShortID="112169838">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="MechanismLoop" ID="{F264B153-5FAE-40D8-8FE3-A0D982DCB161}" WorkUnitID="{41356CDF-73ED-41E5-8949-DF8087CF7D29}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Stop_MusicBox_Mechanism" ID="{41E53CD0-DB28-4A53-8D05-C4B7CE7E74DC}">
+					<ChildrenList>
+						<Action Name="Stop_MusicBox_Mechanism" ID="{EEEA9E28-B295-45A2-86E1-E5EA0AD6509D}" ShortID="670361965">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="2"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="MechanismLoop" ID="{F264B153-5FAE-40D8-8FE3-A0D982DCB161}" WorkUnitID="{41356CDF-73ED-41E5-8949-DF8087CF7D29}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

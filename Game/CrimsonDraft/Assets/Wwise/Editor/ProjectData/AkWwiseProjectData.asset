@@ -200,7 +200,7 @@ MonoBehaviour:
     ParentPath: SoundBanks\Default Work Unit
     guid: e2c118c47f91594c9422990ad41562eb
     GuidInternal: 
-    m_lastTime: -8584133205252320969
+    m_lastTime: -8584101285727570108
     List:
     - name: Main
       guid: 45449900ea4461418fb952f0a73ea835
@@ -228,7 +228,7 @@ MonoBehaviour:
     ParentPath: Events\Default Work Unit
     guid: 651088eb46ad714382b74d1a4a2d27b3
     GuidInternal: 
-    m_lastTime: -8584133205252771080
+    m_lastTime: -8584101285727650237
     List:
     - name: Play_AmbienceSC
       guid: 510175b70e81e140998b42d2fb4c5799
@@ -400,6 +400,40 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
+    - name: Play_MusicBox_Mechanism
+      guid: 0ccce3376deab34e98d9588605696478
+      id: 1344085496
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_MusicBox_Mechanism
+        ObjectType: 3
+        guid: 0ccce3376deab34e98d9588605696478
+      Path: Events\Default Work Unit\Play_MusicBox_Mechanism
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
+    - name: Play_MusicBox_Melody
+      guid: d0528a7052889f4f8ffac434ba5f7cc4
+      id: 4139498805
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_MusicBox_Melody
+        ObjectType: 3
+        guid: d0528a7052889f4f8ffac434ba5f7cc4
+      Path: Events\Default Work Unit\Play_MusicBox_Melody
+      maxAttenuation: 0
+      maxDuration: 15.833334
+      minDuration: 15.833334
     - name: Play_RadioSC
       guid: 71b8bd6b00284c448d72d24d514a7124
       id: 3489459273
@@ -536,6 +570,23 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
+    - name: Stop_MusicBox_Mechanism
+      guid: d03ce54128db534a8d05c4b7ce7e74dc
+      id: 1645922182
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Stop_MusicBox_Mechanism
+        ObjectType: 3
+        guid: d03ce54128db534a8d05c4b7ce7e74dc
+      Path: Events\Default Work Unit\Stop_MusicBox_Mechanism
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
     - name: Stop_Radio
       guid: 44eedf3eef4fe44890509de90c0f56bf
       id: 151474297
@@ -1001,7 +1052,7 @@ MonoBehaviour:
     ParentPath: Switches\Default Work Unit
     guid: 337abf2623332e4b9f098f12077fcc35
     GuidInternal: 
-    m_lastTime: -8584142346091440763
+    m_lastTime: -8584101285727721548
     List:
     - name: DoorType
       guid: d580be5e1bb21e45932079e3c1fc0fe5
@@ -1265,6 +1316,270 @@ MonoBehaviour:
       ValueGuids: []
       ValueIcons: []
       valuesInternal: []
+    - name: MB_Slot1
+      guid: 8f6fbbf667399248894027518217d62d
+      id: 2133727884
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot1
+        ObjectType: 11
+        guid: 8f6fbbf667399248894027518217d62d
+      Path: Switches\Default Work Unit\MB_Slot1
+      values:
+      - name: Option1
+        guid: 5a539c593b6ebf42ac61c526607974da
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option1
+          ObjectType: 10
+          guid: 5a539c593b6ebf42ac61c526607974da
+      - name: Option2
+        guid: a74401cbf7f808498a68348e98318dc8
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option2
+          ObjectType: 10
+          guid: a74401cbf7f808498a68348e98318dc8
+      - name: Option3
+        guid: 69b097274954b24784054ffa81364f47
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option3
+          ObjectType: 10
+          guid: 69b097274954b24784054ffa81364f47
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot2
+      guid: f1b7e6b0c9456545a0c476d4c82cade1
+      id: 2133727887
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot2
+        ObjectType: 11
+        guid: f1b7e6b0c9456545a0c476d4c82cade1
+      Path: Switches\Default Work Unit\MB_Slot2
+      values:
+      - name: Option1
+        guid: b7b2dca5c2f3da44bb947b3f3f5cd13e
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option1
+          ObjectType: 10
+          guid: b7b2dca5c2f3da44bb947b3f3f5cd13e
+      - name: Option2
+        guid: 6a6e3685a68ea6498621342dd3fb8018
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option2
+          ObjectType: 10
+          guid: 6a6e3685a68ea6498621342dd3fb8018
+      - name: Option3
+        guid: de60591b7edf5e49afdbe347caeb5187
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option3
+          ObjectType: 10
+          guid: de60591b7edf5e49afdbe347caeb5187
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot3
+      guid: 45bd6a08bee20e40b97a0c71c28f612e
+      id: 2133727886
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot3
+        ObjectType: 11
+        guid: 45bd6a08bee20e40b97a0c71c28f612e
+      Path: Switches\Default Work Unit\MB_Slot3
+      values:
+      - name: Option1
+        guid: 8d8301dc89b45648b3d0c26e22e0f5ed
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option1
+          ObjectType: 10
+          guid: 8d8301dc89b45648b3d0c26e22e0f5ed
+      - name: Option2
+        guid: 60b78663d14f8d40be7bb59f402d1680
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option2
+          ObjectType: 10
+          guid: 60b78663d14f8d40be7bb59f402d1680
+      - name: Option3
+        guid: ed4a34429bfa9144bc1ed7cc2745f03e
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option3
+          ObjectType: 10
+          guid: ed4a34429bfa9144bc1ed7cc2745f03e
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot4
+      guid: ce95cf0322ba7a458ceb7368025dba12
+      id: 2133727881
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot4
+        ObjectType: 11
+        guid: ce95cf0322ba7a458ceb7368025dba12
+      Path: Switches\Default Work Unit\MB_Slot4
+      values:
+      - name: Option1
+        guid: ee09d6dbced2344a8b6e9e99feba6345
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option1
+          ObjectType: 10
+          guid: ee09d6dbced2344a8b6e9e99feba6345
+      - name: Option2
+        guid: df0b38aa2975874b983379781cddce48
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option2
+          ObjectType: 10
+          guid: df0b38aa2975874b983379781cddce48
+      - name: Option3
+        guid: 756929293f7c8547b1f8dbae1da99039
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option3
+          ObjectType: 10
+          guid: 756929293f7c8547b1f8dbae1da99039
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
     - name: RadioType
       guid: 4ce11ede70712540afe7181c36161a16
       id: 1568172590
@@ -1494,7 +1809,7 @@ MonoBehaviour:
     m_lastTime: -8584142346091240720
     List: []
   ExpandedFileSystemItemIds: 
-  ExpandedWaapiItemIds: 210000002200000025000000
+  ExpandedWaapiItemIds: 050000000600000007000000210000002200000025000000
   AutoSyncSelection: 0
   autoPopulateEnabled: 1
   currentDataSource: 0

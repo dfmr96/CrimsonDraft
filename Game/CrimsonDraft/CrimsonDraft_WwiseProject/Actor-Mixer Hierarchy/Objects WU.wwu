@@ -1051,6 +1051,578 @@
 					</ChildrenList>
 					<ObjectLists/>
 				</BlendContainer>
+				<ActorMixer Name="MusicBox" ID="{27885139-C6FD-4A32-A71F-C349ED2F2650}" ShortID="741091759">
+					<PropertyList>
+						<Property Name="3DSpatialization" Type="int16" Value="1"/>
+						<Property Name="OverridePositioning" Type="bool" Value="True"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="WORLD" ID="{E04A09F2-65D4-41D0-802F-109C11604A3A}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<Sound Name="MechanismLoop" ID="{F264B153-5FAE-40D8-8FE3-A0D982DCB161}" ShortID="527582068">
+							<PropertyList>
+								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+								<Property Name="Volume" Type="Real64">
+									<ValueList>
+										<Value>-12</Value>
+									</ValueList>
+								</Property>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="mecanismo_loop" ID="{45F15744-F40D-4C24-8D61-004FBA33CB3F}">
+									<Language>SFX</Language>
+									<AudioFile>SFX\mecanismo_loop.wav</AudioFile>
+									<MediaIDList>
+										<MediaID ID="1053085706"/>
+									</MediaIDList>
+								</AudioFileSource>
+							</ChildrenList>
+							<ObjectLists/>
+							<ActiveSourceList>
+								<ActiveSource Name="mecanismo_loop" ID="{45F15744-F40D-4C24-8D61-004FBA33CB3F}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+						<BlendContainer Name="MelodyBC" ID="{2B1374B0-B190-41F6-8B7A-70F38C8D9363}" ShortID="124682992">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<SwitchContainer Name="Slot1SC" ID="{C596C5BA-E06E-4A1F-8A49-5B5B7E937D45}" ShortID="898052358">
+									<PropertyList>
+										<Property Name="3DSpatialization" Type="int16" Value="1"/>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="DefaultSwitchOrState">
+											<ObjectRef Name="Option1" ID="{599C535A-6E3B-42BF-AC61-C526607974DA}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+										<Reference Name="SwitchGroupOrStateGroup">
+											<ObjectRef Name="MB_Slot1" ID="{F6BB6F8F-3967-4892-8940-27518217D62D}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Slot1_Option1" ID="{A3351D9B-C011-458B-BB73-6BC3F8EDC557}" ShortID="456784821">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot1_opcion1" ID="{8AEC437C-65BD-4A5D-9E96-077F24D590B6}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot1_opcion1.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="918281204"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot1_opcion1" ID="{8AEC437C-65BD-4A5D-9E96-077F24D590B6}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot1_Option2" ID="{538DDC3E-A2EE-4B00-B1DF-136A3A634FD3}" ShortID="1055894922">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot1_opcion2" ID="{D832A116-6891-4297-A2C0-6178A669C254}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot1_opcion2.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="128885530"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot1_opcion2" ID="{D832A116-6891-4297-A2C0-6178A669C254}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot1_Option3" ID="{BA0DF4CC-EDC3-40AC-8EEF-57E7E9E7C614}" ShortID="811377758">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot1_opcion3" ID="{E6A7B146-0D99-4500-BAF6-DEDC2815B2DE}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot1_opcion3.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="198994397"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot1_opcion3" ID="{E6A7B146-0D99-4500-BAF6-DEDC2815B2DE}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+									<GroupingInfo>
+										<GroupingBehaviorList>
+											<GroupingBehavior>
+												<ItemRef Name="Slot1_Option2" ID="{538DDC3E-A2EE-4B00-B1DF-136A3A634FD3}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot1_Option1" ID="{A3351D9B-C011-458B-BB73-6BC3F8EDC557}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot1_Option3" ID="{BA0DF4CC-EDC3-40AC-8EEF-57E7E9E7C614}"/>
+											</GroupingBehavior>
+										</GroupingBehaviorList>
+										<GroupingList>
+											<Grouping>
+												<SwitchRef Name="Option1" ID="{599C535A-6E3B-42BF-AC61-C526607974DA}"/>
+												<ItemList>
+													<ItemRef Name="Slot1_Option1" ID="{A3351D9B-C011-458B-BB73-6BC3F8EDC557}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option3" ID="{2797B069-5449-47B2-8405-4FFA81364F47}"/>
+												<ItemList>
+													<ItemRef Name="Slot1_Option3" ID="{BA0DF4CC-EDC3-40AC-8EEF-57E7E9E7C614}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option2" ID="{CB0144A7-F8F7-4908-8A68-348E98318DC8}"/>
+												<ItemList>
+													<ItemRef Name="Slot1_Option2" ID="{538DDC3E-A2EE-4B00-B1DF-136A3A634FD3}"/>
+												</ItemList>
+											</Grouping>
+										</GroupingList>
+									</GroupingInfo>
+								</SwitchContainer>
+								<SwitchContainer Name="Slot2SC" ID="{172B9CAF-9CB8-4CEC-BC22-BFD09023757B}" ShortID="829662749">
+									<PropertyList>
+										<Property Name="3DSpatialization" Type="int16" Value="1"/>
+										<Property Name="InitialDelay" Type="Real64">
+											<ValueList>
+												<Value>3.3333</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="DefaultSwitchOrState">
+											<ObjectRef Name="Option1" ID="{A5DCB2B7-F3C2-44DA-BB94-7B3F3F5CD13E}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+										<Reference Name="SwitchGroupOrStateGroup">
+											<ObjectRef Name="MB_Slot2" ID="{B0E6B7F1-45C9-4565-A0C4-76D4C82CADE1}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Slot2_Option1" ID="{1BD473FE-B478-4FA4-B4E8-994321BAC7AF}" ShortID="848347726">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot2_opcion1" ID="{FF4BECCB-2A88-4C7C-AFA0-27BB80233ABB}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot2_opcion1.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="602716907"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot2_opcion1" ID="{FF4BECCB-2A88-4C7C-AFA0-27BB80233ABB}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot2_Option2" ID="{8B82655E-4468-4385-B483-A603F86CE3A8}" ShortID="588941010">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot2_opcion2" ID="{67ACB91A-1156-409D-A8CA-9B2C5B4B0080}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot2_opcion2.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="906359948"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot2_opcion2" ID="{67ACB91A-1156-409D-A8CA-9B2C5B4B0080}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot2_Option3" ID="{D42CB2DE-4D92-4D04-9C20-BD26D1EE85AA}" ShortID="856294941">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot2_opcion3" ID="{7E89889C-C815-4C17-B1FE-71ECAD6888FE}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot2_opcion3.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="393249911"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot2_opcion3" ID="{7E89889C-C815-4C17-B1FE-71ECAD6888FE}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+									<GroupingInfo>
+										<GroupingBehaviorList>
+											<GroupingBehavior>
+												<ItemRef Name="Slot2_Option2" ID="{8B82655E-4468-4385-B483-A603F86CE3A8}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot2_Option3" ID="{D42CB2DE-4D92-4D04-9C20-BD26D1EE85AA}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot2_Option1" ID="{1BD473FE-B478-4FA4-B4E8-994321BAC7AF}"/>
+											</GroupingBehavior>
+										</GroupingBehaviorList>
+										<GroupingList>
+											<Grouping>
+												<SwitchRef Name="Option2" ID="{85366E6A-8EA6-49A6-8621-342DD3FB8018}"/>
+												<ItemList>
+													<ItemRef Name="Slot2_Option2" ID="{8B82655E-4468-4385-B483-A603F86CE3A8}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option1" ID="{A5DCB2B7-F3C2-44DA-BB94-7B3F3F5CD13E}"/>
+												<ItemList>
+													<ItemRef Name="Slot2_Option1" ID="{1BD473FE-B478-4FA4-B4E8-994321BAC7AF}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option3" ID="{1B5960DE-DF7E-495E-AFDB-E347CAEB5187}"/>
+												<ItemList>
+													<ItemRef Name="Slot2_Option3" ID="{D42CB2DE-4D92-4D04-9C20-BD26D1EE85AA}"/>
+												</ItemList>
+											</Grouping>
+										</GroupingList>
+									</GroupingInfo>
+								</SwitchContainer>
+								<SwitchContainer Name="Slot3SC" ID="{C7DFA8CD-17E3-4BB9-92A2-796900EADA93}" ShortID="373693703">
+									<PropertyList>
+										<Property Name="3DSpatialization" Type="int16" Value="1"/>
+										<Property Name="InitialDelay" Type="Real64">
+											<ValueList>
+												<Value>6.6667</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="DefaultSwitchOrState">
+											<ObjectRef Name="Option1" ID="{DC01838D-B489-4856-B3D0-C26E22E0F5ED}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+										<Reference Name="SwitchGroupOrStateGroup">
+											<ObjectRef Name="MB_Slot3" ID="{086ABD45-E2BE-400E-B97A-0C71C28F612E}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Slot3_Option1" ID="{CFBD17D6-03BD-4FF9-9E30-E32B04111353}" ShortID="660165127">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot3_opcion1" ID="{D34CB32E-3CD1-4A75-91BD-5C8C72653F32}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot3_opcion1.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="232707118"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot3_opcion1" ID="{D34CB32E-3CD1-4A75-91BD-5C8C72653F32}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot3_Option2" ID="{C56F0280-6E1E-4B10-9A9B-7ED3AB2DD29A}" ShortID="594004706">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot3_opcion2" ID="{2A42B428-03FB-46C9-88B2-3F0273720F49}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot3_opcion2.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="573105739"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot3_opcion2" ID="{2A42B428-03FB-46C9-88B2-3F0273720F49}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot3_Option3" ID="{F5F7B265-4DA3-4A75-BBDB-AE952AC4C5E5}" ShortID="796743370">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot3_opcion3" ID="{37D621D3-3018-4A15-A99C-02227B5306A4}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot3_opcion3.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="710504916"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot3_opcion3" ID="{37D621D3-3018-4A15-A99C-02227B5306A4}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+									<GroupingInfo>
+										<GroupingBehaviorList>
+											<GroupingBehavior>
+												<ItemRef Name="Slot3_Option3" ID="{F5F7B265-4DA3-4A75-BBDB-AE952AC4C5E5}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot3_Option2" ID="{C56F0280-6E1E-4B10-9A9B-7ED3AB2DD29A}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot3_Option1" ID="{CFBD17D6-03BD-4FF9-9E30-E32B04111353}"/>
+											</GroupingBehavior>
+										</GroupingBehaviorList>
+										<GroupingList>
+											<Grouping>
+												<SwitchRef Name="Option2" ID="{6386B760-4FD1-408D-BE7B-B59F402D1680}"/>
+												<ItemList>
+													<ItemRef Name="Slot3_Option2" ID="{C56F0280-6E1E-4B10-9A9B-7ED3AB2DD29A}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option1" ID="{DC01838D-B489-4856-B3D0-C26E22E0F5ED}"/>
+												<ItemList>
+													<ItemRef Name="Slot3_Option1" ID="{CFBD17D6-03BD-4FF9-9E30-E32B04111353}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option3" ID="{42344AED-FA9B-4491-BC1E-D7CC2745F03E}"/>
+												<ItemList>
+													<ItemRef Name="Slot3_Option3" ID="{F5F7B265-4DA3-4A75-BBDB-AE952AC4C5E5}"/>
+												</ItemList>
+											</Grouping>
+										</GroupingList>
+									</GroupingInfo>
+								</SwitchContainer>
+								<SwitchContainer Name="Slot4SC" ID="{97B637D5-5263-4412-A889-7E324C7E6433}" ShortID="1046437323">
+									<PropertyList>
+										<Property Name="3DSpatialization" Type="int16" Value="1"/>
+										<Property Name="InitialDelay" Type="Real64">
+											<ValueList>
+												<Value>10</Value>
+											</ValueList>
+										</Property>
+									</PropertyList>
+									<ReferenceList>
+										<Reference Name="Conversion">
+											<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+										</Reference>
+										<Reference Name="DefaultSwitchOrState">
+											<ObjectRef Name="Option1" ID="{DBD609EE-D2CE-4A34-8B6E-9E99FEBA6345}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+										<Reference Name="OutputBus">
+											<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+										</Reference>
+										<Reference Name="SwitchGroupOrStateGroup">
+											<ObjectRef Name="MB_Slot4" ID="{03CF95CE-BA22-457A-8CEB-7368025DBA12}" WorkUnitID="{26BF7A33-3323-4B2E-9F09-8F12077FCC35}"/>
+										</Reference>
+									</ReferenceList>
+									<ChildrenList>
+										<Sound Name="Slot4_Option1" ID="{C2AA0D21-F21D-456C-A96F-19B2A67FA863}" ShortID="315882593">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot4_opcion1" ID="{60A4AA9F-DF7A-491C-9A12-8F01895894F1}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot4_opcion1.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="198482215"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot4_opcion1" ID="{60A4AA9F-DF7A-491C-9A12-8F01895894F1}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot4_Option2" ID="{1AB8EE9C-AF1B-4DF4-A8E8-CDD02B8835CE}" ShortID="513441843">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot4_opcion2" ID="{6F52E8D9-D98A-4001-8805-F1E1A68D07C2}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot4_opcion2.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="661189471"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot4_opcion2" ID="{6F52E8D9-D98A-4001-8805-F1E1A68D07C2}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+										<Sound Name="Slot4_Option3" ID="{98555940-4390-486E-A6CB-ED8A9CDA9791}" ShortID="1015060150">
+											<ReferenceList>
+												<Reference Name="Conversion">
+													<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+												</Reference>
+												<Reference Name="OutputBus">
+													<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+												</Reference>
+											</ReferenceList>
+											<ChildrenList>
+												<AudioFileSource Name="slot4_opcion3" ID="{D8FCF857-731A-4B21-BBF8-D19502B91E10}">
+													<Language>SFX</Language>
+													<AudioFile>SFX\slot4_opcion3.wav</AudioFile>
+													<MediaIDList>
+														<MediaID ID="323828224"/>
+													</MediaIDList>
+												</AudioFileSource>
+											</ChildrenList>
+											<ObjectLists/>
+											<ActiveSourceList>
+												<ActiveSource Name="slot4_opcion3" ID="{D8FCF857-731A-4B21-BBF8-D19502B91E10}" Platform="Linked"/>
+											</ActiveSourceList>
+										</Sound>
+									</ChildrenList>
+									<ObjectLists/>
+									<GroupingInfo>
+										<GroupingBehaviorList>
+											<GroupingBehavior>
+												<ItemRef Name="Slot4_Option1" ID="{C2AA0D21-F21D-456C-A96F-19B2A67FA863}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot4_Option3" ID="{98555940-4390-486E-A6CB-ED8A9CDA9791}"/>
+											</GroupingBehavior>
+											<GroupingBehavior>
+												<ItemRef Name="Slot4_Option2" ID="{1AB8EE9C-AF1B-4DF4-A8E8-CDD02B8835CE}"/>
+											</GroupingBehavior>
+										</GroupingBehaviorList>
+										<GroupingList>
+											<Grouping>
+												<SwitchRef Name="Option3" ID="{29296975-7C3F-4785-B1F8-DBAE1DA99039}"/>
+												<ItemList>
+													<ItemRef Name="Slot4_Option3" ID="{98555940-4390-486E-A6CB-ED8A9CDA9791}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option2" ID="{AA380BDF-7529-4B87-9833-79781CDDCE48}"/>
+												<ItemList>
+													<ItemRef Name="Slot4_Option2" ID="{1AB8EE9C-AF1B-4DF4-A8E8-CDD02B8835CE}"/>
+												</ItemList>
+											</Grouping>
+											<Grouping>
+												<SwitchRef Name="Option1" ID="{DBD609EE-D2CE-4A34-8B6E-9E99FEBA6345}"/>
+												<ItemList>
+													<ItemRef Name="Slot4_Option1" ID="{C2AA0D21-F21D-456C-A96F-19B2A67FA863}"/>
+												</ItemList>
+											</Grouping>
+										</GroupingList>
+									</GroupingInfo>
+								</SwitchContainer>
+							</ChildrenList>
+							<ObjectLists/>
+						</BlendContainer>
+					</ChildrenList>
+					<ObjectLists/>
+				</ActorMixer>
 			</ChildrenList>
 		</WorkUnit>
 	</AudioObjects>

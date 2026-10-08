@@ -18,6 +18,7 @@ Event	ID	Name			Wwise Object Path	Notes
 	3143732789	Play_MSC_Manager			\Default Work Unit\Play_MSC_Manager	
 	3424589339	Play_Inventory_Cancel			\Default Work Unit\Play_Inventory_Cancel	
 	3489459273	Play_RadioSC			\Default Work Unit\Play_RadioSC	
+	4139498805	Play_MusicBox_Melody			\Default Work Unit\Play_MusicBox_Melody	
 
 Switch Group	ID	Name			Wwise Object Path	Notes
 	994385550	MarineraSector			\Default Work Unit\MarineraSector	
@@ -26,6 +27,10 @@ Switch Group	ID	Name			Wwise Object Path	Notes
 	1613795745	GunType			\Default Work Unit\GunType	
 	1755117202	ZombieState			\Default Work Unit\ZombieState	
 	1834394558	Surface			\Default Work Unit\Surface	
+	2133727881	MB_Slot4			\Default Work Unit\MB_Slot4	
+	2133727884	MB_Slot1			\Default Work Unit\MB_Slot1	
+	2133727886	MB_Slot3			\Default Work Unit\MB_Slot3	
+	2133727887	MB_Slot2			\Default Work Unit\MB_Slot2	
 
 Switch	ID	Name	Switch Group			Notes
 	604931459	SafeRoom	MarineraSector			
@@ -51,6 +56,18 @@ Switch	ID	Name	Switch Group			Notes
 	841620460	Concrete	Surface			
 	2412606308	Carpet	Surface			
 	2473969246	Metal	Surface			
+	4141131000	Option2	MB_Slot4			
+	4141131001	Option3	MB_Slot4			
+	4141131003	Option1	MB_Slot4			
+	4141131000	Option2	MB_Slot1			
+	4141131001	Option3	MB_Slot1			
+	4141131003	Option1	MB_Slot1			
+	4141131000	Option2	MB_Slot3			
+	4141131001	Option3	MB_Slot3			
+	4141131003	Option1	MB_Slot3			
+	4141131000	Option2	MB_Slot2			
+	4141131001	Option3	MB_Slot2			
+	4141131003	Option1	MB_Slot2			
 
 State Group	ID	Name			Wwise Object Path	Notes
 	3285234865	PlayerState			\Default Work Unit\PlayerState	
@@ -118,85 +135,97 @@ Source plug-ins	ID	Name	Type		Wwise Object Path	Notes
 	995044647	Wwise Silence	Wwise Silence		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideThunders\Silence\Wwise Silence	
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
-	10207256	MapOpenSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00006_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\MapOpen\MapOpenSFX		1543
-	36492583	I Can't Go On Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\I Can't Go On Loop1_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\SafeRoom\I Can't Go On Loop1\I Can't Go On Loop1		626667
-	43572164	MF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_3AE8458D.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF4		6419
-	113241952	DoorLocked	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\ROOM10C 00004_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorLockedInteract\DoorLocked		8416
-	135793063	Heartbeat	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\latidos_2A314189.wem		\Actor-Mixer Hierarchy\Character WU\PlayerLifeStatus\Heartbeat		7962
-	167341198	SHOT01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SHOT01_CEC2E741.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\REShotgun\SHOT01		5111
-	180281241	WaterDropplet2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_2BC941C5.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet2		26253
-	182069077	MF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_EDDE8EB3.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF3		5966
-	188569683	MF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_3D77B32B.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF2		6727
-	191187230	Idle2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_6A4E4149.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle2		27688
-	211220642	InsideWaves	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\chaus_143607B2.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideWaves		202204
-	249258421	Gleam swoosh	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Gleam swoosh_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\GameOver\Gleam swoosh\Gleam swoosh		53974
-	250788484	Eating2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_8C438291.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating2		29804
-	311580335	CaF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-006_03A3E5A3.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF4		5637
-	335050119	2 Mind's Eye Out	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Out_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Out\2 Mind's Eye Out		184524
-	339019968	Four_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Four_Loop_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationLaboratory\Four_Loop\Four_Loop		985756
-	371674474	2 Mind's Eye Loop3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop3_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop3\2 Mind's Eye Loop3		227460
-	414773818	FlickerLight	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\luzParpadeo_C5C8DBB0.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\FlickerLight		102983
-	421810488	2 Mind's Eye Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop1_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop1\2 Mind's Eye Loop1		75451
-	427723046	Morse4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_DEC20E3C.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse4		21514
-	432848668	DoorPounding3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_3F0EF3EE.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding3		5886
-	441606329	DoorPounding2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_BDA47D13.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding2		6425
-	450296353	Morse5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_409147B9.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse5		28443
-	462864626	ShotgunShoot	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\ShotgunShoot_5D8262A2.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Shotgun\ShotgunShoot		7527
-	498550451	WaterDropplet1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_EFADDBDA.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet1		42280
-	498714622	Z_SUZU02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_SUZU02_CEC2E741.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Z_SUZU02		14829
-	512805074	Morse3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_27C75249.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse3		33270
-	515309850	CaF5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-007_FB49DB0B.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF5		5072
-	519411408	Fridge	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\heladera_33E6C49E.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\Fridge		665853
-	540595669	DR_MTL02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DR_MTL02_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\CloseDoors\DR_MTL02		6413
-	549863510	CoF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-001_3983D736.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF1		3760
-	558626553	MetalDoor1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertametal_BD7DE112.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\MetalDoors\MetalDoor1		57167
-	569283215	Z_Damage01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Male 4 1448 Pain_CEC2E741.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\RecievingDamage\Z_Damage01		6726
-	572308052	InsideRainHard	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Rainstorm_4B418449.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideRainHard		181630
-	583014744	Attacking	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_6AC6B715.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Attacking		19551
-	587338500	Eating1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_F5178DD5.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating1		27590
-	587988255	CoF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-008_E27A49E6.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF4		3317
-	607270821	InsideWind	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\viento_A3526A92.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideWind		191276
-	619998621	ThunderClose	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Thunder close_AA807DDE.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideThunders\ThunderClose		142900
-	642066005	InvalidActionSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00004_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\InvalidAction\InvalidActionSFX		1373
-	643235054	Morse2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_B36FF809.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse2		23946
-	648106283	CoF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-007_25F086BF.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF3		5078
-	702208230	Z_K02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_K02_CEC2E741.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Z_K02		10565
-	710735092	DR_MTL01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DR_MTL01_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\OpenDoors\DR_MTL01		7736
-	716525506	CancelSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Cancel (2)_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Cancel\CancelSFX		3126
-	718328602	ShellBounce	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\A_MCN03_CEC2E741.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\ShellCasing\ShellBounce		2587
-	731615472	WoodenDoor2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertamadera3_3F30F81B.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\WoodenDoors\WoodenDoor2		21196
-	735304760	Z_MIKA03	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_MIKA03_CEC2E741.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieDeath\Z_MIKA03		11144
-	752742090	DecideSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DECIDE_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Decide\DecideSFX		3190
-	768663176	InsideRainSoft	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Rain_Soft_9142E273.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideRainSoft		243245
-	791062687	Eleven_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Eleven_Loop_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationDeckB\Eleven_Loop\Eleven_Loop		730906
-	799904918	Tempest Loop2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Tempest Loop2_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Tempest Loop2\Tempest Loop2		658440
-	800468003	WaterDropplet3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_F72B546F.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet3		40593
-	813649322	GUN01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\GUN01_CEC2E741.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\REPistols\GUN01		5021
-	829816020	WoodenDoor1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertamadera2_F0A99453.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\WoodenDoors\WoodenDoor1		44355
-	831267844	MF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_AFE6026C.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF1		6532
-	841952566	ProximitySignal	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\radio_CC585EE7.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\ProximitySignal		77398
-	842715107	Morse1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_00FC352E.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse1		26528
-	847506184	MF5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_8593BE08.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF5		7332
-	855551031	CaF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-003_A6AD0E16.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF2		5759
-	860702383	CoF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-006_DB9E265C.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF2		6546
-	866606536	PistolShoot_01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\PistolShoot_1C0C605A.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Pistols\PistolShoot_01		3362
-	903839508	2 Mind's Eye In	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye In_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye In\2 Mind's Eye In		75164
-	903933235	ThunderDistant	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Thunder distant_23CC065A.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideThunders\ThunderDistant		162715
-	922974435	CaF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-001_10E4E054.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF1		5133
-	929250175	CaF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-005_0D2EB55D.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF3		5908
-	941267629	MetalDoor2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertametal2_2A94ABD8.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\MetalDoors\MetalDoor2		33567
-	950113051	Ten_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Ten_Loop_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\GameOver\Ten_Loop\Ten_Loop		604307
-	950869598	Without a Trace Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Without a Trace Loop1_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Menu\Without a Trace Loop1\Without a Trace Loop1		502185
-	973790134	2 Mind's Eye Loop2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop2_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop2\2 Mind's Eye Loop2		224469
-	978352793	Idle1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_66080E3A.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle1		25133
-	981189952	Eating3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_A40337D1.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating3		10309
-	982676353	Two_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Two_Loop_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationLaboratory\Two_Loop\Two_Loop		931291
-	997707427	NoteOpenSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00005_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\NoteOpen\NoteOpenSFX		5254
-	1001515774	CursorSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CURSOR (2)_CEC2E741.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Cursor\CursorSFX		2666
-	1018374377	Idle3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_EFE7CDB0.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle3		25916
-	1025766323	Tempest Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Tempest Loop1_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Tempest Loop1\Tempest Loop1		1406615
-	1033020783	DoorPounding1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_9C1770CA.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding1		8972
-	1039552908	Eight_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Eight_Loop_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationDeckC\Eight_Loop\Eight_Loop		1016474
-	1040501881	PistolShoot	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\PistolShoot_25FFB1C8.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Pistols\PistolShoot		5595
-	1045714167	Stutter swish	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Stutter swish_FD7EB04F.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Stutter swish\Stutter swish		43994
+	10207256	MapOpenSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00006_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\MapOpen\MapOpenSFX		1577
+	36492583	I Can't Go On Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\I Can't Go On Loop1_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\SafeRoom\I Can't Go On Loop1\I Can't Go On Loop1		626701
+	43572164	MF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_A9048D9E.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF4		6453
+	113241952	DoorLocked	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\ROOM10C 00004_9ED9F99E.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorLockedInteract\DoorLocked		8450
+	119641740	Eight_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Eight_Loop_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationDeckC\Eight_Loop\Eight_Loop		1016508
+	128885530	Slot1_Option2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot1_opcion2_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot1SC\Slot1_Option2		46520
+	135793063	Heartbeat	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\latidos_18397D8A.wem		\Actor-Mixer Hierarchy\Character WU\PlayerLifeStatus\Heartbeat		7996
+	167341198	SHOT01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SHOT01_9ED9F99E.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\REShotgun\SHOT01		5145
+	180281241	WaterDropplet2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_6257B6CA.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet2		26287
+	182069077	MF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_1E8BA85C.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF3		6000
+	188569683	MF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_62E66988.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF2		6761
+	191187230	Idle2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_7D7B9782.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle2		27722
+	198482215	Slot4_Option1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot4_opcion1_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot4SC\Slot4_Option1		47208
+	198994397	Slot1_Option3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot1_opcion3_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot1SC\Slot1_Option3		47245
+	211220642	InsideWaves	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\chaus_F206D68D.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideWaves		202238
+	232707118	Slot3_Option1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot3_opcion1_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot3SC\Slot3_Option1		46380
+	249258421	Gleam swoosh	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Gleam swoosh_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\GameOver\Gleam swoosh\Gleam swoosh		54008
+	250788484	Eating2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_D3AE1A4A.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating2		29838
+	311580335	CaF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-006_CB9719A4.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF4		5671
+	323828224	Slot4_Option3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot4_opcion3_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot4SC\Slot4_Option3		47587
+	335050119	2 Mind's Eye Out	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Out_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Out\2 Mind's Eye Out		184558
+	371674474	2 Mind's Eye Loop3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop3_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop3\2 Mind's Eye Loop3		227494
+	393249911	Slot2_Option3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot2_opcion3_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot2SC\Slot2_Option3		47427
+	414773818	FlickerLight	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\luzParpadeo_8BA08D57.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\FlickerLight		103017
+	421810488	2 Mind's Eye Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop1_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop1\2 Mind's Eye Loop1		75485
+	427723046	Morse4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_BBDD0C33.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse4		21548
+	432848668	DoorPounding3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_90672541.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding3		5920
+	441606329	DoorPounding2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_F4D23CF0.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding2		6459
+	450296353	Morse5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_C97DF78E.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse5		28477
+	462864626	ShotgunShoot	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\ShotgunShoot_106BC7F1.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Shotgun\ShotgunShoot		7561
+	498550451	WaterDropplet1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_3FEC40AD.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet1		42314
+	498714622	Z_SUZU02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_SUZU02_9ED9F99E.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Z_SUZU02		14863
+	512805074	Morse3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_25C6BA0A.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse3		33304
+	515309850	CaF5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-007_D458DBF8.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF5		5106
+	519411408	Fridge	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\heladera_61CC0209.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\Fridge		665887
+	540595669	DR_MTL02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DR_MTL02_9ED9F99E.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\CloseDoors\DR_MTL02		6447
+	549863510	CoF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-001_5A16A659.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF1		3794
+	558626553	MetalDoor1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertametal_EC0211B1.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\MetalDoors\MetalDoor1		57201
+	569283215	Z_Damage01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Male 4 1448 Pain_9ED9F99E.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\RecievingDamage\Z_Damage01		6760
+	572308052	InsideRainHard	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Rainstorm_135338E2.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideRainHard		181664
+	573105739	Slot3_Option2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot3_opcion2_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot3SC\Slot3_Option2		47204
+	583014744	Attacking	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_35436302.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Attacking		19585
+	587338500	Eating1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_374968BA.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating1		27624
+	587988255	CoF4	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-008_56BBAE19.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF4		3351
+	602716907	Slot2_Option1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot2_opcion1_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot2SC\Slot2_Option1		47424
+	607270821	InsideWind	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\viento_17857799.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideWind		191310
+	619998621	ThunderClose	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Thunder close_35AFEC71.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideThunders\ThunderClose		142934
+	642066005	InvalidActionSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00004_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\InvalidAction\InvalidActionSFX		1407
+	643235054	Morse2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_DAE0E352.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse2		23980
+	648106283	CoF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-007_012E5648.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF3		5112
+	661189471	Slot4_Option2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot4_opcion2_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot4SC\Slot4_Option2		47785
+	666579917	Two_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Two_Loop_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationLaboratory\Two_Loop\Two_Loop		931325
+	702208230	Z_K02	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_K02_9ED9F99E.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieAttacks\Z_K02		10599
+	710504916	Slot3_Option3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot3_opcion3_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot3SC\Slot3_Option3		47758
+	710735092	DR_MTL01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DR_MTL01_9ED9F99E.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\OpenDoors\DR_MTL01		7770
+	716525506	CancelSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Cancel (2)_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Cancel\CancelSFX		3160
+	718328602	ShellBounce	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\A_MCN03_9ED9F99E.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\ShellCasing\ShellBounce		2621
+	731615472	WoodenDoor2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertamadera3_752492CC.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\WoodenDoors\WoodenDoor2		21230
+	735304760	Z_MIKA03	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Z_MIKA03_9ED9F99E.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieDeath\Z_MIKA03		11178
+	752742090	DecideSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\DECIDE_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Decide\DecideSFX		3224
+	768663176	InsideRainSoft	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Rain_Soft_3A3D7C00.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideRainSoft		243279
+	799904918	Tempest Loop2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Tempest Loop2_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Tempest Loop2\Tempest Loop2		658474
+	800468003	WaterDropplet3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\gotas_72FC8530.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\WaterDropplets\WaterDropplet3		40627
+	813649322	GUN01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\GUN01_9ED9F99E.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\REPistols\GUN01		5055
+	825787893	Four_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Four_Loop_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationLaboratory\Four_Loop\Four_Loop		985790
+	829816020	WoodenDoor1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertamadera2_22DA4480.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\WoodenDoors\WoodenDoor1		44389
+	831267844	MF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_DFC1268F.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF1		6566
+	841952566	ProximitySignal	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\radio_D8A880D4.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\ProximitySignal		77432
+	842715107	Morse1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\morseCode_9E2DFC35.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\Radio\MorseCode\Morse1		26562
+	847506184	MF5	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\metalFootsteps_372F55F7.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\MetalFootsteps\MF5		7366
+	855551031	CaF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-003_B2E4326D.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF2		5793
+	860702383	CoF2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Concrete_Footsteps_44K-006_79B7E943.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\ConcreteFootsteps\CoF2		6580
+	866606536	PistolShoot_01	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\PistolShoot_4F482791.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Pistols\PistolShoot_01		3396
+	903839508	2 Mind's Eye In	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye In_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye In\2 Mind's Eye In		75198
+	903933235	ThunderDistant	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Thunder distant_0B4A71ED.wem		\Actor-Mixer Hierarchy\Ambience WU\Weather\Storm\IndoorsStorm\InsideThunders\ThunderDistant		162749
+	906359948	Slot2_Option2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot2_opcion2_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot2SC\Slot2_Option2		47927
+	907497098	Eleven_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Eleven_Loop_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\NavigationDeckB\Eleven_Loop\Eleven_Loop		730940
+	918281204	Slot1_Option1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\SFX\slot1_opcion1_CEC2E741.wem		\Actor-Mixer Hierarchy\Objects WU\MusicBox\MelodyBC\Slot1SC\Slot1_Option1		47144
+	922974435	CaF1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-001_D49E5F7B.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF1		5167
+	929250175	CaF3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Carpet_Footsteps_44K-005_EEC20462.wem		\Actor-Mixer Hierarchy\Character WU\Footsteps\FootStepsSC\CarpetFootsteps\CaF3		5942
+	941267629	MetalDoor2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\puertametal2_20AD317B.wem		\Actor-Mixer Hierarchy\Objects WU\Doors\DoorsSC\MetalDoors\MetalDoor2		33601
+	950113051	Ten_Loop	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Ten_Loop_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\GameOver\Ten_Loop\Ten_Loop		604341
+	950869598	Without a Trace Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Without a Trace Loop1_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Menu\Without a Trace Loop1\Without a Trace Loop1		502219
+	973790134	2 Mind's Eye Loop2	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\2 Mind's Eye Loop2_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Dialogue\2 Mind's Eye Loop2\2 Mind's Eye Loop2		224503
+	978352793	Idle1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_19EBF169.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle1		25167
+	981189952	Eating3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\comiendo_24AD4072.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\Eating\Eating3		10343
+	997707427	NoteOpenSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CORE22.SAP 00005_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\NoteOpen\NoteOpenSFX		5288
+	1001515774	CursorSFX	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\CURSOR (2)_9ED9F99E.wem		\Actor-Mixer Hierarchy\UI WU\Inventory\Cursor\CursorSFX		2700
+	1018374377	Idle3	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\idle&ataque_43F8616F.wem		\Actor-Mixer Hierarchy\Ambience WU\Enemies\ZombieSFX\ZombieMouns\Idle3		25950
+	1025766323	Tempest Loop1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Tempest Loop1_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Tempest Loop1\Tempest Loop1		1406649
+	1033020783	DoorPounding1	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\golpeteo_1645B8B5.wem		\Actor-Mixer Hierarchy\Objects WU\AmbienceObjects\DoorPoundings\DoorPounding1		9006
+	1040501881	PistolShoot	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\PistolShoot_852D3757.wem		\Actor-Mixer Hierarchy\Character WU\Gadgets\FireGuns\Pistols\PistolShoot		5629
+	1045714167	Stutter swish	E:\Unity P\CrimsonDraft\Game\CrimsonDraft\CrimsonDraft_WwiseProject\.cache\Mac\SFX\Stutter swish_CD18E128.wem		\Interactive Music Hierarchy\Music WK\Zones\MSC_Manager\Combat\Stutter swish\Stutter swish		44028
 

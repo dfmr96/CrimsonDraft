@@ -23,20 +23,10 @@ namespace AK
         static const AkUniqueID PLAY_INVENTORY_CURSOR = 918818359U;
         static const AkUniqueID PLAY_INVENTORY_DECIDE = 553967029U;
         static const AkUniqueID PLAY_MSC_MANAGER = 3143732789U;
+        static const AkUniqueID PLAY_MUSICBOX_MELODY = 4139498805U;
         static const AkUniqueID PLAY_RADIOSC = 3489459273U;
         static const AkUniqueID PLAY_SHELLCASING = 1647385053U;
-        static const AkUniqueID PLAY_UI_BEEPER_MORSEBEEP = 1804929125U;
-        static const AkUniqueID PLAY_UI_FILES_VOICESTART = 2769983225U;
-        static const AkUniqueID PLAY_UI_FILES_VOICETYPEWRITER = 3881013322U;
         static const AkUniqueID PLAY_UI_INVALIDACTION = 367771734U;
-        static const AkUniqueID PLAY_UI_MAINMENU_CANCEL = 1453023494U;
-        static const AkUniqueID PLAY_UI_MAINMENU_CURSOR = 1187859758U;
-        static const AkUniqueID PLAY_UI_MAINMENU_DECIDE = 1053706072U;
-        static const AkUniqueID PLAY_UI_MAINMENU_FILESCHANGE = 4143229233U;
-        static const AkUniqueID PLAY_UI_MAINMENU_KNOBLIMIT = 1350620445U;
-        static const AkUniqueID PLAY_UI_MAINMENU_KNOBTICK = 1794575571U;
-        static const AkUniqueID PLAY_UI_MAINMENU_PANELTRAVEL = 2987736382U;
-        static const AkUniqueID PLAY_UI_MAINMENU_START = 907179948U;
         static const AkUniqueID PLAY_UI_MAPOPEN = 2183478263U;
         static const AkUniqueID PLAY_UI_NOTEOPEN = 164040611U;
         static const AkUniqueID PLAY_WEATHERBC = 384760087U;
@@ -121,6 +111,54 @@ namespace AK
                 static const AkUniqueID SAFEROOM = 604931459U;
             } // namespace SWITCH
         } // namespace MARINERASECTOR
+
+        namespace MB_SLOT1
+        {
+            static const AkUniqueID GROUP = 2133727884U;
+
+            namespace SWITCH
+            {
+                static const AkUniqueID OPTION1 = 4141131003U;
+                static const AkUniqueID OPTION2 = 4141131000U;
+                static const AkUniqueID OPTION3 = 4141131001U;
+            } // namespace SWITCH
+        } // namespace MB_SLOT1
+
+        namespace MB_SLOT2
+        {
+            static const AkUniqueID GROUP = 2133727887U;
+
+            namespace SWITCH
+            {
+                static const AkUniqueID OPTION1 = 4141131003U;
+                static const AkUniqueID OPTION2 = 4141131000U;
+                static const AkUniqueID OPTION3 = 4141131001U;
+            } // namespace SWITCH
+        } // namespace MB_SLOT2
+
+        namespace MB_SLOT3
+        {
+            static const AkUniqueID GROUP = 2133727886U;
+
+            namespace SWITCH
+            {
+                static const AkUniqueID OPTION1 = 4141131003U;
+                static const AkUniqueID OPTION2 = 4141131000U;
+                static const AkUniqueID OPTION3 = 4141131001U;
+            } // namespace SWITCH
+        } // namespace MB_SLOT3
+
+        namespace MB_SLOT4
+        {
+            static const AkUniqueID GROUP = 2133727881U;
+
+            namespace SWITCH
+            {
+                static const AkUniqueID OPTION1 = 4141131003U;
+                static const AkUniqueID OPTION2 = 4141131000U;
+                static const AkUniqueID OPTION3 = 4141131001U;
+            } // namespace SWITCH
+        } // namespace MB_SLOT4
 
         namespace RADIOTYPE
         {
