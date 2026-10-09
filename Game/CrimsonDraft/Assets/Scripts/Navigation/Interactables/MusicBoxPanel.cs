@@ -30,8 +30,7 @@ namespace CrimsonDraft.Navigation.Interactables
     public sealed class MusicBoxPanel : MonoBehaviour
     {
         private const float NavCooldown = 0.2f;
-        private const string TurnCrankCommand   = "turn_music_box_crank";
-        private const string SelectPingCommand  = "select_music_box_ping";
+        private const string TurnCrankCommand = "turn_music_box_crank";
 
         // Wwise switch groups: MB_Slot1..4, each with Option1..3.
         private const string SwitchGroupPrefix = "MB_Slot";
@@ -42,7 +41,6 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             public Transform[]  sockets = Array.Empty<Transform>();  // socket_x_1..3 -- navigation targets
             public GameObject[] pings   = Array.Empty<GameObject>(); // Ping_x_1..3 -- same order as sockets
-            public DialogueReference[] descriptions = Array.Empty<DialogueReference>(); // engraving text per socket -- same order as sockets
         }
 
         [SerializeField] private Group[] groups = Array.Empty<Group>();
@@ -57,14 +55,14 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private GameObject doll        = null!; // shown once the doll is placed
 
         // Correct socket index (0-based) per group. Order must match the groups array.
-        [SerializeField] private int[] solution = { 1, 0, 1, 2 };
+        // Distance of the painting's figure from the child: 0 = near, 1 = middle, 2 = far.
+        [SerializeField] private int[] solution = { 0, 1, 2, 0 };
 
         [SerializeField] private DialogueReference emptyDollDialogue    = new();
         [SerializeField] private DialogueReference dollWaitingDialogue  = new();
         [SerializeField] private DialogueReference missingKeyDialogue   = new();
         [SerializeField] private DialogueReference crankReadyDialogue   = new();
         [SerializeField] private DialogueReference crankPromptDialogue  = new();
-        [SerializeField] private DialogueReference pingPromptDialogue   = new(); // "Select this engraving?" Yes/No
         [SerializeField] private DialogueReference wrongMelodyDialogue  = new(); // shown after a wrong melody finishes
 
         // Wwise. The 4 segments are chained inside Play_MusicBox_Melody itself (delays of one bar
@@ -73,6 +71,12 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private AK.Wwise.Event playMelodyEvent = new();
         // 3 bars of delay + the last segment (1 bar + 2.5 s tail) = 15.83 s.
         [SerializeField, Min(0f)] private float melodyDuration = 16f;
+
+        // The doll's pedestal turns this much (Y, degrees) over the length of the melody.
+        // Negative turns the other way.
+        [SerializeField] private float dollSocketTurnDegrees = -180f;
+        // Once the lap ends it eases back to its starting rotation over this long.
+        [SerializeField, Min(0.01f)] private float pedestalReturnDuration = 0.8f;
 
         // Solved sequence: doll spins during the melody, sinks, then the reward rises.
         [SerializeField] private float dollSpinSpeed = 120f; // degrees / s
@@ -89,6 +93,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private InteractionContext? context;
         private Transform[] stops = Array.Empty<Transform>();
+        private Quaternion pedestalRestRotation;
         private int[]  selected = Array.Empty<int>();
         private int    socketCount;
         private bool   keyPlaced;
@@ -115,6 +120,7 @@ namespace CrimsonDraft.Navigation.Interactables
             list.Add(this.dollSocket);
             list.Add(this.keySocket);
             this.stops = list.ToArray();
+            this.pedestalRestRotation = this.dollSocket.localRotation;
 
             for (int g = 0; g < this.groups.Length; g++)
                 ApplyPings(g);
@@ -284,48 +290,10 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.cursor == this.KeyStop)  { ConfirmKey();  return; }
             if (this.cursor == this.DollStop) { ConfirmDoll(); return; }
 
+            // Confirm on a melody socket lights its ping directly (and turns off the rest of its group).
             ResolveSocket(this.cursor, out int g, out int s);
-            ConfirmSocket(g, s);
-        }
-
-        // Engraving text first, then "Select this engraving?" -- only Yes lights the ping.
-        private void ConfirmSocket(int group, int slot)
-        {
-            var descriptions = this.groups[group].descriptions;
-            if (slot >= descriptions.Length)
-            {
-                SelectPing(group, slot);
-                return;
-            }
-
-            this.isBusy = true;
-            var ctx = this.context!;
-            ctx.DialogueService.StartDialogue(
-                descriptions[slot].nodeName ?? "",
-                onComplete: () => StartPingPrompt(ctx, group, slot));
-        }
-
-        private void StartPingPrompt(InteractionContext ctx, int group, int slot)
-        {
-            bool select = false;
-
-            ctx.PickupDialogueService.StartDialogue(
-                this.pingPromptDialogue.nodeName ?? "",
-                onComplete: () =>
-                {
-                    ResumeAfterDialogue();
-                    if (select) SelectPing(group, slot);
-                },
-                commands: new Dictionary<string, Action>
-                {
-                    [SelectPingCommand] = () => select = true
-                });
-        }
-
-        private void SelectPing(int group, int slot)
-        {
-            this.selected[group] = slot;
-            ApplyPings(group);
+            this.selected[g] = s;
+            ApplyPings(g);
         }
 
         private void ConfirmDoll()
@@ -384,10 +352,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             this.playMelodyEvent.Post(this.gameObject);
 
-            if (correct)
-                await SpinDollAsync(this.melodyDuration, ct);
-            else
-                await UniTask.Delay(TimeSpan.FromSeconds(this.melodyDuration), ignoreTimeScale: true, cancellationToken: ct);
+            await PlayMelodyAsync(correct, ct);
 
             if (!correct)
             {
@@ -411,16 +376,44 @@ namespace CrimsonDraft.Navigation.Interactables
             this.onSolved.Invoke();
         }
 
-        private async UniTask SpinDollAsync(float seconds, CancellationToken ct)
+        // Runs for the whole melody. The doll's pedestal turns dollSocketTurnDegrees on Y, evenly
+        // from the first note to the end, so it follows the music (right or wrong). The doll
+        // itself only spins when the melody is correct.
+        private async UniTask PlayMelodyAsync(bool correct, CancellationToken ct)
         {
+            var pedestal = this.dollSocket;
+            var startRotation = this.pedestalRestRotation; // every attempt turns 0 -> 180 from rest
             float t = 0f;
-            while (t < seconds)
+
+            while (t < this.melodyDuration)
             {
                 float dt = Time.unscaledDeltaTime;
                 t += dt;
-                this.doll.transform.Rotate(Vector3.up, this.dollSpinSpeed * dt, Space.World);
+
+                float progress = Mathf.Clamp01(t / this.melodyDuration);
+                pedestal.localRotation = startRotation * Quaternion.Euler(0f, this.dollSocketTurnDegrees * progress, 0f);
+
+                if (correct)
+                    this.doll.transform.Rotate(Vector3.up, this.dollSpinSpeed * dt, Space.World);
+
                 await UniTask.Yield(PlayerLoopTiming.Update, ct);
             }
+
+            pedestal.localRotation = startRotation * Quaternion.Euler(0f, this.dollSocketTurnDegrees, 0f);
+
+            // Back to where it started once the lap is done; runs alongside whatever comes next.
+            ReturnPedestalAsync(startRotation, ct).Forget();
+        }
+
+        // Unwinds the same angle it turned (not a Slerp, which could pick the other direction
+        // for an exact half turn).
+        private async UniTaskVoid ReturnPedestalAsync(Quaternion rest, CancellationToken ct)
+        {
+            var pedestal = this.dollSocket;
+            float turned = this.dollSocketTurnDegrees;
+            await LerpAsync(this.pedestalReturnDuration, ct,
+                k => pedestal.localRotation = rest * Quaternion.Euler(0f, Mathf.Lerp(turned, 0f, k), 0f));
+            pedestal.localRotation = rest;
         }
 
         // The doll sinks into the box, then the reward pickup rises out of the same spot.

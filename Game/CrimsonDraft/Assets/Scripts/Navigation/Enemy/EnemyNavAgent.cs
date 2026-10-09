@@ -43,6 +43,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private IDisposable?     dialogueSub;
         private bool             combatTriggered;
         private bool             dialoguePaused;
+        private bool             inspectionSuspended;
 
         public EnemyAlertState State => state;
         public float TimeScale => timeScale?.Scale ?? 1f;
@@ -93,7 +94,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private void Update()
         {
             if (playerController == null) return;
-            if (dialoguePaused) return;
+            if (dialoguePaused || inspectionSuspended) return;
 
             // Congela por completo a cualquier enemigo que no haya sido el que disparó el
             // combate: nada de decisiones de IA ni de movimiento mientras dure la pelea
@@ -193,8 +194,19 @@ namespace CrimsonDraft.Navigation.Enemy
             this.combatTriggered = true;
         }
 
+        /// <summary>Freezes this enemy while the player is in an inspection view (puzzle camera):
+        /// no AI, no movement and no combat trigger. Lifted again when the view is left.</summary>
+        public void SetInspectionSuspended(bool suspended)
+        {
+            this.inspectionSuspended = suspended;
+
+            if (navAgent != null && isActiveAndEnabled && navAgent.isOnNavMesh)
+                navAgent.isStopped = suspended || dialoguePaused || state is EnemyAlertState.Attack;
+        }
+
         public void NotifyAttackHit()
         {
+            if (inspectionSuspended) return;
             if (state != EnemyAlertState.Attack) return;
             TriggerCombat();
         }
@@ -228,6 +240,7 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (sceneTransitionService == null) return;
             if (sceneTransitionService.IsInCombat) return;
+            if (inspectionSuspended) return;
             this.combatTriggered = true;
             // Se desactiva recién cuando el fade termina de tapar la pantalla (onScreenCovered),
             // no en el instante del golpe -- si no, el zombie desaparece de golpe en medio del

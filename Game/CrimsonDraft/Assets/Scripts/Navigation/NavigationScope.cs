@@ -180,6 +180,10 @@ namespace CrimsonDraft.Navigation
             foreach (var tighten in FindObjectsByType<SocketValveTighten>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(tighten);
 
+            // Optional — sockets whose item mutates after a later room visit (e.g. Morph).
+            builder.RegisterInstance(FindObjectsByType<RoomVisitMutation>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+            builder.Register<RoomVisitMutationTracker>(Lifetime.Singleton).AsImplementedInterfaces();
+
             builder.RegisterInstance(this.cachedEnemies);
             builder.Register<NavigationTimeScale>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();

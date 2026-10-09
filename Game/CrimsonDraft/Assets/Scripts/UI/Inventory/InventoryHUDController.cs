@@ -110,7 +110,7 @@ namespace CrimsonDraft.UI
                 view.OwnerGrid?.RemoveItem(view);
                 Object.Destroy(view.gameObject);
                 this.cursor.RequestClose();
-                this.interactionCaster.TryUseItem(view.Data);
+                bool used = this.interactionCaster.TryUseItem(view.Data);
 
                 for (int i = 0; i < this.inventoryService.SlotCount; i++)
                 {
@@ -120,6 +120,9 @@ namespace CrimsonDraft.UI
                         break;
                     }
                 }
+
+                if (used && view.Data is SocketItemData { ReturnedOnUse: { } returned })
+                    this.inventoryService.AddItemAuto(returned);
                 return;
             }
 
