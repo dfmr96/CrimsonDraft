@@ -262,8 +262,10 @@ namespace CrimsonDraft.Navigation.UI
                         var itemData  = item.Data;
                         if (!this.interactionCaster.CanUseItem(itemData)) break;
                         Close();
-                        this.interactionCaster.TryUseItem(itemData);
+                        bool used = this.interactionCaster.TryUseItem(itemData);
                         this.inventoryService.RemoveItem(slotIndex);
+                        if (used && itemData is SocketItemData { ReturnedOnUse: { } returned })
+                            this.inventoryService.AddItemAuto(returned);
                         return;
                     }
                     break;
