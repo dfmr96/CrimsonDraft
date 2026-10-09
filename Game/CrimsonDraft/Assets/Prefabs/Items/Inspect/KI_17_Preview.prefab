@@ -173,11 +173,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Size.x
-      value: 0.818004
+      value: 0.34584934
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Size.y
-      value: 1.6384581
+      value: 0.5010643
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Size.z
@@ -185,15 +185,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Center.x
-      value: -0.50141776
+      value: 0.01046002
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Center.y
-      value: -0.13767664
+      value: -0.015192807
       objectReference: {fileID: 0}
     - target: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Center.z
-      value: -0.15171367
+      value: -0.15171352
       objectReference: {fileID: 0}
     - target: {fileID: 3768982285583630950, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: m_Name
@@ -201,11 +201,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.size
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: defaultDialogue.nodeName
       value: examine_KI_17
+      objectReference: {fileID: 0}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: hotspots.Array.data[0].reward
+      value: 4881396437692186666
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.data[1].reward
@@ -214,7 +218,11 @@ PrefabInstance:
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.data[0].collider
       value: 
-      objectReference: {fileID: 5321356753376095209}
+      objectReference: {fileID: 2258220045985026900}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: 'managedReferences[4881396437692186666]'
+      value: CrimsonDraft.Navigation CrimsonDraft.Navigation.Interactables.NoteHotspotReward
+      objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: 'managedReferences[8224878701004718722]'
       value: CrimsonDraft.Navigation CrimsonDraft.Navigation.Interactables.NoteHotspotReward
@@ -229,12 +237,16 @@ PrefabInstance:
       objectReference: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.data[0].dialogue.nodeName
-      value: 
+      value: examine_KI_17_hotspot
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.data[1].dialogue.nodeName
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: managedReferences[4881396437692186666].note
+      value: 
+      objectReference: {fileID: 11400000, guid: f70b614aaa7510c48b220f8cec9e7269, type: 2}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: managedReferences[8224878701004718722].note
       value: 
@@ -248,6 +260,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: managedReferences[4881396437692186666].consumeInspectedItem
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: managedReferences[8224878701004718722].consumeInspectedItem
       value: 0
       objectReference: {fileID: 0}
@@ -256,9 +272,17 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: managedReferences[4881396437692186666].announcementDialogue.project
+      value: 
+      objectReference: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: managedReferences[8224878701004718722].announcementDialogue.project
       value: 
       objectReference: {fileID: 7545569452688597077, guid: 1803ffa9bb075434193f30e1edb7fa2a, type: 3}
+    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+      propertyPath: managedReferences[4881396437692186666].announcementDialogue.nodeName
+      value: examine_KI_17_found
+      objectReference: {fileID: 0}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: managedReferences[8224878701004718722].announcementDialogue.nodeName
       value: examine_KI_03_hotspot2_found
@@ -271,14 +295,6 @@ PrefabInstance:
       propertyPath: hotspots.Array.data[1].onUsed.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
       value: 6
       objectReference: {fileID: 0}
-    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
-      propertyPath: hotspots.Array.data[1].onUsed.m_PersistentCalls.m_Calls.Array.data[0].m_Target
-      value: 
-      objectReference: {fileID: 4091087581209214487}
-    - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
-      propertyPath: hotspots.Array.data[1].onUsed.m_PersistentCalls.m_Calls.Array.data[1].m_Target
-      value: 
-      objectReference: {fileID: 4091087581209214487}
     - target: {fileID: 6917559826952622743, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       propertyPath: hotspots.Array.data[1].onUsed.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -339,24 +355,20 @@ PrefabInstance:
     m_RemovedGameObjects:
     - {fileID: 9079357498458323083, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
     - {fileID: 746078416724237289, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+    - {fileID: 401991588724737844, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1087617661352933537, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
       insertIndex: 0
       addedObject: {fileID: 2617137612571092491}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+--- !u!65 &2258220045985026900 stripped
+BoxCollider:
+  m_CorrespondingSourceObject: {fileID: 2451242874885646967, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
+  m_PrefabInstance: {fileID: 4418698924133366051}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3622479333009867138 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1087617661352933537, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
-  m_PrefabInstance: {fileID: 4418698924133366051}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &4091087581209214487 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 401991588724737844, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
-  m_PrefabInstance: {fileID: 4418698924133366051}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &5321356753376095209 stripped
-BoxCollider:
-  m_CorrespondingSourceObject: {fileID: 8397839485102265034, guid: 2115a2bf0c9e29a4aba6b133c7c2febe, type: 3}
   m_PrefabInstance: {fileID: 4418698924133366051}
   m_PrefabAsset: {fileID: 0}
