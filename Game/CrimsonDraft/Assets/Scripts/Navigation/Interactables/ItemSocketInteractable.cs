@@ -29,6 +29,8 @@ namespace CrimsonDraft.Navigation.Interactables
         private bool[] inserted = System.Array.Empty<bool>();
         private ItemSocketStateRegistry registry = null!;
 
+        public string SocketId => this.socketId;
+
         public bool IsActivated { get; private set; }
 
         // Lets other scripts (e.g. GeneratorSwitchPanel) subscribe in code instead of only via
