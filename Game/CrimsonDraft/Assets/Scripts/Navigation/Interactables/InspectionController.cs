@@ -75,6 +75,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.zoneService.ActivateZone(inspectCamera);
             this.inputService.SwitchToUI();
             SetActorRenderersEnabled(false);
+            SetEnemiesSuspended(true);
         }
 
         private void OnCancel(InputAction.CallbackContext _)
@@ -100,10 +101,21 @@ namespace CrimsonDraft.Navigation.Interactables
             this.previousZoneCamera = null;
             this.inputService.SwitchToGameplay();
             SetActorRenderersEnabled(true);
+            SetEnemiesSuspended(false);
 
             var callback = this.onExit;
             this.onExit  = null;
             callback?.Invoke();
+        }
+
+        // Enemies keep their own clock (NavigationTimeScale), so they would otherwise carry on
+        // chasing the hidden player and start a combat while the inspect camera is up -- the
+        // combat transition then breaks the camera on the way back. Frozen for the duration of
+        // the view instead; a defeated (destroyed) enemy can be null.
+        private void SetEnemiesSuspended(bool suspended)
+        {
+            foreach (var enemy in this.enemies)
+                if (enemy != null) enemy.SetInspectionSuspended(suspended);
         }
 
         // The inspect camera hard-cuts to a shot the designer framed around the puzzle prop
