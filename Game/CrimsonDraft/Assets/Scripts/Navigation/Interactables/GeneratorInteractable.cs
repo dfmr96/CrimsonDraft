@@ -35,6 +35,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            // Solved: nothing left to do here.
+            if (this.switchPanel.IsSolved) return;
+
             context.DialogueService.StartDialogue(
                 this.examineDialogue.nodeName ?? "",
                 onComplete: () => StartInspectPrompt(context));
