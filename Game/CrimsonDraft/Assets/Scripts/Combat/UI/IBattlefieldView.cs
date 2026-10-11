@@ -42,6 +42,7 @@ namespace CrimsonDraft.Combat
         void HideEnemyTargetIndicator();
         int[] GetOccupiedEnemySlots();
         AimHitMaskProfile? GetEnemyHitMaskProfile(int slotIndex);
+        ActiveOverlay? GetEnemyOverlay(int slotIndex);
         EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets);
         void TriggerEnemyStagger(int slotIndex);
         void RecoverEnemyStagger(int slotIndex);

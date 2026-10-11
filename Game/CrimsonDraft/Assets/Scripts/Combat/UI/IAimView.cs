@@ -9,6 +9,7 @@ namespace CrimsonDraft.Combat
     {
         event Action<ResolvedShot[]>? OnShotsResolved;
         void ConfigureHitMask(AimHitMaskProfile? profile);
+        void ConfigureOverlay(ActiveOverlay? overlay);
         void ConfigureWeapon(WeaponData? weaponData);
         void ConfigureMeleeWeapon(MeleeWeaponData? meleeData);
         void SetShotCount(int shotCount);
@@ -17,6 +18,5 @@ namespace CrimsonDraft.Combat
         void Show();
         void Confirm();
         void Hide();
-        ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount);
     }
 }

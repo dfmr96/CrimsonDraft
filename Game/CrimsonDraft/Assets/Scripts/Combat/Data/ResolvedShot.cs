@@ -12,8 +12,11 @@ namespace CrimsonDraft.Combat
         public ShotZone      Zone          { get; }
         public ShotPrecision Precision     { get; }
         public int           Damage        { get; }
+        // True when the pellet landed on armor the weapon doesn't fully penetrate -- Damage is
+        // already reduced; this only drives feedback (blocked-hit popup color).
+        public bool          ArmorBlocked  { get; }
 
-        public ResolvedShot(int index, int bulletIndex, Vector2 normalizedPos, ShotZone zone, ShotPrecision precision, int damage)
+        public ResolvedShot(int index, int bulletIndex, Vector2 normalizedPos, ShotZone zone, ShotPrecision precision, int damage, bool armorBlocked = false)
         {
             this.Index         = index;
             this.BulletIndex   = bulletIndex;
@@ -21,6 +24,7 @@ namespace CrimsonDraft.Combat
             this.Zone          = zone;
             this.Precision     = precision;
             this.Damage        = damage;
+            this.ArmorBlocked  = armorBlocked;
         }
     }
 }

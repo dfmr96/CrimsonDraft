@@ -45,12 +45,12 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () =>
                 {
                     if (!fill) return;
-                    if (!context.InventoryService.TryRemoveItem(this.emptyFlask.ItemId)) return;
+                    if (!context.InventoryService.TryRemove(this.emptyFlask.ItemId)) return;
 
-                    if (!context.InventoryService.AddItemAuto(this.filledFlask))
+                    if (!context.InventoryService.TryAdd(this.filledFlask))
                     {
                         // Freed slot was taken meanwhile -- give the empty flask back rather than lose it.
-                        context.InventoryService.AddItemAuto(this.emptyFlask);
+                        context.InventoryService.TryAdd(this.emptyFlask);
                         return;
                     }
 

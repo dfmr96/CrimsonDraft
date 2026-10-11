@@ -37,6 +37,8 @@ namespace CrimsonDraft.Combat
             // calls it as soon as the burst's killing bullet lands, and AimingState calls it again
             // once the whole burst finishes.
             public bool DeathFinalized;
+            // Rolled once from EnemyData.OverlayPool in Populate; null = no overlay.
+            public SilhouetteOverlay? Overlay;
         }
 
         [SerializeField] private Transform[] enemySlotTransforms  = Array.Empty<Transform>();
@@ -166,7 +168,8 @@ public void Populate(EncounterData encounter)
                     PendingFlinchAfterRecovery = false,
                     PendingFlinchStaggerPct = 0f,
                     DiedFromHeadshot        = false,
-                    DeathFinalized          = false
+                    DeathFinalized          = false,
+                    Overlay                 = OverlayPicker.Pick(enemy.OverlayPool, this.enemyStatRandom)
                 };
             }
             this.occupiedEnemySlots = occupied.ToArray();
@@ -251,6 +254,14 @@ public void Populate(EncounterData encounter)
                 return enemy.StaggeredHitMaskProfile;
 
             return enemy.HitMaskProfile;
+        }
+
+        public ActiveOverlay? GetEnemyOverlay(int slotIndex)
+        {
+            if (!this.enemyStateBySlot.TryGetValue(slotIndex, out var state) || state.Overlay == null)
+                return null;
+
+            return state.Overlay.Resolve(IsEnemyStaggered(slotIndex));
         }
 
         public EnemyDamageResult ApplyDamageToEnemy(int slotIndex, int hpDamage, int poiseDamage, int decapitationPellets)

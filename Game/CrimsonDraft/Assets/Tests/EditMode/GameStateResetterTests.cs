@@ -31,7 +31,7 @@ namespace CrimsonDraft.Tests
             enemies.SetDefeated("enemy-a");
             world.OperatorCorpses.Record(0, "room-a", UnityEngine.Vector3.zero, UnityEngine.Quaternion.identity);
             itemSockets.SetInserted("socket-a", new[] { true });
-            inventoryState.Save(new object());
+            inventoryState.Save(new System.Collections.Generic.List<CrimsonDraft.Infrastructure.Save.InventoryItemEntry>());
             rosterHealth.Save(new[] { 100 });
 
             var resetter = new GameStateResetter(world, inventoryState, rosterHealth, new PlaytimeTracker());

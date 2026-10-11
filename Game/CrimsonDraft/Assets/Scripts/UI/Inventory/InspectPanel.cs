@@ -270,7 +270,7 @@ namespace CrimsonDraft.UI
         // covers the gap between dialogue completion and that sequence finishing.
         void UseRequiredItem(ExaminePrompt prompt)
         {
-            if (this.inventoryService.TryRemoveItem(prompt.RequiredItem!.ItemId))
+            if (this.inventoryService.TryRemove(prompt.RequiredItem!.ItemId))
                 ActivateHotspot(prompt).Forget();
         }
 

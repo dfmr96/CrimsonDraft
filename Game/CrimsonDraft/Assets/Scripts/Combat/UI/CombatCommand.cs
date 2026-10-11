@@ -1,10 +1,9 @@
 #nullable enable
 namespace CrimsonDraft.Combat
 {
-    // Numeric values are serialized directly into CommandPanel.prefab's CommandEntry array --
-    // Melee is appended at the end (not reordered to the front) so Shoot/Items/FocusFire's
-    // existing int values (0/1/2) never shift and silently corrupt already-serialized entries.
-    // Its "before Shoot" position in the UI is controlled purely by entries[] order in the
-    // prefab, independent of this enum's declaration order.
-    public enum CombatCommand { Shoot, Items, FocusFire, Melee }
+    // Numeric values are serialized directly into CommandPanel.prefab's CommandEntry array, so
+    // they're pinned explicitly -- 2 was FocusFire (removed) and stays unused so Melee keeps 3
+    // and already-serialized entries never shift. The UI order of the commands is controlled
+    // purely by entries[] order in the prefab, independent of these values.
+    public enum CombatCommand { Shoot = 0, Items = 1, Melee = 3 }
 }

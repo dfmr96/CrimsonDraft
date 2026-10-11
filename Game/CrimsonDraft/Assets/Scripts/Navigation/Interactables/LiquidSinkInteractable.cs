@@ -49,12 +49,12 @@ namespace CrimsonDraft.Navigation.Interactables
                     if (!pour) return;
 
                     var filled = FindCarriedFilledFlask(context);
-                    if (filled == null || !context.InventoryService.TryRemoveItem(filled.ItemId)) return;
+                    if (filled == null || !context.InventoryService.TryRemove(filled.ItemId)) return;
 
-                    if (!context.InventoryService.AddItemAuto(this.emptyFlask))
+                    if (!context.InventoryService.TryAdd(this.emptyFlask))
                     {
                         // Freed slot was taken meanwhile -- give the filled flask back rather than lose it.
-                        context.InventoryService.AddItemAuto(filled);
+                        context.InventoryService.TryAdd(filled);
                         return;
                     }
 

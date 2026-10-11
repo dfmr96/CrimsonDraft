@@ -97,7 +97,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     ["try_pickup"] = () =>
                     {
                         pickupSucceeded = this.openNoteInstead != null
-                            || context.InventoryService.AddItemAuto(this.item);
+                            || context.InventoryService.TryAdd(this.item);
                         context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
                     }
                 });

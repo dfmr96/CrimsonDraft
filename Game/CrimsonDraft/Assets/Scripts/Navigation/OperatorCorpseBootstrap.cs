@@ -65,7 +65,9 @@ namespace CrimsonDraft.Navigation
                 SpawnRecordedCorpsesForRoom(this.roomOrchestrator.CurrentRoom);
         }
 
-        private void OnCombatEnded(CombatEndedEvent ev)
+        private void OnCombatEnded(CombatEndedEvent ev) => RecordNewDeaths();
+
+        public void RecordNewDeaths()
         {
             RoomController? room = this.roomOrchestrator.CurrentRoom;
             if (room == null) return;
@@ -80,7 +82,7 @@ namespace CrimsonDraft.Navigation
 
                 this.registry.Record(i, room.RoomId, pos, rot);
                 this.spawnedSlots.Add(i);
-                this.spawner.Spawn(room, pos, rot);
+                this.spawner.Spawn(i, room, pos, rot);
             }
         }
 
@@ -97,7 +99,7 @@ namespace CrimsonDraft.Navigation
                 if (entry.RoomId != room.RoomId) continue;
                 if (!this.spawnedSlots.Add(entry.SlotIndex)) continue;
 
-                this.spawner.Spawn(room, entry.Position, entry.Rotation);
+                this.spawner.Spawn(entry.SlotIndex, room, entry.Position, entry.Rotation);
             }
         }
 

@@ -39,6 +39,8 @@ namespace CrimsonDraft.Infrastructure
 
         public IReadOnlyCollection<Entry> GetAll() => this.recorded.Values;
 
+        public bool TryGet(int slotIndex, out Entry entry) => this.recorded.TryGetValue(slotIndex, out entry);
+
         public void LoadState(IEnumerable<Entry> saved)
         {
             this.recorded.Clear();

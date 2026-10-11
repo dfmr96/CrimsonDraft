@@ -1,0 +1,286 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
+using CrimsonDraft.Infrastructure.Save;
+using CrimsonDraft.Inventory;
+using static CrimsonDraft.Tests.InventoryTestData;
+
+namespace CrimsonDraft.Tests
+{
+    public sealed class InventorySerializerTests
+    {
+        private static InventoryService Service(FakeRoster? roster = null) =>
+            new InventoryService(roster ?? FakeRoster.WithOperators(2), FakeCombineService.None, FakeCorpseAccess.None);
+
+        private static ItemContainer Op(InventoryService s, int i) => s.GetContainer(ContainerId.Operator(i));
+
+        private static InventoryItemEntry Entry(string id, int op, int col, int row, int quantity = 0) =>
+            new InventoryItemEntry
+            {
+                containerKind  = (int)ContainerKind.Operator,
+                containerIndex = op,
+                itemId         = id,
+                col            = col,
+                row            = row,
+                quantity       = quantity,
+            };
+
+        [Test]
+        public void CaptureThenRestore_roundTripsEveryItemField()
+        {
+            var weaponData = Weapon(magazine: 6, id: "pistol");
+            var ammoData   = Ammo(defaultQuantity: 30, id: "ammo");
+            var keyData    = Key(maxUses: 3, id: "key");
+            var medData    = Sized(Consumable(id: "med"), 1, 2);
+            var source     = Service();
+
+            source.TryAdd(weaponData, ContainerId.Operator(0));
+            var weapon = (WeaponItem)Op(source, 0).Placements.Single().Item;
+            weapon.SetAmmo(4);
+            source.Equip(weapon, 0);
+            source.TryAdd(ammoData, ContainerId.Operator(1), 12);
+            source.TryAdd(keyData, ContainerId.Operator(1));
+            source.TryUseKey("key");
+            source.TryAdd(medData, ContainerId.Operator(1));
+            var med = Op(source, 1).Placements.Single(p => p.Item.Data == medData).Item;
+            med.IsExamined = true;
+            source.TryPickUp(med);
+            source.RotateHeld();
+            Assert.AreEqual(DropResult.Placed, source.TryDrop(ContainerId.Operator(1), new Vector2Int(2, 3)));
+
+            var entries        = InventorySerializer.Capture(source);
+            var restoredRoster = FakeRoster.WithOperators(2);
+            var restored       = Service(restoredRoster);
+            restored.Restore(entries, Database(weaponData, ammoData, keyData, medData));
+
+            var rWeapon = (WeaponItem)Op(restored, 0).Placements.Single().Item;
+            Assert.AreEqual(4, rWeapon.CurrentAmmo);
+            Assert.AreSame(rWeapon, restoredRoster[0].PrimaryWeapon);
+            Assert.AreEqual(12, Op(restored, 1).Placements.Single(p => p.Item.Data == ammoData).Item.Quantity);
+            Assert.AreEqual(2, ((KeyItem)Op(restored, 1).Placements.Single(p => p.Item.Data == keyData).Item).UsesRemaining);
+            var rMed = Op(restored, 1).Placements.Single(p => p.Item.Data == medData);
+            Assert.AreEqual(new Vector2Int(2, 3), rMed.Origin);
+            Assert.AreEqual(1, rMed.Rotation);
+            Assert.IsTrue(rMed.Item.IsExamined);
+        }
+
+        [Test]
+        public void Capture_whileHolding_throws()
+        {
+            var s = Service();
+            s.TryAdd(Consumable());
+            s.TryPickUp(Op(s, 0).Placements.Single().Item);
+            Assert.Throws<InvalidOperationException>(() => InventorySerializer.Capture(s));
+        }
+
+        [Test]
+        public void Restore_unpositionedEntry_goesToFreeCell()
+        {
+            var data = Consumable(id: "med");
+            var s    = Service();
+            s.Restore(new[] { Entry("med", 1, -1, -1) }, Database(data));
+            Assert.AreEqual(Vector2Int.zero, Op(s, 1).Placements.Single().Origin);
+        }
+
+        [Test]
+        public void Restore_overlappingEntries_secondGoesToFreeCell()
+        {
+            var data = Consumable(id: "med");
+            var s    = Service();
+            s.Restore(new[] { Entry("med", 0, 0, 0), Entry("med", 0, 0, 0) }, Database(data));
+            CollectionAssert.AreEquivalent(
+                new[] { new Vector2Int(0, 0), new Vector2Int(1, 0) },
+                Op(s, 0).Placements.Select(p => p.Origin).ToArray());
+        }
+
+        [Test]
+        public void Restore_unpositionedEntryFirst_doesNotDisplacePositionedEntries()
+        {
+            var ammo   = Ammo(defaultQuantity: 15, id: "ammo");
+            var rifle  = Sized(Weapon(id: "rifle"), 2, 1);
+            var small  = Consumable(id: "small");
+            var wide   = Sized(Consumable(id: "wide"), 4, 3);
+            var s      = Service(FakeRoster.WithOperators(1));
+
+            s.Restore(new[]
+            {
+                Entry("ammo", 0, -1, -1, 15),
+                Entry("small", 0, 2, 0),
+                Entry("wide", 0, 0, 1),
+                Entry("rifle", 0, 0, 0),
+            }, Database(ammo, rifle, small, wide));
+
+            Assert.AreEqual(4, Op(s, 0).Count);
+            Assert.AreEqual(Vector2Int.zero, Op(s, 0).Placements.Single(p => p.Item.Data == rifle).Origin);
+            Assert.AreEqual(new Vector2Int(3, 0), Op(s, 0).Placements.Single(p => p.Item.Data == ammo).Origin);
+        }
+
+        [Test]
+        public void Restore_unpositionedEntry_rotatesWhenOnlyAVerticalSpotIsFree()
+        {
+            var bar  = Sized(Consumable(id: "bar"), 2, 1);
+            var wall = Sized(Consumable(id: "wall"), 3, 4);
+            var s    = Service(FakeRoster.WithOperators(1));
+
+            s.Restore(new[] { Entry("wall", 0, 1, 0), Entry("bar", 0, -1, -1) }, Database(bar, wall));
+
+            var placement = Op(s, 0).Placements.Single(p => p.Item.Data == bar);
+            Assert.AreEqual(1, placement.Rotation);
+            Assert.AreEqual(Vector2Int.zero, placement.Origin);
+        }
+
+        private static InventoryItemEntry StorageEntry(string id, int col, int row, int quantity = 0) =>
+            new InventoryItemEntry
+            {
+                containerKind = (int)ContainerKind.Storage,
+                itemId        = id,
+                col           = col,
+                row           = row,
+                quantity      = quantity,
+            };
+
+        [Test]
+        public void CaptureThenRestore_roundTripsStorageItems()
+        {
+            var ammo   = Ammo(defaultQuantity: 30, id: "ammo");
+            var source = Service();
+            source.TryAdd(ammo, ContainerId.Storage, 17);
+            var stored = source.GetContainer(ContainerId.Storage).Placements.Single();
+            source.TryPickUp(stored.Item);
+            source.TryDrop(ContainerId.Storage, new Vector2Int(9, 3));
+
+            var entries  = InventorySerializer.Capture(source);
+            var restored = Service();
+            restored.Restore(entries, Database(ammo));
+
+            var placement = restored.GetContainer(ContainerId.Storage).Placements.Single();
+            Assert.AreEqual(new Vector2Int(9, 3), placement.Origin);
+            Assert.AreEqual(17, placement.Item.Quantity);
+            Assert.AreEqual(0, Op(restored, 0).Count);
+        }
+
+        [Test]
+        public void Restore_storageEntryWithoutRoom_fallsBackToOperators()
+        {
+            var huge  = Sized(Consumable(id: "huge"), 12, 4);
+            var small = Consumable(id: "small");
+            var s     = Service();
+
+            s.Restore(new[] { StorageEntry("huge", 0, 0), StorageEntry("small", 0, 0) }, Database(huge, small));
+
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
+            Assert.AreEqual(1, Op(s, 0).Count);
+        }
+
+        [Test]
+        public void Restore_operatorEntryWithoutRoom_fallsBackToStorage()
+        {
+            var big   = Sized(Consumable(id: "big"), 4, 4);
+            var small = Consumable(id: "small");
+            var s     = Service(FakeRoster.WithOperators(1));
+
+            s.Restore(new[] { Entry("big", 0, 0, 0), Entry("small", 0, 0, 0) }, Database(big, small));
+
+            Assert.AreEqual(1, Op(s, 0).Count);
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
+        }
+
+        [Test]
+        public void Restore_equippedWeaponFallingBackToStorage_isNotEquipped()
+        {
+            var big    = Sized(Consumable(id: "big"), 4, 4);
+            var gun    = Weapon(id: "gun");
+            var roster = FakeRoster.WithOperators(1);
+            var s      = Service(roster);
+            var gunEntry = Entry("gun", 0, 0, 0);
+            gunEntry.equippedOperatorSlot = 0;
+            gunEntry.equippedWeaponSlot   = 0;
+
+            s.Restore(new[] { Entry("big", 0, 0, 0), gunEntry }, Database(big, gun));
+
+            var stored = s.GetContainer(ContainerId.Storage).Placements.Single().Item;
+            Assert.AreSame(gun, stored.Data);
+            Assert.IsFalse(stored.IsEquipped);
+            Assert.IsNull(roster[0].PrimaryWeapon);
+        }
+
+        [Test]
+        public void Restore_withNoRoomAnywhere_dropsItemAndLogsError()
+        {
+            var big    = Sized(Consumable(id: "big"), 4, 4);
+            var boxful = Sized(Consumable(id: "boxful"), 12, 4);
+            var small  = Consumable(id: "small");
+            var s      = Service(FakeRoster.WithOperators(1));
+
+            LogAssert.Expect(LogType.Error, new Regex("small"));
+            s.Restore(new[] { Entry("big", 0, 0, 0), StorageEntry("boxful", 0, 0), Entry("small", 0, 0, 0) }, Database(big, boxful, small));
+            Assert.AreEqual(1, Op(s, 0).Count);
+            Assert.AreEqual(1, s.GetContainer(ContainerId.Storage).Count);
+        }
+
+        [Test]
+        public void Restore_skipsUnknownIds_andClearsPreviousState()
+        {
+            var data = Consumable(id: "med");
+            var s    = Service();
+            s.TryAdd(Consumable(id: "old"));
+            s.Restore(new[] { Entry("ghost", 0, 0, 0), Entry("med", 0, 1, 0) }, Database(data));
+
+            Assert.IsFalse(s.HasItem("old"));
+            Assert.AreEqual(1, Op(s, 0).Count);
+        }
+
+        [Test]
+        public void Restore_raisesChangedOnEveryContainer()
+        {
+            var s       = Service();
+            int changes = 0;
+            foreach (var c in s.OperatorContainers) c.Changed += () => changes++;
+            s.Restore(Array.Empty<InventoryItemEntry>(), Database());
+            Assert.AreEqual(2, changes);
+        }
+
+        [Test]
+        public void FromLegacySlots_mapsSlotIndexToOperator_andPicksAmmoQuantity()
+        {
+            var legacy = new List<InventorySlotEntry>
+            {
+                new InventorySlotEntry { slotIndex = 17, itemId = "ammo", slotQuantity = 1, ammoBoxQuantity = 9, gridCol = 2, gridRow = 1 },
+                new InventorySlotEntry { slotIndex = 3,  itemId = "med",  slotQuantity = 2, gridCol = -1, gridRow = -1 },
+            };
+
+            var entries = InventorySerializer.FromLegacySlots(legacy);
+
+            Assert.AreEqual(1, entries[0].containerIndex);
+            Assert.AreEqual(9, entries[0].quantity);
+            Assert.AreEqual(2, entries[0].col);
+            Assert.AreEqual(0, entries[1].containerIndex);
+            Assert.AreEqual(2, entries[1].quantity);
+            Assert.AreEqual(-1, entries[1].col);
+        }
+    
+        [Test]
+        public void Restore_doesNotEquipWeaponToDeadOperator()
+        {
+            var weaponData = Weapon(id: "pistol");
+            var source     = Service();
+            source.TryAdd(weaponData, ContainerId.Operator(0));
+            source.Equip((WeaponItem)Op(source, 0).Placements.Single().Item, 0);
+            var entries = InventorySerializer.Capture(source);
+
+            var deadRoster = new FakeRoster(Dead(0), Alive(1));
+            var restored   = Service(deadRoster);
+            restored.Restore(entries, Database(weaponData));
+
+            var weapon = (WeaponItem)Op(restored, 0).Placements.Single().Item;
+            Assert.IsFalse(weapon.IsEquipped);
+            Assert.IsNull(deadRoster[0].PrimaryWeapon);
+        }
+    }
+}

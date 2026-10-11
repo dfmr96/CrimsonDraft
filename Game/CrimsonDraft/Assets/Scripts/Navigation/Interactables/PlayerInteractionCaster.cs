@@ -35,12 +35,12 @@ namespace CrimsonDraft.Navigation.Interactables
         private IDialogueService       dialogueService       = null!;
         private IPickupDialogueService pickupDialogueService = null!;
         private DocumentController     documentController    = null!;
-        private ContainerController    containerController   = null!;
         private PuzzleViewController    puzzleViewController   = null!;
         private ScreenFader             screenFader            = null!;
         private PickupPreviewController pickupPreviewController = null!;
-        private SaveController          saveController          = null!;
+        private ISaveController         saveController          = null!;
         private InspectionController    inspectionController    = null!;
+        private IPublisher<StorageOpenRequestedEvent> storageOpenPublisher = null!;
 
         private ISubscriber<DialogueActiveChangedEvent>? dialogueActiveSubscriber;
         private IDisposable?                              dialogueActiveSub;
@@ -52,12 +52,12 @@ namespace CrimsonDraft.Navigation.Interactables
             IDialogueService       dialogueService,
             IPickupDialogueService pickupDialogueService,
             DocumentController     documentController,
-            ContainerController    containerController,
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
-            SaveController          saveController,
+            ISaveController         saveController,
             InspectionController    inspectionController,
+            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
             ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber)
         {
             this.inputService          = inputService;
@@ -65,12 +65,12 @@ namespace CrimsonDraft.Navigation.Interactables
             this.dialogueService       = dialogueService;
             this.pickupDialogueService = pickupDialogueService;
             this.documentController    = documentController;
-            this.containerController   = containerController;
             this.puzzleViewController   = puzzleViewController;
             this.screenFader            = screenFader;
             this.pickupPreviewController = pickupPreviewController;
             this.saveController          = saveController;
             this.inspectionController    = inspectionController;
+            this.storageOpenPublisher    = storageOpenPublisher;
             this.dialogueActiveSubscriber = dialogueActiveSubscriber;
             this.inputService.Interact.performed += OnInteract;
             this.dialogueActiveSub = this.dialogueActiveSubscriber?.Subscribe(OnDialogueActiveChanged);
@@ -119,13 +119,13 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.inputService,
                 this.dialogueService,
                 this.documentController,
-                this.containerController,
                 this.pickupDialogueService,
                 this.puzzleViewController,
                 this.screenFader,
                 this.pickupPreviewController,
                 this.saveController,
-                this.inspectionController);
+                this.inspectionController,
+                this.storageOpenPublisher);
             interactable.Interact(context);
         }
 

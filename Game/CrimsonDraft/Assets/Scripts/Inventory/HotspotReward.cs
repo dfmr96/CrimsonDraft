@@ -71,8 +71,8 @@ namespace CrimsonDraft.Inventory
         public override string Grant(HotspotRewardContext context)
         {
             if (context.ConsumedItem != null)
-                context.InventoryService.TryRemoveItem(context.ConsumedItem.ItemId);
-            context.InventoryService.AddItemAuto(this.rewardItem);
+                context.InventoryService.TryRemove(context.ConsumedItem.ItemId);
+            context.InventoryService.TryAdd(this.rewardItem);
 
             // Freshly granted/unidentified, so the announcement uses SecondaryName -- same
             // "not yet identified" naming GridCursor's tooltip shows for any item the player
