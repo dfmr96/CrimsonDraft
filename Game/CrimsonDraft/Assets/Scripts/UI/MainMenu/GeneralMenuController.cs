@@ -1,124 +1,68 @@
 #nullable enable
 
+using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Infrastructure.Graphics;
-using CrimsonDraft.Infrastructure.Input;
-using CrimsonDraft.Rendering.Outline;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
-    /// General tab content: Language is a physical knob too, same as Sound, but locked for now
-    /// (Adjust is a no-op for it -- the knob/outline exist, rotating just isn't wired up yet).
-    /// Control is a real two-state toggle (Modern/Classic, see IControlSchemeService) -- either
-    /// direction flips it, there's nothing to clamp with only two values. Gamma steps through
-    /// IGraphicsSettingsService.GammaSteps discrete positions (9, matching every other gamma
-    /// control): rotates its knob exactly like a volume knob and also keeps the canvas fill bar
-    /// in sync. Selection is shown purely via each knob's outline (never in the flat canvas),
-    /// matching Sound.
+    /// Video tab content: just the Gamma slider (IGraphicsSettingsService.GammaSteps discrete
+    /// positions, same as every other gamma control). Selection is shown by tinting the fill bar
+    /// white; deselecting restores its original green.
     /// </summary>
     public sealed class GeneralMenuController : MonoBehaviour, IOptionsChannelPanel
     {
-        private const int LanguageIndex = 0;
-        private const int GammaIndex    = 1;
-        private const int ControlIndex  = 2;
+        [Tooltip("Barra de relleno (Bg_bar/Bar) -- se escala con el valor y se tiñe de blanco al seleccionarla.")]
+        [SerializeField] private RectTransform fillBar = null!;
+        [SerializeField] private Color selectedColor = Color.white;
 
-        [System.Serializable]
-        private sealed class LockedChannel
-        {
-            [Tooltip("Perilla física (sin rotar por ahora) -- solo existe para colgar el outline.")]
-            [SerializeField] public GameObject outline = null!;
-        }
-
-        [System.Serializable]
-        private sealed class GammaChannel
-        {
-            [SerializeField] public Transform     knob    = null!;
-            [SerializeField] public GameObject    outline = null!;
-            [Tooltip("Barra de relleno (Bg_bar/Bar) del canvas -- se mantiene en sync con la perilla.")]
-            [SerializeField] public RectTransform fillBar = null!;
-
-            [System.NonSerialized] public Quaternion baseRotation;
-            [System.NonSerialized] public Vector2    baseAnchoredPosition;
-            [System.NonSerialized] public float      baseWidth;
-        }
-
-        [Header("Language / Control -- bloqueados por ahora")]
-        [SerializeField] private LockedChannel language = null!;
-        [SerializeField] private LockedChannel control  = null!;
-
-        [Header("Gamma (9 steps, see IGraphicsSettingsService.GammaSteps)")]
-        [SerializeField] private GammaChannel gamma = null!;
-        [Tooltip("Eje local (previo a la rotación base) sobre el que gira la perilla de Gamma.")]
-        [SerializeField] private Vector3 spinAxis     = Vector3.up;
-        [SerializeField] private float   sweepDegrees = 270f;
-
-        // Language/Control have no rotating knob transform of their own (Adjust() no-ops or
-        // doesn't apply), only the legacy KnobOutline mesh -- its parent is always the physical
-        // knob mesh itself (same convention as the "Outline" child under Sound's own knobs), so
-        // that's what stands in for a direct knob reference here.
-        private Transform[] highlightTargets = null!;
-        private int          gammaValue;
+        private Image fillImage = null!;
+        private Color normalColor;
+        private Vector2 baseAnchoredPosition;
+        private float baseWidth;
+        private int gammaValue;
         private IGraphicsSettingsService graphicsSettingsService = null!;
-        private IControlSchemeService    controlSchemeService    = null!;
-        private MainMenuSfxData          sfx                     = null!;
-        private readonly SelectionOutlineHighlight highlight = new();
+        private MainMenuSfxData sfx = null!;
 
-        public int ChannelCount => 3;
+        public int ChannelCount => 1;
 
         [Inject]
-        public void Construct(IGraphicsSettingsService graphicsSettingsService, IControlSchemeService controlSchemeService, MainMenuSfxData sfx)
+        public void Construct(IGraphicsSettingsService graphicsSettingsService, MainMenuSfxData sfx)
         {
             this.graphicsSettingsService = graphicsSettingsService;
-            this.controlSchemeService    = controlSchemeService;
             this.sfx                     = sfx;
         }
 
         private void Awake()
         {
-            this.highlightTargets = new[]
-            {
-                this.language.outline.transform.parent,
-                this.gamma.knob,
-                this.control.outline.transform.parent,
-            };
-
-            this.gamma.baseRotation         = this.gamma.knob.localRotation;
-            this.gamma.baseAnchoredPosition = this.gamma.fillBar.anchoredPosition;
-            this.gamma.baseWidth            = this.gamma.fillBar.rect.width;
+            this.fillImage            = this.fillBar.GetComponent<Image>();
+            this.normalColor          = this.fillImage.color;
+            this.baseAnchoredPosition = this.fillBar.anchoredPosition;
+            this.baseWidth            = this.fillBar.rect.width;
         }
 
         private void Start()
         {
-            // Reads graphicsSettingsService, injected via Construct() during the scope's own
-            // Awake() -- deferring to Start() guarantees that already ran (see
-            // MainMenuController.Start()/OptionsMenuController.Start() for the same reasoning).
+            // graphicsSettingsService is injected during the scope's own Awake(); read it in Start().
             this.gammaValue = Mathf.RoundToInt(this.graphicsSettingsService.Gamma * this.graphicsSettingsService.GammaSteps);
             ApplyGamma();
         }
 
-        // Only Gamma is in use for now; Language and Control stay disabled (skipped by navigation).
-        public bool IsSelectable(int index) => index == GammaIndex;
+        public bool IsSelectable(int index) => true;
 
-        public void ShowOutline(int index) => this.highlight.Show(this.highlightTargets[index]);
+        public bool RepeatsOnHold(int index) => true;
 
-        public void HideOutlines() => this.highlight.Clear();
+        public void Confirm(int index) { }
+
+        public void ShowOutline(int index) => this.fillImage.color = this.selectedColor;
+
+        public void HideOutlines() => this.fillImage.color = this.normalColor;
 
         public void Adjust(int index, int direction)
         {
-            if (index == ControlIndex)
-            {
-                var next = this.controlSchemeService.CurrentScheme == ControlScheme.Modern
-                    ? ControlScheme.Classic
-                    : ControlScheme.Modern;
-                this.controlSchemeService.SetScheme(next);
-                this.sfx.PlayKnobTick(gameObject);
-                return;
-            }
-
-            if (index != GammaIndex) return; // Language is locked for now.
-
             int clamped = Mathf.Clamp(this.gammaValue + direction, 0, this.graphicsSettingsService.GammaSteps);
             if (clamped == this.gammaValue) this.sfx.PlayKnobLimit(gameObject);
             else this.sfx.PlayKnobTick(gameObject);
@@ -130,19 +74,16 @@ namespace CrimsonDraft.UI.MainMenu
         private void ApplyGamma()
         {
             float fill = (float)this.gammaValue / this.graphicsSettingsService.GammaSteps;
-            float angle = Mathf.Lerp(0f, this.sweepDegrees, fill);
-            this.gamma.knob.localRotation = this.gamma.baseRotation * Quaternion.AngleAxis(angle, this.spinAxis);
 
-            // The bar is center-pivoted, so shrinking its scale alone would shrink toward the
-            // middle from both sides. Nudging the anchored position by the same half-width we
-            // just trimmed keeps the LEFT edge fixed, so it reads as a slider filling left-to-right.
-            var scale = this.gamma.fillBar.localScale;
+            // The bar is center-pivoted: shrink the scale and shift by the trimmed half-width so
+            // the LEFT edge stays fixed and it reads as filling left-to-right.
+            var scale = this.fillBar.localScale;
             scale.x = fill;
-            this.gamma.fillBar.localScale = scale;
+            this.fillBar.localScale = scale;
 
-            var pos = this.gamma.baseAnchoredPosition;
-            pos.x -= (this.gamma.baseWidth / 2f) * (1f - fill);
-            this.gamma.fillBar.anchoredPosition = pos;
+            var pos = this.baseAnchoredPosition;
+            pos.x -= (this.baseWidth / 2f) * (1f - fill);
+            this.fillBar.anchoredPosition = pos;
         }
     }
 }

@@ -1,8 +1,7 @@
 #nullable enable
 
+using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Infrastructure.Input;
-using CrimsonDraft.Rendering.Outline;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
@@ -10,68 +9,42 @@ using VContainer;
 namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
-    /// Owns navigation for the whole Options screen: switching between the General/Sound tab
-    /// groups, the two physical push-button cubes that pick the active tab, and handing
-    /// Up/Down/Left/Right off to whichever tab's <see cref="IOptionsChannelPanel"/> is active
-    /// (<see cref="GeneralMenuController"/> or <see cref="OptionsMenuController"/>). The button
-    /// row sits as one extra slot past the end of the active tab's content list, so going down
-    /// from the last item -- or up (wrapping) from the first -- lands on it; from the button row,
-    /// Up/Down goes back into the content list.
+    /// Owns navigation for the whole Options screen (all UI, no physical knobs). Three index
+    /// buttons (Video / Control / Sound) sit on top: Left/Right switches the active tab right away
+    /// (its button's child image turns on, the others turn off), Down enters that tab's content
+    /// list, and Up from the first item returns to the tab row. Inside the content list
+    /// Up/Down moves between channels and Left/Right/Confirm go to the active
+    /// <see cref="IOptionsChannelPanel"/>.
     /// </summary>
     public sealed class OptionsTabController : MonoBehaviour
     {
         [System.Serializable]
-        private sealed class TabButton
+        private sealed class Tab
         {
-            [SerializeField] public Transform  cube    = null!;
-            [SerializeField] public GameObject outline = null!;
-
-            [System.NonSerialized] public Vector3 raisedLocalPosition;
-            [System.NonSerialized] public Vector3 pressedLocalPosition;
+            [SerializeField] public GameObject buttonImage = null!;
+            [SerializeField] public GameObject group       = null!;
+            [SerializeField] public MonoBehaviour panel    = null!;
         }
 
-        [Header("Tabs (0 = General, 1 = Sound)")]
-        [SerializeField] private GameObject generalGroup = null!;
-        [SerializeField] private GameObject soundGroup   = null!;
-        [Tooltip("Perillas físicas de cada pestaña -- ambas ocupan el mismo lugar en el radio, solo una está activa a la vez.")]
-        [SerializeField] private GameObject generalKnobsGroup = null!;
-        [SerializeField] private GameObject soundKnobsGroup   = null!;
-        [SerializeField] private GeneralMenuController generalPanel = null!;
-        [SerializeField] private OptionsMenuController  soundPanel   = null!;
+        [Header("Tabs (0 = Video, 1 = Control, 2 = Sound)")]
+        [SerializeField] private Tab[] tabs = null!;
 
-        [Header("Tab buttons (0 = General, 1 = Sound)")]
-        [SerializeField] private TabButton generalButton = null!;
-        [SerializeField] private TabButton soundButton   = null!;
-
-        [Header("Button press")]
-        [Tooltip("Eje local propio del cubo (antes de su rotación) hacia donde se hunde al quedar seleccionado -- hacia abajo en Y, no hacia adentro.")]
-        [SerializeField] private Vector3 pressLocalAxis = Vector3.down;
-        [Tooltip("Desplazamiento en unidades de MUNDO (Translate usa Space.Self, que rota pero no escala) -- esta escena es minúscula, así que valores como 0.3 mandarían el botón lejísimos.")]
-        [SerializeField] private float   pressDepth     = 0.01f;
-        [SerializeField] private float   pressDuration  = 0.08f;
-        [SerializeField] private Ease    pressEase      = Ease.OutQuad;
-
-        [Header("Hold-to-repeat (Izquierda/Derecha sobre un canal de sonido)")]
+        [Header("Hold-to-repeat (Left/Right on a channel)")]
         [SerializeField] private float initialRepeatDelay = 0.35f;
         [SerializeField] private float repeatInterval     = 0.08f;
 
-        private IInputService        inputService = null!;
-        private MainMenuSfxData      sfx          = null!;
-        private TabButton[]          buttons      = null!;
-        private GameObject[]         groups       = null!;
-        private GameObject[]         knobGroups   = null!;
-        private IOptionsChannelPanel[] panels     = null!;
+        private IInputService   inputService = null!;
+        private MainMenuSfxData sfx          = null!;
 
         private bool isOpen;
         private int  activeTab;
-        private bool onButtonRow;
+        private bool onTabRow;
         private int  contentIndex;
-        private int  buttonCursor;
 
         private int   heldHorizontalDirection;
         private float horizontalRepeatTimer;
 
-        private readonly SelectionOutlineHighlight highlight = new();
+        private IOptionsChannelPanel Panel(int tab) => (IOptionsChannelPanel)this.tabs[tab].panel;
 
         [Inject]
         public void Construct(IInputService inputService, MainMenuSfxData sfx)
@@ -82,22 +55,6 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UIConfirm.performed  += OnConfirm;
         }
 
-        private void Awake()
-        {
-            this.buttons    = new[] { this.generalButton, this.soundButton };
-            this.groups     = new[] { this.generalGroup, this.soundGroup };
-            this.knobGroups = new[] { this.generalKnobsGroup, this.soundKnobsGroup };
-            this.panels     = new IOptionsChannelPanel[] { this.generalPanel, this.soundPanel };
-
-            foreach (var button in this.buttons)
-            {
-                button.raisedLocalPosition = button.cube.localPosition;
-                button.cube.Translate(this.pressLocalAxis.normalized * this.pressDepth, Space.Self);
-                button.pressedLocalPosition = button.cube.localPosition;
-                button.cube.localPosition   = button.raisedLocalPosition;
-            }
-        }
-
         private void OnDestroy()
         {
             if (this.inputService == null) return;
@@ -105,49 +62,30 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UIConfirm.performed  -= OnConfirm;
         }
 
-        private void OnDisable()
-        {
-            if (this.buttons == null) return;
-            foreach (var button in this.buttons)
-                DOTween.Kill(button.cube);
-        }
-
         public void Open()
         {
             this.isOpen                  = true;
-            this.activeTab               = 0;
-            this.onButtonRow             = true;
-            this.buttonCursor            = 0;
+            this.onTabRow                = true;
             this.heldHorizontalDirection = 0;
-
-            this.generalGroup.SetActive(true);
-            this.soundGroup.SetActive(false);
-            this.generalKnobsGroup.SetActive(true);
-            this.soundKnobsGroup.SetActive(false);
-
-            SetPressedVisual(this.buttons[0], true);
-            SetPressedVisual(this.buttons[1], false);
-
-            this.highlight.Show(this.buttons[0].cube);
+            ShowTab(0);
         }
 
         public void Close()
         {
             this.isOpen                  = false;
             this.heldHorizontalDirection = 0;
-
-            foreach (var panel in this.panels)
-                panel.HideOutlines();
-            foreach (var knobGroup in this.knobGroups)
-                knobGroup.SetActive(false);
-            foreach (var button in this.buttons)
-                DOTween.Kill(button.cube);
-            this.highlight.Clear();
+            for (int i = 0; i < this.tabs.Length; i++)
+                Panel(i).HideOutlines();
         }
 
         private void Update()
         {
-            if (!this.isOpen || this.onButtonRow || this.heldHorizontalDirection == 0) return;
+            if (!this.isOpen || this.onTabRow || this.heldHorizontalDirection == 0) return;
+            if (!Panel(this.activeTab).RepeatsOnHold(this.contentIndex))
+            {
+                this.heldHorizontalDirection = 0;
+                return;
+            }
 
             float x = this.inputService.UINavigate.ReadValue<Vector2>().x;
             if (Mathf.Abs(x) < 0.5f || (int)Mathf.Sign(x) != this.heldHorizontalDirection)
@@ -159,7 +97,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.horizontalRepeatTimer -= Time.unscaledDeltaTime;
             if (this.horizontalRepeatTimer > 0f) return;
 
-            this.panels[this.activeTab].Adjust(this.contentIndex, this.heldHorizontalDirection);
+            Panel(this.activeTab).Adjust(this.contentIndex, this.heldHorizontalDirection);
             this.horizontalRepeatTimer = this.repeatInterval;
         }
 
@@ -183,83 +121,79 @@ namespace CrimsonDraft.UI.MainMenu
                 this.heldHorizontalDirection = 0;
         }
 
+        // delta: +1 = down, -1 = up.
         private void HandleVertical(int delta)
         {
-            int contentCount = this.panels[this.activeTab].ChannelCount;
-            int totalSlots   = contentCount + 1; // +1 = the button row, shared by both tabs.
-            int currentSlot  = this.onButtonRow ? contentCount : this.contentIndex;
-            int nextSlot     = (currentSlot + delta + totalSlots) % totalSlots;
-            // Skip disabled channels (the button row at index contentCount is always selectable).
-            while (nextSlot != contentCount && !this.panels[this.activeTab].IsSelectable(nextSlot))
-                nextSlot = (nextSlot + delta + totalSlots) % totalSlots;
-
-            this.sfx.PlayCursor(gameObject);
             this.heldHorizontalDirection = 0;
+            var panel = Panel(this.activeTab);
 
-            if (nextSlot == contentCount)
+            if (this.onTabRow)
             {
-                if (!this.onButtonRow) this.panels[this.activeTab].HideOutlines();
-                this.onButtonRow  = true;
-                this.buttonCursor = this.activeTab;
-                this.highlight.Show(this.buttons[this.buttonCursor].cube);
+                if (delta < 0) return;
+                int first = NextSelectable(panel, -1, 1);
+                if (first < 0) return;
+                this.onTabRow     = false;
+                this.contentIndex = first;
+                this.sfx.PlayCursor(gameObject);
+                panel.ShowOutline(this.contentIndex);
+                return;
             }
-            else
+
+            int next = NextSelectable(panel, this.contentIndex, delta);
+            if (next >= 0)
             {
-                if (this.onButtonRow)
-                {
-                    this.highlight.Clear();
-                    this.onButtonRow = false;
-                }
-                this.contentIndex = nextSlot;
-                this.panels[this.activeTab].ShowOutline(this.contentIndex);
+                this.contentIndex = next;
+                this.sfx.PlayCursor(gameObject);
+                panel.ShowOutline(this.contentIndex);
             }
+            else if (delta < 0)
+            {
+                panel.HideOutlines();
+                this.onTabRow = true;
+                this.sfx.PlayCursor(gameObject);
+            }
+        }
+
+        // Next selectable channel from `from` stepping by `delta`, without wrapping; -1 if none.
+        private static int NextSelectable(IOptionsChannelPanel panel, int from, int delta)
+        {
+            for (int i = from + delta; i >= 0 && i < panel.ChannelCount; i += delta)
+                if (panel.IsSelectable(i)) return i;
+            return -1;
         }
 
         private void HandleHorizontal(int delta)
         {
-            if (this.onButtonRow)
+            if (this.onTabRow)
             {
-                this.buttonCursor = (this.buttonCursor + delta + this.buttons.Length) % this.buttons.Length;
-                this.highlight.Show(this.buttons[this.buttonCursor].cube);
+                int next = Mathf.Clamp(this.activeTab + delta, 0, this.tabs.Length - 1);
+                if (next == this.activeTab) return;
                 this.sfx.PlayCursor(gameObject);
+                ShowTab(next);
                 return;
             }
 
-            this.panels[this.activeTab].Adjust(this.contentIndex, delta);
+            Panel(this.activeTab).Adjust(this.contentIndex, delta);
             this.heldHorizontalDirection = delta;
             this.horizontalRepeatTimer   = this.initialRepeatDelay;
         }
 
         private void OnConfirm(InputAction.CallbackContext _)
         {
-            if (!this.isOpen || !this.onButtonRow) return;
-            this.sfx.PlayDecide(gameObject);
-            SwitchTab(this.buttonCursor);
+            if (!this.isOpen || this.onTabRow) return;
+            Panel(this.activeTab).Confirm(this.contentIndex);
         }
 
-        private void SwitchTab(int tab)
+        private void ShowTab(int tab)
         {
-            if (tab == this.activeTab) return;
             this.activeTab = tab;
-
-            this.groups[tab].SetActive(true);
-            this.groups[1 - tab].SetActive(false);
-            this.knobGroups[tab].SetActive(true);
-            this.knobGroups[1 - tab].SetActive(false);
-
-            SetPressedVisual(this.buttons[tab], true);
-            SetPressedVisual(this.buttons[1 - tab], false);
-        }
-
-        private void SetPressedVisual(TabButton button, bool pressed)
-        {
-            DOTween.Kill(button.cube);
-            Vector3 target = pressed ? button.pressedLocalPosition : button.raisedLocalPosition;
-            button.cube
-                .DOLocalMove(target, this.pressDuration)
-                .SetTarget(button.cube)
-                .SetUpdate(true)
-                .SetEase(this.pressEase);
+            for (int i = 0; i < this.tabs.Length; i++)
+            {
+                bool active = i == tab;
+                this.tabs[i].buttonImage.SetActive(active);
+                this.tabs[i].group.SetActive(active);
+                if (!active) Panel(i).HideOutlines();
+            }
         }
     }
 }

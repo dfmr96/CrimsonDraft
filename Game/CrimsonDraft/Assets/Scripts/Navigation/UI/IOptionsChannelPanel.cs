@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace CrimsonDraft.UI.MainMenu
+namespace CrimsonDraft.Navigation.UI
 {
     /// <summary>
     /// A tab's content list, as driven by <see cref="OptionsTabController"/>: a fixed number of
@@ -20,5 +20,11 @@ namespace CrimsonDraft.UI.MainMenu
 
         /// <param name="direction">-1 or +1; the panel decides its own step size and clamping.</param>
         void Adjust(int index, int direction);
+
+        /// <summary>Whether holding Left/Right on this channel should keep calling <see cref="Adjust"/>.</summary>
+        bool RepeatsOnHold(int index);
+
+        /// <summary>Confirm pressed while this channel is selected.</summary>
+        void Confirm(int index);
     }
 }
