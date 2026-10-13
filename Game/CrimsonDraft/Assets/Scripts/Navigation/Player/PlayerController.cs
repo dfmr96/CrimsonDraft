@@ -46,6 +46,9 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int GunTypeHash = Animator.StringToHash("GunType");
         private static readonly int SpeedHash       = Animator.StringToHash("Speed");
         private static readonly int HealthStateHash = Animator.StringToHash("HealthState");
+        private static readonly int GrabHash        = Animator.StringToHash("Grab");
+        private static readonly int GrabbedHash     = Animator.StringToHash("Grabbed");
+        private static readonly int GrabbedHurtHash = Animator.StringToHash("GrabbedHurt");
 
         private IInputService         inputService         = null!;
         private IInventoryService     inventoryService     = null!;
@@ -58,6 +61,7 @@ namespace CrimsonDraft.Navigation.Player
         private Vector3               touchingPushDirection;
         private float                 pushStrideTimer;
         private Transform?            grabbedBy;
+        private int                   healthOverlayLayerIndex = -1;
 
         public bool IsAiming { get; private set; }
         public bool IsGrabbed => this.grabbedBy != null;
@@ -86,6 +90,11 @@ namespace CrimsonDraft.Navigation.Player
             this.inputService.Move.performed += OnMovePerformed;
         }
 
+        private void Awake()
+        {
+            this.healthOverlayLayerIndex = this.animator.GetLayerIndex("Health Overlay");
+        }
+
         private void OnDestroy()
         {
             if (this.inputService != null)
@@ -102,13 +111,33 @@ namespace CrimsonDraft.Navigation.Player
         {
             if (this.grabbedBy != null) return false;
             this.grabbedBy = grabber;
+
+            // GrabbedInto -> GrabbedLoop (clips del Horror Template retargeteados al rig Soldier).
+            // El Health Overlay es un layer Override de cuerpo completo, así que se silencia mientras
+            // dura el agarre para que la pose de herido no tape la animación (igual que al apuntar).
+            this.animator.SetBool(GrabbedHash, true);
+            this.animator.SetTrigger(GrabHash);
+            if (this.healthOverlayLayerIndex >= 0)
+                this.animator.SetLayerWeight(this.healthOverlayLayerIndex, 0f);
             return true;
         }
 
         public void EndGrab(Transform grabber)
         {
-            if (this.grabbedBy == grabber)
-                this.grabbedBy = null;
+            if (this.grabbedBy != grabber) return;
+            this.grabbedBy = null;
+
+            this.animator.ResetTrigger(GrabHash);
+            this.animator.SetBool(GrabbedHash, false);
+            if (this.healthOverlayLayerIndex >= 0 && !this.IsAiming)
+                this.animator.SetLayerWeight(this.healthOverlayLayerIndex, 1f);
+        }
+
+        // Impacto del mordisco mientras está agarrado: GrabbedLoop -> GrabbedHurt -> GrabbedLoop.
+        public void NotifyBitten()
+        {
+            if (this.grabbedBy != null)
+                this.animator.SetTrigger(GrabbedHurtHash);
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -155,7 +184,11 @@ namespace CrimsonDraft.Navigation.Player
             if (this.grabbedBy != null)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.animator.SetTrigger(IdleHash);
+                // Las animaciones Grabbed* manejan la pose; no dejar triggers de locomoción
+                // pendientes que se consuman al soltarse (GrabbedRelease -> Exit -> Start).
+                this.animator.ResetTrigger(WalkHash);
+                this.animator.ResetTrigger(RunHash);
+                this.animator.ResetTrigger(IdleHash);
                 this.animator.SetFloat(SpeedHash, 0f);
                 this.animator.SetBool(PushingHash, false);
                 this.pushStrideTimer = 0f;

@@ -130,8 +130,10 @@ private void ExitAim()
             this.animator.ResetTrigger("AimEnter");
             this.animator.SetTrigger("AimExit");
 
-            // Restore the wounded look (a no-op if HealthState is currently 0/Normal).
-            if (this.healthOverlayLayerIndex >= 0)
+            // Restore the wounded look (a no-op if HealthState is currently 0/Normal) -- unless a
+            // grab is still in progress, whose animation also needs the overlay silenced
+            // (PlayerController.EndGrab restores it once released).
+            if (this.healthOverlayLayerIndex >= 0 && !this.playerController.IsGrabbed)
                 this.animator.SetLayerWeight(this.healthOverlayLayerIndex, 1f);
         }
 

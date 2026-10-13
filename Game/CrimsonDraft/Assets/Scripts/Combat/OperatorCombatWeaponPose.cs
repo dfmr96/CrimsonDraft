@@ -127,6 +127,10 @@ public void SetGunType(GunType gunType)
                 this.shotgunWeapon.SetActive(false);
             if (!this.knifeWeapon.activeSelf)
                 this.knifeWeapon.SetActive(true);
+
+            // KnifeReady -> KnifeAttack is full body too, so the wounded idle must not override it.
+            if (this.healthOverlayLayerIndex >= 0)
+                this.animator.SetLayerWeight(this.healthOverlayLayerIndex, 0f);
         }
 
         /// <summary>Call once the melee/knife swing finishes -- restores whichever gun matches the equipped GunType.</summary>
@@ -136,6 +140,9 @@ public void SetGunType(GunType gunType)
             if (this.knifeWeapon.activeSelf)
                 this.knifeWeapon.SetActive(false);
             this.ApplyEquippedWeaponVisibility();
+
+            if (this.healthOverlayLayerIndex >= 0 && !this.isAiming)
+                this.animator.SetLayerWeight(this.healthOverlayLayerIndex, 1f);
         }
 
 
