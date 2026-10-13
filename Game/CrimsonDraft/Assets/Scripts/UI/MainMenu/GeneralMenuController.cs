@@ -98,6 +98,9 @@ namespace CrimsonDraft.UI.MainMenu
             ApplyGamma();
         }
 
+        // Only Gamma is in use for now; Language and Control stay disabled (skipped by navigation).
+        public bool IsSelectable(int index) => index == GammaIndex;
+
         public void ShowOutline(int index) => this.highlight.Show(this.highlightTargets[index]);
 
         public void HideOutlines() => this.highlight.Clear();

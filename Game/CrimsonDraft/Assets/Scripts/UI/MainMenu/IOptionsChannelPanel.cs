@@ -12,6 +12,9 @@ namespace CrimsonDraft.UI.MainMenu
     {
         int ChannelCount { get; }
 
+        /// <summary>Disabled channels are skipped by vertical navigation.</summary>
+        bool IsSelectable(int index);
+
         void ShowOutline(int index);
         void HideOutlines();
 
