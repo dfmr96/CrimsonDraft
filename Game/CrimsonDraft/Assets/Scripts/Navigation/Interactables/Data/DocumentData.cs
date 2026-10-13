@@ -16,6 +16,10 @@ namespace CrimsonDraft.Navigation.Interactables
         [Tooltip("Text alignment on the note page. UseDefault follows NoteLayoutSettings.")]
         [SerializeField] private NoteAlignment    alignment = NoteAlignment.UseDefault;
 
+        [Tooltip("Max rendered rows per page for this note. 0 = follow the category / global rules.")]
+        [SerializeField, Min(0)] private int      maxRows;
+
+        public int              MaxRows   => this.maxRows;
         public string           Title     => this.title;
         public DocumentCategory Category  => this.category;
         public Sprite?          Icon      => this.icon;

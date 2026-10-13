@@ -677,10 +677,14 @@ namespace CrimsonDraft.UI
             // total duration.
             int maxLines = this.layoutSettings == null
                 ? int.MaxValue
-                : this.layoutSettings.MaxLinesPerPage;
+                : this.layoutSettings.ResolveMaxYarnLines(doc);
             int maxVisualLines = this.layoutSettings == null
                 ? int.MaxValue
-                : this.layoutSettings.MaxVisualLinesPerPage;
+                : this.layoutSettings.ResolveMaxRows(doc);
+
+            // The label must already carry this note's font/alignment, or the row measurement
+            // below would wrap with the previous note's settings.
+            this.detailView.SetLayout(this.layoutSettings, doc);
 
             foreach (var id in lineIds)
             {
@@ -725,8 +729,6 @@ namespace CrimsonDraft.UI
 
             if (this.layoutSettings != null && this.layoutSettings.MaxPages > 0 && pages.Count > this.layoutSettings.MaxPages)
                 Debug.LogWarning($"[Notes] '{doc.NoteId}' has {pages.Count} pages (max {this.layoutSettings.MaxPages}). Consider trimming it.", doc);
-
-            this.detailView.SetLayout(this.layoutSettings, doc.Alignment);
 
             this.currentImage = doc.PageImage;
             if (pages.Count == 0 && this.currentImage == null) return;
