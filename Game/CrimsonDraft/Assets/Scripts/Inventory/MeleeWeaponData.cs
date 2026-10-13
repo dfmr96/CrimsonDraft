@@ -13,6 +13,9 @@ namespace CrimsonDraft.Inventory
         [SerializeField, Min(1)] private int damage      = 20;
         [SerializeField, Min(0)] private int poiseDamage = 10;
 
+        // Fraction of damage that gets through a vest -- same meaning as WeaponData's.
+        [SerializeField, Range(0f, 1f)] private float armorDamageMultiplier = 0.25f;
+
         // The slash is rendered as several pellet-like points (same marker sprite/pipeline as a
         // shotgun blast) laid out along a line through the confirmed aim point instead of
         // scattered inside a dispersion ellipse -- see SlashStrategy. Damage/PoiseDamage above
@@ -30,6 +33,7 @@ namespace CrimsonDraft.Inventory
 
         public int               Damage                  => this.damage;
         public int                PoiseDamage             => this.poiseDamage;
+        public float              ArmorDamageMultiplier   => this.armorDamageMultiplier;
         public int                SlashPointCount         => this.slashPointCount;
         public float              SlashLength             => this.slashLength;
         public float              SlashAngleDegrees       => this.slashAngleDegrees;

@@ -3,6 +3,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.UI
 {
@@ -24,12 +25,37 @@ namespace CrimsonDraft.UI
 
         public bool IsOpen { get; private set; }
 
+        private NoteLayoutSettings? layout;
+        private NoteAlignment       alignment = NoteAlignment.UseDefault;
+
+        /// <summary>Spacing and alignment for the notes shown from now on; applied on every Show*.</summary>
+        public void SetLayout(NoteLayoutSettings? settings, NoteAlignment noteAlignment)
+        {
+            this.layout    = settings;
+            this.alignment = noteAlignment;
+        }
+
+        void ApplyBodyLayout()
+        {
+            if (this.layout == null) return;
+
+            this.bodyLabel.lineSpacing      = this.layout.LineSpacing;
+            this.bodyLabel.paragraphSpacing = this.layout.ParagraphSpacing;
+            this.bodyLabel.horizontalAlignment = this.layout.Resolve(this.alignment) switch
+            {
+                NoteAlignment.Centered  => HorizontalAlignmentOptions.Center,
+                NoteAlignment.Justified => HorizontalAlignmentOptions.Justified,
+                _                       => HorizontalAlignmentOptions.Left,
+            };
+        }
+
         public void Show(string title, string body, int page, int total)
         {
             this.titleLabel.text = title;
             this.titleLabel.gameObject.SetActive(true);
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = int.MaxValue;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)
@@ -48,6 +74,7 @@ namespace CrimsonDraft.UI
             this.titleLabel.gameObject.SetActive(false);
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = int.MaxValue;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)
@@ -111,6 +138,7 @@ namespace CrimsonDraft.UI
 
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = visibleChars;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)

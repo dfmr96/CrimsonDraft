@@ -133,7 +133,7 @@ namespace CrimsonDraft.Navigation.Player
 
         private void FixedUpdate()
         {
-            var isArmed = this.inventoryService.GetEquippedWeaponIndex(PlayerOperatorSlot) >= 0;
+            var isArmed = this.inventoryService.HasEquippedWeapon(PlayerOperatorSlot);
             this.animator.SetBool(ArmedHash, isArmed);
 
             // GunType.Pistols is int 0, which also doubles as "nothing equipped" here --

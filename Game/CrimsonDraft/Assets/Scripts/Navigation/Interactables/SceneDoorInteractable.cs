@@ -88,7 +88,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     break;
 
                 case KeyUseResult.DepletedAfterUse:
-                    context.InventoryService.RemoveItem(outcome.SlotIndex);
+                    context.InventoryService.Remove(outcome.Item!);
                     context.DialogueService.StartDialogue(
                         OpenedNodeName,
                         new Dictionary<string, object>

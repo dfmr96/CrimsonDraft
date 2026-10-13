@@ -7,6 +7,6 @@ namespace CrimsonDraft.Navigation
 {
     public interface IOperatorCorpseSpawner
     {
-        void Spawn(RoomController room, Vector3 position, Quaternion rotation);
+        void Spawn(int slot, RoomController room, Vector3 position, Quaternion rotation);
     }
 }

@@ -20,6 +20,10 @@ namespace CrimsonDraft.Inventory
         [SerializeField, Min(1)] private int       damage                 = 20;
         [SerializeField, Min(0)] private int       poiseDamage            = 10;
 
+        // Fraction of damage that gets through a vest (SilhouetteOverlay of kind Armor) --
+        // 1 means it fully penetrates (the MP7). Poise damage is never reduced by armor.
+        [SerializeField, Range(0f, 1f)] private float armorDamageMultiplier = 0.25f;
+
         // Pellets rolled per bullet within its burst-pattern ellipse - only meaningful for
         // shotgun-type weapons (see PelletSpreadStrategy); every other GunType always fires
         // exactly one pellet per bullet regardless of this value.
@@ -35,6 +39,7 @@ namespace CrimsonDraft.Inventory
         public WeaponSlot        WeaponSlot             => this.weaponSlot;
         public int               Damage                 => this.damage;
         public int               PoiseDamage            => this.poiseDamage;
+        public float             ArmorDamageMultiplier  => this.armorDamageMultiplier;
         public int               PelletCount            => this.pelletCount;
 
         private bool IsShotgunGunType() => this.gunType is GunType.Shotgun or GunType.REShotgun;

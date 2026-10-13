@@ -68,6 +68,7 @@ namespace CrimsonDraft.UI
         [Inject] private InventorySfxData                   sfx                   = null!;
         [Inject] private BeeperSignalRegistry               beeperSignalRegistry  = null!;
         [Inject] private IPublisher<BeeperSignalSentEvent>  beeperSignalPublisher = null!;
+        [Inject] private InventoryOpenCloseController       openCloseController   = null!;
         private bool inputBound;
 
         private readonly MorseDecoder      decoder   = new();
@@ -275,6 +276,11 @@ namespace CrimsonDraft.UI
                 if (i < code.Length - 1)
                     await UniTask.Delay(TimeSpan.FromSeconds(this.morseUnitSeconds * 3), DelayType.UnscaledDeltaTime);
             }
+
+            // Closing here, once the sent code has actually finished sounding out, rather than
+            // waiting on the result LED -- the player already heard/saw what they needed to.
+            // Guarded in case the inventory (or this tab) was already closed by hand mid-sequence.
+            if (this.isActiveAndEnabled) this.openCloseController.Close();
         }
 
         // ── Navigation between Input / Output ───────────────────────────────────

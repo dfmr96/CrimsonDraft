@@ -164,17 +164,33 @@ namespace CrimsonDraft.UI
             for (int i = options.Length; i < pool.Count; i++)
                 pool[i].gameObject.SetActive(false);
 
-            pool[0].SetHighlight(true);
+            // Reset every highlight, not just pool[0] -- pooled items keep the highlight they
+            // had when the previous prompt closed, which could leave "No" lit next to "Yes".
+            HighlightOnly(pool[0]);
             isSelectingOption = true;
 
             // Wire PickupPrompt action callbacks when IInputService is available
             Action<InputAction.CallbackContext>? onNavigate = null;
             Action<InputAction.CallbackContext>? onConfirm  = null;
+            Action<InputAction.CallbackContext>? onNeutral  = null;
 
             if (inputService != null)
             {
+                // A stick/dpad still held from walking when the prompt opens would otherwise
+                // register as a selection shift and start the prompt on "No". Ignore navigation
+                // until the input has been seen back at neutral.
+                bool navigateArmed = Mathf.Abs(inputService.PickupNavigate.ReadValue<Vector2>().x) < 0.5f;
+                // Releasing the stick fires 'canceled', not 'performed', so arm from there too.
+                onNeutral = _ => navigateArmed = true;
+
                 onNavigate = ctx =>
                 {
+                    var held = ctx.ReadValue<Vector2>();
+                    if (!navigateArmed)
+                    {
+                        if (Mathf.Abs(held.x) < 0.5f) navigateArmed = true;
+                        return;
+                    }
                     if (Time.unscaledTime - lastNavigateTime < NavigateCooldown) return;
                     lastNavigateTime = Time.unscaledTime;
                     var v = ctx.ReadValue<Vector2>();
@@ -188,6 +204,7 @@ namespace CrimsonDraft.UI
                 };
 
                 inputService.PickupNavigate.performed += onNavigate;
+                inputService.PickupNavigate.canceled  += onNeutral;
                 inputService.PickupConfirm.performed  += onConfirm;
             }
 
@@ -196,6 +213,7 @@ namespace CrimsonDraft.UI
             isSelectingOption = false;
 
             if (onNavigate != null) inputService!.PickupNavigate.performed -= onNavigate;
+            if (onNeutral  != null) inputService!.PickupNavigate.canceled  -= onNeutral;
             if (onConfirm  != null) inputService!.PickupConfirm.performed  -= onConfirm;
 
             foreach (var item in pool)

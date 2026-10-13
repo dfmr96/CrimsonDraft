@@ -1,21 +1,23 @@
 #nullable enable
 
+using System.Collections.Generic;
 using UnityEngine.Scripting;
+using CrimsonDraft.Infrastructure.Save;
 
 namespace CrimsonDraft.Infrastructure
 {
     public sealed class InventoryStateRegistry
     {
-        private object? savedState;
+        private List<InventoryItemEntry>? savedState;
 
         [Preserve]
         public InventoryStateRegistry() { }
 
         public bool HasSavedState => this.savedState != null;
 
-        public void Save(object state) => this.savedState = state;
+        public void Save(IReadOnlyList<InventoryItemEntry> state) => this.savedState = new List<InventoryItemEntry>(state);
 
-        public T? Load<T>() where T : class => this.savedState as T;
+        public IReadOnlyList<InventoryItemEntry>? Load() => this.savedState;
 
         public void ClearAll() => this.savedState = null;
     }

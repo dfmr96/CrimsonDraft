@@ -138,12 +138,13 @@ namespace CrimsonDraft.Tests
             this.menuView.RaiseOnOperatorSelected(1);
             this.commandPanel.RaiseOnCommandSelected(CombatCommand.Items);
 
-            this.combatInventoryView.RaiseOnItemUsed(5);
+            var item = InventoryItemFactory.Create(InventoryTestData.Consumable());
+            this.combatInventoryView.RaiseOnItemUsed(item);
 
             Assert.AreEqual(1, this.orchestrator.EnqueueCallCount);
             Assert.AreEqual(PendingActionType.UseItem, this.orchestrator.LastEnqueuedAction?.Type);
             Assert.AreEqual(1, this.orchestrator.LastEnqueuedAction?.SlotIndex);
-            Assert.AreEqual(5, this.orchestrator.LastEnqueuedAction?.ItemIndex);
+            Assert.AreSame(item, this.orchestrator.LastEnqueuedAction?.Item);
             Assert.IsFalse(this.combatInventoryView.IsVisible);
         }
 
@@ -216,6 +217,23 @@ namespace CrimsonDraft.Tests
 
             Assert.AreEqual(3, this.aimView.LastShotCount);
             Assert.IsTrue(this.aimView.IsVisible);
+        }
+
+        [Test]
+        public void ShotFired_spendsAmmoThroughTheInventory()
+        {
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+
+            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Miss, ShotPrecision.Normal, 0) });
+
+            // Going through IInventoryService (not IWeaponSlot.SetAmmo directly) is what makes the
+            // inventory grid redraw the weapon's ammo count after combat.
+            Assert.AreEqual(1, this.inventory.SpentAmmo.Count);
+            Assert.AreSame(this.roster[0].ActiveWeapon, this.inventory.SpentAmmo[0].Weapon);
+            Assert.AreEqual(c.SelectedShotCount, this.inventory.SpentAmmo[0].Shots);
         }
 
         [Test]
@@ -532,6 +550,54 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ConfirmTarget_configuresAimWithSelectedEnemyOverlay()
+        {
+            using var sprites = new TestSprites();
+            var overlay = new ActiveOverlay(OverlayKind.Armor, sprites.Solid(Color.cyan), sprites.Solid(Color.white));
+            this.battlefieldView.SetOccupiedSlots(new[] { 2 });
+            this.battlefieldView.SetOverlay(2, overlay);
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // shot count -> target selection
+            InvokeConfirm(c); // target -> aiming
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount);
+            Assert.IsTrue(this.aimView.LastConfiguredOverlay.HasValue);
+            Assert.AreSame(overlay.MaskSprite, this.aimView.LastConfiguredOverlay!.Value.MaskSprite);
+        }
+
+        [Test]
+        public void ConfirmTarget_enemyWithoutOverlay_clearsAimOverlay()
+        {
+            this.battlefieldView.SetOccupiedSlots(new[] { 2 });
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c);
+            InvokeConfirm(c);
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount); // called even with nothing to show
+            Assert.IsFalse(this.aimView.LastConfiguredOverlay.HasValue);
+        }
+
+        [Test]
+        public void ShotCountConfirm_noEnemies_clearsAimOverlay()
+        {
+            this.battlefieldView.SetOccupiedSlots(System.Array.Empty<int>());
+
+            var c = BuildAndInit();
+            this.menuView.RaiseOnOperatorSelected(0);
+            c.BeginShootConfiguration(0);
+            InvokeConfirm(c); // no enemies -> straight to aiming
+
+            Assert.AreEqual(1, this.aimView.ConfigureOverlayCallCount);
+            Assert.IsFalse(this.aimView.LastConfiguredOverlay.HasValue);
+        }
+
+        [Test]
         public void TargetSelection_excludesEnemyDeadButStillPlayingDeathAnimation()
         {
             // Slot 0's HP has already hit 0 (IsEnemyDead == true) but it's still mid death
@@ -599,6 +665,30 @@ namespace CrimsonDraft.Tests
         public void ComputeShotDamage_miss_returns0()
         {
             Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss, 1f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_torso_armorQuarter_returns5()
+        {
+            Assert.AreEqual(5, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 1f, 20, 0.25f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_head_graze_armorHalf_returns10()
+        {
+            Assert.AreEqual(10, CombatMenuController.ComputeShotDamage(ShotZone.Head, 0.5f, 20, 0.5f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_armorMultiplierOne_isUnchanged()
+        {
+            Assert.AreEqual(20, CombatMenuController.ComputeShotDamage(ShotZone.Torso, 1f, 20, 1f));
+        }
+
+        [Test]
+        public void ComputeShotDamage_miss_withArmor_returns0()
+        {
+            Assert.AreEqual(0, CombatMenuController.ComputeShotDamage(ShotZone.Miss, 1f, 20, 0.25f));
         }
 
         [Test]
@@ -786,138 +876,7 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void CommandPanel_focusFire_marksOperatorAndFreezesAtb()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire);
-
-            CollectionAssert.Contains(c.FocusFireMarked, 0);
-            Assert.AreEqual(1, this.orchestrator.MarkOperatorForFocusFireCallCount);
-            Assert.AreEqual(0, this.orchestrator.LastMarkedFocusFireSlot);
-            Assert.AreEqual(1, this.menuView.FocusFireMarkedCallCount);
-            Assert.IsTrue(this.menuView.LastFocusFireMarkedValue);
-            Assert.IsFalse(this.commandPanel.IsVisible);
-            Assert.IsTrue(this.menuView.OperatorDimmedByIndex[0]); // marked operator visually dimmed + non-selectable
-        }
-
-        [Test]
-        public void OperatorSelected_withNoneMarked_enablesFocusFire()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-
-            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
-        }
-
-        [Test]
-        public void OperatorSelected_withOneOfThreeMarked_stillEnablesFocusFireForAnother()
-        {
-            var c = BuildAndInit(); // default FakeOperatorRoster has 3 slots, all alive
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
-
-            this.menuView.RaiseOnOperatorSelected(1);
-
-            Assert.IsTrue(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
-        }
-
-        [Test]
-        public void OperatorSelected_withAllOthersMarked_disablesFocusFireForTheLastOne()
-        {
-            var c = BuildAndInit(); // 3 slots
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
-
-            this.menuView.RaiseOnOperatorSelected(1);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 1
-
-            this.menuView.RaiseOnOperatorSelected(2); // only unmarked operator left
-
-            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
-        }
-
-        [Test]
-        public void CommandPanel_focusFire_onLastAvailableOperator_isRejectedEvenIfUiEventFires()
-        {
-            var c = BuildAndInit(); // 3 slots
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
-
-            this.menuView.RaiseOnOperatorSelected(1);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 1
-
-            this.menuView.RaiseOnOperatorSelected(2); // only unmarked operator left, FocusFire now disabled
-
-            // Simulates a UI bug where the disabled button's submit event fires anyway.
-            this.commandPanel.ForceRaiseOnCommandSelected(CombatCommand.FocusFire);
-
-            CollectionAssert.DoesNotContain(c.FocusFireMarked, 2);
-            Assert.AreEqual(2, c.FocusFireMarked.Count); // still just the first two — no third mark, no hard-lock
-        }
-
-        [Test]
-        public void OperatorSelected_withNoAmmo_disablesFocusFire()
-        {
-            var c = BuildAndInit();
-            this.roster[0].ActiveWeapon!.SetAmmo(0);
-
-            this.menuView.RaiseOnOperatorSelected(0);
-
-            Assert.IsFalse(this.commandPanel.IsCommandEnabled(CombatCommand.FocusFire));
-        }
-
-        [Test]
-        public void CommandPanel_focusFire_withNoAmmo_isRejectedEvenIfUiEventFires()
-        {
-            var c = BuildAndInit();
-            this.roster[0].ActiveWeapon!.SetAmmo(0);
-            this.menuView.RaiseOnOperatorSelected(0);
-
-            // Simulates a UI bug where the disabled button's submit event fires anyway --
-            // marking without ammo would let a synced-shot group form around a weapon that
-            // has nothing left to fire when the shared QTE resolves.
-            this.commandPanel.ForceRaiseOnCommandSelected(CombatCommand.FocusFire);
-
-            CollectionAssert.DoesNotContain(c.FocusFireMarked, 0);
-            Assert.AreEqual(0, this.orchestrator.MarkOperatorForFocusFireCallCount);
-        }
-
-        [Test]
-        public void CommandPanel_shoot_withMarkedOperators_enqueuesFocusFireAction()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
-
-            this.menuView.RaiseOnOperatorSelected(1);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot); // triggers, 1 is the trigger
-
-            Assert.IsNotNull(this.orchestrator.LastEnqueuedAction);
-            var action = this.orchestrator.LastEnqueuedAction!.Value;
-            Assert.AreEqual(PendingActionType.FocusFire, action.Type);
-            Assert.AreEqual(1, action.SlotIndex);
-            CollectionAssert.AreEqual(new[] { 0, 1 }, action.FocusFireParticipants);
-        }
-
-        [Test]
-        public void CommandPanel_shoot_withMarkedOperators_clearsMarksAndUnmarksView()
-        {
-            var c = BuildAndInit();
-            this.menuView.RaiseOnOperatorSelected(0);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.FocusFire); // marks 0
-
-            this.menuView.RaiseOnOperatorSelected(1);
-            this.commandPanel.RaiseOnCommandSelected(CombatCommand.Shoot);
-
-            Assert.AreEqual(0, c.FocusFireMarked.Count);
-            Assert.AreEqual(2, this.menuView.FocusFireMarkedCallCount); // marked(0,true) then unmarked(0,false)
-            Assert.IsFalse(this.menuView.LastFocusFireMarkedValue);
-            Assert.AreEqual(0, this.menuView.LastFocusFireMarkedSlot);
-        }
-
-        [Test]
-        public void CommandPanel_shoot_withNoMarkedOperators_enqueuesNormalShoot()
+        public void CommandPanel_shoot_enqueuesShootAction()
         {
             var c = BuildAndInit();
             this.menuView.RaiseOnOperatorSelected(0);
@@ -929,131 +888,7 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0, action.SlotIndex);
         }
 
-        [Test]
-        public void BeginFocusFireConfiguration_seedsGroupStateAndEntersShotCountForFirstParticipant()
-        {
-            var c = BuildAndInit();
-            c.BeginFocusFireConfiguration(new[] { 0, 1 });
-
-            Assert.AreEqual(0, c.SelectedOperator);
-            CollectionAssert.AreEqual(new[] { 0, 1 }, c.FocusFireParticipants);
-            Assert.IsTrue(this.shotCountView.IsVisible);
-        }
-
-        [Test]
-        public void ShotCountConfirm_groupFlow_loopsThroughParticipantsThenReachesTargetSelection()
-        {
-            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
-            var c = BuildAndInit();
-            c.BeginFocusFireConfiguration(new[] { 0, 1 });
-
-            InvokeConfirm(c); // confirms participant 0's shot count
-
-            Assert.AreEqual(1, c.SelectedOperator);
-            Assert.AreEqual(1, c.FocusFireShotCounts[0]);
-            Assert.IsTrue(this.shotCountView.IsVisible); // re-entered for participant 1
-
-            InvokeConfirm(c); // confirms participant 1's (trigger) shot count -> TargetSelState
-
-            Assert.AreEqual(1, c.FocusFireShotCounts[1]);
-            Assert.IsTrue(this.battlefieldView.EnemyTargetVisible);
-        }
-
-        [Test]
-        public void FocusFireResolution_appliesDamagePerParticipantAndPlaysSequentialBursts()
-        {
-            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
-            this.battlefieldView.SetEnemyHp(1, 1000);
-            this.aimView.ResolveShotsForWeaponHandler = (data, count) =>
-                new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 15) };
-
-            var c = BuildAndInit();
-            c.BeginFocusFireConfiguration(new[] { 0, 1 });
-
-            InvokeConfirm(c); // participant 0's shot count
-            InvokeConfirm(c); // participant 1's (trigger) shot count -> TargetSelState
-
-            InvokeConfirm(c); // TargetSelState -> AimingState (only slot 1 is occupied)
-
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
-
-            InvokeConfirm(c); // dismiss aim window -> plays both bursts, finalizes
-
-            Assert.AreEqual(2, this.battlefieldView.BurstCallCount);
-            Assert.AreEqual(1, this.battlefieldView.LastBurstOperatorSlotIndex); // trigger (participant 1) fires last
-            Assert.AreEqual(945, this.battlefieldView.LastDamageResult.RemainingHp); // 1000 - 15 (marked) - 40 (trigger)
-            Assert.AreEqual(1, this.orchestrator.NotifyFocusFireCompletedCallCount);
-            Assert.AreEqual(0, c.FocusFireParticipants.Length);
-        }
-
-        [Test]
-        public void FocusFireResolution_resolvesMarkedParticipantsFromAimView()
-        {
-            this.battlefieldView.SetOccupiedSlots(new[] { 1 });
-            this.battlefieldView.SetEnemyHp(1, 1000);
-
-            var c = BuildAndInit();
-            c.BeginFocusFireConfiguration(new[] { 0, 1 });
-
-            InvokeConfirm(c);
-            InvokeConfirm(c);
-            InvokeConfirm(c);
-
-            this.aimView.FireResolvedShots(new[] { new ResolvedShot(0, 0, Vector2.zero, ShotZone.Head, ShotPrecision.Normal, 40) });
-            InvokeConfirm(c);
-
-            Assert.AreEqual(1, this.aimView.ResolveShotsForWeaponCallCount); // once for the one marked participant
-            Assert.AreEqual(1, this.aimView.LastResolvedShotCount);
-        }
-
         // ── Fakes ──────────────────────────────────────────────────────
-
-        private sealed class FakeInventoryService : IInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            private readonly InventorySlot[] slots = new InventorySlot[8]; // 2 operators × 4
-
-            public FakeInventoryService()
-            {
-                for (int i = 0; i < this.slots.Length; i++)
-                    this.slots[i] = new InventorySlot();
-            }
-
-            public IReadOnlyList<InventorySlot> Slots    => this.slots;
-            public int                          SlotCount => this.slots.Length;
-
-            public int RemoveItemCallCount  { get; private set; }
-            public int LastRemovedSlotIndex { get; private set; } = -1;
-
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => true;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot)      => true;
-            public bool AddItemAuto(ItemData data, int quantity = 0)               => true;
-            public void RemoveItem(int slotIndex)
-            {
-                this.RemoveItemCallCount++;
-                this.LastRemovedSlotIndex = slotIndex;
-            }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot)                         { }
-            public void EquipWeapon(int slotIndex, int operatorSlot)               { }
-            public void UnequipWeapon(int slotIndex)                               { }
-            public int  GetEquippedWeaponIndex(int operatorSlot)                   => -1;
-            public bool CanReload(int slotIndex, int operatorSlot)                 => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot)            { }
-            public bool            TryCombine(int slotA, int slotB)          => false;
-            public KeyUseOutcome   TryUseKey(string keyItemId)               => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void            SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public void            LoadState(InventorySlot[] slots)          { }
-            public InventorySlot[] GetRawSlots()                             => this.slots;
-        }
 
         private sealed class FakeCombatActionMenuView : ICombatActionMenuView
         {
@@ -1098,15 +933,6 @@ namespace CrimsonDraft.Tests
             public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
             public int  FocusedOperatorIndex { get; set; } = -1;
             public bool IsOperatorFocused(int index) => this.FocusedOperatorIndex == index;
-            public int  FocusFireMarkedCallCount  { get; private set; }
-            public bool LastFocusFireMarkedValue  { get; private set; }
-            public int  LastFocusFireMarkedSlot   { get; private set; } = -1;
-            public void SetOperatorFocusFireMarked(int index, bool marked)
-            {
-                this.FocusFireMarkedCallCount++;
-                this.LastFocusFireMarkedValue = marked;
-                this.LastFocusFireMarkedSlot  = index;
-            }
             public RectTransform GetOperatorAnchor(int index) =>
                 new GameObject().AddComponent<RectTransform>();
             public RectTransform GetOperatorRect(int index) =>
@@ -1146,7 +972,7 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeCombatInventoryView : ICombatInventoryView
         {
-            public event Action<int>? OnItemUsed;
+            public event Action<InventoryItem?>? OnItemUsed;
             public event Action?      OnCancelled;
             public bool IsVisible             { get; private set; }
             public int  LastShownOperatorSlot { get; private set; } = -1;
@@ -1156,7 +982,7 @@ namespace CrimsonDraft.Tests
                 this.IsVisible             = true;
             }
             public void Hide()                          => this.IsVisible = false;
-            public void RaiseOnItemUsed(int slotIndex)   => this.OnItemUsed?.Invoke(slotIndex);
+            public void RaiseOnItemUsed(InventoryItem? item) => this.OnItemUsed?.Invoke(item);
             public void RaiseOnCancelled()               => this.OnCancelled?.Invoke();
         }
 
@@ -1201,6 +1027,13 @@ namespace CrimsonDraft.Tests
             public int LastFeedbackDamage { get; private set; }
             public bool LastFeedbackIsMiss { get; private set; }
             public void ConfigureHitMask(AimHitMaskProfile? profile) => this.LastConfiguredProfile = profile;
+            public ActiveOverlay? LastConfiguredOverlay { get; private set; }
+            public int ConfigureOverlayCallCount { get; private set; }
+            public void ConfigureOverlay(ActiveOverlay? overlay)
+            {
+                this.ConfigureOverlayCallCount++;
+                this.LastConfiguredOverlay = overlay;
+            }
             public void ConfigureWeapon(CrimsonDraft.Inventory.WeaponData? weaponData) { }
             public void ConfigureMeleeWeapon(CrimsonDraft.Inventory.MeleeWeaponData? meleeData) { }
             public void SetShotCount(int shotCount) => this.LastShotCount = shotCount;
@@ -1218,26 +1051,6 @@ namespace CrimsonDraft.Tests
             public void Confirm() { }
             public void Hide()    => this.IsVisible = false;
             public void FireResolvedShots(ResolvedShot[] shots) => this.OnShotsResolved?.Invoke(shots);
-
-            public int ResolveShotsForWeaponCallCount { get; private set; }
-            public CrimsonDraft.Inventory.WeaponData? LastResolvedWeaponData { get; private set; }
-            public int LastResolvedShotCount { get; private set; }
-            public Func<CrimsonDraft.Inventory.WeaponData?, int, ResolvedShot[]>? ResolveShotsForWeaponHandler;
-
-            public ResolvedShot[] ResolveShotsForWeapon(CrimsonDraft.Inventory.WeaponData? weaponData, int shotCount)
-            {
-                this.ResolveShotsForWeaponCallCount++;
-                this.LastResolvedWeaponData = weaponData;
-                this.LastResolvedShotCount  = shotCount;
-
-                if (this.ResolveShotsForWeaponHandler != null)
-                    return this.ResolveShotsForWeaponHandler(weaponData, shotCount);
-
-                var shots = new ResolvedShot[Mathf.Max(1, shotCount)];
-                for (int i = 0; i < shots.Length; i++)
-                    shots[i] = new ResolvedShot(i, i, Vector2.zero, ShotZone.Torso, ShotPrecision.Normal, 20);
-                return shots;
-            }
         }
 
         private sealed class FakeBattlefieldView : IBattlefieldView
@@ -1266,6 +1079,10 @@ namespace CrimsonDraft.Tests
                 }
             }
             public void SetMaskProfile(int slot, AimHitMaskProfile? profile) => this.maskBySlot[slot] = profile;
+            private readonly Dictionary<int, ActiveOverlay> overlayBySlot = new Dictionary<int, ActiveOverlay>();
+            public void SetOverlay(int slotIndex, ActiveOverlay overlay) => this.overlayBySlot[slotIndex] = overlay;
+            public ActiveOverlay? GetEnemyOverlay(int slotIndex) =>
+                this.overlayBySlot.TryGetValue(slotIndex, out var overlay) ? overlay : (ActiveOverlay?)null;
             public void SetEnemyHp(int slot, int hp) => this.hpBySlot[slot] = hp;
 
             public void HoldNextBurst()        => this.pendingBurstSource = new UniTaskCompletionSource();
@@ -1397,15 +1214,6 @@ namespace CrimsonDraft.Tests
                 this.NotifyEnemyStaggeredCallCount++;
                 this.LastStaggeredSlot = enemySlot;
             }
-            public int MarkOperatorForFocusFireCallCount { get; private set; }
-            public int LastMarkedFocusFireSlot           { get; private set; } = -1;
-            public void MarkOperatorForFocusFire(int operatorSlot)
-            {
-                this.MarkOperatorForFocusFireCallCount++;
-                this.LastMarkedFocusFireSlot = operatorSlot;
-            }
-            public int NotifyFocusFireCompletedCallCount { get; private set; }
-            public void NotifyFocusFireCompleted()        => this.NotifyFocusFireCompletedCallCount++;
         }
 
         private sealed class FakeOperatorRoster : IOperatorRoster

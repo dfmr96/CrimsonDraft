@@ -30,6 +30,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image         horizontalSelector     = null!;
         [SerializeField] private RectTransform aimSpace               = null!;
         [SerializeField] private Image         silhouetteImage        = null!;
+        // Child of silhouetteImage with the same rect -- draws the active overlay (vest) on top
+        // of the silhouette so it shakes with it. Optional: without it overlays still apply,
+        // they just aren't drawn.
+        [SerializeField] private Image?        overlayImage;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
         [SerializeField] private RectTransform feedbackRoot           = null!;
@@ -44,6 +48,11 @@ namespace CrimsonDraft.Combat
         [SerializeField] private int           maxConcurrentFeedback  = 3;
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
+        [SerializeField] private Color         armorBlockedFeedbackColor = new Color(0.2f, 0.88f, 1f, 1f); // #33E0FF
+        // Where the end-of-QTE total popup appears (above the silhouette, outside aimSpace so
+        // Hide()'s aimSpace sweep never touches it). Optional: without it the total is skipped.
+        [SerializeField] private RectTransform? totalFeedbackAnchor;
+        [SerializeField] private float          totalFeedbackScale = 1.6f;
 
         // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
         // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
@@ -95,6 +104,12 @@ namespace CrimsonDraft.Combat
         private bool isResolvingSequence;
 
         private Sprite?              activeZoneMaskSprite;
+        private Sprite?              activeOverlayMaskSprite;
+        private OverlayKind?         activeOverlayKind;
+        private float                activeArmorDamageMultiplier = 1f;
+        private bool                 warnedUnreadableOverlayMask;
+        private GameObject?          totalFeedbackInstance;
+        private bool                 warnedMissingTotalAnchor;
         private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
@@ -146,8 +161,20 @@ namespace CrimsonDraft.Combat
                 this.silhouetteImage.sprite = profile.SilhouetteSprite;
         }
 
+        public void ConfigureOverlay(ActiveOverlay? overlay)
+        {
+            this.activeOverlayMaskSprite     = overlay?.MaskSprite;
+            this.activeOverlayKind           = overlay?.Kind;
+            this.warnedUnreadableOverlayMask = false;
+
+            if (this.overlayImage == null) return;
+            this.overlayImage.sprite  = overlay?.VisibleSprite;
+            this.overlayImage.enabled = overlay.HasValue;
+        }
+
         public void ConfigureWeapon(WeaponData? weaponData)
         {
+            this.activeArmorDamageMultiplier = weaponData?.ArmorDamageMultiplier ?? 1f;
             this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
             this.activeBaseDamage       = weaponData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
@@ -160,6 +187,7 @@ namespace CrimsonDraft.Combat
 
         public void ConfigureMeleeWeapon(MeleeWeaponData? meleeData)
         {
+            this.activeArmorDamageMultiplier = meleeData?.ArmorDamageMultiplier ?? 1f;
             this.activeBaseDamage       = meleeData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = null;
             this.activeBurstPattern     = meleeData?.SlashPattern;
@@ -197,6 +225,7 @@ namespace CrimsonDraft.Combat
 
         public void Show()
         {
+            this.ClearTotalFeedback();
             this.gameObject.SetActive(true);
             this.basePanelLocalPos = this.transform.localPosition;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
@@ -256,30 +285,6 @@ namespace CrimsonDraft.Combat
                 this.ResolvePendingShotsAsync().Forget();
         }
 
-        // Reuses the aim position already locked by the real interactive QTE (confirmedLocalPos)
-        // without re-running the vertical/horizontal oscillation — used for Focus Fire's marked
-        // participants, who share the trigger's aim point but apply their own weapon's burst
-        // pattern and dispersion.
-        public ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount)
-        {
-            this.ConfigureWeapon(weaponData);
-            this.shotCount = Mathf.Max(1, shotCount);
-            var firstShotLocal = this.ComputeRandomShotLocal();
-            var shots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
-
-            // The interactive QTE spawns its markers/feedback from ResolvePendingShotsAsync,
-            // which this path bypasses — do it here so every participant's bullets show up
-            // positioned on the reticle, not just the trigger's.
-            foreach (var shot in shots)
-            {
-                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
-                this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
-            }
-
-            return shots;
-        }
-
         public void Hide()
         {
             // Guaranteed shutdown: whatever debuff effects are mid-fade get force-stopped here,
@@ -293,6 +298,7 @@ namespace CrimsonDraft.Combat
             this.verticalTween   = null;
             this.horizontalTween = null;
             this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
+            this.ClearTotalFeedback();
             this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
@@ -469,8 +475,11 @@ namespace CrimsonDraft.Combat
                     ShotZone            zone       = def?.zone ?? ShotZone.Miss;
                     ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
                     float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
-                    int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
-                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage));
+                    bool                armorBlocked = ArmorRules.IsBlocked(
+                        zone, this.IsOverlayCovered(shotLocal), this.activeOverlayKind, this.activeArmorDamageMultiplier);
+                    int                 damage     = CombatMenuController.ComputeShotDamage(
+                        zone, precMult, this.activeBaseDamage, armorBlocked ? this.activeArmorDamageMultiplier : 1f);
+                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage, armorBlocked));
                     flatIndex++;
                 }
             }
@@ -495,7 +504,7 @@ namespace CrimsonDraft.Combat
                 var shot = this.pendingResolvedShots[i];
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
                 this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss, shot.ArmorBlocked);
 
                 // Only pause between distinct bullets, not between pellets of the same shell -
                 // a shotgun blast should read as one simultaneous spread, not a slow trickle.
@@ -505,6 +514,7 @@ namespace CrimsonDraft.Combat
                     await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
             }
 
+            this.SpawnTotalFeedback(this.pendingResolvedShots);
             this.OnShotsResolved?.Invoke(this.pendingResolvedShots);
             this.isResolvingSequence = false;
             this.phase = AimPhase.WaitingDismiss;
@@ -530,7 +540,48 @@ namespace CrimsonDraft.Combat
             img.SetNativeSize();
         }
 
-        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
+        // Unlike per-shot popups this one never fades and isn't tracked in activeFeedback, so it
+        // can't be pruned by maxConcurrentFeedback -- it stays until the QTE is dismissed.
+        private void SpawnTotalFeedback(ResolvedShot[] shots)
+        {
+            string? label = TotalFeedback.Format(shots);
+            if (label == null || this.feedbackTextPrefab == null) return;
+
+            if (this.totalFeedbackAnchor == null)
+            {
+                if (!this.warnedMissingTotalAnchor)
+                {
+                    Debug.LogWarning("[AimView] Total feedback anchor is not assigned -- skipping the total popup.");
+                    this.warnedMissingTotalAnchor = true;
+                }
+                return;
+            }
+
+            this.ClearTotalFeedback();
+            var go = Instantiate(this.feedbackTextPrefab, this.totalFeedbackAnchor);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localScale    = Vector3.one * this.totalFeedbackScale;
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text != null)
+            {
+                text.text = label;
+                var color = label == TotalFeedback.MissText ? this.missFeedbackColor : this.hitFeedbackColor;
+                color.a    = 1f;
+                text.color = color;
+            }
+
+            this.totalFeedbackInstance = go;
+        }
+
+        private void ClearTotalFeedback()
+        {
+            if (this.totalFeedbackInstance != null)
+                Destroy(this.totalFeedbackInstance);
+            this.totalFeedbackInstance = null;
+        }
+
+        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked = false)
         {
             if (this.feedbackTextPrefab == null)
             {
@@ -573,7 +624,9 @@ namespace CrimsonDraft.Combat
             }
 
             text.text = isMiss ? "MISS" : $"-{damage}";
-            var baseColor = isMiss ? this.missFeedbackColor : this.hitFeedbackColor;
+            var baseColor = isMiss ? this.missFeedbackColor
+                : armorBlocked ? this.armorBlockedFeedbackColor
+                : this.hitFeedbackColor;
             baseColor.a = 1f;
             text.color = baseColor;
 
@@ -661,6 +714,25 @@ namespace CrimsonDraft.Combat
         internal static int CountBullets(ResolvedShot[] shots) =>
             shots.Length == 0 ? 1 : shots[shots.Length - 1].BulletIndex + 1;
 
+        // Shot position (aimSpace local) -> normalized UV inside the silhouette's rect. Shared by
+        // the zone mask and the overlay mask, which are both laid out in that same rect.
+        private bool TryGetSilhouetteUv(Vector2 shotLocal, out float u, out float v)
+        {
+            u = 0f;
+            v = 0f;
+            if (this.silhouetteImage == null) return false;
+
+            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
+            var silRt      = this.silhouetteImage.rectTransform;
+            var localInSil = silRt.InverseTransformPoint(worldPos);
+            var rect       = silRt.rect;
+            if (rect.width <= 0f || rect.height <= 0f) return false;
+
+            u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
+            v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            return true;
+        }
+
         private ShotZoneDefinition? SampleSilhouette(Vector2 shotLocal)
         {
             if (this.silhouetteImage == null)
@@ -675,15 +747,10 @@ namespace CrimsonDraft.Combat
                 return null;
             }
 
-            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
-            var silRt      = this.silhouetteImage.rectTransform;
-            var localInSil = silRt.InverseTransformPoint(worldPos);
-            var rect       = silRt.rect;
-            if (rect.width <= 0f || rect.height <= 0f)
+            if (!this.TryGetSilhouetteUv(shotLocal, out float u, out float v))
                 return null;
-
-            float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
-            float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            var silRt = this.silhouetteImage.rectTransform;
+            var rect  = silRt.rect;
 
             var sprite     = this.activeZoneMaskSprite;
             var tex        = sprite.texture;
@@ -712,19 +779,60 @@ namespace CrimsonDraft.Combat
             return def;
         }
 
+        private bool IsOverlayCovered(Vector2 shotLocal)
+        {
+            Sprite? mask = this.activeOverlayMaskSprite;
+            if (mask == null) return false;
+
+            if (!mask.texture.isReadable)
+            {
+                if (!this.warnedUnreadableOverlayMask)
+                {
+                    Debug.LogWarning($"[AimView] Overlay mask '{mask.name}' is not Read/Write enabled -- every shot is treated as uncovered.");
+                    this.warnedUnreadableOverlayMask = true;
+                }
+                return false;
+            }
+
+            return this.TryGetSilhouetteUv(shotLocal, out float u, out float v)
+                && OverlayCoverage.IsCovered(mask, u, v);
+        }
+
         internal static Vector2Int MapUvToTexturePixel(Sprite sprite, float u, float v)
         {
             var tex     = sprite.texture;
             var texRect = sprite.textureRect;
-            int px = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)),
-                0,
-                tex.width - 1);
-            int py = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)),
-                0,
-                tex.height - 1);
-            return new Vector2Int(px, py);
+            if (TryMapUvToSpritePixel(sprite.rect, texRect, sprite.textureRectOffset, tex.width, tex.height, u, v, out var pixel))
+                return pixel;
+
+            // Outside a trimmed sprite's opaque area -- clamp onto its edge, matching the old
+            // behavior for callers that always want a pixel.
+            return new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)), 0, tex.width - 1),
+                Mathf.Clamp(Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)), 0, tex.height - 1));
+        }
+
+        // UV (0..1 across the sprite's full rect -- the silhouette's own layout) -> texture pixel.
+        // A Tight sprite with transparent margins is trimmed on import: textureRect then covers only
+        // the opaque area and textureRectOffset says where it sits inside the full rect, so the UV is
+        // mapped through the full rect first. False when the UV lands in the trimmed-away margin.
+        internal static bool TryMapUvToSpritePixel(
+            Rect spriteRect, Rect textureRect, Vector2 textureRectOffset, int texWidth, int texHeight,
+            float u, float v, out Vector2Int pixel)
+        {
+            float x = Mathf.Clamp01(u) * (spriteRect.width  - 1f) - textureRectOffset.x;
+            float y = Mathf.Clamp01(v) * (spriteRect.height - 1f) - textureRectOffset.y;
+
+            if (x < -0.5f || y < -0.5f || x > textureRect.width - 0.5f || y > textureRect.height - 0.5f)
+            {
+                pixel = default;
+                return false;
+            }
+
+            pixel = new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.xMin + x), 0, texWidth - 1),
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.yMin + y), 0, texHeight - 1));
+            return true;
         }
 
         internal static ShotZoneDefinition? ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)

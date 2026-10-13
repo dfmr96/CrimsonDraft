@@ -37,6 +37,10 @@ namespace CrimsonDraft.Navigation.Interactables
         private bool playerInRange;
         private bool consumed;
 
+        // Lets a sibling coordinator (e.g. BeeperDoorMechanism) react to an accepted code from
+        // code, without needing to be wired as a persistent listener in the Inspector.
+        public UnityEvent OnCodeAccepted => this.onCodeAccepted;
+
         public void Construct(BeeperSignalRegistry registry, ISubscriber<BeeperSignalSentEvent> signalSubscriber)
         {
             this.registry           = registry;

@@ -13,10 +13,14 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string           noteId    = string.Empty;
         [SerializeField] private Sprite?          pageImage;
 
+        [Tooltip("Text alignment on the note page. UseDefault follows NoteLayoutSettings.")]
+        [SerializeField] private NoteAlignment    alignment = NoteAlignment.UseDefault;
+
         public string           Title     => this.title;
         public DocumentCategory Category  => this.category;
         public Sprite?          Icon      => this.icon;
         public string           NoteId    => this.noteId;
         public Sprite?          PageImage => this.pageImage;
+        public NoteAlignment    Alignment => this.alignment;
     }
 }
