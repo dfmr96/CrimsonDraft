@@ -52,6 +52,18 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
         [SerializeField] private GameObject? bloodHitFxPrefab;
 
+        [Header("Head Explosion (headshot kill)")]
+        [Tooltip("Segundos que la cabeza se hincha antes de estallar.")]
+        [SerializeField, Min(0f)] private float headExplosionSwellSec = 0.12f;
+        [Tooltip("Escala máxima que alcanza la cabeza al hincharse.")]
+        [SerializeField, Min(1f)] private float headExplosionSwellScale = 1.4f;
+        [Tooltip("Amplitud (metros) del temblor de la cabeza mientras se hincha.")]
+        [SerializeField, Min(0f)] private float headExplosionShake = 0.015f;
+        [Tooltip("Cantidad de salpicaduras que salen al estallar.")]
+        [SerializeField, Min(1)] private int headExplosionBurstCount = 4;
+        [Tooltip("Radio (metros) alrededor de la cabeza en el que se reparten las salpicaduras.")]
+        [SerializeField, Min(0f)] private float headExplosionBurstRadius = 0.12f;
+
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
         private readonly Dictionary<int, GameObject> enemyGoBySlot = new();
@@ -675,18 +687,50 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
         {
             if (!this.enemyGoBySlot.TryGetValue(enemySlotIndex, out var enemyGo) || enemyGo == null) return;
             this.enemyDeathMarkerBySlot.TryGetValue(enemySlotIndex, out var marker);
+            StartCoroutine(this.PlayHeadExplosion(enemyGo, marker));
+        }
+
+        // The head swells and trembles for a beat, then pops: the head mesh is hidden and a burst
+        // of blood splashes spreads around where it was. Scaling HeadBone deforms the head mesh
+        // (skinned to it); the Animator never writes bone scale, so it isn't fought each frame.
+        private IEnumerator PlayHeadExplosion(GameObject enemyGo, EnemyDeathMarker? marker)
+        {
+            Transform? headBone = marker != null ? marker.HeadBone : null;
+
+            if (headBone != null && this.headExplosionSwellSec > 0f)
+            {
+                Vector3 restScale    = headBone.localScale;
+                Vector3 restPosition = headBone.localPosition;
+                for (float t = 0f; t < this.headExplosionSwellSec; t += Time.deltaTime)
+                {
+                    if (headBone == null) yield break;
+                    float k = t / this.headExplosionSwellSec;
+                    headBone.localScale    = restScale * Mathf.Lerp(1f, this.headExplosionSwellScale, k * k);
+                    headBone.localPosition = restPosition + UnityEngine.Random.insideUnitSphere * (this.headExplosionShake * k);
+                    yield return null;
+                }
+                if (headBone == null) yield break;
+                headBone.localScale    = restScale;
+                headBone.localPosition = restPosition;
+            }
 
             if (marker != null && marker.HeadRenderer != null)
                 marker.HeadRenderer.enabled = false;
 
-            if (this.bloodHitFxPrefab == null) return;
-            Vector3 spawnPos =
-                marker != null && marker.HeadBone != null     ? marker.HeadBone.position :
+            if (this.bloodHitFxPrefab == null || enemyGo == null) yield break;
+            Vector3 center =
+                headBone != null                               ? headBone.position :
                 marker != null && marker.HeadRenderer != null ? marker.HeadRenderer.bounds.center :
                 marker != null && marker.HitFxPoint != null   ? marker.HitFxPoint.position :
                 enemyGo.transform.position;
 
-            Instantiate(this.bloodHitFxPrefab, spawnPos, this.bloodHitFxPrefab.transform.rotation);
+            Instantiate(this.bloodHitFxPrefab, center, this.bloodHitFxPrefab.transform.rotation);
+            for (int i = 1; i < this.headExplosionBurstCount; i++)
+            {
+                Vector3 offset = UnityEngine.Random.onUnitSphere * this.headExplosionBurstRadius;
+                offset.y = Mathf.Abs(offset.y);
+                Instantiate(this.bloodHitFxPrefab, center + offset, this.bloodHitFxPrefab.transform.rotation);
+            }
         }
 
 #if UNITY_EDITOR || DEBUG_COMBAT

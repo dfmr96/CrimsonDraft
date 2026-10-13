@@ -25,13 +25,5 @@ namespace CrimsonDraft.Combat
             this.onAttackImpact = null;
             callback?.Invoke();
         }
-
-        // The Attack clip (ZombieRigged Zombie_Attack_37) is shared with Navigation's
-        // EnemyAnimationReactor, where OnAttackHitboxOpen/Close drive EnemyAttackHitbox.
-        // Combat has no melee hitbox to open/close at those frames -- these no-op receivers
-        // just keep Unity from logging "AnimationEvent '...' has no receiver" every combat
-        // attack (mirrors EnemyAnimationReactor's own no-op OnAttackImpact()).
-        public void OnAttackHitboxOpen() { }
-        public void OnAttackHitboxClose() { }
     }
 }
