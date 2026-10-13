@@ -20,6 +20,8 @@ namespace CrimsonDraft.UI
         [Header("HP ECG")]
         [SerializeField] private ECGSweepAnimator?  ecgLine;
         [SerializeField] private EcgHeartbeatPulse? ecgPulse;
+        [Tooltip("CDG_Statis -- text readout of the same HP bands the ECG pulse uses.")]
+        [SerializeField] private TMP_Text?          statusLabel;
 
         [Header("Weapon Slot 0 — Primary (4×1)")]
         [SerializeField] private GameObject weaponSlot0Root      = null!;
@@ -76,6 +78,26 @@ namespace CrimsonDraft.UI
         {
             if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive);
             if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
+            if (this.statusLabel != null)
+            {
+                this.statusLabel.text = GetStatusText(hpRatio, isAlive);
+                // Same band color the ECG background uses (alpha stays as authored on the label).
+                if (this.ecgPulse != null)
+                {
+                    var color = this.ecgPulse.BaseColor;
+                    color.a = this.statusLabel.color.a;
+                    this.statusLabel.color = color;
+                }
+            }
+        }
+
+        // Same bands as EcgHeartbeatPulse.SetHealthState (>75 / 50-75 / 25-50 / <=25).
+        private static string GetStatusText(float hpRatio, bool isAlive)
+        {
+            if (!isAlive || hpRatio <= 0.25f) return "Critical";
+            if (hpRatio <= 0.50f)             return "Danger";
+            if (hpRatio <= 0.75f)             return "Caution";
+            return "Fine";
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
