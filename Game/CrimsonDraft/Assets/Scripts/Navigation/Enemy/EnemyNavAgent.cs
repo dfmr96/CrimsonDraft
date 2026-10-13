@@ -15,8 +15,15 @@ using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Enemy
 {
+    // Sub-fases del estado Attack, adaptadas de EnemyStateGrab del Survival Horror Template.
+    public enum EnemyGrabPhase { None, Reaching, Holding, Biting }
+
     public sealed class EnemyNavAgent : MonoBehaviour
     {
+        // Red de seguridad: si el impacto del mordisco no logra iniciar el combate (ya hay uno en
+        // curso, falta el servicio), se suelta al jugador en vez de sostenerlo para siempre.
+        private const float BiteGiveUpSeconds = 3f;
+
         [SerializeField] private NavigationEnemyData  data          = null!;
         [SerializeField] private EncounterData        encounterData = null!;
         [SerializeField] private string               encounterId   = string.Empty;
@@ -24,6 +31,9 @@ namespace CrimsonDraft.Navigation.Enemy
         public string        EncounterId  => this.encounterId;
         public EncounterData? EncounterData => this.encounterData;
         [SerializeField] private EnemyDetectionSensor sensor        = null!;
+        [SerializeField] private EnemyAttackHitbox    hitbox        = null!;
+        [Tooltip("Punto (colgado de un hueso del torso) desde donde sale la sangre al recibir un disparo.")]
+        [SerializeField] private Transform?           hitFxPoint;
         [SerializeField] private Transform?           eyePoint;
 
         private ISceneTransitionService?               sceneTransitionService;
@@ -43,8 +53,16 @@ namespace CrimsonDraft.Navigation.Enemy
         private IDisposable?     dialogueSub;
         private bool             combatTriggered;
         private bool             dialoguePaused;
+        private EnemyGrabPhase   grabPhase;
+        private float            grabPhaseTimer;
+        private float            grabHoldDuration;
+        private float            nextGrabAllowedTime;
+        private bool             holdingPlayer;
 
         public EnemyAlertState State => state;
+        public EnemyGrabPhase GrabPhase => grabPhase;
+        public bool IsReactingToShot { get; private set; }
+        public Vector3 HitFxPosition => hitFxPoint != null ? hitFxPoint.position : transform.position + Vector3.up;
         public float TimeScale => timeScale?.Scale ?? 1f;
 
         public void Construct(
@@ -84,6 +102,11 @@ namespace CrimsonDraft.Navigation.Enemy
             dialogueSub    = dialogueSubscriber?.Subscribe(OnDialogueActiveChanged);
         }
 
+        private void OnDisable()
+        {
+            ReleasePlayer();
+        }
+
         private void OnDestroy()
         {
             combatEndedSub?.Dispose();
@@ -98,9 +121,12 @@ namespace CrimsonDraft.Navigation.Enemy
             // Congela por completo a cualquier enemigo que no haya sido el que disparó el
             // combate: nada de decisiones de IA ni de movimiento mientras dure la pelea
             // (NavigationTimeScale, no Time.timeScale global -- Combat necesita ese en 1).
+            // Un combate iniciado (por este mordisco o por cualquier otra vía) también suelta
+            // al jugador: el input ya pasó a Combat y no debe volver trabado a navegación.
             if (TimeScale <= 0f)
             {
                 navAgent.isStopped = true;
+                ReleasePlayer();
                 return;
             }
 
@@ -125,7 +151,17 @@ namespace CrimsonDraft.Navigation.Enemy
 
             if (toPlayer.magnitude < data.attackRange)
             {
-                TransitionTo(EnemyAlertState.Attack);
+                if (Time.time >= nextGrabAllowedTime)
+                {
+                    TransitionTo(EnemyAlertState.Attack);
+                    return;
+                }
+
+                // En cooldown tras un agarre fallido: se queda encarando al jugador en vez de
+                // empujarlo con el NavMeshAgent.
+                navAgent.isStopped = true;
+                navAgent.updateRotation = false;
+                FacePlayer(toPlayer);
                 return;
             }
 
@@ -145,11 +181,88 @@ namespace CrimsonDraft.Navigation.Enemy
             }
         }
 
+        // Agarre + mordisco (EnemyStateGrab del template): se acerca con los brazos extendidos,
+        // y si el jugador queda dentro de la hitbox lo sostiene un rato y lo muerde. El combate
+        // arranca en el impacto del mordisco (NotifyBiteImpact, vía Animation Event).
         private void UpdateAttack()
         {
-            // Intentionally empty: the agent stays stopped (set on TransitionTo),
-            // Animator plays the Attack clip, and EnemyAttackHitbox/EnemyAnimationReactor
-            // drive the exit via NotifyAttackHit()/NotifyAttackAnimationFinished().
+            var dt = Time.deltaTime * TimeScale;
+            grabPhaseTimer += dt;
+
+            var toPlayer = playerController!.transform.position - transform.position;
+            toPlayer.y = 0f;
+            FacePlayer(toPlayer);
+
+            switch (grabPhase)
+            {
+                case EnemyGrabPhase.Reaching:
+                    navAgent.SetDestination(playerController.transform.position);
+                    if (grabPhaseTimer < data.grabDelay) return;
+
+                    if (hitbox.OverlapsPlayer() && playerController.TryBeginGrab(transform))
+                    {
+                        holdingPlayer      = true;
+                        navAgent.isStopped = true;
+                        navAgent.ResetPath();
+                        grabHoldDuration   = UnityEngine.Random.Range(
+                            data.grabHoldDuration - data.grabHoldRandomOffset,
+                            data.grabHoldDuration + data.grabHoldRandomOffset);
+                        SetGrabPhase(EnemyGrabPhase.Holding);
+                        return;
+                    }
+
+                    if (grabPhaseTimer >= data.grabDelay + data.grabWindow)
+                    {
+                        nextGrabAllowedTime = Time.time + data.grabCooldown;
+                        TransitionTo(EnemyAlertState.Alerted);
+                    }
+                    return;
+
+                case EnemyGrabPhase.Holding:
+                    KeepGrabDistance(toPlayer, dt);
+                    if (grabPhaseTimer >= grabHoldDuration)
+                        SetGrabPhase(EnemyGrabPhase.Biting);
+                    return;
+
+                case EnemyGrabPhase.Biting:
+                    KeepGrabDistance(toPlayer, dt);
+                    if (grabPhaseTimer >= BiteGiveUpSeconds)
+                    {
+                        nextGrabAllowedTime = Time.time + data.grabCooldown;
+                        TransitionTo(EnemyAlertState.Alerted);
+                    }
+                    return;
+            }
+        }
+
+        // MoveGrabberToGrabbed del template: el enemigo se acomoda a grabDistance del jugador.
+        private void KeepGrabDistance(Vector3 toPlayer, float dt)
+        {
+            if (toPlayer.sqrMagnitude < 0.0001f) return;
+            var playerPos = playerController!.transform.position;
+            var target    = playerPos - toPlayer.normalized * data.grabDistance;
+            target.y      = transform.position.y;
+            navAgent.Move(Vector3.MoveTowards(transform.position, target, data.grabMoveSpeed * dt) - transform.position);
+        }
+
+        private void FacePlayer(Vector3 toPlayer)
+        {
+            if (toPlayer.sqrMagnitude < 0.0001f) return;
+            var targetRotation = Quaternion.LookRotation(toPlayer.normalized);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, data.turnSpeed * TimeScale * Time.deltaTime);
+        }
+
+        private void SetGrabPhase(EnemyGrabPhase phase)
+        {
+            grabPhase      = phase;
+            grabPhaseTimer = 0f;
+        }
+
+        private void ReleasePlayer()
+        {
+            if (!holdingPlayer) return;
+            holdingPlayer = false;
+            playerController?.EndGrab(transform);
         }
 
         private bool Detect()
@@ -159,6 +272,12 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             var prev = state;
             state = next;
+
+            if (next != EnemyAlertState.Attack)
+            {
+                ReleasePlayer();
+                SetGrabPhase(EnemyGrabPhase.None);
+            }
 
             enemyAlertPublisher?.Publish(new EnemyAlertChangedEvent
             {
@@ -182,8 +301,11 @@ namespace CrimsonDraft.Navigation.Enemy
                     break;
 
                 case EnemyAlertState.Attack:
-                    navAgent.isStopped = true;
-                    navAgent.updateRotation = true;
+                    // Sigue avanzando hasta agarrar algo (igual que el template); la rotación
+                    // la maneja UpdateAttack para no perder de vista al jugador.
+                    navAgent.isStopped = false;
+                    navAgent.updateRotation = false;
+                    SetGrabPhase(EnemyGrabPhase.Reaching);
                     break;
             }
         }
@@ -193,16 +315,18 @@ namespace CrimsonDraft.Navigation.Enemy
             this.combatTriggered = true;
         }
 
-        public void NotifyAttackHit()
+        // El disparo del jugador que inicia el combate: EnemyAnimationReactor reproduce la
+        // reacción de daño aunque NavigationTimeScale ya haya congelado al resto de la IA.
+        public void NotifyShot()
         {
-            if (state != EnemyAlertState.Attack) return;
-            TriggerCombat();
+            ReleasePlayer();
+            IsReactingToShot = true;
         }
 
-        public void NotifyAttackAnimationFinished()
+        public void NotifyBiteImpact()
         {
-            if (state != EnemyAlertState.Attack) return;
-            TransitionTo(EnemyAlertState.Alerted);
+            if (state != EnemyAlertState.Attack || grabPhase != EnemyGrabPhase.Biting) return;
+            TriggerCombat();
         }
 
         public void ResetToSpawn(Vector3 position, Quaternion rotation)
@@ -218,8 +342,10 @@ namespace CrimsonDraft.Navigation.Enemy
             navAgent.Warp(position);
             transform.rotation = rotation;
 
-            combatTriggered = false;
-            dialoguePaused  = false;
+            combatTriggered     = false;
+            dialoguePaused      = false;
+            nextGrabAllowedTime = 0f;
+            IsReactingToShot    = false;
 
             TransitionTo(EnemyAlertState.Idle);
         }

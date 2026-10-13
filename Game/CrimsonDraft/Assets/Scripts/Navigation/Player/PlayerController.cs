@@ -57,8 +57,10 @@ namespace CrimsonDraft.Navigation.Player
         private PushableObject?       touchingPushable;
         private Vector3               touchingPushDirection;
         private float                 pushStrideTimer;
+        private Transform?            grabbedBy;
 
         public bool IsAiming { get; private set; }
+        public bool IsGrabbed => this.grabbedBy != null;
 
         // transform.position is the Rigidbody's pivot, not the ground — footOffset is the
         // vertical distance between them (see OnDrawGizmosSelected's "foot anchor" and
@@ -93,6 +95,20 @@ namespace CrimsonDraft.Navigation.Player
         internal void SetAiming(bool value)
         {
             this.IsAiming = value;
+        }
+
+        // Un solo enemigo puede sostener al jugador a la vez.
+        public bool TryBeginGrab(Transform grabber)
+        {
+            if (this.grabbedBy != null) return false;
+            this.grabbedBy = grabber;
+            return true;
+        }
+
+        public void EndGrab(Transform grabber)
+        {
+            if (this.grabbedBy == grabber)
+                this.grabbedBy = null;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -135,6 +151,21 @@ namespace CrimsonDraft.Navigation.Player
             // Always ticked (see IPlayerMovementStrategy) -- ModernPlayerMovementStrategy
             // depends on this running every frame, aiming or not.
             var result = strategy.Tick(transform, raw, this.lastDevice, this.IsAiming, Time.fixedDeltaTime);
+
+            if (this.grabbedBy != null)
+            {
+                this.rb.linearVelocity = Vector3.zero;
+                this.animator.SetTrigger(IdleHash);
+                this.animator.SetFloat(SpeedHash, 0f);
+                this.animator.SetBool(PushingHash, false);
+                this.pushStrideTimer = 0f;
+
+                var toGrabber = this.grabbedBy.position - transform.position;
+                toGrabber.y = 0f;
+                if (toGrabber.sqrMagnitude > 0.0001f)
+                    transform.rotation = Quaternion.LookRotation(toGrabber);
+                return;
+            }
 
             if (this.IsAiming)
             {

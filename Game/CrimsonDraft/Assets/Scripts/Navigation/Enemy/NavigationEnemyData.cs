@@ -21,6 +21,22 @@ namespace CrimsonDraft.Navigation.Enemy
         [Tooltip("Margen extra sobre attackRange antes de volver a Alerted (evita flickering en el borde).")]
         public float attackRangeBuffer = 0.3f;
 
+        [Header("Attack - Agarre y mordisco")]
+        [Tooltip("Segundos desde que arranca el agarre hasta que la hitbox empieza a chequear si el jugador está adentro.")]
+        public float grabDelay = 0.15f;
+        [Tooltip("Segundos que la hitbox de agarre queda abierta. Si el jugador no entra en ese tiempo, el agarre falla y vuelve a perseguir.")]
+        public float grabWindow = 0.5f;
+        [Tooltip("Segundos tras un agarre fallido antes de poder intentar otro.")]
+        public float grabCooldown = 3f;
+        [Tooltip("Segundos que sostiene al jugador antes de morder.")]
+        public float grabHoldDuration = 1f;
+        [Tooltip("Variación aleatoria (+/-) sobre grabHoldDuration.")]
+        public float grabHoldRandomOffset = 0.25f;
+        [Tooltip("Distancia horizontal a la que el enemigo se acomoda respecto del jugador mientras lo sostiene.")]
+        public float grabDistance = 0.6f;
+        [Tooltip("Velocidad (m/s) con la que el enemigo se acomoda a grabDistance mientras lo sostiene.")]
+        public float grabMoveSpeed = 2.5f;
+
         [Header("Sound Detection")]
         [Tooltip("Velocidad mínima del Rigidbody del jugador para producir sonido. Por debajo de este valor se considera en reposo.")]
         public float playerDeadzone     = 0.1f;
