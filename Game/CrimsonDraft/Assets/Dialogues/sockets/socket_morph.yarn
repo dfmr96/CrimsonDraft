@@ -1,0 +1,12 @@
+title: socket_morph
+---
+<<if $insert_result == "success">>
+You set {$item_name} on the slab. Nothing happens yet.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} doesn't fit here.
+<<elseif $activated>>
+The emblem sits on the slab. Something about it keeps changing when you look away.
+<<else>>
+A flat slab with a small sheep-shaped hollow.
+<<endif>>
+===

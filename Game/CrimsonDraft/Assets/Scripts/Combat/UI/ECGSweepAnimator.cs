@@ -1,5 +1,6 @@
 #nullable enable
 
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -51,6 +52,9 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Color effectColorWarning   = new(0.6901961f, 0.5568628f, 0.29803923f, 0.55f);
         [SerializeField] private Color effectColorSevere    = new(0.70980394f, 0.5019608f, 0.2862745f, 0.55f);
         [SerializeField, FormerlySerializedAs("effectColorCritical")] private Color effectColorMercy  = new(0.73333335f, 0.44705883f, 0.26666668f, 0.55f);
+
+        [Header("Status Text (CDG_Status: Fine / Caution / Danger / Critical)")]
+        [SerializeField] private TMP_Text? statusLabel;
 
         [Header("Damage Glitch (CRT signal-loss burst)")]
         [SerializeField, Min(0f)] private float glitchDuration = 0.35f;
@@ -178,6 +182,7 @@ namespace CrimsonDraft.Combat
                 // KIA: solid, no sweep, no pulse, no glow -- just the flatline.
                 this.isMercy = false;
                 this.isFlatlined = true;
+                this.ApplyStatusLabel(OperatorHealthStatus.Critical);
                 if (this.stageSpriteDead != null)
                     this.traceImage.sprite = this.stageSpriteDead;
                 this.traceImage.material = null;
@@ -199,8 +204,10 @@ namespace CrimsonDraft.Combat
             float duration;
             Color effectColor;
 
+            OperatorHealthStatus status;
             if (hpRatio <= 0f)
             {
+                status = OperatorHealthStatus.Critical;
                 sprite = this.stageSpriteMercy; duration = this.stageDurationMercy; effectColor = this.effectColorMercy;
             }
             else
@@ -211,12 +218,14 @@ namespace CrimsonDraft.Combat
 
                 switch (tier)
                 {
-                    case HpTier.Danger: sprite = this.stageSpriteSevere;  duration = this.stageDurationSevere;  effectColor = this.effectColorSevere;  break;
-                    case HpTier.Orange: sprite = this.stageSpriteWarning; duration = this.stageDurationWarning; effectColor = this.effectColorWarning; break;
-                    case HpTier.Yellow: sprite = this.stageSpriteCaution; duration = this.stageDurationCaution; effectColor = this.effectColorCaution; break;
-                    default:            sprite = this.stageSpriteStable; duration = this.stageDurationStable;  effectColor = this.effectColorStable;  break;
+                    case HpTier.Danger: status = OperatorHealthStatus.Critical; sprite = this.stageSpriteSevere;  duration = this.stageDurationSevere;  effectColor = this.effectColorSevere;  break;
+                    case HpTier.Orange: status = OperatorHealthStatus.Danger;   sprite = this.stageSpriteWarning; duration = this.stageDurationWarning; effectColor = this.effectColorWarning; break;
+                    case HpTier.Yellow: status = OperatorHealthStatus.Caution;  sprite = this.stageSpriteCaution; duration = this.stageDurationCaution; effectColor = this.effectColorCaution; break;
+                    default:            status = OperatorHealthStatus.Fine;     sprite = this.stageSpriteStable; duration = this.stageDurationStable;  effectColor = this.effectColorStable;  break;
                 }
             }
+
+            this.ApplyStatusLabel(status);
 
             if (sprite != null)
                 this.traceImage.sprite = sprite;
@@ -236,6 +245,15 @@ namespace CrimsonDraft.Combat
                 effectColor.a = this.effectBaseAlpha;
                 this.effectImage.color = effectColor;
             }
+        }
+
+        private void ApplyStatusLabel(OperatorHealthStatus status)
+        {
+            if (this.statusLabel == null) return;
+            this.statusLabel.text  = OperatorHealthStatusStyle.GetLabel(status);
+            var color = OperatorHealthStatusStyle.GetColor(status);
+            color.a = this.statusLabel.color.a;
+            this.statusLabel.color = color;
         }
 
         // Only used when hpTierConfig isn't assigned -- reproduces this component's original

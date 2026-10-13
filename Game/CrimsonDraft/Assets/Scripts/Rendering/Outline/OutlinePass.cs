@@ -77,7 +77,7 @@ namespace CrimsonDraft.Rendering.Outline
             using (var builder = renderGraph.AddRasterRenderPass<MaskPassData>(MaskPassName, out var maskPassData))
             {
                 var sortFlags      = cameraData.defaultOpaqueSortFlags;
-                var filterSettings = new FilteringSettings(RenderQueueRange.opaque, this.outlineLayer);
+                var filterSettings = new FilteringSettings(RenderQueueRange.all, this.outlineLayer);
                 var drawSettings   = RenderingUtils.CreateDrawingSettings(this.shaderTagIds, renderingData, cameraData, lightData, sortFlags);
                 drawSettings.overrideMaterial = this.maskMaterial;
 

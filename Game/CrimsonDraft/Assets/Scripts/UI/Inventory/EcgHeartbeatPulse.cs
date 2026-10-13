@@ -32,6 +32,9 @@ namespace CrimsonDraft.UI
         private float pulsePeriod;
         private float t;
 
+        /// <summary>Un-pulsed color of the current health band (valid after <see cref="SetHealthState"/>).</summary>
+        public Color BaseColor => this.baseColor;
+
         #region Unity Lifecycle
 
         private void OnEnable()

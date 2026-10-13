@@ -52,7 +52,7 @@ namespace CrimsonDraft.UI
                 if (i < source.Count)
                     this.widgets[i].Bind(source[i], CanLoot(i), CorpseRoomId(i));
                 else
-                    this.widgets[i].gameObject.SetActive(false);
+                    this.widgets[i].ShowMissing();
             }
         }
 

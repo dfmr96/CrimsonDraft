@@ -52,6 +52,10 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public bool IsInspecting => this.isInspecting;
 
+        // While set, Cancel (B) is ignored -- for sequences the player must sit through (e.g.
+        // the music box playing its melody). ExitNow() is programmatic and ignores it.
+        public bool ExitLocked { get; set; }
+
         void IInitializable.Initialize()
         {
             this.inputService.UICancel.performed += OnCancel;
@@ -71,11 +75,12 @@ namespace CrimsonDraft.Navigation.Interactables
             this.zoneService.ActivateZone(inspectCamera);
             this.inputService.SwitchToUI();
             SetActorRenderersEnabled(false);
+            SetEnemiesSuspended(true);
         }
 
         private void OnCancel(InputAction.CallbackContext _)
         {
-            if (!this.isInspecting) return;
+            if (!this.isInspecting || this.ExitLocked) return;
             Exit();
         }
 
@@ -90,15 +95,27 @@ namespace CrimsonDraft.Navigation.Interactables
         private void Exit()
         {
             this.isInspecting = false;
+            this.ExitLocked   = false;
             if (this.previousZoneCamera != null)
                 this.zoneService.ActivateZone(this.previousZoneCamera);
             this.previousZoneCamera = null;
             this.inputService.SwitchToGameplay();
             SetActorRenderersEnabled(true);
+            SetEnemiesSuspended(false);
 
             var callback = this.onExit;
             this.onExit  = null;
             callback?.Invoke();
+        }
+
+        // Enemies keep their own clock (NavigationTimeScale), so they would otherwise carry on
+        // chasing the hidden player and start a combat while the inspect camera is up -- the
+        // combat transition then breaks the camera on the way back. Frozen for the duration of
+        // the view instead; a defeated (destroyed) enemy can be null.
+        private void SetEnemiesSuspended(bool suspended)
+        {
+            foreach (var enemy in this.enemies)
+                if (enemy != null) enemy.SetInspectionSuspended(suspended);
         }
 
         // The inspect camera hard-cuts to a shot the designer framed around the puzzle prop

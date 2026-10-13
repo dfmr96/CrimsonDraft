@@ -1,0 +1,12 @@
+title: socket_adrian_board
+---
+<<if $insert_result == "success">>
+You fit {$item_name} into the board. ({$slots_filled}/{$slots_total})
+<<elseif $insert_result == "wrong_item">>
+{$item_name} doesn't fit here.
+<<elseif $activated>>
+All the emblems are in place.
+<<else>>
+A board with slots for emblems. ({$slots_filled}/{$slots_total})
+<<endif>>
+===

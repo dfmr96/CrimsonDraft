@@ -1,0 +1,12 @@
+title: socket_radio_locker
+---
+<<if $insert_result == "success">>
+The hinge gave way.
+<<elseif $insert_result == "wrong_item">>
+{$item_name} does nothing for the locker.
+<<elseif $activated>>
+The locker door hangs open.
+<<else>>
+Something seems jammed. Maybe a liquid could loosen it.
+<<endif>>
+===

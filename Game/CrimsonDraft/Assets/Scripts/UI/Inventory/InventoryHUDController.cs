@@ -94,7 +94,9 @@ namespace CrimsonDraft.UI
                 if (!this.interactionCaster.CanUseItem(item.Data)) return;
                 this.inventory.Remove(item);
                 this.cursor.RequestClose();
-                this.interactionCaster.TryUseItem(item.Data);
+                bool used = this.interactionCaster.TryUseItem(item.Data);
+                if (used && item.Data is SocketItemData { ReturnedOnUse: { } returned })
+                    this.inventory.TryAdd(returned);
                 return;
             }
 

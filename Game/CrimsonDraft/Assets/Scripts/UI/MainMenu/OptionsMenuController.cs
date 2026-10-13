@@ -83,6 +83,8 @@ namespace CrimsonDraft.UI.MainMenu
             }
         }
 
+        public bool IsSelectable(int index) => true;
+
         public void ShowOutline(int index) => this.highlight.Show(this.channels[index].knob);
 
         public void HideOutlines() => this.highlight.Clear();

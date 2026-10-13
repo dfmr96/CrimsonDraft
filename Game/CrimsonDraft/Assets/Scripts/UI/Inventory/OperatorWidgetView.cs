@@ -17,9 +17,19 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject  deadOverlay = null!;
         [SerializeField] private TMP_Text?   deadLabel;
 
+        [Header("Missing (no operator in this slot) / Dead")]
+        [Tooltip("Whole card (portrait + grid). Faded for a slot with no operator (MIA).")]
+        [SerializeField] private CanvasGroup? cardFade;
+        [Tooltip("Portrait header only. Faded for a dead operator (KIA) -- the grid stays fully readable so the corpse can still be looted.")]
+        [SerializeField] private CanvasGroup? headerFade;
+        [SerializeField, Range(0f, 1f)] private float missingAlpha = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float deadAlpha    = 0.5f;
+
         [Header("HP ECG")]
         [SerializeField] private ECGSweepAnimator?  ecgLine;
         [SerializeField] private EcgHeartbeatPulse? ecgPulse;
+        [Tooltip("CDG_Statis -- text readout of the same HP bands the ECG pulse uses.")]
+        [SerializeField] private TMP_Text?          statusLabel;
 
         [Header("Weapon Slot 0 — Primary (4×1)")]
         [SerializeField] private GameObject weaponSlot0Root      = null!;
@@ -31,6 +41,7 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image      weaponSlot1Icon = null!;
 
         private MeleeWeaponData? currentMeleeData;
+        private OperatorRuntime? boundOperator;
 
         public bool            HasMeleeWeapon => this.currentMeleeData != null;
         public MeleeWeaponData? MeleeData     => this.currentMeleeData;
@@ -45,13 +56,16 @@ namespace CrimsonDraft.UI
 
         public void Bind(OperatorRuntime op, bool canLoot, string? corpseRoomId)
         {
+            this.boundOperator = op;
             if (!op.IsPresent)
             {
-                gameObject.SetActive(false);
+                ShowMissing();
                 return;
             }
 
             gameObject.SetActive(true);
+            ClearMissing();
+            if (this.headerFade != null) this.headerFade.alpha = op.IsAlive ? 1f : this.deadAlpha;
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
@@ -72,10 +86,66 @@ namespace CrimsonDraft.UI
                 RefreshMeleeSlot(op.MeleeWeapon, this.weaponSlot1Root, this.weaponSlot1Icon);
         }
 
+        /// <summary>
+        /// Slot with no operator (never recruited / not in the party): the card stays on screen
+        /// faded, with "MIA" in the ECG status readout and no portrait/ECG line. It has no
+        /// inventory container, so the cursor can't enter its grid (see InventoryPresenters).
+        /// </summary>
+        public void ShowMissing()
+        {
+            gameObject.SetActive(true);
+
+            if (this.cardFade   != null) this.cardFade.alpha   = this.missingAlpha;
+            if (this.headerFade != null) this.headerFade.alpha = 1f;
+
+            if (this.portrait     != null) this.portrait.enabled = false;
+            if (this.nameLabel    != null) this.nameLabel.text = string.Empty;
+            if (this.deadOverlay  != null) this.deadOverlay.SetActive(false);
+            if (this.deadLabel    != null) this.deadLabel.gameObject.SetActive(false);
+
+            // The status readout (CDG_Statis) lives under the ECG background: keep that, drop the
+            // trace line and stop the pulse (it has no health band to pulse for).
+            if (this.statusLabel  != null) this.statusLabel.text = "MIA";
+            if (this.ecgLine      != null) this.ecgLine.gameObject.SetActive(false);
+            if (this.ecgPulse     != null) this.ecgPulse.enabled = false;
+            if (this.weaponSlot0Root != null) this.weaponSlot0Root.SetActive(false);
+            if (this.weaponSlot1Root != null) this.weaponSlot1Root.SetActive(false);
+            this.currentMeleeData = null;
+        }
+
+        private void ClearMissing()
+        {
+            if (this.cardFade     != null) this.cardFade.alpha = 1f;
+            if (this.portrait     != null) this.portrait.enabled = true;
+            if (this.ecgLine      != null) this.ecgLine.gameObject.SetActive(true);
+            if (this.ecgPulse     != null) this.ecgPulse.enabled = true;
+        }
+
         private void ApplyHealthState(float hpRatio, bool isAlive = true)
         {
             if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive);
             if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
+            if (this.statusLabel != null)
+            {
+                this.statusLabel.text = GetStatusText(hpRatio, isAlive);
+                // Same band color the ECG background uses (alpha stays as authored on the label).
+                if (this.ecgPulse != null)
+                {
+                    var color = this.ecgPulse.BaseColor;
+                    color.a = this.statusLabel.color.a;
+                    this.statusLabel.color = color;
+                }
+            }
+        }
+
+        // Same bands as EcgHeartbeatPulse.SetHealthState (>75 / 50-75 / 25-50 / <=25).
+        private static string GetStatusText(float hpRatio, bool isAlive)
+        {
+            if (!isAlive)                     return "KIA";
+            if (hpRatio <= 0.25f)             return "Critical";
+            if (hpRatio <= 0.50f)             return "Danger";
+            if (hpRatio <= 0.75f)             return "Caution";
+            return "Fine";
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -85,6 +155,32 @@ namespace CrimsonDraft.UI
         [Button("10% — Warning")]  private void TestEcgWarning()  => this.ApplyHealthState(0.1f);
         [Button("0% — Mercy")]     private void TestEcgMercy()     => this.ApplyHealthState(0f, isAlive: true);
         [Button("KIA")]            private void TestEcgKia()      => this.ApplyHealthState(0f, isAlive: false);
+
+        // Test-only -- really kills / revives the operator bound to this card (Play Mode, inventory
+        // open) so the full KIA look (faded header, flat ECG, KIA status, loot label) can be checked.
+        [Button("Kill operator")]
+        private void TestKillOperator()
+        {
+            var panel = GetComponentInParent<PartyPanelView>();
+            if (this.boundOperator == null || panel == null) return;
+
+            // First hit takes them to Mercy (0 HP, alive); the second one is the kill.
+            for (int i = 0; i < 2 && this.boundOperator.IsAlive; i++)
+                this.boundOperator.ApplyDamage(this.boundOperator.MaxHp * 2);
+            panel.Refresh();
+        }
+
+        [Button("Revive operator")]
+        private void TestReviveOperator()
+        {
+            var panel = GetComponentInParent<PartyPanelView>();
+            if (this.boundOperator == null || panel == null || panel.Roster == null) return;
+
+            var snapshot = panel.Roster.GetHpSnapshot();
+            snapshot[this.boundOperator.SlotIndex] = this.boundOperator.MaxHp;
+            panel.Roster.RestoreHp(snapshot);
+            panel.Refresh();
+        }
 #endif
 
         private const int PrimarySlotCells = 4;

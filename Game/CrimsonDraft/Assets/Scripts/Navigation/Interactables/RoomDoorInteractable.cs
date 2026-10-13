@@ -48,6 +48,19 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void SetMechanismLocked(bool locked) => this.mechanismLocked = locked;
 
+        // Stored in DoorStateRegistry (cross-scene singleton, written by SaveController) under a
+        // derived key, so a door opened from its far side stays open across scene loads and saves.
+        // Kept apart from the plain doorId entry: SetMechanismLocked is also driven by
+        // BeeperDoorMechanism, which must not be affected by this.
+        private string CrossUnlockKey => this.doorId + "#cross";
+
+        /// <summary>Permanently clears the lock of a door that was locked from this side only.</summary>
+        public void UnlockFromOtherSide()
+        {
+            this.mechanismLocked = false;
+            this.registry?.MarkUnlocked(CrossUnlockKey);
+        }
+
         // Doors have their own opening/transition animation — the player shouldn't also play
         // a generic Interact animation.
         public InteractionAnimType AnimType => InteractionAnimType.None;
@@ -67,6 +80,9 @@ namespace CrimsonDraft.Navigation.Interactables
         public void RestoreFromRegistry()
         {
             this.unlocked = this.registry.IsUnlocked(this.doorId);
+
+            if (this.registry.IsUnlocked(CrossUnlockKey))
+                this.mechanismLocked = false;
         }
 
         public void Interact(InteractionContext context)
@@ -163,7 +179,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private void CrossDoor()
         {
-            this.unlocksOnCross?.SetMechanismLocked(false);
+            this.unlocksOnCross?.UnlockFromOtherSide();
             this.roomOrchestrator
                 .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
                 .Forget();

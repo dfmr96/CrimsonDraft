@@ -7,8 +7,7 @@ namespace CrimsonDraft.UI
 {
     public sealed class SelectorView : MonoBehaviour
     {
-        private static readonly Color ColorSelectorNormal = Color.white;
-        private static readonly Color ColorSelectorOnItem = Color.yellow;
+        private static readonly Color ColorSelector = new Color(0f, 1f, 0f, 1f); // 0 255 0
 
         [SerializeField] private RectTransform selectorRect = null!;
         [SerializeField] private ItemTooltip?  tooltip;
@@ -47,7 +46,7 @@ namespace CrimsonDraft.UI
 
             bool holding = heldFootprint.HasValue || holdStyle;
             var  image   = Image();
-            image.color  = holding ? Color.white : item != null ? ColorSelectorOnItem : ColorSelectorNormal;
+            image.color  = ColorSelector;
             if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
                 image.sprite = holding ? this.selectorSpriteHold : this.selectorSpriteNormal;
 
@@ -102,7 +101,7 @@ namespace CrimsonDraft.UI
             this.selectorRect.localScale       = Vector3.one * this.hoverScaleMultiplier;
 
             var image = Image();
-            image.color = ColorSelectorOnItem;
+            image.color = ColorSelector;
             if (this.selectorSpriteNormal != null) image.sprite = this.selectorSpriteNormal;
 
             if (this.tooltip != null && widget.MeleeData != null)

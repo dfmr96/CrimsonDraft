@@ -189,6 +189,9 @@ namespace CrimsonDraft.UI.MainMenu
             int totalSlots   = contentCount + 1; // +1 = the button row, shared by both tabs.
             int currentSlot  = this.onButtonRow ? contentCount : this.contentIndex;
             int nextSlot     = (currentSlot + delta + totalSlots) % totalSlots;
+            // Skip disabled channels (the button row at index contentCount is always selectable).
+            while (nextSlot != contentCount && !this.panels[this.activeTab].IsSelectable(nextSlot))
+                nextSlot = (nextSlot + delta + totalSlots) % totalSlots;
 
             this.sfx.PlayCursor(gameObject);
             this.heldHorizontalDirection = 0;
