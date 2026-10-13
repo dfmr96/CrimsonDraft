@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AI;
 using VContainer;
+using CrimsonDraft.Audio;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.Enemy;
@@ -19,6 +20,8 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private LayerMask obstaclesMask;
         [SerializeField] private LayerMask enemyMask;
         [SerializeField] private Animator animator = null;
+        [Tooltip("Efecto instanciado en el punto de impacto cuando el disparo le pega a un enemigo.")]
+        [SerializeField] private GameObject? hitFxPrefab;
 
         [Header("Weapon Visuals")]
         [SerializeField] private GameObject pistolWeapon  = null!; // "Glock 1"
@@ -62,6 +65,11 @@ namespace CrimsonDraft.Navigation.Player
             private void Start()
             {
                 this.playerController = GetComponent<PlayerController>();
+
+                // Mismo receptor que los operadores de combate: los clips de disparo del Animator
+                // disparan PlayFireGunSfx/PlayShellCasingSfx, que suenan según el arma equipada.
+                if (this.roster != null && this.animator.TryGetComponent<OperatorCombatAudio>(out var shotAudio))
+                    shotAudio.Bind(this.roster, PlayerOperatorSlot);
 
                 this.shotgunRestLocalPosition = this.shotgunWeapon.transform.localPosition;
                 this.shotgunRestLocalRotation = this.shotgunWeapon.transform.localRotation;
@@ -246,6 +254,18 @@ private void BuildTargetList()
             }
 
             this.animator.SetTrigger("Shoot");
+            if (this.hitFxPrefab != null)
+            {
+                // Desde el torso del enemigo (no desde hit.point: el rayo sale a la altura del
+                // jugador y pega alto en la cápsula), corrido hacia el lado de donde vino el tiro.
+                var fxPos  = target.HitFxPosition;
+                var toward = origin - fxPos;
+                toward.y   = 0f;
+                if (toward.sqrMagnitude > 0.0001f)
+                    fxPos += toward.normalized * 0.25f;
+                Instantiate(this.hitFxPrefab, fxPos, this.hitFxPrefab.transform.rotation);
+            }
+            target.NotifyShot();
             target.NotifyCombatTriggered();
             ExitAim();
             this.sceneTransitionService.StartCombatAsync(
