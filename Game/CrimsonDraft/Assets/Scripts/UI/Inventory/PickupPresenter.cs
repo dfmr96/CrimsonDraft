@@ -79,7 +79,7 @@ namespace CrimsonDraft.UI
 
         public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
         {
-            string text = ApplyMarkupColors(line.Text, ("item", "orange"), ("important", "#4E8A62"));
+            string text = ApplyMarkupColors(line.Text, ("item", "#4E8A62"), ("important", "#4E8A62"));
 
             if (!useTypewriterForLine)
             {

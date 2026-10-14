@@ -32,6 +32,9 @@ namespace CrimsonDraft.UI
         private IDisposable? storageSubscription;
         private bool         storageMode;
         private bool         isClosing;
+
+        // Raised once the close animation has finished and input is back on Gameplay.
+        public event Action? Closed;
         private Vector3      openScale;
 
         [Inject] private IInputService     inputService  = null!;
@@ -159,6 +162,7 @@ namespace CrimsonDraft.UI
             this.ditherFeature?.SetActive(true);
             this.graphicsSettings.PopGammaSuppression();
             this.isClosing = false;
+            Closed?.Invoke();
         }
 
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);

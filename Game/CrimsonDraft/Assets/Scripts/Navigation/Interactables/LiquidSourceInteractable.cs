@@ -31,6 +31,10 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () => StartFillPrompt(context));
         }
 
+        // The liquid's own name ("Green Liquid"), kept in the item's secondary name.
+        private static string LiquidName(ItemData flask)
+            => !string.IsNullOrEmpty(flask.SecondaryName) ? flask.SecondaryName : flask.DisplayName;
+
         private void StartFillPrompt(InteractionContext context)
         {
             if (!context.InventoryService.HasItem(this.emptyFlask.ItemId)) return;
@@ -42,6 +46,7 @@ namespace CrimsonDraft.Navigation.Interactables
             // and the input context is restored before onComplete.
             context.PickupDialogueService.StartDialogue(
                 this.promptDialogue.nodeName ?? "",
+                variables: new Dictionary<string, object> { ["$empty_name"] = this.emptyFlask.DisplayName },
                 onComplete: () =>
                 {
                     if (!fill) return;
@@ -54,7 +59,9 @@ namespace CrimsonDraft.Navigation.Interactables
                         return;
                     }
 
-                    context.DialogueService.StartDialogue(this.filledDialogue.nodeName ?? "");
+                    context.DialogueService.StartDialogue(
+                        this.filledDialogue.nodeName ?? "",
+                        new Dictionary<string, object> { ["$liquid_name"] = LiquidName(this.filledFlask) });
                 },
                 commands: new Dictionary<string, Action>
                 {
