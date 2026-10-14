@@ -55,14 +55,8 @@ namespace CrimsonDraft.Navigation.Interactables
                     if (!pour) return;
 
                     var filled = FindCarriedFilledFlask(context);
-                    if (filled == null || !context.InventoryService.TryRemove(filled.ItemId)) return;
-
-                    if (!context.InventoryService.TryAdd(this.emptyFlask))
-                    {
-                        // Freed slot was taken meanwhile -- give the filled flask back rather than lose it.
-                        context.InventoryService.TryAdd(filled);
-                        return;
-                    }
+                    // Swapped in place (same cell and rotation); on failure the filled flask stays.
+                    if (filled == null || !context.InventoryService.TryReplace(filled.ItemId, this.emptyFlask)) return;
 
                     context.DialogueService.StartDialogue(
                         this.pouredDialogue.nodeName ?? "",

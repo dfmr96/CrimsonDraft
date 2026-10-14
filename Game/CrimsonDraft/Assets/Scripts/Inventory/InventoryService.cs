@@ -63,6 +63,38 @@ namespace CrimsonDraft.Inventory
             return true;
         }
 
+        // Swaps a carried item for another (empty flask -> filled flask). The replacement takes the
+        // original's spot and rotation when it fits there -- TryAdd only tries the unrotated
+        // footprint, so a flask laid flat in an otherwise full grid would find no room -- else any
+        // free cell. With no room at all the original goes back untouched and nothing is lost.
+        public bool TryReplace(string itemId, ItemData replacement)
+        {
+            var placement = AllPlacements().FirstOrDefault(p => p.Item.Data.ItemId == itemId);
+            if (placement == null || placement.Item.IsEquipped) return false;
+
+            var original  = placement.Item;
+            var container = FindContainerObjectOf(original)!;
+            container.Remove(original);
+
+            var footprint = ItemPlacement.FootprintOf(replacement.GridSize, placement.Rotation);
+            if (container.CanPlace(footprint, placement.Origin))
+            {
+                container.Place(InventoryItemFactory.Create(replacement), placement.Origin, placement.Rotation);
+                container.NotifyChanged();
+                return true;
+            }
+
+            if (TryFindFreeCell(CarriedContainers(), replacement.GridSize, out var target, out var origin))
+            {
+                target!.Place(InventoryItemFactory.Create(replacement), origin, 0);
+                NotifyChanged(container, target);
+                return true;
+            }
+
+            container.Place(original, placement.Origin, placement.Rotation);
+            return false;
+        }
+
         public bool HasItem(string itemId) => AllPlacements().Any(p => p.Item.Data.ItemId == itemId);
 
         // Spends a single unit of a carried stack (TryRemove drops the whole item) -- e.g. one
