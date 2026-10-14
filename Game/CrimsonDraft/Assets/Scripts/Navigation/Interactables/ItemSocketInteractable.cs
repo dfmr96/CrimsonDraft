@@ -164,7 +164,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         ["$slots_filled"]  = filled,
                         ["$slots_total"]   = this.requiredItems.Length
                     },
-                    onComplete: complete ? () => this.onActivatedAfterDialogue.Invoke() : null);
+                    onComplete: complete ? OnInsertDialogueClosed : null);
 
                 if (complete)
                 {
@@ -193,7 +193,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             if (this.IsActivated && NeedsTurn)
             {
-                FollowUp!.Interact(context);
+                FollowUp!.PromptTurn();
                 return;
             }
 
@@ -208,6 +208,14 @@ namespace CrimsonDraft.Navigation.Interactables
                     ["$slots_filled"] = filled,
                     ["$slots_total"]  = total
                 });
+        }
+
+        // The follow-up turn prompt (valve sockets) chains straight from the insert line, so the
+        // player doesn't have to interact a second time to get it.
+        private void OnInsertDialogueClosed()
+        {
+            this.onActivatedAfterDialogue.Invoke();
+            if (NeedsTurn) FollowUp!.PromptTurn();
         }
 
         private void ApplyActivatedState()

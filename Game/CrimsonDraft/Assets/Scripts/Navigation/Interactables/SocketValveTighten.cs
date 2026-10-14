@@ -9,9 +9,9 @@ using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    /// <summary>Second step of the pipe-valve socket (KI_11). Filling the socket only shows the
-    /// "You inserted X" line; the player then interacts with the socket again (routed here by
-    /// ItemSocketInteractable.Interact) and is asked whether to turn the handle. On "Yes" the
+    /// <summary>Second step of the pipe-valve socket (KI_11). Filling the socket shows the
+    /// "You placed X" line; once it closes the player is asked whether to turn the handle
+    /// (and again on any later interaction with the socket if they said "No"). On "Yes" the
     /// dialogue closes, the handle turns, the steam particle system stops emitting and a
     /// follow-up line plays; the socket then records the turn (ItemSocketInteractable.MarkTurned)
     /// so it stays done across scene changes and saves. If it was already turned when this loads,
@@ -28,10 +28,18 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string  turnPromptNodeName = "socket_pipe_valve_turn";
         [SerializeField] private string  adjustedNodeName  = "socket_pipe_valve_adjusted";
 
-        [Inject] private IDialogueService                        dialogueService = null!;
+        private IDialogueService       dialogueService       = null!;
+        private IPickupDialogueService pickupDialogueService = null!;
 
         private bool         started;
         private bool         tightened; // handle already at its final rotation
+
+        [Inject]
+        public void Construct(IDialogueService dialogueService, IPickupDialogueService pickupDialogueService)
+        {
+            this.dialogueService       = dialogueService;
+            this.pickupDialogueService = pickupDialogueService;
+        }
 
         void Start()
         {
@@ -62,14 +70,15 @@ namespace CrimsonDraft.Navigation.Interactables
             this.steam.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
-        // Called by the socket on the player's interaction once it is filled but not yet turned.
+        // Called by the socket right after its insert line closes, and again on any later
+        // interaction while the handle is still unturned (the player answered "No").
         // Uses the Yes/No panel (PickupDialogueService), same as the liquid dispensers. The turn
         // starts from onComplete, once the panel has closed and input is back in Gameplay.
-        public void Interact(InteractionContext context)
+        public void PromptTurn()
         {
             bool turn = false;
 
-            context.PickupDialogueService.StartDialogue(
+            this.pickupDialogueService.StartDialogue(
                 this.turnPromptNodeName,
                 onComplete: () =>
                 {
