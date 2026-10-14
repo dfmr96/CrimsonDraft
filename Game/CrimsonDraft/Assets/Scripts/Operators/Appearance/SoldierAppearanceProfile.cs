@@ -29,10 +29,34 @@ namespace CrimsonDraft.Operators.Appearance
         [Tooltip("Camo name (Mat_Camo_<Name>) or \"Default\" for the original texture.")]
         [SerializeField] private string camo = SoldierAppearanceVariants.Default;
 
+        [Tooltip("Body type blend shape weights (0..100), indexed by SoldierBodyShape.")]
+        [SerializeField] private float[] bodyShapes = new float[SoldierAppearanceVariants.BodyShapeCount];
+        [SerializeField, Range(SoldierAppearanceVariants.MinHeight, SoldierAppearanceVariants.MaxHeight)]
+        private float height = 1f;
+
         public string Camo
         {
             get => string.IsNullOrEmpty(this.camo) ? SoldierAppearanceVariants.Default : this.camo;
             set => this.camo = value;
+        }
+
+        public float Height
+        {
+            get => this.height <= 0f ? 1f : this.height;
+            set => this.height = Mathf.Clamp(value, SoldierAppearanceVariants.MinHeight, SoldierAppearanceVariants.MaxHeight);
+        }
+
+        public float GetBodyShape(SoldierBodyShape shape)
+        {
+            int i = (int)shape;
+            return this.bodyShapes != null && i < this.bodyShapes.Length ? this.bodyShapes[i] : 0f;
+        }
+
+        public void SetBodyShape(SoldierBodyShape shape, float weight)
+        {
+            if (this.bodyShapes == null || this.bodyShapes.Length != SoldierAppearanceVariants.BodyShapeCount)
+                Array.Resize(ref this.bodyShapes, SoldierAppearanceVariants.BodyShapeCount);
+            this.bodyShapes[(int)shape] = Mathf.Clamp(weight, 0f, 100f);
         }
 
         public SlotSelection Get(SoldierAppearanceSlot slot)

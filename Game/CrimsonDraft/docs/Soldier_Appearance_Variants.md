@@ -59,6 +59,18 @@
 - **Gear_Atlas.png**: atlas nuevo de 256×256 para el equipo (goma, oculares, verde NVG, metal, filtro, shemagh, calavera, boina, polímero, tela negra, radio). Las piezas spec-ops mapean sus UVs a esos rects, así que la textura siempre encaja. El camo **no** afecta a `Mat_Gear`.
 - Piezas que siguen siendo camo-ables (usan el atlas del soldado): `Boonie`, el casco de `FastNVG`, `PlateCarrier`, `ChestRig`, más todas las originales.
 
+### Tipos de cuerpo (2026-10-14)
+
+- **Blend shapes `Female`, `Heavy`, `Muscular`, `Thin`** (pesos 0–100, combinables) en el cuerpo **y en las 27 piezas**. Los genera `Tools/Blender/soldier_bodyshapes.py` (comando `bodyshapes`, también corre en `build`):
+  - Cuerpo: desplazamientos procedurales a partir de las zonas de influencia de cada hueso (panza/cintura/cadera para Heavy; hombros/pecho/brazos para Muscular; todo más fino para Thin; cintura, cadera, pecho y hombros para Female). Intensidad global en `STRENGTH`.
+  - Accesorios: cada vértice copia el desplazamiento del punto más cercano del cuerpo (baricéntrico), y después `push_out` garantiza que ningún vértice quede más adentro del cuerpo que en la pose base. El comando reporta el clipping por pieza y forma (resultado actual: sin clipping nuevo, salvo 1 vértice límite de `Backpack_Small` con `Thin`).
+  - Las animaciones no se tocan: solo se mueven vértices; esqueleto, pesos y clips son los mismos.
+- **Altura**: escala uniforme 0.9–1.1 **multiplicando la escala propia del prefab** (`Ethan_Combat_FBX` está a 0.95). No se pueden cambiar proporciones por hueso: los 37 clips guardan posición, rotación y escala de los 48 huesos en cada frame.
+- El FBX de variantes ahora exporta también el cuerpo (`Marine`) con los blend shapes. El instalador reemplaza la malla del cuerpo y de las piezas originales (Helmet/Goggle/Pack/Vest) por las del FBX de variantes, conservando objetos y materiales; con pesos en 0 el resultado es idéntico al original (0.001 mm medido en Aim/Reload/Death).
+- Runtime: `SoldierAppearance.SetBodyShape(SoldierBodyShape, weight)`, `GetBodyShape`, `SetHeight(h)`, `Height`; el profile guarda pesos y altura. Ventana: sección **Body** con sliders; Random/Reset/Load/Save/Apply to Prefab los incluyen.
+- Preview: `Tools/Blender/preview_bodies.py`.
+- Pendiente: la cara femenina usa la misma textura de balaclava/ojos; si hace falta, se hace una variante de esa zona del atlas como los camos.
+
 ## 2. Convención de nombres
 
 - Objeto = `<Slot>_<Variant>`; slots: `Helmet`, `Glasses`, `Backpack`, `Vest`, `Mask`. Ej.: `Helmet_Hood`, `Vest_BeltPouches`, `Mask_GasMask`. `Mask` no necesita `_Default`.

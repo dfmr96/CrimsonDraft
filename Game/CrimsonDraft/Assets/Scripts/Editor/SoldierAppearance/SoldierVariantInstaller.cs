@@ -19,6 +19,7 @@ namespace CrimsonDraft.Editor
         public const string VariantsFbxPath = SoldierVariantsImportSettings.VariantsFolder + "SoldierCharacterRigged_Variants.fbx";
         private const string RigName      = "Rig";
         private const string RootBoneName = "Root";
+        private const string BodyName     = "Marine";
 
         private static readonly (string basePath, string variantPath)[] AppearancePrefabs =
         {
@@ -91,8 +92,9 @@ namespace CrimsonDraft.Editor
 
         /// <summary>
         /// Adds (or updates) one child SkinnedMeshRenderer per variant on <paramref name="character"/> and
-        /// returns its SoldierAppearance. Variants "&lt;Slot&gt;_Default" are skipped when the character already
-        /// has the original piece (Helmet/Goggle/Pack/Vest), which stays as the slot's Default.
+        /// returns its SoldierAppearance. When the character already has the original piece (Helmet/Goggle/
+        /// Pack/Vest) it stays as the slot's Default and only takes the "&lt;Slot&gt;_Default" mesh; the body
+        /// ("Marine") takes the variants body mesh too, so everything has the body-type blend shapes.
         /// </summary>
         public static SoldierAppearance Install(GameObject character, GameObject variantsModel, bool recordUndo = true)
         {
@@ -116,10 +118,20 @@ namespace CrimsonDraft.Editor
             var template = legacy.FirstOrDefault();
             var variantsParent = template ? template.transform.parent : modelRoot;
 
+            var body = modelRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.name == BodyName);
+
             foreach (var source in variantsModel.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                if (!SoldierAppearance.TryParse(source.name, out var slot, out var variant)) continue;
-                if (variant == SoldierAppearanceVariants.Default && legacy.Any(l => SoldierAppearance.TryParse(l.name, out var s, out _) && s == slot))
+                // The body and the original pieces keep their objects/materials but take the meshes of the
+                // variants FBX: same geometry and skinning, plus the body-type blend shapes.
+                SkinnedMeshRenderer swapTarget = null;
+                if (source.name == BodyName)
+                    swapTarget = body;
+                else if (!SoldierAppearance.TryParse(source.name, out var slot, out var variant))
+                    continue;
+                else if (variant == SoldierAppearanceVariants.Default)
+                    swapTarget = legacy.FirstOrDefault(l => SoldierAppearance.TryParse(l.name, out var s, out _) && s == slot);
+                if (source.name == BodyName && !swapTarget)
                     continue;
 
                 var bones = new Transform[source.bones.Length];
@@ -130,6 +142,20 @@ namespace CrimsonDraft.Editor
                 if (missing.Count > 0)
                     throw new InvalidOperationException(
                         $"Cannot bind '{source.name}' to '{character.name}': missing bones {string.Join(", ", missing.Distinct())}.");
+
+                // Body shapes make the mesh grow: bounds with margin so it is not culled early.
+                var bounds = source.localBounds;
+                bounds.extents *= 1.25f;
+
+                if (swapTarget)
+                {
+                    if (recordUndo) Undo.RecordObject(swapTarget, "Update Soldier Mesh");
+                    swapTarget.sharedMesh  = source.sharedMesh;
+                    swapTarget.bones       = bones;
+                    swapTarget.rootBone    = rootBone;
+                    swapTarget.localBounds = bounds;
+                    continue;
+                }
 
                 var existing = variantsParent.Find(source.name);
                 SkinnedMeshRenderer target;
@@ -151,7 +177,7 @@ namespace CrimsonDraft.Editor
                 target.sharedMaterials = source.sharedMaterials;
                 target.bones           = bones;
                 target.rootBone        = rootBone;
-                target.localBounds     = source.localBounds;
+                target.localBounds     = bounds;
                 if (template)
                 {
                     target.quality              = template.quality;
@@ -169,6 +195,13 @@ namespace CrimsonDraft.Editor
                 Undo.RecordObject(appearance, "Install Soldier Variants");
             appearance.ConfigureCamos(LoadCamoBaseMaterials(), LoadCamoMaterials());
             appearance.RebuildVariantList();
+            // Height multiplies the source prefab's scale (e.g. 0.95), never the current, possibly already scaled, one.
+            var sourcePrefab = PrefabUtility.GetCorrespondingObjectFromSource(modelRoot);
+            if (sourcePrefab)
+            {
+                if (recordUndo) Undo.RecordObject(modelRoot, "Install Soldier Variants");
+                appearance.ConfigureBaseScale(sourcePrefab.localScale);
+            }
             EditorUtility.SetDirty(appearance);
             return appearance;
         }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CrimsonDraft.Operators.Appearance;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -92,6 +93,7 @@ namespace CrimsonDraft.Editor
             EditorGUILayout.EndHorizontal();
 
             m_Scroll = EditorGUILayout.BeginScrollView(m_Scroll);
+            this.DrawBody();
             this.DrawCamo();
             for (int i = 0; i < SoldierAppearanceVariants.SlotCount; i++)
                 this.DrawSlot((SoldierAppearanceSlot)i);
@@ -207,6 +209,54 @@ namespace CrimsonDraft.Editor
             EditorGUILayout.EndHorizontal();
         }
 
+        private void DrawBody()
+        {
+            GUILayout.Space(6);
+            GUILayout.Label("Body", EditorStyles.boldLabel);
+            // Soldiers installed before body types existed keep the old body mesh (no blend shapes).
+            var outdated = m_Target.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                .FirstOrDefault(r => r.sharedMesh && r.sharedMesh.GetBlendShapeIndex(nameof(SoldierBodyShape.Heavy)) < 0);
+            if (outdated)
+            {
+                EditorGUILayout.HelpBox($"'{outdated.name}' has no body-type blend shapes, so it won't change shape. " +
+                    "Press Install / Update Variants to update this soldier.", MessageType.Warning);
+                if (GUILayout.Button("Install / Update Variants")) this.InstallOn(m_Target.gameObject);
+            }
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+            {
+                var shape = (SoldierBodyShape)i;
+                float current = m_Target.GetBodyShape(shape);
+                float value = EditorGUILayout.Slider(shape.ToString(), current, 0f, 100f);
+                if (!Mathf.Approximately(value, current)) this.ChangeBodyShape(shape, value);
+            }
+            float height = EditorGUILayout.Slider("Height", m_Target.Height, SoldierAppearanceVariants.MinHeight, SoldierAppearanceVariants.MaxHeight);
+            if (!Mathf.Approximately(height, m_Target.Height)) this.ChangeHeight(height);
+            EditorGUILayout.HelpBox("Blend shapes on the body and on every piece (gear follows the body). Height is a uniform scale.", MessageType.None);
+        }
+
+        private void ChangeBodyShape(SoldierBodyShape shape, float weight)
+        {
+            var renderers = m_Target.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var objects = new List<Object> { m_Target };
+            objects.AddRange(renderers);
+            Undo.RecordObjects(objects.ToArray(), "Change Soldier Body");
+            m_Target.SetBodyShape(shape, weight);
+            this.MarkDirty();
+            foreach (var r in renderers)
+            {
+                EditorUtility.SetDirty(r);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(r);
+            }
+        }
+
+        private void ChangeHeight(float height)
+        {
+            Undo.RecordObjects(new Object[] { m_Target, m_Target.transform }, "Change Soldier Height");
+            m_Target.SetHeight(height);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(m_Target.transform);
+            this.MarkDirty();
+        }
+
         private void DrawFooter()
         {
             GUILayout.Space(8);
@@ -276,6 +326,10 @@ namespace CrimsonDraft.Editor
             }
             m_Target.GetCamoNames(m_Names);
             this.ChangeCamo(m_Names[Random.Range(0, m_Names.Count)]);
+            // Body: usually one dominant type, sometimes a mix, plus a small height variation.
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                this.ChangeBodyShape((SoldierBodyShape)i, Random.value < 0.35f ? Random.Range(20f, 100f) : 0f);
+            this.ChangeHeight(Random.Range(0.94f, 1.06f));
         }
 
         private void ResetToDefault()
@@ -288,6 +342,9 @@ namespace CrimsonDraft.Editor
                 this.ApplyLook(slot);
             }
             this.ChangeCamo(SoldierAppearanceVariants.Default);
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                this.ChangeBodyShape((SoldierBodyShape)i, 0f);
+            this.ChangeHeight(1f);
         }
 
         private void LoadProfile(SoldierAppearanceProfile profile)
@@ -300,6 +357,9 @@ namespace CrimsonDraft.Editor
                 this.ApplyLook(data.slot);
             }
             this.ChangeCamo(m_Target.HasCamo(profile.Camo) ? profile.Camo : SoldierAppearanceVariants.Default);
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                this.ChangeBodyShape((SoldierBodyShape)i, profile.GetBodyShape((SoldierBodyShape)i));
+            this.ChangeHeight(profile.Height);
         }
 
         private void SaveProfile(SoldierAppearanceProfile profile)
@@ -314,6 +374,9 @@ namespace CrimsonDraft.Editor
                 data.tint = m_Looks[i].Tint;
             }
             profile.Camo = m_Target.Camo;
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                profile.SetBodyShape((SoldierBodyShape)i, m_Target.GetBodyShape((SoldierBodyShape)i));
+            profile.Height = m_Target.Height;
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssetIfDirty(profile);
             Debug.Log($"[SoldierAppearance] Saved profile {AssetDatabase.GetAssetPath(profile)}");
@@ -362,6 +425,10 @@ namespace CrimsonDraft.Editor
             foreach (var r in m_Target.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 if (!PrefabUtility.IsAddedGameObjectOverride(r.gameObject) && !PrefabUtility.IsAddedComponentOverride(r))
                     PrefabUtility.ApplyObjectOverride(r, assetPath, InteractionMode.UserAction);
+            // Height: only the scale (the root's scene position/rotation must not go into the prefab).
+            var scale = new SerializedObject(m_Target.transform).FindProperty("m_LocalScale");
+            if (scale.prefabOverride)
+                PrefabUtility.ApplyPropertyOverride(scale, assetPath, InteractionMode.UserAction);
             if (PrefabUtility.IsAddedComponentOverride(m_Target))
                 PrefabUtility.ApplyAddedComponent(m_Target, assetPath, InteractionMode.UserAction);
             else

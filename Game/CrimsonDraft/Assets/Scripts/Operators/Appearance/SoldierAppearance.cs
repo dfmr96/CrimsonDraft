@@ -62,9 +62,20 @@ namespace CrimsonDraft.Operators.Appearance
         [SerializeField] private List<MaterialTarget>      materialTargets = new List<MaterialTarget>();
         [SerializeField] private Material?[]               slotMaterialOverrides = Array.Empty<Material?>();
 
+        [Header("Body")]
+        [Tooltip("Body type blend shape weights (0..100), indexed by SoldierBodyShape. Applied to the body and every piece.")]
+        [SerializeField] private float[]                   bodyShapeWeights = Array.Empty<float>();
+        [SerializeField, Range(SoldierAppearanceVariants.MinHeight, SoldierAppearanceVariants.MaxHeight)]
+        private float                                      height = 1f;
+        // The prefab's own scale (e.g. Ethan_Combat_FBX is 0.95): height multiplies it, never replaces it.
+        [SerializeField, HideInInspector] private Vector3  baseScale = Vector3.zero;
+
+        private static readonly string[] BodyShapeNames = Enum.GetNames(typeof(SoldierBodyShape));
+
         public SoldierAppearanceProfile? Profile  => this.profile;
         public IReadOnlyList<VariantEntry> Variants => this.variants;
         public string Camo => string.IsNullOrEmpty(this.camo) ? SoldierAppearanceVariants.Default : this.camo;
+        public float Height => this.height <= 0f ? 1f : this.height;
 
         private void Awake()
         {
@@ -95,6 +106,70 @@ namespace CrimsonDraft.Operators.Appearance
             {
                 var data = appearance.Get((SoldierAppearanceSlot)i);
                 this.SetSlotTint(data.slot, data.overrideTint, data.tint);
+            }
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                this.bodyShapeWeights[i] = Mathf.Clamp(appearance.GetBodyShape((SoldierBodyShape)i), 0f, 100f);
+            this.ApplyBodyShapes();
+            this.SetHeight(appearance.Height);
+        }
+
+        // -------------------------------------------------------------------------------------
+        // Body type / height
+        // -------------------------------------------------------------------------------------
+
+        public float GetBodyShape(SoldierBodyShape shape)
+        {
+            this.EnsureArrays();
+            return this.bodyShapeWeights[(int)shape];
+        }
+
+        /// <summary>Sets a body type weight (0..100) on the body and on every piece, so gear follows the body.</summary>
+        public void SetBodyShape(SoldierBodyShape shape, float weight)
+        {
+            this.EnsureArrays();
+            this.bodyShapeWeights[(int)shape] = Mathf.Clamp(weight, 0f, 100f);
+            this.ApplyBodyShape((int)shape);
+        }
+
+        /// <summary>Uniform scale of the model (clips key every bone, so per-bone proportions can't change).</summary>
+        public void SetHeight(float value)
+        {
+            this.EnsureBaseScale();
+            this.height = Mathf.Clamp(value, SoldierAppearanceVariants.MinHeight, SoldierAppearanceVariants.MaxHeight);
+            this.transform.localScale = this.baseScale * this.height;
+        }
+
+        /// <summary>Editor: the model's scale at height 1 (taken from the source prefab by the installer).</summary>
+        public void ConfigureBaseScale(Vector3 scale)
+        {
+            this.baseScale = scale;
+            this.transform.localScale = this.baseScale * this.Height;
+        }
+
+        private void EnsureBaseScale()
+        {
+            if (this.baseScale == Vector3.zero)
+                this.baseScale = this.transform.localScale / this.Height;
+        }
+
+        private void ApplyBodyShapes()
+        {
+            this.EnsureArrays();
+            for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
+                this.ApplyBodyShape(i);
+        }
+
+        // Every driven renderer (body, original pieces and variants, active or not) gets the same weight.
+        private void ApplyBodyShape(int shape)
+        {
+            string shapeName = BodyShapeNames[shape];
+            float weight = this.bodyShapeWeights[shape];
+            foreach (var target in this.materialTargets)
+            {
+                if (target.renderer == null || target.renderer.sharedMesh == null) continue;
+                int index = target.renderer.sharedMesh.GetBlendShapeIndex(shapeName);
+                if (index >= 0 && !Mathf.Approximately(target.renderer.GetBlendShapeWeight(index), weight))
+                    target.renderer.SetBlendShapeWeight(index, weight);
             }
         }
 
@@ -288,6 +363,8 @@ namespace CrimsonDraft.Operators.Appearance
                 this.selection[i] = active;
             }
             this.RefreshMaterials();
+            this.ApplyBodyShapes(); // newly installed pieces get the current body type
+            this.EnsureBaseScale();
         }
 
         /// <summary>"Helmet_Hood" -> (Helmet, "Hood"); legacy "Goggle" -> (Glasses, "Default").</summary>
@@ -335,6 +412,8 @@ namespace CrimsonDraft.Operators.Appearance
                 for (int i = 0; i < n && i < old.Length; i++)
                     this.slotMaterialOverrides[i] = old[i];
             }
+            if (this.bodyShapeWeights == null || this.bodyShapeWeights.Length != SoldierAppearanceVariants.BodyShapeCount)
+                Array.Resize(ref this.bodyShapeWeights, SoldierAppearanceVariants.BodyShapeCount);
         }
     }
 }

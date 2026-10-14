@@ -288,6 +288,7 @@ def build(force=False, blockouts=True):
 
     if blockouts:
         make_blockouts()
+    make_body_shapes()
 
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
     log("Saved %s" % BLEND)
@@ -456,6 +457,23 @@ def make_blockouts():
 
 
 # ---------------------------------------------------------------------------------------------
+# Body shapes (Female / Heavy / Muscular / Thin): see soldier_bodyshapes.py
+# ---------------------------------------------------------------------------------------------
+def body_shape_names():
+    import soldier_bodyshapes
+    return soldier_bodyshapes.BODY_SHAPES
+
+
+def body_has_shapes():
+    return bool(body().data.shape_keys)
+
+
+def make_body_shapes():
+    import soldier_bodyshapes
+    return soldier_bodyshapes.make(sys.modules[__name__])
+
+
+# ---------------------------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------------------------
 def validate():
@@ -481,8 +499,12 @@ def validate():
             errors.append("%s must be parented to '%s'." % (tag, ARMATURE))
         if not (o.matrix_basis == Matrix.Identity(4) and o.matrix_parent_inverse == Matrix.Identity(4)):
             errors.append("%s has unapplied transforms (location/rotation must be 0, scale 1)." % tag)
-        if o.data.shape_keys:
-            errors.append("%s has shape keys." % tag)
+        keys = set(o.data.shape_keys.key_blocks.keys()) if o.data.shape_keys else set()
+        expected = {"Basis", *body_shape_names()}
+        if keys and keys != expected:
+            errors.append("%s shape keys %s must be exactly %s (run the bodyshapes command)." % (tag, sorted(keys), sorted(expected)))
+        if not keys and body_has_shapes():
+            errors.append("%s has no body shape keys while the body has: run the bodyshapes command." % tag)
         unknown = [g.name for g in o.vertex_groups if g.name not in bones]
         if unknown:
             errors.append("%s vertex groups not in the rig: %s" % (tag, unknown))
@@ -556,6 +578,8 @@ def export():
     arm.select_set(True)
     for o in variant_objects():
         o.select_set(True)
+    if body_has_shapes():
+        body().select_set(True)  # body with the body-type blend shapes (same mesh/weights as the original)
     bpy.context.view_layer.objects.active = arm
     os.makedirs(os.path.dirname(EXPORT_FBX), exist_ok=True)
     bpy.ops.export_scene.fbx(filepath=EXPORT_FBX, **EXPORT_SETTINGS)
@@ -590,6 +614,7 @@ def main(argv):
     n = sub.add_parser("new-variant")
     n.add_argument("--from", dest="src", required=True)
     n.add_argument("--name", required=True)
+    sub.add_parser("bodyshapes")
     sub.add_parser("validate")
     sub.add_parser("export")
     a = p.parse_args(argv)
@@ -601,6 +626,9 @@ def main(argv):
         bpy.ops.wm.save_mainfile()
     elif a.cmd == "new-variant":
         new_variant(a.src, a.name)
+        bpy.ops.wm.save_mainfile()
+    elif a.cmd == "bodyshapes":
+        make_body_shapes()
         bpy.ops.wm.save_mainfile()
     elif a.cmd == "validate":
         validate()
