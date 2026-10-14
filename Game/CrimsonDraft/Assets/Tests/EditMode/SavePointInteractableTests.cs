@@ -146,6 +146,9 @@ namespace CrimsonDraft.Tests
                 this.OpenCount++;
                 this.LastOnSaved = onSaved;
             }
+
+            public void OpenTelegraph(CrimsonDraft.Infrastructure.Save.UI.LoadGameSaveListView view, Action? onSaved, Action? onClosed)
+                => Open(onSaved);
         }
 
         private sealed class FakeDialogue : IPickupDialogueService

@@ -1,9 +1,9 @@
 title: socket_key_holder
 ---
 <<if $insert_result == "success">>
-You use {$item_name}. The lock clicks and the little door swings open.
+You used [important]{$item_name}[/important]. The lock clicks and the little door swings open.
 <<elseif $insert_result == "wrong_item">>
-{$item_name} doesn't fit here.
+[important]{$item_name}[/important] doesn't fit here.
 <<elseif $activated>>
 The key holder is open.
 <<else>>

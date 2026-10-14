@@ -28,7 +28,12 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<CanvasCameraBinder>().AsImplementedInterfaces();
 
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
+            {
                 builder.RegisterComponentInHierarchy<FilesTabController>().AsSelf().AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                builder.RegisterEntryPoint<DebugNoteUnlocker>();
+#endif
+            }
 
             if (FindFirstObjectByType<MapTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<MapTabController>();

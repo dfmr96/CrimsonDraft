@@ -210,8 +210,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ededede2998f898419504f8bfcfa45ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyAttackHitbox
-  owner: {fileID: 4294063654535727941}
-  hitCollider: {fileID: 1801817107857187173}
+  center: {x: 0, y: 1.3, z: 0.5}
+  size: {x: 0.45, y: 0.9, z: 0.45}
+  mask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &455190167213843556
 GameObject:
   m_ObjectHideFlags: 0
@@ -3431,6 +3434,8 @@ MonoBehaviour:
   encounterData: {fileID: 11400000, guid: ac98b480ae914c949beab64e02fbf9e0, type: 2}
   encounterId: EE_11
   sensor: {fileID: 2553455303187186813}
+  hitbox: {fileID: 0}
+  hitFxPoint: {fileID: 0}
   eyePoint: {fileID: 0}
 --- !u!136 &5594979400282772859
 CapsuleCollider:
@@ -3489,13 +3494,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0526992e82edf84439b933ef3b6112c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyAnimationReactor
-  player: {fileID: 0}
   owner: {fileID: 4294063654535727941}
-  hitbox: {fileID: 1834813196727670774}
-  closeRadius: 2
-  closeRadiusBuffer: 0.05
-  movingSpeedThreshold: 0.05
-  twitchIntervalRange: {x: 4, y: 9}
+  speedDampTime: 0.1
 --- !u!1 &3920650550233747831
 GameObject:
   m_ObjectHideFlags: 0
@@ -7551,6 +7551,10 @@ PrefabInstance:
       propertyPath: data
       value: 
       objectReference: {fileID: 11400000, guid: 0b7c674dd4ab9cc4a80484e38cb0a03b, type: 2}
+    - target: {fileID: 4310848800067524156, guid: 1d03a616f58f383418922a8797f58ed1, type: 3}
+      propertyPath: doorId
+      value: DR_01
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7619,7 +7623,7 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: 0b7c674dd4ab9cc4a80484e38cb0a03b, type: 2}
     - target: {fileID: 4310848800067524156, guid: 1d03a616f58f383418922a8797f58ed1, type: 3}
       propertyPath: doorId
-      value: DR_21B
+      value: DR_21
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

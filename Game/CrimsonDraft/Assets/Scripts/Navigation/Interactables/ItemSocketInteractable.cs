@@ -33,6 +33,39 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public bool IsActivated { get; private set; }
 
+        // Only meaningful for a socket with a SocketValveTighten beside it: the socket is filled
+        // first, then the player interacts again and chooses to turn the handle.
+        public bool IsTurned { get; private set; }
+
+        private SocketValveTighten? followUp;
+        private bool                followUpResolved;
+
+        private SocketValveTighten? FollowUp
+        {
+            get
+            {
+                if (!this.followUpResolved)
+                {
+                    this.followUp         = GetComponent<SocketValveTighten>();
+                    this.followUpResolved = true;
+                }
+                return this.followUp;
+            }
+        }
+
+        private bool NeedsTurn => FollowUp != null && !this.IsTurned;
+        private string TurnedKey => this.socketId + "#turned";
+
+        // Called by the follow-up once the player has turned the handle. Persisted next to the
+        // inserted flags so it survives scene changes and saves.
+        public void MarkTurned()
+        {
+            this.IsTurned = true;
+            this.registry.SetInserted(TurnedKey, new[] { true });
+            if (this.blockingCollider != null)
+                this.blockingCollider.enabled = false;
+        }
+
         // Lets other scripts (e.g. GeneratorSwitchPanel) subscribe in code instead of only via
         // the Inspector's persistent-call list.
         public UnityEvent OnActivated => this.onActivated;
@@ -55,11 +88,19 @@ namespace CrimsonDraft.Navigation.Interactables
         void Awake()
         {
             // Defensive: make sure the "placed" visual isn't left visible by mistake in the
-            // editor before anything has actually been inserted. Construct() (run afterwards,
-            // once ItemSocketBootstrap has a registry to hand out) overrides this if the socket
-            // was already filled/activated in a previous scene or a loaded save.
-            if (this.revealOnActivate != null)
+            // editor before anything has actually been inserted. Skipped when Construct() has
+            // already restored an activated socket: a socket under an inactive room runs Awake
+            // only when the room is first switched on, i.e. AFTER Construct, and would
+            // otherwise hide the restored visual again.
+            if (this.revealOnActivate != null && !this.IsActivated)
                 this.revealOnActivate.SetActive(false);
+        }
+
+        // A room can be toggled off/on while the player is elsewhere; make sure an activated
+        // socket always comes back in its final state.
+        void OnEnable()
+        {
+            if (this.IsActivated) ApplyActivatedState();
         }
 
         // Called by ItemSocketBootstrap once per scene load, after Awake -- restores whatever
@@ -76,6 +117,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
             for (int i = 0; i < this.inserted.Length; i++)
                 if (this.inserted[i]) SlotFilled?.Invoke(i, false);
+
+            var turned = registry.GetInserted(TurnedKey);
+            this.IsTurned = turned.Length > 0 && turned[0];
 
             if (IsComplete())
                 ApplyActivatedState();
@@ -120,7 +164,7 @@ namespace CrimsonDraft.Navigation.Interactables
                         ["$slots_filled"]  = filled,
                         ["$slots_total"]   = this.requiredItems.Length
                     },
-                    onComplete: complete ? () => this.onActivatedAfterDialogue.Invoke() : null);
+                    onComplete: complete ? OnInsertDialogueClosed : null);
 
                 if (complete)
                 {
@@ -147,6 +191,12 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            if (this.IsActivated && NeedsTurn)
+            {
+                FollowUp!.PromptTurn();
+                return;
+            }
+
             int filled = CountFilled();
             int total  = this.requiredItems.Length;
 
@@ -160,11 +210,20 @@ namespace CrimsonDraft.Navigation.Interactables
                 });
         }
 
+        // The follow-up turn prompt (valve sockets) chains straight from the insert line, so the
+        // player doesn't have to interact a second time to get it.
+        private void OnInsertDialogueClosed()
+        {
+            this.onActivatedAfterDialogue.Invoke();
+            if (NeedsTurn) FollowUp!.PromptTurn();
+        }
+
         private void ApplyActivatedState()
         {
             this.IsActivated = true;
 
-            if (this.blockingCollider != null)
+            // Stays interactable while the follow-up turn step is still pending.
+            if (this.blockingCollider != null && !NeedsTurn)
                 this.blockingCollider.enabled = false;
 
             if (this.revealOnActivate != null)

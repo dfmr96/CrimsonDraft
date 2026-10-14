@@ -123,7 +123,7 @@ namespace CrimsonDraft.UI
 
         private void ApplyHealthState(float hpRatio, bool isAlive = true)
         {
-            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive);
+            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive, mercyApplies: false);
             if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
             if (this.statusLabel != null)
             {
@@ -150,10 +150,10 @@ namespace CrimsonDraft.UI
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Test-only — previews the ECG states from the Inspector without touching real HP.
-        [Button("100% — Stable")]  private void TestEcgStable()   => this.ApplyHealthState(1f);
+        [Button("100% — Fine")]    private void TestEcgFine()     => this.ApplyHealthState(1f);
         [Button("60% — Caution")]  private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
-        [Button("10% — Warning")]  private void TestEcgWarning()  => this.ApplyHealthState(0.1f);
-        [Button("0% — Mercy")]     private void TestEcgMercy()     => this.ApplyHealthState(0f, isAlive: true);
+        [Button("40% — Danger")]   private void TestEcgDanger()   => this.ApplyHealthState(0.4f);
+        [Button("10% — Critical")] private void TestEcgCritical() => this.ApplyHealthState(0.1f);
         [Button("KIA")]            private void TestEcgKia()      => this.ApplyHealthState(0f, isAlive: false);
 
         // Test-only -- really kills / revives the operator bound to this card (Play Mode, inventory

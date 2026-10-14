@@ -30,6 +30,21 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.beeperPickup.OnPickedUp.AddListener(OnBeeperCollected);
             this.receiver.OnCodeAccepted.AddListener(OnCodeAccepted);
+
+            // The paint stays hidden until the beeper is collected (or an accepted SOS reveals it).
+            if (this.bigPaint != null) this.bigPaint.SetActive(false);
+        }
+
+        // Runs after DI has injected the pickup's registry, so IsCollected is reliable here. On a
+        // scene change or a save load the beeper is already collected and its pickup is gone, so
+        // OnBeeperCollected never fires -- switch the radio back on directly. Door/paint are left
+        // at their fresh-scene state (unlocked, hidden), as the mechanism toggle isn't persisted.
+        void Start()
+        {
+            if (this.triggered || !this.beeperPickup.IsCollected) return;
+
+            this.triggered = true;
+            this.radio.Activate();
         }
 
         private void OnBeeperCollected()

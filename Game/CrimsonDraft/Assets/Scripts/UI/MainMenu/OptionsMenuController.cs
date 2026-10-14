@@ -1,8 +1,8 @@
 #nullable enable
 
+using CrimsonDraft.Navigation.UI;
 using System;
 using CrimsonDraft.Infrastructure.Audio;
-using CrimsonDraft.Rendering.Outline;
 using TMPro;
 using UnityEngine;
 using VContainer;
@@ -10,22 +10,20 @@ using VContainer;
 namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
-    /// Sound tab content only (Master/SFX/Music knobs). Has no cursor or input of its own --
-    /// <see cref="OptionsTabController"/> owns navigation across tabs + the sound channel list
-    /// and drives this panel purely through <see cref="ShowOutline"/>/<see cref="HideOutlines"/>/<see cref="Adjust"/>.
+    /// Sound tab content (Master/SFX/Music). No input of its own -- <see cref="OptionsTabController"/>
+    /// drives it. The selected channel's label and percentage turn white.
     /// </summary>
     public sealed class OptionsMenuController : MonoBehaviour, IOptionsChannelPanel
     {
-        [System.Serializable]
+        [Serializable]
         private sealed class SoundChannel
         {
-            [SerializeField] public Transform          knob        = null!;
-            [SerializeField] public TextMeshProUGUI     valueLabel  = null!;
-            [Tooltip("Hijo con el mesh duplicado + material de contorno; se prende/apaga al (de)seleccionar esta perilla.")]
-            [SerializeField] public GameObject          outline     = null!;
+            [SerializeField] public TextMeshProUGUI label      = null!;
+            [SerializeField] public TextMeshProUGUI valueLabel = null!;
 
-            [System.NonSerialized] public Quaternion baseRotation;
-            [System.NonSerialized] public int        value;
+            [NonSerialized] public Color labelColor;
+            [NonSerialized] public Color valueColor;
+            [NonSerialized] public int   value;
         }
 
         [Header("Channels (navigation order: top to bottom)")]
@@ -33,19 +31,15 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private SoundChannel sfx    = null!;
         [SerializeField] private SoundChannel music  = null!;
 
-        [Header("Knob")]
-        [Tooltip("Eje local (previo a la rotación base) sobre el que gira cada perilla, como un tornillo.")]
-        [SerializeField] private Vector3 spinAxis     = Vector3.up;
-        [SerializeField] private float   sweepDegrees = 270f;
-        [SerializeField] private int     stepPercent  = 5;
+        [SerializeField] private Color selectedColor = Color.white;
+        [SerializeField] private int   stepPercent   = 5;
 
         private SoundChannel[]    channels = null!;
         private Action<float>[]   applyToService = null!;
         private IAudioSettingsService audioSettingsService = null!;
         private MainMenuSfxData      sfxData               = null!;
-        private readonly SelectionOutlineHighlight highlight = new();
 
-        public int ChannelCount => this.channels.Length;
+        public int ChannelCount => 3;
 
         [Inject]
         public void Construct(IAudioSettingsService audioSettingsService, MainMenuSfxData sfxData)
@@ -54,12 +48,19 @@ namespace CrimsonDraft.UI.MainMenu
             this.sfxData              = sfxData;
         }
 
+        private void Awake()
+        {
+            this.channels = new[] { this.master, this.sfx, this.music };
+            foreach (var channel in this.channels)
+            {
+                channel.labelColor = channel.label.color;
+                channel.valueColor = channel.valueLabel.color;
+            }
+        }
+
         private void Start()
         {
-            // Reads audioSettingsService, which VContainer injects via Construct() during the
-            // scope's own Awake() -- deferring to Start() here guarantees that already ran,
-            // same reasoning as MainMenuController.Start().
-            this.channels = new[] { this.master, this.sfx, this.music };
+            // audioSettingsService is injected during the scope's own Awake(); read it in Start().
             this.applyToService = new Action<float>[]
             {
                 this.audioSettingsService.SetMasterVolume,
@@ -76,18 +77,32 @@ namespace CrimsonDraft.UI.MainMenu
 
             for (int i = 0; i < this.channels.Length; i++)
             {
-                var channel = this.channels[i];
-                channel.baseRotation = channel.knob.localRotation;
-                channel.value        = Mathf.RoundToInt(startValues01[i] * 100f);
-                Apply(channel);
+                this.channels[i].value = Mathf.RoundToInt(startValues01[i] * 100f);
+                Apply(this.channels[i]);
             }
         }
 
         public bool IsSelectable(int index) => true;
 
-        public void ShowOutline(int index) => this.highlight.Show(this.channels[index].knob);
+        public bool RepeatsOnHold(int index) => true;
 
-        public void HideOutlines() => this.highlight.Clear();
+        public void Confirm(int index) { }
+
+        public void ShowOutline(int index)
+        {
+            HideOutlines();
+            this.channels[index].label.color      = this.selectedColor;
+            this.channels[index].valueLabel.color = this.selectedColor;
+        }
+
+        public void HideOutlines()
+        {
+            foreach (var channel in this.channels)
+            {
+                channel.label.color      = channel.labelColor;
+                channel.valueLabel.color = channel.valueColor;
+            }
+        }
 
         public void Adjust(int index, int direction)
         {
@@ -100,11 +115,6 @@ namespace CrimsonDraft.UI.MainMenu
             this.applyToService[index](channel.value / 100f);
         }
 
-        private void Apply(SoundChannel channel)
-        {
-            float angle = Mathf.Lerp(0f, this.sweepDegrees, channel.value / 100f);
-            channel.knob.localRotation = channel.baseRotation * Quaternion.AngleAxis(angle, this.spinAxis);
-            channel.valueLabel.text    = $"{channel.value}%";
-        }
+        private static void Apply(SoundChannel channel) => channel.valueLabel.text = $"{channel.value}%";
     }
 }

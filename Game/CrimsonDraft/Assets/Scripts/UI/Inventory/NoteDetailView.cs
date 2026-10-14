@@ -26,13 +26,48 @@ namespace CrimsonDraft.UI
         public bool IsOpen { get; private set; }
 
         private NoteLayoutSettings? layout;
-        private NoteAlignment       alignment = NoteAlignment.UseDefault;
+        private DocumentData?       doc;
+        private bool                defaultsCaptured;
+        private TMP_FontAsset?      defaultBodyFont;
+        private TMP_FontAsset?      defaultTitleFont;
+        private TMP_FontAsset?      defaultBigFont;
+        private float               defaultBodySize;
+        private float               defaultTitleSize;
+        private float               defaultBigSize;
 
-        /// <summary>Spacing and alignment for the notes shown from now on; applied on every Show*.</summary>
-        public void SetLayout(NoteLayoutSettings? settings, NoteAlignment noteAlignment)
+        /// <summary>Spacing, alignment and font for the note shown from now on; applied on every Show*.</summary>
+        public void SetLayout(NoteLayoutSettings? settings, DocumentData document)
         {
-            this.layout    = settings;
-            this.alignment = noteAlignment;
+            if (!this.defaultsCaptured)
+            {
+                this.defaultsCaptured  = true;
+                this.defaultBodyFont   = this.bodyLabel.font;
+                this.defaultTitleFont  = this.titleLabel.font;
+                this.defaultBigFont    = this.bigTitleLabel != null ? this.bigTitleLabel.font : null;
+                this.defaultBodySize   = this.bodyLabel.fontSize;
+                this.defaultTitleSize  = this.titleLabel.fontSize;
+                this.defaultBigSize    = this.bigTitleLabel != null ? this.bigTitleLabel.fontSize : 0f;
+            }
+
+            this.layout = settings;
+            this.doc    = document;
+
+            // Fall back to the prefab's fonts/sizes so one note's override doesn't leak into the next.
+            var font = settings != null ? settings.ResolveFont(document) : null;
+            float bodySize  = settings != null && settings.BodyFontSize  > 0f ? settings.BodyFontSize  : this.defaultBodySize;
+            float titleSize = settings != null && settings.TitleFontSize > 0f ? settings.TitleFontSize : 0f;
+
+            this.bodyLabel.font     = font != null ? font : this.defaultBodyFont;
+            this.bodyLabel.fontSize = bodySize;
+
+            this.titleLabel.font     = font != null ? font : this.defaultTitleFont;
+            this.titleLabel.fontSize = titleSize > 0f ? titleSize : this.defaultTitleSize;
+
+            if (this.bigTitleLabel != null)
+            {
+                this.bigTitleLabel.font     = font != null ? font : this.defaultBigFont;
+                this.bigTitleLabel.fontSize = titleSize > 0f ? titleSize : this.defaultBigSize;
+            }
         }
 
         /// <summary>Rows the body label would render for <paramref name="text"/> at its current width and font (wrapping included).</summary>
@@ -65,11 +100,11 @@ namespace CrimsonDraft.UI
 
         void ApplyBodyLayout()
         {
-            if (this.layout == null) return;
+            if (this.layout == null || this.doc == null) return;
 
             this.bodyLabel.lineSpacing      = this.layout.LineSpacing;
             this.bodyLabel.paragraphSpacing = this.layout.ParagraphSpacing;
-            this.bodyLabel.horizontalAlignment = this.layout.Resolve(this.alignment) switch
+            this.bodyLabel.horizontalAlignment = this.layout.ResolveAlignment(this.doc) switch
             {
                 NoteAlignment.Centered  => HorizontalAlignmentOptions.Center,
                 NoteAlignment.Justified => HorizontalAlignmentOptions.Justified,

@@ -6,6 +6,8 @@ namespace CrimsonDraft.Infrastructure.Save.UI
 {
     internal static class SaveSlotFormat
     {
+        public const string EmptyText = "#------------------------------------";
+
         public static string FormatPlaytime(float seconds)
         {
             var span = TimeSpan.FromSeconds(seconds);

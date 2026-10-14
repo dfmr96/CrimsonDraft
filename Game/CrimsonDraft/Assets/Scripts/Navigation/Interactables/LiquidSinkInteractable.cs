@@ -35,30 +35,32 @@ namespace CrimsonDraft.Navigation.Interactables
             return null;
         }
 
+        // The liquid's own name ("Green Liquid"), kept in the item's secondary name.
+        private static string LiquidName(ItemData flask)
+            => !string.IsNullOrEmpty(flask.SecondaryName) ? flask.SecondaryName : flask.DisplayName;
+
         private void StartPourPrompt(InteractionContext context)
         {
             if (FindCarriedFilledFlask(context) == null) return;
 
             bool pour = false;
+            string liquidName = LiquidName(FindCarriedFilledFlask(context)!);
 
             // Swap from onComplete, not the command -- same reasoning as LiquidSourceInteractable.
             context.PickupDialogueService.StartDialogue(
                 this.promptDialogue.nodeName ?? "",
+                variables: new Dictionary<string, object> { ["$liquid_name"] = liquidName },
                 onComplete: () =>
                 {
                     if (!pour) return;
 
                     var filled = FindCarriedFilledFlask(context);
-                    if (filled == null || !context.InventoryService.TryRemove(filled.ItemId)) return;
+                    // Swapped in place (same cell and rotation); on failure the filled flask stays.
+                    if (filled == null || !context.InventoryService.TryReplace(filled.ItemId, this.emptyFlask)) return;
 
-                    if (!context.InventoryService.TryAdd(this.emptyFlask))
-                    {
-                        // Freed slot was taken meanwhile -- give the filled flask back rather than lose it.
-                        context.InventoryService.TryAdd(filled);
-                        return;
-                    }
-
-                    context.DialogueService.StartDialogue(this.pouredDialogue.nodeName ?? "");
+                    context.DialogueService.StartDialogue(
+                        this.pouredDialogue.nodeName ?? "",
+                        new Dictionary<string, object> { ["$empty_name"] = this.emptyFlask.DisplayName });
                 },
                 commands: new Dictionary<string, Action>
                 {

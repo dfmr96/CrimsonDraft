@@ -28,11 +28,19 @@ namespace CrimsonDraft.Combat
         // null falls back to this component's original hardcoded 0.75/0.50/0.25 breakpoints.
         [SerializeField] private HpTierConfig? hpTierConfig;
 
-        [Header("Health States (Normal x4, Mercy, KIA)")]
-        [SerializeField] private Sprite? stageSpriteStable;   // 75-100%, calm/slow
-        [SerializeField] private Sprite? stageSpriteCaution;  // 50-75%
-        [SerializeField] private Sprite? stageSpriteWarning;  // 25-50%
-        [SerializeField] private Sprite? stageSpriteSevere;   // 0-25%, alive
+        // Four stages that match the status text (Fine / Caution / Danger / Critical) plus KIA.
+        // The serialized names are older and stay as they are so prefab overrides keep working:
+        // Stable = Fine, Warning = Danger, Severe = Critical. Mercy is a combat-only fifth look
+        // (0 HP, still alive); outside combat it does not exist -- see SetHealthState.
+        [Header("Health States (Fine / Caution / Danger / Critical, KIA; Mercy is combat-only)")]
+        [Tooltip("Fine: 75-100%")]
+        [SerializeField] private Sprite? stageSpriteStable;
+        [Tooltip("Caution: 50-75%")]
+        [SerializeField] private Sprite? stageSpriteCaution;
+        [Tooltip("Danger: 25-50%")]
+        [SerializeField] private Sprite? stageSpriteWarning;
+        [Tooltip("Critical: 0-25%, alive")]
+        [SerializeField] private Sprite? stageSpriteSevere;
         [SerializeField, FormerlySerializedAs("stageSpriteCritical")] private Sprite? stageSpriteMercy; // Mercy: 0 HP, alive, fast/erratic
         [SerializeField] private Sprite? stageSpriteDead;     // KIA: static flatline
 
@@ -172,7 +180,9 @@ namespace CrimsonDraft.Combat
 
         // isAlive distinguishes Mercy (0 HP, still alive -- one more hit from KIA) from a
         // confirmed kill: hpRatio alone can't tell them apart since both sit at 0.
-        public void SetHealthState(float hpRatio, bool isAlive)
+        // mercyApplies is false outside combat (inventory cards): there 0 HP alive is just the
+        // Critical stage, and the only thing after Critical is KIA.
+        public void SetHealthState(float hpRatio, bool isAlive, bool mercyApplies = true)
         {
             this.EnsureEffectBaseAlphaCaptured();
             hpRatio = Mathf.Clamp01(hpRatio);
@@ -205,7 +215,7 @@ namespace CrimsonDraft.Combat
             Color effectColor;
 
             OperatorHealthStatus status;
-            if (hpRatio <= 0f)
+            if (hpRatio <= 0f && mercyApplies)
             {
                 status = OperatorHealthStatus.Critical;
                 sprite = this.stageSpriteMercy; duration = this.stageDurationMercy; effectColor = this.effectColorMercy;
@@ -231,7 +241,7 @@ namespace CrimsonDraft.Combat
                 this.traceImage.sprite = sprite;
 
             this.sweepDuration = duration;
-            this.isMercy       = hpRatio <= 0f;
+            this.isMercy       = mercyApplies && hpRatio <= 0f;
 
             // Mercy drops the scanning-sweep material entirely -- only the pulse (in
             // UpdateMercyPulse) drives it, on/off, no barrido.

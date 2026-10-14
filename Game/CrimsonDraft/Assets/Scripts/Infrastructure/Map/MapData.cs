@@ -28,12 +28,25 @@ namespace CrimsonDraft.Infrastructure.Map
         public string[] PickupIds = Array.Empty<string>();
     }
 
+    /// <summary>The far half of a doubled door: the door in the neighbouring room that leads
+    /// back through the same doorway, excluded from the map so the pair draws once.</summary>
+    [Serializable]
+    public sealed class MapDoorSide
+    {
+        public string DoorId = "";
+        public string RoomId = "";
+    }
+
     [Serializable]
     public sealed class MapDoorData
     {
         public string DoorId = "";
         public MapElementTransform Transform = new();
         public Vector2 Size = new(1f, 0.25f);
+
+        /// <summary>Baked from the scene. Visiting any of these rooms reveals this door, and
+        /// their doors' lock state shows on it.</summary>
+        public MapDoorSide[] OtherSides = Array.Empty<MapDoorSide>();
     }
 
     [CreateAssetMenu(menuName = "CrimsonDraft/Map/Map Data")]

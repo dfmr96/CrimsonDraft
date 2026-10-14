@@ -1,10 +1,12 @@
 #nullable enable
 
+using System.Linq;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Navigation.UI;
 
@@ -125,6 +127,86 @@ namespace CrimsonDraft.Tests
         {
             ShowFitted(new[] { Visual(0, 0), Visual(20, 0, current: true) }, "DECK B", false, false);
             Assert.AreEqual(Color.white, Room(0).GetComponent<Image>().color);
+        }
+
+        private static MapDoorSprites DoorSprites()
+            => new()
+            {
+                Horizontal = new MapDoorSpriteSet { Unknown = MapTestData.Sprite(7, 4), Locked = MapTestData.Sprite(7, 4), Unlocked = MapTestData.Sprite(7, 4) },
+                Vertical   = new MapDoorSpriteSet { Unknown = MapTestData.Sprite(4, 7), Locked = MapTestData.Sprite(4, 7), Unlocked = MapTestData.Sprite(4, 7) },
+            };
+
+        private static MapDoorVisual Door(DoorMapState state, Vector2 position, float rotation = 0f)
+            => new("d", "r", state, position, rotation, Vector2.one);
+
+        private RectTransform DoorLayer() => (RectTransform)this.content.Find("Doors");
+
+        private RectTransform DoorImage(int i) => (RectTransform)DoorLayer().GetChild(i);
+
+        [Test]
+        public void Show_withDoors_drawsTheSpriteForEachStateAndOrientation()
+        {
+            var sprites = DoorSprites();
+            var floor   = new Rect(0f, 0f, 20f, 20f);
+            this.view.Show(
+                new[] { Visual(0, 0) },
+                new[] { Door(DoorMapState.Locked, new Vector2(2f, 10f)), Door(DoorMapState.Unlocked, new Vector2(0f, 3f), rotation: 90f) },
+                sprites, floor, "DECK B", false, false);
+
+            Assert.AreSame(sprites.Horizontal.Locked, DoorImage(0).GetComponent<Image>().sprite);
+            Assert.AreSame(sprites.Vertical.Unlocked, DoorImage(1).GetComponent<Image>().sprite);
+        }
+
+        [Test]
+        public void Show_withDoors_placesBottomLeftCornerAtDoorPosition_relativeToFloorCentre()
+        {
+            this.view.Show(
+                new[] { Visual(0, 0) },
+                new[] { Door(DoorMapState.Unknown, new Vector2(2f, 10f)) },
+                DoorSprites(), new Rect(0f, 0f, 20f, 20f), "DECK B", false, false);
+
+            Assert.AreEqual(new Vector2(7f, 4f), DoorImage(0).sizeDelta);
+            Assert.AreEqual(new Vector2(2f + 3.5f - 10f, 10f + 2f - 10f), DoorImage(0).anchoredPosition);
+            Assert.AreEqual(0f, DoorImage(0).localEulerAngles.z, 0.01f);
+        }
+
+        [Test]
+        public void Show_withDoors_drawsThemAboveRooms()
+        {
+            this.view.Show(
+                new[] { Visual(0, 0) },
+                new[] { Door(DoorMapState.Unknown, Vector2.zero) },
+                DoorSprites(), new Rect(0f, 0f, 20f, 20f), "DECK B", false, false);
+            this.view.Show(
+                new[] { Visual(0, 0), Visual(20, 0) },
+                new[] { Door(DoorMapState.Unknown, Vector2.zero) },
+                DoorSprites(), new Rect(0f, 0f, 40f, 20f), "DECK B", false, false);
+
+            Assert.AreEqual(this.content.childCount - 1, DoorLayer().GetSiblingIndex());
+        }
+
+        [Test]
+        public void Show_doorWithoutSprite_isNotDrawn()
+        {
+            var sprites = DoorSprites();
+            sprites.Horizontal.Locked = null;
+            this.view.Show(
+                new[] { Visual(0, 0) },
+                new[] { Door(DoorMapState.Locked, Vector2.zero) },
+                sprites, new Rect(0f, 0f, 20f, 20f), "DECK B", false, false);
+
+            Assert.IsTrue(DoorLayer() == null || DoorLayer().Cast<Transform>().All(t => !t.gameObject.activeSelf));
+        }
+
+        [Test]
+        public void Show_again_hidesSurplusDoors()
+        {
+            var floor = new Rect(0f, 0f, 20f, 20f);
+            this.view.Show(new[] { Visual(0, 0) }, new[] { Door(DoorMapState.Unknown, Vector2.zero), Door(DoorMapState.Unknown, Vector2.one) }, DoorSprites(), floor, "DECK B", false, false);
+            this.view.Show(new[] { Visual(0, 0) }, new[] { Door(DoorMapState.Unknown, Vector2.zero) }, DoorSprites(), floor, "DECK B", false, false);
+
+            Assert.IsTrue(DoorImage(0).gameObject.activeSelf);
+            Assert.IsFalse(DoorImage(1).gameObject.activeSelf);
         }
 
         [Test]

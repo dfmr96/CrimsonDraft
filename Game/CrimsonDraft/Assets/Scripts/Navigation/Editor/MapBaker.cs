@@ -3,7 +3,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using CrimsonDraft.Infrastructure.Map;
@@ -14,27 +13,13 @@ using CrimsonDraft.Navigation.Rooms;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>Bakes each room's pickup and door ids from the open scene into its MapData,
-    /// upserting by RoomId so the layout authored in the Map Editor is never touched.</summary>
-    [InitializeOnLoad]
+    /// upserting by RoomId / DoorId so the layout authored in the Map Editor is never touched.
+    /// Runs only from the Map Editor's Bake button: never on scene save or entering Play, so a
+    /// MapData changes only when someone asks for it. Each door excluded from the map is paired
+    /// with the drawn half of the same doorway (MapDoorPairing) and stored as its other side.</summary>
     public static class MapBaker
     {
-        static MapBaker()
-        {
-            EditorSceneManager.sceneSaved -= OnSceneSaved;
-            EditorSceneManager.sceneSaved += OnSceneSaved;
-            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeChanged;
-        }
-
-        private static void OnSceneSaved(Scene scene) => BakeAllInOpenScenes();
-
-        private static void OnPlayModeChanged(PlayModeStateChange change)
-        {
-            if (change == PlayModeStateChange.ExitingEditMode)
-                BakeAllInOpenScenes();
-        }
-
-        private static void BakeAllInOpenScenes()
+        public static void BakeAllInOpenScenes()
         {
             foreach (var config in Object.FindObjectsByType<MapSceneConfig>(
                          FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -56,6 +41,15 @@ namespace CrimsonDraft.Navigation.Editor
 
             var scene       = config.gameObject.scene;
             var controllers = InScene<RoomController>(scene);
+
+            // __GAMEPLAYCORE carries a MapSceneConfig, so any scene holding it (a test or temp scene)
+            // would otherwise bake an empty floor and drop every door's editor layout.
+            if (controllers.Count == 0)
+            {
+                Debug.LogWarning($"[MapBaker] Skipped {config.Map.name}: scene '{scene.name}' has no RoomController, so it isn't that floor's scene.", config);
+                return;
+            }
+
             var markers     = InScene<MapDoorMarker>(scene);
             var pickups     = InScene<PickupInteractable>(scene);
 
@@ -74,16 +68,31 @@ namespace CrimsonDraft.Navigation.Editor
                 doorIds.TryAdd(controller.RoomId, new SortedSet<string>());
             }
 
-            var doors = new List<MapDoorData>(markers.Count);
+            var doors     = new List<MapDoorData>(markers.Count);
+            var ownerOf   = new Dictionary<string, MapDoorMarker>();
+            var drawnEnds = new List<MapDoorEnd>();
+            var farEnds   = new List<MapDoorEnd>();
             foreach (var marker in markers)
             {
                 if (marker.ExcludeFromMap)
+                {
+                    if (EndOf(marker) is { } farEnd)
+                        farEnds.Add(farEnd);
                     continue;
+                }
 
                 var doorId = marker.ResolveDoorId();
                 if (string.IsNullOrWhiteSpace(doorId))
                 {
                     Debug.LogWarning("[MapBaker] MapDoorMarker is missing a DoorId.", marker);
+                    continue;
+                }
+
+                if (!ownerOf.TryAdd(doorId!, marker))
+                {
+                    Debug.LogWarning(
+                        $"[MapBaker] DoorId '{doorId}' is used by both '{PathOf(ownerOf[doorId!])}' and '{PathOf(marker)}'. " +
+                        "Doors sharing an id share lock state; only the first is put on the map.", marker);
                     continue;
                 }
 
@@ -103,7 +112,15 @@ namespace CrimsonDraft.Navigation.Editor
                 var room = marker.GetComponentInParent<RoomController>();
                 if (room != null && doorIds.TryGetValue(room.RoomId, out var set))
                     set.Add(doorId!);
+
+                if (EndOf(marker) is { } drawnEnd)
+                    drawnEnds.Add(drawnEnd);
             }
+
+            var pairing = MapDoorPairing.Pair(drawnEnds, farEnds);
+            foreach (var door in doors)
+                door.OtherSides = pairing.OtherSidesOf(door.DoorId).ToArray();
+            ReportUnmatched(config.Map, pairing);
 
             foreach (var pickup in pickups)
             {
@@ -125,10 +142,46 @@ namespace CrimsonDraft.Navigation.Editor
                 })
                 .ToList();
 
-            var rooms = MapLayoutMerge.Upsert(config.Map.Rooms, baked);
-            config.Map.EditorSetBakedContent(rooms, doors.OrderBy(d => d.DoorId, System.StringComparer.Ordinal).ToList());
+            var rooms       = MapLayoutMerge.Upsert(config.Map.Rooms, baked);
+            var mergedDoors = MapLayoutMerge.UpsertDoors(config.Map.Doors, doors.OrderBy(d => d.DoorId, System.StringComparer.Ordinal).ToList());
+            config.Map.EditorSetBakedContent(rooms, mergedDoors);
             EditorUtility.SetDirty(config.Map);
             AssetDatabase.SaveAssets();
+        }
+
+        // A door half as the pairing sees it; null when it has no id or sits outside a room.
+        private static MapDoorEnd? EndOf(MapDoorMarker marker)
+        {
+            var doorId = marker.ResolveDoorId();
+            var room   = marker.GetComponentInParent<RoomController>();
+            if (string.IsNullOrWhiteSpace(doorId) || room == null || string.IsNullOrWhiteSpace(room.RoomId))
+                return null;
+
+            var destination = marker.GetComponent<RoomDoorInteractable>()?.Destination;
+            return new MapDoorEnd(doorId!, room.RoomId, destination != null ? destination.RoomId : null);
+        }
+
+        // An excluded half that finds no drawn half reveals nothing on the map, so say so.
+        private static void ReportUnmatched(MapData map, MapDoorPairing.Result pairing)
+        {
+            foreach (var end in pairing.Ambiguous)
+                Debug.LogWarning(
+                    $"[MapBaker] {map.name}: excluded door '{end.DoorId}' ({end.RoomId}) matches several drawn doors leading back from " +
+                    $"'{end.DestinationRoomId}', so it was paired with none and its room won't reveal any of them.", map);
+
+            if (pairing.Unpaired.Count > 0)
+                Debug.LogWarning(
+                    $"[MapBaker] {map.name}: these excluded doors have no drawn door leading back through the same doorway, " +
+                    "so their room won't reveal it on the map: " +
+                    string.Join(", ", pairing.Unpaired.Select(end => $"{end.DoorId} ({end.RoomId})")), map);
+        }
+
+        private static string PathOf(Component component)
+        {
+            var path = component.name;
+            for (var t = component.transform.parent; t != null; t = t.parent)
+                path = t.name + "/" + path;
+            return path;
         }
 
         // Only the config's own scene: with several decks (or a test scene) open at once, a

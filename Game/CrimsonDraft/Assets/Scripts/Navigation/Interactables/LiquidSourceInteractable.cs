@@ -31,6 +31,10 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () => StartFillPrompt(context));
         }
 
+        // The liquid's own name ("Green Liquid"), kept in the item's secondary name.
+        private static string LiquidName(ItemData flask)
+            => !string.IsNullOrEmpty(flask.SecondaryName) ? flask.SecondaryName : flask.DisplayName;
+
         private void StartFillPrompt(InteractionContext context)
         {
             if (!context.InventoryService.HasItem(this.emptyFlask.ItemId)) return;
@@ -42,19 +46,16 @@ namespace CrimsonDraft.Navigation.Interactables
             // and the input context is restored before onComplete.
             context.PickupDialogueService.StartDialogue(
                 this.promptDialogue.nodeName ?? "",
+                variables: new Dictionary<string, object> { ["$empty_name"] = this.emptyFlask.DisplayName },
                 onComplete: () =>
                 {
                     if (!fill) return;
-                    if (!context.InventoryService.TryRemove(this.emptyFlask.ItemId)) return;
+                    // Swapped in place (same cell and rotation); on failure the empty flask stays.
+                    if (!context.InventoryService.TryReplace(this.emptyFlask.ItemId, this.filledFlask)) return;
 
-                    if (!context.InventoryService.TryAdd(this.filledFlask))
-                    {
-                        // Freed slot was taken meanwhile -- give the empty flask back rather than lose it.
-                        context.InventoryService.TryAdd(this.emptyFlask);
-                        return;
-                    }
-
-                    context.DialogueService.StartDialogue(this.filledDialogue.nodeName ?? "");
+                    context.DialogueService.StartDialogue(
+                        this.filledDialogue.nodeName ?? "",
+                        new Dictionary<string, object> { ["$liquid_name"] = LiquidName(this.filledFlask) });
                 },
                 commands: new Dictionary<string, Action>
                 {

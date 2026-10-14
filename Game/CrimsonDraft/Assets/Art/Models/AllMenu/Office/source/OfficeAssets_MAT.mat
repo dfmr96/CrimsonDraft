@@ -12,20 +12,18 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _LIGHTINGMETHOD_UNLIT
-  - _SURFACE_TYPE_TRANSPARENT
+  - _LIGHTINGMETHOD_TEXEL_LIT
   - _TEXTURESAMPLEMODE_POINT
   - _VERTEXJITTERMODE_SCREEN_SPACE
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap:
-    RenderType: Transparent
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
-  - DepthOnly
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -104,8 +102,8 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DstBlend: 10
-    - _DstBlendAlpha: 10
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
     - _EnableAffineTextureMapping: 0
     - _EnableShadows: 0
     - _EnableTextureDownsampling: 0
@@ -114,7 +112,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 1
     - _HueShift: 0
-    - _LIGHTINGMETHOD: 0
+    - _LIGHTINGMETHOD: 2
     - _LightnessMultiplier: 1
     - _Metallic: 0
     - _Mode: 3
@@ -129,9 +127,9 @@ Material:
     - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _Surface: 1
+    - _Surface: 0
     - _TEXTURESAMPLEMODE: 0
     - _TextureResolution: 256
     - _UVSec: 0
@@ -143,7 +141,7 @@ Material:
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZTest: 4
-    - _ZWrite: 0
+    - _ZWrite: 1
     - _ZWriteControl: 0
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}

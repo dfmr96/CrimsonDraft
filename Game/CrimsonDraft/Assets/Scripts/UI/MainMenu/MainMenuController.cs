@@ -69,8 +69,8 @@ namespace CrimsonDraft.UI.MainMenu
             this.newGameButton.onClick.AddListener(OnNewGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
 
-            this.newGamePromptView.ModernButton.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
-            this.newGamePromptView.ClassicButton.onClick.AddListener(() => SelectScheme(ControlScheme.Classic));
+            this.newGamePromptView.ModernButton?.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
+            this.newGamePromptView.ClassicButton?.onClick.AddListener(() => SelectScheme(ControlScheme.Classic));
             this.newGamePromptView.SetSelectedScheme(this.controlSchemeService.CurrentScheme == ControlScheme.Classic);
             this.newGamePromptView.ShowControlsLayout(this.usingGamepad);
 

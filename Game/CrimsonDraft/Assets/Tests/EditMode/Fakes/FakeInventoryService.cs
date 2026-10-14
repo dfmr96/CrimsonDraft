@@ -59,6 +59,16 @@ namespace CrimsonDraft.Tests
             return this.OwnedIds.Remove(itemId);
         }
 
+        public readonly List<(string itemId, ItemData replacement)> Replaced = new();
+
+        public bool TryReplace(string itemId, ItemData replacement)
+        {
+            this.Replaced.Add((itemId, replacement));
+            if (!this.AddResult || !this.OwnedIds.Remove(itemId)) return false;
+            this.OwnedIds.Add(replacement.ItemId);
+            return true;
+        }
+
         public bool HasItem(string itemId) => this.OwnedIds.Contains(itemId);
 
         public readonly List<ItemData> ConsumedOne = new();
