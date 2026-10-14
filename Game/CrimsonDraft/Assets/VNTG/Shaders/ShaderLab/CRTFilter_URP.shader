@@ -640,7 +640,8 @@ Shader "Hidden/CRTFilter_URP"
             {
                 if (!ShouldRefresh(IN.texcoord) && _ForceRefresh < 0.5) 
                 {
-                    return float4(GetLastFrameColor(IN.texcoord), 1.0);
+                    float lastAlpha = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).a;
+                    return float4(GetLastFrameColor(IN.texcoord), lastAlpha);
                 }
 
                 float2 uv = (_EnableScreenBend == 1) ? CurveRemap(IN.texcoord) : IN.texcoord;
@@ -651,10 +652,16 @@ Shader "Hidden/CRTFilter_URP"
 
                 if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) 
                 {
-                    return float4(0.0, 0.0, 0.0, 1.0);
-                } 
+                    // Black bezel outside the curved screen, but only as opaque as the nearest edge pixel
+                    // so a transparent UI stays transparent and an opaque panel keeps its black to the edge.
+                    float edgeAlpha = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, saturate(uv)).a;
+                    return float4(0.0, 0.0, 0.0, edgeAlpha);
+                }
 
-                float3 scene = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, uv).rgb;
+                float4 sceneSample = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, uv);
+                float3 scene = sceneSample.rgb;
+                // Preserve source alpha so a transparent camera target stays transparent.
+                float outAlpha = sceneSample.a;
 
                 float3 combinedVHS = CalculateVHSDamage(scene, uv);
 
@@ -683,7 +690,7 @@ Shader "Hidden/CRTFilter_URP"
 
                 col *= GetVignetteMask(uv);
 
-                return float4(col, 1.0);
+                return float4(col, outAlpha);
 
             }
             ENDHLSL
