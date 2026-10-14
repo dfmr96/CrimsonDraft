@@ -3,7 +3,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using CrimsonDraft.Infrastructure.Map;
@@ -14,26 +13,11 @@ using CrimsonDraft.Navigation.Rooms;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>Bakes each room's pickup and door ids from the open scene into its MapData,
-    /// upserting by RoomId / DoorId so the layout authored in the Map Editor is never touched.</summary>
-    [InitializeOnLoad]
+    /// upserting by RoomId / DoorId so the layout authored in the Map Editor is never touched.
+    /// Runs only from the Map Editor's Bake button: never on scene save or entering Play, so a
+    /// MapData changes only when someone asks for it.</summary>
     public static class MapBaker
     {
-        static MapBaker()
-        {
-            EditorSceneManager.sceneSaved -= OnSceneSaved;
-            EditorSceneManager.sceneSaved += OnSceneSaved;
-            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeChanged;
-        }
-
-        private static void OnSceneSaved(Scene scene) => BakeAllInOpenScenes();
-
-        private static void OnPlayModeChanged(PlayModeStateChange change)
-        {
-            if (change == PlayModeStateChange.ExitingEditMode)
-                BakeAllInOpenScenes();
-        }
-
         public static void BakeAllInOpenScenes()
         {
             foreach (var config in Object.FindObjectsByType<MapSceneConfig>(
@@ -56,6 +40,15 @@ namespace CrimsonDraft.Navigation.Editor
 
             var scene       = config.gameObject.scene;
             var controllers = InScene<RoomController>(scene);
+
+            // __GAMEPLAYCORE carries a MapSceneConfig, so any scene holding it (a test or temp scene)
+            // would otherwise bake an empty floor and drop every door's editor layout.
+            if (controllers.Count == 0)
+            {
+                Debug.LogWarning($"[MapBaker] Skipped {config.Map.name}: scene '{scene.name}' has no RoomController, so it isn't that floor's scene.", config);
+                return;
+            }
+
             var markers     = InScene<MapDoorMarker>(scene);
             var pickups     = InScene<PickupInteractable>(scene);
 
