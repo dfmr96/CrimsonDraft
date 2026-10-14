@@ -1414,8 +1414,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ededede2998f898419504f8bfcfa45ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyAttackHitbox
-  owner: {fileID: 3248234667055164415}
-  hitCollider: {fileID: 5389267838018488291}
+  center: {x: 0, y: 1.3, z: 0.5}
+  size: {x: 0.45, y: 0.9, z: 0.45}
+  mask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &1888855919142023284
 GameObject:
   m_ObjectHideFlags: 0
@@ -2884,7 +2887,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 373e142344c00434999858f48f55f661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.RoomDoorInteractable
-  doorId: DR_21B
+  doorId: DR_241B
   data: {fileID: 11400000, guid: 0b7c674dd4ab9cc4a80484e38cb0a03b, type: 2}
   destination: {fileID: 0}
   doorTransitionPrefab: {fileID: 1766850413181354858, guid: 0f696ed5f051adb47b2fd5a00796bc64, type: 3}
@@ -3480,6 +3483,8 @@ MonoBehaviour:
   encounterData: {fileID: 11400000, guid: 1e3ae8c08a64ccf4ab1eb653ebdd5558, type: 2}
   encounterId: EE_06
   sensor: {fileID: 8171084508919995747}
+  hitbox: {fileID: 0}
+  hitFxPoint: {fileID: 0}
   eyePoint: {fileID: 0}
 --- !u!136 &1866452313135205031
 CapsuleCollider:
@@ -3538,13 +3543,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0526992e82edf84439b933ef3b6112c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.EnemyAnimationReactor
-  player: {fileID: 0}
   owner: {fileID: 3248234667055164415}
-  hitbox: {fileID: 7247899850663630370}
-  closeRadius: 2
-  closeRadiusBuffer: 0.05
-  movingSpeedThreshold: 0.05
-  twitchIntervalRange: {x: 4, y: 9}
+  speedDampTime: 0.1
 --- !u!1 &4566585678490315846
 GameObject:
   m_ObjectHideFlags: 0

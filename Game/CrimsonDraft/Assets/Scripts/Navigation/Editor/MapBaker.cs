@@ -14,7 +14,7 @@ using CrimsonDraft.Navigation.Rooms;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>Bakes each room's pickup and door ids from the open scene into its MapData,
-    /// upserting by RoomId so the layout authored in the Map Editor is never touched.</summary>
+    /// upserting by RoomId / DoorId so the layout authored in the Map Editor is never touched.</summary>
     [InitializeOnLoad]
     public static class MapBaker
     {
@@ -34,7 +34,7 @@ namespace CrimsonDraft.Navigation.Editor
                 BakeAllInOpenScenes();
         }
 
-        private static void BakeAllInOpenScenes()
+        public static void BakeAllInOpenScenes()
         {
             foreach (var config in Object.FindObjectsByType<MapSceneConfig>(
                          FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -74,7 +74,8 @@ namespace CrimsonDraft.Navigation.Editor
                 doorIds.TryAdd(controller.RoomId, new SortedSet<string>());
             }
 
-            var doors = new List<MapDoorData>(markers.Count);
+            var doors   = new List<MapDoorData>(markers.Count);
+            var ownerOf = new Dictionary<string, MapDoorMarker>();
             foreach (var marker in markers)
             {
                 if (marker.ExcludeFromMap)
@@ -84,6 +85,14 @@ namespace CrimsonDraft.Navigation.Editor
                 if (string.IsNullOrWhiteSpace(doorId))
                 {
                     Debug.LogWarning("[MapBaker] MapDoorMarker is missing a DoorId.", marker);
+                    continue;
+                }
+
+                if (!ownerOf.TryAdd(doorId!, marker))
+                {
+                    Debug.LogWarning(
+                        $"[MapBaker] DoorId '{doorId}' is used by both '{PathOf(ownerOf[doorId!])}' and '{PathOf(marker)}'. " +
+                        "Doors sharing an id share lock state; only the first is put on the map.", marker);
                     continue;
                 }
 
@@ -125,10 +134,19 @@ namespace CrimsonDraft.Navigation.Editor
                 })
                 .ToList();
 
-            var rooms = MapLayoutMerge.Upsert(config.Map.Rooms, baked);
-            config.Map.EditorSetBakedContent(rooms, doors.OrderBy(d => d.DoorId, System.StringComparer.Ordinal).ToList());
+            var rooms       = MapLayoutMerge.Upsert(config.Map.Rooms, baked);
+            var mergedDoors = MapLayoutMerge.UpsertDoors(config.Map.Doors, doors.OrderBy(d => d.DoorId, System.StringComparer.Ordinal).ToList());
+            config.Map.EditorSetBakedContent(rooms, mergedDoors);
             EditorUtility.SetDirty(config.Map);
             AssetDatabase.SaveAssets();
+        }
+
+        private static string PathOf(Component component)
+        {
+            var path = component.name;
+            for (var t = component.transform.parent; t != null; t = t.parent)
+                path = t.name + "/" + path;
+            return path;
         }
 
         // Only the config's own scene: with several decks (or a test scene) open at once, a

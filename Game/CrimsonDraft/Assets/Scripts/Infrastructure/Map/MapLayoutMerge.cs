@@ -51,6 +51,21 @@ namespace CrimsonDraft.Infrastructure.Map
             return result;
         }
 
+        /// <summary>Folds a scene bake into a floor's door list, in bake order. A door already on
+        /// the floor keeps the layout set in the Map Editor (transform, size); a new door takes
+        /// the MapDoorMarker's placement as its starting layout. Doors no longer in the scene
+        /// are dropped.</summary>
+        public static List<MapDoorData> UpsertDoors(IReadOnlyList<MapDoorData> existing, IReadOnlyList<MapDoorData> baked)
+        {
+            var existingById = new Dictionary<string, MapDoorData>();
+            foreach (var door in existing)
+                existingById.TryAdd(door.DoorId, door);
+
+            return baked
+                .Select(door => existingById.TryGetValue(door.DoorId, out var known) ? known : door)
+                .ToList();
+        }
+
         private static IEnumerable<MapRoomData> Collapse(IReadOnlyList<MapRoomData> rooms)
             => rooms
                 .GroupBy(room => room.RoomId)
