@@ -96,6 +96,20 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void UpsertDoors_refreshesOtherSidesOfKnownDoor_keepingItsLayout()
+        {
+            var existing = MapTestData.Door("d1", new Vector2(5f, 6f), otherSides: new[] { MapTestData.Side("old", "x") });
+            var baked    = MapTestData.Door("d1", otherSides: new[] { MapTestData.Side("d1B", "kitchen") });
+
+            var result = MapLayoutMerge.UpsertDoors(new[] { existing }, new[] { baked });
+
+            Assert.AreEqual(new Vector2(5f, 6f), result[0].Transform.Offset);
+            Assert.AreEqual(1, result[0].OtherSides.Length);
+            Assert.AreEqual("d1B", result[0].OtherSides[0].DoorId);
+            Assert.AreEqual("kitchen", result[0].OtherSides[0].RoomId);
+        }
+
+        [Test]
         public void UpsertDoors_seedsNewDoorFromBake()
         {
             var baked = MapTestData.Door("d2", new Vector2(1f, 2f), 90f);

@@ -284,6 +284,9 @@ namespace CrimsonDraft.Navigation.Editor
             else
             {
                 EditorGUILayout.LabelField("Room", visual.RoomId);
+                EditorGUILayout.LabelField("Also seen from", door.OtherSides.Length == 0
+                    ? "—"
+                    : string.Join(", ", door.OtherSides.Select(side => $"{side.RoomId} ({side.DoorId})")));
                 if (DoorSprites()?.For(visual.State, visual.IsVertical) == null)
                     EditorGUILayout.HelpBox("Assign the door sprites on the MapDataSet asset.", MessageType.Warning);
             }

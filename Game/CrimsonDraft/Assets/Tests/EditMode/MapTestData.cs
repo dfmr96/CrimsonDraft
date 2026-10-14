@@ -35,13 +35,22 @@ namespace CrimsonDraft.Tests
                 CompleteSprite   = complete,
             };
 
-        public static MapDoorData Door(string id, Vector2 offset = default, float rotation = 0f, Vector2? size = null)
+        public static MapDoorData Door(
+            string id,
+            Vector2 offset = default,
+            float rotation = 0f,
+            Vector2? size = null,
+            MapDoorSide[]? otherSides = null)
             => new()
             {
-                DoorId    = id,
-                Transform = new MapElementTransform { Offset = offset, Rotation = rotation },
-                Size      = size ?? new Vector2(1f, 0.25f),
+                DoorId     = id,
+                Transform  = new MapElementTransform { Offset = offset, Rotation = rotation },
+                Size       = size ?? new Vector2(1f, 0.25f),
+                OtherSides = otherSides ?? Array.Empty<MapDoorSide>(),
             };
+
+        public static MapDoorSide Side(string doorId, string roomId)
+            => new() { DoorId = doorId, RoomId = roomId };
 
         public static MapData Map(string sceneName, params MapRoomData[] rooms)
             => Map(sceneName, rooms, Array.Empty<MapDoorData>());

@@ -15,7 +15,8 @@ namespace CrimsonDraft.Navigation.Editor
     /// <summary>Bakes each room's pickup and door ids from the open scene into its MapData,
     /// upserting by RoomId / DoorId so the layout authored in the Map Editor is never touched.
     /// Runs only from the Map Editor's Bake button: never on scene save or entering Play, so a
-    /// MapData changes only when someone asks for it.</summary>
+    /// MapData changes only when someone asks for it. Each door excluded from the map is paired
+    /// with the drawn half of the same doorway (MapDoorPairing) and stored as its other side.</summary>
     public static class MapBaker
     {
         public static void BakeAllInOpenScenes()
@@ -67,12 +68,18 @@ namespace CrimsonDraft.Navigation.Editor
                 doorIds.TryAdd(controller.RoomId, new SortedSet<string>());
             }
 
-            var doors   = new List<MapDoorData>(markers.Count);
-            var ownerOf = new Dictionary<string, MapDoorMarker>();
+            var doors     = new List<MapDoorData>(markers.Count);
+            var ownerOf   = new Dictionary<string, MapDoorMarker>();
+            var drawnEnds = new List<MapDoorEnd>();
+            var farEnds   = new List<MapDoorEnd>();
             foreach (var marker in markers)
             {
                 if (marker.ExcludeFromMap)
+                {
+                    if (EndOf(marker) is { } farEnd)
+                        farEnds.Add(farEnd);
                     continue;
+                }
 
                 var doorId = marker.ResolveDoorId();
                 if (string.IsNullOrWhiteSpace(doorId))
@@ -105,7 +112,15 @@ namespace CrimsonDraft.Navigation.Editor
                 var room = marker.GetComponentInParent<RoomController>();
                 if (room != null && doorIds.TryGetValue(room.RoomId, out var set))
                     set.Add(doorId!);
+
+                if (EndOf(marker) is { } drawnEnd)
+                    drawnEnds.Add(drawnEnd);
             }
+
+            var pairing = MapDoorPairing.Pair(drawnEnds, farEnds);
+            foreach (var door in doors)
+                door.OtherSides = pairing.OtherSidesOf(door.DoorId).ToArray();
+            ReportUnmatched(config.Map, pairing);
 
             foreach (var pickup in pickups)
             {
@@ -132,6 +147,33 @@ namespace CrimsonDraft.Navigation.Editor
             config.Map.EditorSetBakedContent(rooms, mergedDoors);
             EditorUtility.SetDirty(config.Map);
             AssetDatabase.SaveAssets();
+        }
+
+        // A door half as the pairing sees it; null when it has no id or sits outside a room.
+        private static MapDoorEnd? EndOf(MapDoorMarker marker)
+        {
+            var doorId = marker.ResolveDoorId();
+            var room   = marker.GetComponentInParent<RoomController>();
+            if (string.IsNullOrWhiteSpace(doorId) || room == null || string.IsNullOrWhiteSpace(room.RoomId))
+                return null;
+
+            var destination = marker.GetComponent<RoomDoorInteractable>()?.Destination;
+            return new MapDoorEnd(doorId!, room.RoomId, destination != null ? destination.RoomId : null);
+        }
+
+        // An excluded half that finds no drawn half reveals nothing on the map, so say so.
+        private static void ReportUnmatched(MapData map, MapDoorPairing.Result pairing)
+        {
+            foreach (var end in pairing.Ambiguous)
+                Debug.LogWarning(
+                    $"[MapBaker] {map.name}: excluded door '{end.DoorId}' ({end.RoomId}) matches several drawn doors leading back from " +
+                    $"'{end.DestinationRoomId}', so it was paired with none and its room won't reveal any of them.", map);
+
+            if (pairing.Unpaired.Count > 0)
+                Debug.LogWarning(
+                    $"[MapBaker] {map.name}: these excluded doors have no drawn door leading back through the same doorway, " +
+                    "so their room won't reveal it on the map: " +
+                    string.Join(", ", pairing.Unpaired.Select(end => $"{end.DoorId} ({end.RoomId})")), map);
         }
 
         private static string PathOf(Component component)
