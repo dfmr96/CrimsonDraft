@@ -2,21 +2,22 @@
 
 using System;
 using System.Collections;
-using MessagePipe;
+using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    /// <summary>Plays the "tightening the valve" beat after this pipe-valve socket (KI_11) is
-    /// filled: once the socket's own "You inserted X" dialogue closes, the handle gives a small
-    /// extra turn; once that finishes, the steam particle system stops emitting and a follow-up
-    /// line plays. Kept separate from ItemSocketInteractable itself -- other sockets (e.g. the
-    /// Generator's) fire onActivated immediately alongside their own dialogue, and this timing
-    /// shouldn't change for those. If the socket was already filled when this loads (restored
-    /// from a save), the end state is applied instantly instead -- the player already saw the
-    /// animation and line in the session that filled it.</summary>
+    /// <summary>Second step of the pipe-valve socket (KI_11). Filling the socket only shows the
+    /// "You inserted X" line; the player then interacts with the socket again (routed here by
+    /// ItemSocketInteractable.Interact) and is asked whether to turn the handle. On "Yes" the
+    /// dialogue closes, the handle turns, the steam particle system stops emitting and a
+    /// follow-up line plays; the socket then records the turn (ItemSocketInteractable.MarkTurned)
+    /// so it stays done across scene changes and saves. If it was already turned when this loads,
+    /// the end state is applied instantly instead -- the player already saw the animation and
+    /// line. Kept separate from ItemSocketInteractable itself -- other sockets (e.g. the
+    /// Generator's) don't have this extra step.</summary>
     public sealed class SocketValveTighten : MonoBehaviour
     {
         [SerializeField] private ItemSocketInteractable socket   = null!;
@@ -24,39 +25,60 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private ParticleSystem          steam   = null!;
         [SerializeField] private Vector3 tightenEulerDelta = new(0f, 45f, 0f);
         [SerializeField] private float   tightenDuration   = 0.6f;
+        [SerializeField] private string  turnPromptNodeName = "socket_pipe_valve_turn";
         [SerializeField] private string  adjustedNodeName  = "socket_pipe_valve_adjusted";
 
         [Inject] private IDialogueService                        dialogueService = null!;
-        [Inject] private ISubscriber<DialogueActiveChangedEvent> dialogueActiveSub = null!;
 
-        private IDisposable? subscription;
-        private bool         waitingForInsertDialogueClose;
-
-        void Awake() => this.socket.OnActivated.AddListener(OnSocketActivated);
+        private bool         started;
+        private bool         tightened; // handle already at its final rotation
 
         void Start()
         {
-            this.subscription = this.dialogueActiveSub.Subscribe(OnDialogueActiveChanged);
-
-            // Restored-complete from a previous session -- snap straight to the end state,
-            // no replay of the turn/stop/line beat.
-            if (this.socket.IsActivated)
-            {
-                this.handle.localRotation *= Quaternion.Euler(this.tightenEulerDelta);
-                this.steam.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-            }
+            this.started = true;
+            ApplyFinalState();
         }
 
-        void OnDestroy() => this.subscription?.Dispose();
-
-        private void OnSocketActivated() => this.waitingForInsertDialogueClose = true;
-
-        private void OnDialogueActiveChanged(DialogueActiveChangedEvent e)
+        // The room may be switched off and on again: the steam's play-on-awake would restart it.
+        void OnEnable()
         {
-            if (!this.waitingForInsertDialogueClose || e.IsActive) return;
+            if (this.started) ApplyFinalState();
+        }
 
-            this.waitingForInsertDialogueClose = false;
-            StartCoroutine(TightenRoutine());
+        // Restored-turned (or already turned this session) -- snap straight to the end state,
+        // no replay of the turn/stop/line beat.
+        private void ApplyFinalState()
+        {
+            if (!this.socket.IsTurned) return;
+
+            if (!this.tightened)
+            {
+                this.handle.localRotation *= Quaternion.Euler(this.tightenEulerDelta);
+                this.tightened = true;
+            }
+
+            var main = this.steam.main;
+            main.playOnAwake = false;
+            this.steam.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        // Called by the socket on the player's interaction once it is filled but not yet turned.
+        // Uses the Yes/No panel (PickupDialogueService), same as the liquid dispensers. The turn
+        // starts from onComplete, once the panel has closed and input is back in Gameplay.
+        public void Interact(InteractionContext context)
+        {
+            bool turn = false;
+
+            context.PickupDialogueService.StartDialogue(
+                this.turnPromptNodeName,
+                onComplete: () =>
+                {
+                    if (turn) StartCoroutine(TightenRoutine());
+                },
+                commands: new Dictionary<string, Action>
+                {
+                    ["turn_valve"] = () => turn = true
+                });
         }
 
         private IEnumerator TightenRoutine()
@@ -72,8 +94,10 @@ namespace CrimsonDraft.Navigation.Interactables
                 yield return null;
             }
             this.handle.localRotation = end;
+            this.tightened = true;
 
             this.steam.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            this.socket.MarkTurned();
 
             this.dialogueService.StartDialogue(this.adjustedNodeName);
         }
