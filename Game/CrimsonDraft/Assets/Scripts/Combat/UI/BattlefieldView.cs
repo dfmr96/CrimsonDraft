@@ -50,6 +50,20 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Canvas? operatorDamageCanvas;
         [SerializeField] private GameObject? operatorDamageTextPrefab;
         [SerializeField] private Vector3 enemyTargetIndicatorOffset = new(0f, 0f, 0f);
+        // When on, the indicator is a frame sized to the enemy's on-screen bounds (see
+        // FitIndicatorToEnemy) instead of a marker placed at slot position + offset.
+        [SerializeField] private bool    fitEnemyTargetIndicator     = true;
+        [SerializeField, Range(0.1f, 1.5f)] private float enemyTargetIndicatorSizeFraction = 0.7f; // of the enemy's larger world dimension; 1 = as big as the enemy
+        // Camera distance at which that world size is converted to screen size. Fixed on purpose, so the
+        // frame is the same size for every enemy regardless of how near the camera it stands.
+        [SerializeField, Min(0.1f)] private float enemyTargetIndicatorReferenceDistance = 9.5f;
+        [SerializeField, Min(0f)] private float enemyTargetIndicatorPadding = 0f; // world units added around that size
+        // Draw the indicator with the UI camera (layer below) so it gets the UI's bloom + CRT.
+        [SerializeField] private bool  routeIndicatorThroughUiCamera = true;
+        [SerializeField] private float uiIndicatorDepth = 1f; // meters in front of the UI camera
+        private const string UiIndicatorLayerName = "UICRTOnly";
+        private int uiIndicatorLayer = -1;
+        private int indicatorOriginalLayer;
         [SerializeField] private Vector3 operatorDamageOffset = new(0f, 0.9f, 0f);
         [SerializeField, Min(0.01f)] private float operatorDamageDuration = 0.6f;
         [SerializeField] private GameObject? bloodHitFxPrefab;
@@ -66,6 +80,7 @@ namespace CrimsonDraft.Combat
         [Tooltip("Radio (metros) alrededor de la cabeza en el que se reparten las salpicaduras.")]
         [SerializeField, Min(0f)] private float headExplosionBurstRadius = 0.12f;
 
+        private int indicatorSlot = -1;
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
         private readonly Dictionary<int, GameObject> enemyGoBySlot = new();
@@ -115,6 +130,7 @@ namespace CrimsonDraft.Combat
         private void Awake()
         {
             this.operatorIndicator.SetActive(false);
+            this.indicatorOriginalLayer = this.enemyTargetIndicator.layer;
             this.enemyTargetIndicator.SetActive(false);
         }
 
@@ -744,6 +760,9 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
             }
         }
 
+        public int GetEnemyCurrentHp(int slotIndex) =>
+            this.enemyStateBySlot.TryGetValue(slotIndex, out var state) ? state.CurrentHp : int.MaxValue;
+
 #if UNITY_EDITOR || DEBUG_COMBAT
         public (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex)
         {
@@ -975,12 +994,139 @@ public void PlayOperatorReload(int operatorSlotIndex)
         {
             if (slotIndex < 0 || slotIndex >= this.enemySlotTransforms.Length) return;
             this.enemyTargetIndicator.SetActive(true);
-            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position + this.enemyTargetIndicatorOffset;
+            this.indicatorSlot = slotIndex;
+            this.PlaceEnemyTargetIndicator(slotIndex);
         }
 
         public void HideEnemyTargetIndicator()
         {
+            this.indicatorSlot = -1;
             this.enemyTargetIndicator.SetActive(false);
+        }
+
+        // The enemy animates (flinch, stagger...), so keep the frame glued to its current bounds.
+        private void LateUpdate()
+        {
+            if (this.indicatorSlot >= 0 && this.enemyTargetIndicator.activeSelf)
+                this.PlaceEnemyTargetIndicator(this.indicatorSlot);
+        }
+
+        private void PlaceEnemyTargetIndicator(int slotIndex)
+        {
+            if (this.fitEnemyTargetIndicator && this.FitIndicatorToEnemy(slotIndex))
+                return;
+
+            this.SetIndicatorLayer(this.indicatorOriginalLayer);
+            this.enemyTargetIndicator.transform.position = this.enemySlotTransforms[slotIndex].position + this.enemyTargetIndicatorOffset;
+        }
+
+        // Sizes and positions the indicator so it frames the enemy as the combat camera sees it:
+        // the enemy's renderer bounds are projected to the viewport, and that rectangle is turned
+        // back into a camera-facing quad just in front of the enemy. Returns false (so the caller
+        // falls back to the plain offset) when there's no enemy, renderer or camera to measure.
+        private bool FitIndicatorToEnemy(int slotIndex)
+        {
+            if (!this.enemyGoBySlot.TryGetValue(slotIndex, out var enemyGo) || enemyGo == null)
+                return false;
+
+            var sprite = this.enemyTargetIndicator.GetComponent<SpriteRenderer>();
+            if (sprite == null)
+                return false;
+
+            // The enemy is measured with the camera that renders the world...
+            Camera? cam = this.FindCameraRendering(enemyGo.layer) ?? Camera.main;
+            if (cam == null)
+                return false;
+
+            bool hasBounds = false;
+            Bounds bounds = default;
+            foreach (var r in enemyGo.GetComponentsInChildren<Renderer>(false))
+            {
+                if (!r.enabled || r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer)
+                    continue;
+
+                if (!hasBounds) { bounds = r.bounds; hasBounds = true; }
+                else bounds.Encapsulate(r.bounds);
+            }
+            if (!hasBounds)
+                return false;
+
+            Vector3 c = bounds.center, e = bounds.extents;
+            Vector2 min = new(float.MaxValue, float.MaxValue), max = new(float.MinValue, float.MinValue);
+            float nearestDepth = float.MaxValue;
+            for (int i = 0; i < 8; i++)
+            {
+                var corner = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+                Vector3 vp = cam.WorldToViewportPoint(corner);
+                if (vp.z <= 0.01f) return false; // behind the camera -- can't frame it
+                min = Vector2.Min(min, vp);
+                max = Vector2.Max(max, vp);
+                nearestDepth = Mathf.Min(nearestDepth, vp.z);
+            }
+
+            // Centered on the enemy. The size comes from the enemy's real (world) size, measured as
+            // if it stood at a fixed reference distance from the camera -- not from how big it
+            // happens to look -- so an enemy standing closer to the camera doesn't get a bigger frame.
+            Vector2 viewCenter = (min + max) * 0.5f;
+            float worldSide = Mathf.Max(bounds.size.x, bounds.size.y) * this.enemyTargetIndicatorSizeFraction;
+            float viewSide  = worldSide / (2f * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * Mathf.Max(0.1f, this.enemyTargetIndicatorReferenceDistance));
+
+            // ...but the frame is drawn by the UI camera when there is one, so it goes through the
+            // same bloom/CRT as the rest of the UI. That camera sits elsewhere, so the same viewport
+            // rectangle is turned back into world space with *its* projection -- both cameras share
+            // the screen, so the frame lands on the enemy.
+            int uiLayer = this.uiIndicatorLayer >= 0 ? this.uiIndicatorLayer : LayerMask.NameToLayer(UiIndicatorLayerName);
+            Camera? uiCam = this.routeIndicatorThroughUiCamera && uiLayer >= 0 ? this.FindCameraRendering(uiLayer) : null;
+            Camera placeCam = uiCam != null ? uiCam : cam;
+            this.SetIndicatorLayer(uiCam != null ? uiLayer : this.indicatorOriginalLayer);
+
+            // World camera: just in front of the enemy's nearest point so its mesh doesn't clip the
+            // frame. UI camera: a fixed short distance, in front of the world-space UI canvases.
+            float depth = uiCam != null
+                ? Mathf.Max(placeCam.nearClipPlane + 0.01f, this.uiIndicatorDepth)
+                : Mathf.Max(placeCam.nearClipPlane + 0.01f, nearestDepth - 0.05f);
+            Vector3 center = placeCam.ViewportToWorldPoint(new Vector3(viewCenter.x, viewCenter.y, depth));
+            // viewSide is a fraction of the screen height; this is the screen height in world units at `depth`.
+            float screenHeightAtDepth = 2f * Mathf.Tan(placeCam.fieldOfView * 0.5f * Mathf.Deg2Rad) * depth;
+
+            var t = this.enemyTargetIndicator.transform;
+            t.SetPositionAndRotation(center, placeCam.transform.rotation);
+            t.localScale = Vector3.one; // size comes from the sliced sprite, not the transform scale
+
+            if (sprite.drawMode != SpriteDrawMode.Sliced)
+                sprite.drawMode = SpriteDrawMode.Sliced;
+
+            // Always 1:1.
+            float side = Mathf.Max(0.05f, viewSide * screenHeightAtDepth + this.enemyTargetIndicatorPadding * 2f);
+            sprite.size = new Vector2(side, side);
+            return true;
+        }
+
+        // Several scenes can be loaded at once and more than one of them may own a camera that
+        // renders this layer (e.g. Navigation has its own UI camera) -- prefer the one in this
+        // view's own scene, since that's the one that draws this scene's UI.
+        private Camera? FindCameraRendering(int layer)
+        {
+            int layerBit = 1 << layer;
+            Camera? fallback = null;
+            foreach (var cam in Camera.allCameras)
+            {
+                if (!cam.enabled || (cam.cullingMask & layerBit) == 0)
+                    continue;
+
+                if (cam.gameObject.scene == this.gameObject.scene)
+                    return cam;
+
+                fallback ??= cam;
+            }
+            return fallback;
+        }
+
+        private void SetIndicatorLayer(int layer)
+        {
+            if (this.enemyTargetIndicator.layer == layer) return;
+            foreach (var t in this.enemyTargetIndicator.GetComponentsInChildren<Transform>(true))
+                t.gameObject.layer = layer;
         }
 
 #if UNITY_EDITOR
