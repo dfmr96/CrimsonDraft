@@ -1,5 +1,6 @@
 #nullable enable
 
+using CrimsonDraft.Operators.Appearance;
 using UnityEngine;
 
 namespace CrimsonDraft.Operators
@@ -18,6 +19,8 @@ namespace CrimsonDraft.Operators
         [SerializeField] private Sprite     portrait          = null!;
         [SerializeField, Range(1, 99)]  private int speed = 50;
         [SerializeField, Min(1)]        private int maxHp  = 100;
+        // Optional look (helmet/glasses/backpack/vest variants) applied to this operator's soldier model.
+        [SerializeField] private SoldierAppearanceProfile? appearanceProfile = null;
 
         public string      OperatorId        => this.operatorId;
         public string      DisplayName       => this.displayName;
@@ -26,5 +29,6 @@ namespace CrimsonDraft.Operators
         public Sprite      Portrait          => this.portrait;
         public int         Speed             => this.speed;
         public int         MaxHp             => this.maxHp;
+        public SoldierAppearanceProfile? AppearanceProfile => this.appearanceProfile;
     }
 }
