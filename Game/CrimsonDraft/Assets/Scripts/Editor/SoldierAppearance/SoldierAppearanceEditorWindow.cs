@@ -177,6 +177,16 @@ namespace CrimsonDraft.Editor
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();
             if (EditorGUI.EndChangeCheck()) this.ApplyLook(slot);
+
+            if (SoldierAppearanceVariants.SupportsFit(slot))
+            {
+                var fit = m_Target.GetSlotFit(slot);
+                var edited = new Vector3(
+                    EditorGUILayout.Slider(new GUIContent("Depth", "+ closer to the face, - further away"), fit.x, -1f, 1f),
+                    EditorGUILayout.Slider(new GUIContent("Height", "+ up, - down"), fit.y, -1f, 1f),
+                    EditorGUILayout.Slider(new GUIContent("Size", "+ bigger, - smaller"), fit.z, -1f, 1f));
+                if (edited != fit) this.ChangeSlotFit(slot, edited);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.EndHorizontal();
@@ -307,6 +317,13 @@ namespace CrimsonDraft.Editor
             }
         }
 
+        private void ChangeSlotFit(SoldierAppearanceSlot slot, Vector3 fit)
+        {
+            this.RecordUndo(slot, "Change Soldier Fit");
+            m_Target.SetSlotFit(slot, fit);
+            this.MarkDirty();
+        }
+
         private void ApplyLook(SoldierAppearanceSlot slot)
         {
             var look = m_Looks[(int)slot];
@@ -345,6 +362,9 @@ namespace CrimsonDraft.Editor
             for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)
                 this.ChangeBodyShape((SoldierBodyShape)i, 0f);
             this.ChangeHeight(1f);
+            for (int i = 0; i < SoldierAppearanceVariants.SlotCount; i++)
+                if (SoldierAppearanceVariants.SupportsFit((SoldierAppearanceSlot)i))
+                    this.ChangeSlotFit((SoldierAppearanceSlot)i, Vector3.zero);
         }
 
         private void LoadProfile(SoldierAppearanceProfile profile)
@@ -353,6 +373,8 @@ namespace CrimsonDraft.Editor
             {
                 var data = profile.Get((SoldierAppearanceSlot)i);
                 m_Looks[i] = new SlotLook { MaterialOverride = data.materialOverride, OverrideTint = data.overrideTint, Tint = data.tint };
+                if (SoldierAppearanceVariants.SupportsFit(data.slot))
+                    this.ChangeSlotFit(data.slot, data.fit);
                 this.ChangeVariant(data.slot, data.variant);
                 this.ApplyLook(data.slot);
             }
@@ -372,6 +394,7 @@ namespace CrimsonDraft.Editor
                 data.materialOverride = m_Looks[i].MaterialOverride;
                 data.overrideTint = m_Looks[i].OverrideTint;
                 data.tint = m_Looks[i].Tint;
+                data.fit = m_Target.GetSlotFit(data.slot);
             }
             profile.Camo = m_Target.Camo;
             for (int i = 0; i < SoldierAppearanceVariants.BodyShapeCount; i++)

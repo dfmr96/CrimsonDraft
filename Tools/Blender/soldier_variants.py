@@ -56,7 +56,7 @@ ALLOWED_MATERIALS = ("Soldier1", "Soldier2", "Mat_Gear")
 LEGACY = {"Helmet": "Helmet_Default", "Goggle": "Glasses_Default", "Pack": "Backpack_Default", "Vest": "Vest_Default"}
 # Bones each slot may be weighted to (keeps a hood from following an arm, a belt from following a thigh).
 SLOT_BONES = {
-    "Helmet": ("head", "neck"),
+    "Helmet": ("head", "neck", "spine.003"),  # spine.003 for hood drapes on the shoulders
     "Glasses": ("head",),
     "Backpack": ("spine.001", "spine.002", "spine.003"),
     "Vest": ("Hip", "spine.001", "spine.002", "spine.003"),
@@ -367,23 +367,7 @@ def make_blockouts():
     pack = bpy.data.objects["Backpack_Default"]
     vest = bpy.data.objects["Vest_Default"]
 
-    # --- Helmet_Hood: shell around the head with a face opening, draped onto the neck.
-    if "Helmet_Hood" not in existing:
-        bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=7, radius=1.0)
-        for v in bm.verts:
-            v.co = Vector((v.co.x * hr.x * 1.22, v.co.y * hr.y * 1.22, v.co.z * hr.z * 1.12)) + hc + Vector((0, 0.008, 0.012))
-        face = [f for f in bm.faces
-                if f.calc_center_median().y < hc.y - 0.35 * hr.y
-                and hc.z - 0.75 * hr.z < f.calc_center_median().z < hc.z + 0.5 * hr.z]
-        bmesh.ops.delete(bm, geom=face, context="FACES")
-        for v in bm.verts:  # drape the lower back down to the neck/shoulders
-            if v.co.z < hc.z - 0.4 * hr.z and v.co.y > hc.y - 0.2 * hr.y:
-                v.co.z -= 0.07
-                v.co.y += 0.015
-        bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.008)
-        hood = _new_mesh_object("Helmet_Hood", bm, helmet.data.materials[0], helmet)
-        transfer_weights(hood, ref, "Helmet")
+    # Helmet_Hood / Helmet_Parka: built in soldier_specops.py on the real head surface (no clipping).
 
     # --- Glasses: thinner shades (scaled default) + a wrap-around visor band.
     if "Glasses_Shades" not in existing:
@@ -500,7 +484,10 @@ def validate():
         if not (o.matrix_basis == Matrix.Identity(4) and o.matrix_parent_inverse == Matrix.Identity(4)):
             errors.append("%s has unapplied transforms (location/rotation must be 0, scale 1)." % tag)
         keys = set(o.data.shape_keys.key_blocks.keys()) if o.data.shape_keys else set()
+        import soldier_bodyshapes
         expected = {"Basis", *body_shape_names()}
+        if slot_of(o.name) in soldier_bodyshapes.FIT_SLOTS:
+            expected |= set(soldier_bodyshapes.FIT_SHAPES)
         if keys and keys != expected:
             errors.append("%s shape keys %s must be exactly %s (run the bodyshapes command)." % (tag, sorted(keys), sorted(expected)))
         if not keys and body_has_shapes():

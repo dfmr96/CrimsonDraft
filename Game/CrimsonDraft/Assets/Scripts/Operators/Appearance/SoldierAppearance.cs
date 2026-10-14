@@ -70,7 +70,16 @@ namespace CrimsonDraft.Operators.Appearance
         // The prefab's own scale (e.g. Ethan_Combat_FBX is 0.95): height multiplies it, never replaces it.
         [SerializeField, HideInInspector] private Vector3  baseScale = Vector3.zero;
 
+        [Header("Fit (Glasses / Mask)")]
+        [Tooltip("Per slot: x = depth (+ toward the face), y = height, z = size; each -1..1. Drives the Fit_* blend shapes.")]
+        [SerializeField] private Vector3[]                 slotFit = Array.Empty<Vector3>();
+
         private static readonly string[] BodyShapeNames = Enum.GetNames(typeof(SoldierBodyShape));
+        // Fit axis -> (blend shape for positive values, blend shape for negative values).
+        private static readonly (string positive, string negative)[] FitShapes =
+        {
+            ("Fit_In", "Fit_Out"), ("Fit_Up", "Fit_Down"), ("Fit_Grow", "Fit_Shrink"),
+        };
 
         public SoldierAppearanceProfile? Profile  => this.profile;
         public IReadOnlyList<VariantEntry> Variants => this.variants;
@@ -111,6 +120,52 @@ namespace CrimsonDraft.Operators.Appearance
                 this.bodyShapeWeights[i] = Mathf.Clamp(appearance.GetBodyShape((SoldierBodyShape)i), 0f, 100f);
             this.ApplyBodyShapes();
             this.SetHeight(appearance.Height);
+            for (int i = 0; i < SoldierAppearanceVariants.SlotCount; i++)
+                this.SetSlotFit((SoldierAppearanceSlot)i, appearance.Get((SoldierAppearanceSlot)i).fit);
+        }
+
+        // -------------------------------------------------------------------------------------
+        // Fit of face gear (glasses / masks)
+        // -------------------------------------------------------------------------------------
+
+        public Vector3 GetSlotFit(SoldierAppearanceSlot slot)
+        {
+            this.EnsureArrays();
+            return this.slotFit[(int)slot];
+        }
+
+        /// <summary>
+        /// Moves the slot's pieces toward/away from the face (x), up/down (y) and scales them (z), each
+        /// -1..1, through the Fit_* blend shapes (skinned meshes ignore their Transform). Glasses/Mask only.
+        /// </summary>
+        public void SetSlotFit(SoldierAppearanceSlot slot, Vector3 fit)
+        {
+            this.EnsureArrays();
+            if (!SoldierAppearanceVariants.SupportsFit(slot)) fit = Vector3.zero;
+            this.slotFit[(int)slot] = new Vector3(Mathf.Clamp(fit.x, -1f, 1f), Mathf.Clamp(fit.y, -1f, 1f), Mathf.Clamp(fit.z, -1f, 1f));
+            this.ApplySlotFit((int)slot);
+        }
+
+        private void ApplySlotFit(int slot)
+        {
+            var fit = this.slotFit[slot];
+            foreach (var entry in this.variants)
+            {
+                if ((int)entry.slot != slot || entry.renderer == null || entry.renderer.sharedMesh == null) continue;
+                var mesh = entry.renderer.sharedMesh;
+                for (int axis = 0; axis < FitShapes.Length; axis++)
+                {
+                    float value = fit[axis];
+                    SetWeight(entry.renderer, mesh.GetBlendShapeIndex(FitShapes[axis].positive), Mathf.Max(0f, value) * 100f);
+                    SetWeight(entry.renderer, mesh.GetBlendShapeIndex(FitShapes[axis].negative), Mathf.Max(0f, -value) * 100f);
+                }
+            }
+        }
+
+        private static void SetWeight(SkinnedMeshRenderer renderer, int index, float weight)
+        {
+            if (index >= 0 && !Mathf.Approximately(renderer.GetBlendShapeWeight(index), weight))
+                renderer.SetBlendShapeWeight(index, weight);
         }
 
         // -------------------------------------------------------------------------------------
@@ -364,6 +419,8 @@ namespace CrimsonDraft.Operators.Appearance
             }
             this.RefreshMaterials();
             this.ApplyBodyShapes(); // newly installed pieces get the current body type
+            for (int i = 0; i < SoldierAppearanceVariants.SlotCount; i++)
+                this.ApplySlotFit(i);
             this.EnsureBaseScale();
         }
 
@@ -414,6 +471,8 @@ namespace CrimsonDraft.Operators.Appearance
             }
             if (this.bodyShapeWeights == null || this.bodyShapeWeights.Length != SoldierAppearanceVariants.BodyShapeCount)
                 Array.Resize(ref this.bodyShapeWeights, SoldierAppearanceVariants.BodyShapeCount);
+            if (this.slotFit == null || this.slotFit.Length != n)
+                Array.Resize(ref this.slotFit, n);
         }
     }
 }

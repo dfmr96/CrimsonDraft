@@ -34,6 +34,10 @@ namespace CrimsonDraft.Operators.Appearance
         public const string None      = "None";
         public const string Default   = "Default";
 
+        /// <summary>Face gear has Fit_* blend shapes (Depth / Height / Size sliders) to sit right on the face.</summary>
+        public static bool SupportsFit(SoldierAppearanceSlot slot) =>
+            slot == SoldierAppearanceSlot.Glasses || slot == SoldierAppearanceSlot.Mask;
+
         /// <summary>What a slot shows when nothing was chosen: the original piece, or nothing for Mask.</summary>
         public static string DefaultVariant(SoldierAppearanceSlot slot) =>
             slot == SoldierAppearanceSlot.Mask ? None : Default;

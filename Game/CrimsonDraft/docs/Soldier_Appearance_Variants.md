@@ -59,6 +59,21 @@
 - **Gear_Atlas.png**: atlas nuevo de 256×256 para el equipo (goma, oculares, verde NVG, metal, filtro, shemagh, calavera, boina, polímero, tela negra, radio). Las piezas spec-ops mapean sus UVs a esos rects, así que la textura siempre encaja. El camo **no** afecta a `Mat_Gear`.
 - Piezas que siguen siendo camo-ables (usan el atlas del soldado): `Boonie`, el casco de `FastNVG`, `PlateCarrier`, `ChestRig`, más todas las originales.
 
+### Segunda tanda de accesorios y capuchas (2026-10-14)
+
+- **Capuchas sin clipping**, construidas sobre la superficie real de la cabeza (raycast) en `soldier_specops.make_more`:
+  - `Helmet_Hood` (reemplaza la anterior, que era una esfera cerrada que atravesaba la cabeza): ceñida, baja por los costados de la cara hasta el cuello y queda **abierta por debajo**.
+  - `Helmet_Parka` (referencia: retrato de inventario con capucha y máscara de gas): pico chico arriba, borde oscuro alrededor de la cara, caída abierta sobre los hombros y frente abierto hasta abajo.
+- **Accesorios nuevos (12)**: Helmet `Cap`, `PASGT` (con banda y barboquejo); Glasses `Aviator`, `Tactical` (antiparras envolventes); Backpack `Assault` (MOLLE, tapa, bolsillos laterales, correas, bedroll), `Medic` (parche bordó con cruz), `Tanks` (tanques de aire, válvulas, manguera al hombro); Vest `Webbing` (LBE: tiradores en X, cinturón, portacargadores, cantimplora, botiquín), `Tactical` (panel con MOLLE, radio con antena, cuchillo); Mask `Bandana` (camo), `Ballistic` (placa con visera de ojos y respiraderos).
+- Todos low poly (76–372 vértices) y solo con paletas existentes: rects del `Gear_Atlas` (nuevo `MEDIC` con bordó y hueso de la paleta) o rects del atlas del soldado (`SOLDIER_RECTS`: `CAMO_CLOTH`, `DARK_CLOTH`), así que las prendas de tela cambian con el camuflaje.
+- **Holgura en la pose base** (`soldier_bodyshapes.push_base`): antes de generar las formas de cuerpo, los vértices de las piezas hechas por script que quedan dentro del cuerpo se empujan afuera (3 mm). Arregló el clipping de shemagh, boina, bandolera, chest rig, gorro, etc. Las piezas originales (`*_Default`) no se tocan.
+
+### Ajuste de anteojos/máscaras y capucha hoodie (2026-10-14)
+
+- **Sliders Depth / Height / Size** (−1..1) para los slots **Glasses** y **Mask**, debajo de cada fila de la ventana. Como las piezas son SkinnedMeshRenderer (las mueve el esqueleto, no su Transform), el ajuste se hace con blend shapes de a pares, para que los pesos queden en 0..100: `Fit_In/Fit_Out` (±2 cm hacia la cara), `Fit_Up/Fit_Down` (±1.5 cm), `Fit_Grow/Fit_Shrink` (±12 % desde el centro de la pieza). Se generan en `soldier_bodyshapes.add_fit_keys` y se suman a las formas de cuerpo. API: `SoldierAppearance.SetSlotFit(slot, Vector3)` / `GetSlotFit`; el profile lo guarda por slot (`SlotSelection.fit`). Random y Reset lo ponen en 0.
+- `Glasses_Aviator` ahora apoya en la superficie real de la cara (antes quedaba ~2.5 cm adelante, sobre la cáscara de las máscaras).
+- **`Helmet_Hoodie`**: capucha de buzo, holgada y redondeada (más volumen atrás y arriba), unida al cuello como el escote de un buzo, con V chica en la garganta, borde oscuro y cordones con puntera metálica.
+
 ### Tipos de cuerpo (2026-10-14)
 
 - **Blend shapes `Female`, `Heavy`, `Muscular`, `Thin`** (pesos 0–100, combinables) en el cuerpo **y en las 27 piezas**. Los genera `Tools/Blender/soldier_bodyshapes.py` (comando `bodyshapes`, también corre en `build`):

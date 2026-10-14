@@ -22,6 +22,8 @@ namespace CrimsonDraft.Operators.Appearance
             public Material?             materialOverride = null;
             public bool                  overrideTint     = false;
             public Color                 tint             = Color.white;
+            [Tooltip("Glasses/Mask only: x = depth (+ toward the face), y = height, z = size; each -1..1.")]
+            public Vector3               fit              = Vector3.zero;
         }
 
         // Filled by EnsureSlots (one entry per SoldierAppearanceSlot).

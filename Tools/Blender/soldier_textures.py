@@ -423,6 +423,12 @@ def make_gear(size=256):
     img[s][..., :3] = np.where(band[..., None], np.array([0.78, 0.66, 0.12]), img[s][..., :3])
     img[s][..., :3] = np.where((r < 0.10)[..., None], 0.90, img[s][..., :3])
     img[s][..., :3] = np.where((r > 0.46)[..., None], img[s][..., :3] * 0.4, img[s][..., :3])
+    # Medic patch: beret maroon with a bone-white cross and a dark stitched border (existing palette).
+    s, u, v = fill("MEDIC", (0.36, 0.07, 0.09), 0.04)
+    cross = ((np.abs(u - 0.5) < 0.12) & (np.abs(v - 0.5) < 0.34)) | ((np.abs(v - 0.5) < 0.12) & (np.abs(u - 0.5) < 0.34))
+    img[s][..., :3] = np.where(cross[..., None], np.array([0.86, 0.84, 0.76]), img[s][..., :3])
+    border = (u < 0.06) | (u > 0.94) | (v < 0.06) | (v > 0.94)
+    img[s][..., :3] = np.where(border[..., None], 0.08, img[s][..., :3])
     return img
 
 

@@ -116,6 +116,36 @@ class Builder:
             verts += [g for g in solid["geom"] if isinstance(g, bmesh.types.BMVert)]
         return self._finish(verts, rect, mat, rect_fn)
 
+    def grid(self, rows, keep, rect, mat=0, outward_from=None, rect_fn=None, closed=True, pole=None):
+        """Quad grid from rows of points (each row a ring when closed). keep(face_center) filters faces;
+        an optional pole closes the first row with triangles. Single-sided, normals pointing outwards."""
+        vrows = [[self.bm.verts.new(p) for p in row] for row in rows]
+        faces = []
+        n = len(rows[0])
+        for r0, r1 in zip(vrows, vrows[1:]):
+            for i in range(n if closed else n - 1):
+                j = (i + 1) % n
+                quad = (r0[i], r0[j], r1[j], r1[i])
+                center = sum((v.co for v in quad), Vector()) / 4
+                if keep(center):
+                    faces.append(self.bm.faces.new(quad))
+        if pole is not None:
+            pv = self.bm.verts.new(pole)
+            for i in range(n if closed else n - 1):
+                j = (i + 1) % n
+                center = (pv.co + vrows[0][i].co + vrows[0][j].co) / 3
+                if keep(center):
+                    faces.append(self.bm.faces.new((pv, vrows[0][j], vrows[0][i])))
+        for f in faces:
+            f.normal_update()
+            if outward_from is not None and f.normal.dot(f.calc_center_median() - Vector(outward_from)) < 0:
+                f.normal_flip()
+        loose = [v for row in vrows for v in row if not v.link_faces]
+        if loose:
+            bmesh.ops.delete(self.bm, geom=loose, context="VERTS")
+        used = list(dict.fromkeys(v for f in faces for v in f.verts))
+        return self._finish(used, rect, mat, rect_fn)
+
     def ring(self, zs, radii_per_z, cy, rect, mat=0, arc=None, sides=12, thickness=0.006):
         """Stacked rings (list of radius-per-angle lists), optionally only an arc (a0, a1)."""
         rows = []
@@ -278,7 +308,7 @@ def make(sv, textures_dir):
             return hit + d * offset
         return hc + d * k
 
-    def strap(b, dirs, width=0.016, rect=None, steps=3):
+    def strap(b, dirs, width=0.016, rect=None, steps=3, mat=0):
         """Webbing strap: a flat single-sided ribbon following the head surface (4 verts per segment)."""
         pts = []
         for d0, d1 in zip(dirs, dirs[1:]):
@@ -289,7 +319,7 @@ def make(sv, textures_dir):
         for i, p in enumerate(pts):
             t = pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]
             sides.append((p - hc).normalized().cross(t).normalized() * (width / 2))
-        b.ribbon(pts, sides, rect or G["STRAP"], outward_from=hc)
+        b.ribbon(pts, sides, rect or G["STRAP"], mat, outward_from=hc)
 
     def plate(b, d, r, rect, segments=4):
         """Flat plate on the head surface (buckles, harness pad): one face."""
@@ -557,3 +587,309 @@ def make(sv, textures_dir):
     build("Vest_PlateCarrier", "Vest", plate_carrier, [soldier], base=bpy.data.objects["Vest_Default"].data)
     build("Vest_ChestRig", "Vest", chest_rig, [soldier])
     build("Vest_Bandolier", "Vest", bandolier, [gear])
+
+    make_more(sv, locals())
+
+
+def make_more(sv, ctx):
+    """Second wave: head-hugging hoods (no clipping, open at the bottom) and more gear per slot.
+    Low poly (single-sided surfaces, 6-8 sided cylinders, discs, ribbons) and only existing palettes:
+    Gear_Atlas rects or camo-able soldier atlas rects."""
+    from soldier_gear_layout import SOLDIER_RECTS
+    existing, body, gear, soldier = ctx["existing"], ctx["body"], ctx["gear"], ctx["soldier"]
+    build, on_head, strap, plate = ctx["build"], ctx["on_head"], ctx["strap"], ctx["plate"]
+    body_tree, front_y, G = ctx["body_tree"], ctx["front_y"], ctx["G"]
+    helmet_rect, vest_rect = ctx["helmet_rect"], ctx["vest_rect"]
+    hc, hr, ez = body.hc, body.hr, body.eye_z
+    S = SOLDIER_RECTS
+    bones = {b.name: b.head_local for b in sv.rig().data.bones}
+
+    def sph(theta, phi):
+        """Direction from polar angle theta (0 = up) and azimuth phi (0 = front, -Y)."""
+        return Vector((math.sin(theta) * math.sin(phi), -math.sin(theta) * math.cos(phi), math.cos(theta)))
+
+    def surf(x, z, front=True, offset=0.006):
+        """Body surface point at (x, z), seen from the front or the back (raycast along Y)."""
+        o = Vector((x, -1.0 if front else 1.0, z))
+        hit, n, _i, _d = body_tree.ray_cast(o, Vector((0, 1.0 if front else -1.0, 0)))
+        if hit is None:
+            return Vector((x, hc.y, z))
+        return hit + Vector((0, -offset if front else offset, 0))
+
+    def torso_strap(b, pts, width, rect, mat=0):
+        """Ribbon through explicit surface points (front/back of the torso)."""
+        sides = []
+        for i, p in enumerate(pts):
+            t = pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]
+            out = Vector((p.x * 0.3, p.y - hc.y, 0)).normalized() if abs(p.y - hc.y) > 1e-4 else Vector((1, 0, 0))
+            sides.append(out.cross(t).normalized() * (width / 2))
+        b.ribbon(pts, sides, rect, mat, outward_from=Vector((0, hc.y, sum(p.z for p in pts) / len(pts))))
+
+    # --- Hoods -------------------------------------------------------------------------------
+    def hood_rows(offset, theta_max, lon=12, lat=6):
+        """Rings around the head following its real surface (raycast), from the crown down to theta_max."""
+        rows = []
+        for i in range(1, lat + 1):
+            theta = math.radians(18) + (theta_max - math.radians(18)) * (i - 1) / (lat - 1)
+            rows.append([on_head(sph(theta, 2 * math.pi * j / lon), offset) for j in range(lon)])
+        return rows
+
+    def face_open(c, half_angle, z_lo, z_hi):
+        d = Vector((c.x, c.y - hc.y, 0))
+        ang = math.degrees(math.acos(max(-1.0, min(1.0, -d.y / max(d.length, 1e-6)))))
+        return ang < half_angle and z_lo < c.z < z_hi
+
+    def hood(b):  # snug hood: follows the head surface, face opening, open below the jaw
+        rows = hood_rows(0.016, math.radians(128), lat=7)  # down the sides of the face to the neck
+        top = on_head((0, 0, 1), 0.016)
+        b.grid(rows, lambda c: not face_open(c, 40, ez - 0.12, ez + 0.05), S["CAMO_CLOTH"],
+               outward_from=hc, pole=top,
+               rect_fn=lambda c: S["DARK_CLOTH"] if face_open(c, 58, ez - 0.13, ez + 0.07) else S["CAMO_CLOTH"])
+
+    def parka(b):  # like the reference: pointed crown, thick rim around the face, drape open on the shoulders
+        rows = hood_rows(0.022, math.radians(118), lon=12, lat=6)
+        # Drape: two flared rings hanging from the last head ring down onto the shoulders.
+        last = rows[-1]
+        for k, (down, flare) in enumerate(((0.07, 0.035), (0.13, 0.075))):
+            ring = []
+            for p in last:
+                out = Vector((p.x, p.y - hc.y, 0))
+                out = out.normalized() if out.length > 1e-5 else Vector((1, 0, 0))
+                ring.append(p + out * flare - Vector((0, 0, down)))
+            rows.append(ring)
+        top = on_head((0, 0.15, 1), 0.022) + Vector((0, 0.01, 0.022))  # small peak, slightly back like the drawing
+        chin_z = ez - 0.13
+
+        def keep(c):
+            if face_open(c, 50, chin_z, ez + 0.07):
+                return False
+            if c.z < chin_z and face_open(c, 32, -10, chin_z):  # the front stays open all the way down
+                return False
+            return True
+        rim = lambda c: S["DARK_CLOTH"] if (face_open(c, 68, chin_z - 0.01, ez + 0.09) or
+                                            (c.z < chin_z and face_open(c, 46, -10, chin_z))) else S["CAMO_CLOTH"]
+        b.grid(rows, keep, S["CAMO_CLOTH"], outward_from=hc, pole=top, rect_fn=rim)
+
+    if "Helmet_Hood" not in existing:
+        build("Helmet_Hood", "Helmet", hood, [soldier])
+    build("Helmet_Parka", "Helmet", parka, [soldier])
+
+    def hoodie(b):  # sweatshirt hood: loose and rounded (roomier at the back/top), joined to the collar
+        lon, lat = 12, 6
+        theta_max = math.radians(120)
+        rows = []
+        for i in range(1, lat + 1):
+            theta = math.radians(16) + (theta_max - math.radians(16)) * (i - 1) / (lat - 1)
+            row = []
+            for j in range(lon):
+                d = sph(theta, 2 * math.pi * j / lon)
+                off = 0.022 + 0.022 * max(0.0, d.y) + 0.01 * max(0.0, d.z)  # baggy at the back and crown
+                row.append(on_head(d, off))
+            rows.append(row)
+        # Collar: the hood's lower edge meets a ring around the neck base (sweatshirt neckline).
+        z_col = bones["neck"].z - 0.01
+        cy, radii = body.ring_fit(z_col - 0.02, z_col + 0.02, sides=lon, pad=0.02, max_x=0.16)
+        collar = []
+        for j in range(lon):
+            a = 2 * math.pi * j / lon - math.pi / 2  # ring angles start at +X; our phi starts at the front (-Y)
+            r = _sample_radius(radii, a)
+            collar.append(Vector((math.cos(a) * r, cy + math.sin(a) * r, z_col)))
+        rows.append(collar)
+        top = on_head((0, 0.1, 1), 0.03)
+        chin_z = ez - 0.11
+
+        def keep(c):
+            if face_open(c, 46, chin_z, ez + 0.07):
+                return False
+            return not (c.z < chin_z + 0.01 and face_open(c, 22, -10, chin_z + 0.01))  # small V at the throat
+        rim = lambda c: S["DARK_CLOTH"] if face_open(c, 62, chin_z - 0.02, ez + 0.09) else S["CAMO_CLOTH"]
+        b.grid(rows, keep, S["CAMO_CLOTH"], outward_from=hc, pole=top, rect_fn=rim)
+        for sx in (-1, 1):  # drawstrings hanging from the opening
+            p0 = on_head(sph(math.radians(112), sx * math.radians(42)), 0.026)
+            p1 = p0 + Vector((sx * 0.004, -0.004, -0.075))
+            d = p1 - p0
+            b.cylinder((p0 + p1) / 2, 0.003, d.length, d, S["DARK_CLOTH"], segments=4, caps=False)
+            b.cylinder(p1, 0.005, 0.012, d, G["METAL"], mat=1, segments=4)  # aglet
+
+    build("Helmet_Hoodie", "Helmet", hoodie, [soldier, gear])
+
+    # --- Helmets -------------------------------------------------------------------------------
+    brow_z = ez + 0.045
+
+    def cap(b):  # patrol cap: crown on the head surface + curved bill
+        rows = hood_rows(0.012, math.radians(70), lon=12, lat=4)
+        b.grid(rows, lambda c: True, S["CAMO_CLOTH"], outward_from=hc, pole=on_head((0, 0, 1), 0.012))
+        base = rows[-1]
+        front = [p for p in base if p.y < hc.y - hr.y * 0.3]
+        front.sort(key=lambda p: p.x)
+        outer = [p + Vector((p.x * 0.25, -0.065, -0.012)) for p in front]
+        b.grid([front, outer], lambda c: True, S["DARK_CLOTH"], outward_from=hc + Vector((0, 0, -1)), closed=False)
+        b.disc(on_head((0, 0, 1), 0.016), 0.008, (0, 0, 1), S["DARK_CLOTH"], segments=6)
+
+    def pasgt(b):  # PASGT "fritz": rounded shell with flared rim, cover band and chin strap
+        rows = hood_rows(0.03, math.radians(98), lon=12, lat=5)
+        last = rows[-1]
+        flare = []
+        for p in last:
+            out = Vector((p.x, p.y - hc.y, 0)).normalized()
+            dz = -0.012 if out.y > 0.3 else 0.004  # longer at the back, like the real one
+            flare.append(p + out * 0.02 + Vector((0, 0, dz)))
+        rows.append(flare)
+        b.grid(rows, lambda c: True, helmet_rect, outward_from=hc, pole=on_head((0, 0, 1), 0.03))
+        band = [Vector(p) + (Vector(p) - hc).normalized() * 0.003 for p in rows[2]]
+        band2 = [Vector(p) + (Vector(p) - hc).normalized() * 0.003 for p in rows[3]]
+        b.grid([band, band2], lambda c: True, G["STRAP"], mat=1, outward_from=hc)  # cover band
+        for sx in (-1, 1):
+            strap(b, [(sx * 0.95, 0.05, -0.05), (sx * 0.8, -0.2, -0.6), (0, -0.55, -0.85)], width=0.012, mat=1)  # chin strap
+
+    build("Helmet_Cap", "Helmet", cap, [soldier])
+    build("Helmet_PASGT", "Helmet", pasgt, [soldier, gear])
+
+    # --- Glasses -------------------------------------------------------------------------------
+    def aviator(b):
+        for sx in (-1, 1):
+            x = sx * 0.034
+            c = surf(x, ez - 0.004, True, 0.009)  # resting on the real face, not on the mask shell
+            b.cylinder(c, 0.022, 0.004, (0, -1, 0), G["METAL"], segments=8, caps=False)  # frame ring
+            verts = b.disc(c + Vector((0, -0.001, 0)), 0.021, (0, -1, 0), G["LENS"], segments=8)
+            for v in verts:  # teardrop: lower outer corner drops
+                if v.co.z < c.z:
+                    v.co.z -= 0.006 * (1 + sx * (v.co.x - c.x) / 0.021)
+            strap(b, [(sx * 0.55, -0.85, 0.02), (sx * 0.98, -0.1, 0.05), (sx * 0.9, 0.35, 0.0)], width=0.004, rect=G["METAL"])
+        b.cube(surf(0, ez + 0.008, True, 0.01), (0.028, 0.004, 0.004), G["METAL"])  # bridge over the nose
+
+    def tactical(b):  # wraparound ballistic goggles with frame and strap
+        r = (ctx["shell_r"][0] * 1.06, ctx["shell_r"][1] * 1.06, ctx["shell_r"][2])
+        b.shell(hc, r, lambda c: c.y < hc.y - 0.35 * hr.y and ez - 0.024 < c.z < ez + 0.022,
+                G["LENS"], thickness=0.0, u=16, v=24,
+                rect_fn=lambda c: G["POLYMER"] if abs(c.z - ez) > 0.015 or abs(c.x) > hr.x * 0.85 else G["LENS"])
+        strap(b, [(0.9, -0.3, 0.05), (0.7, 0.7, 0.05), (0, 1, 0.05), (-0.7, 0.7, 0.05), (-0.9, -0.3, 0.05)], width=0.014)
+
+    build("Glasses_Aviator", "Glasses", aviator, [gear])
+    build("Glasses_Tactical", "Glasses", tactical, [gear])
+
+    # --- Backpacks -----------------------------------------------------------------------------
+    plo, phi = sv.mesh_bounds(bpy.data.objects["Backpack_Default"])
+    cx, zc = (plo.x + phi.x) / 2, (plo.z + phi.z) / 2
+
+    def back_y(x, z):
+        return surf(x, z, front=False, offset=0.004).y
+
+    def assault(b):  # MOLLE assault pack: body, lid, side pouches, compression straps, bedroll
+        y0 = back_y(cx, zc)
+        b.cube((cx, y0 + 0.06, zc), (0.26, 0.12, 0.34), vest_rect)
+        b.cube((cx, y0 + 0.065, zc + 0.185), (0.27, 0.13, 0.05), vest_rect)
+        for sx in (-1, 1):
+            b.cube((cx + sx * 0.15, y0 + 0.07, zc - 0.03), (0.05, 0.09, 0.16), vest_rect)
+            b.cube((cx + sx * 0.07, y0 + 0.122, zc), (0.025, 0.006, 0.34), G["STRAP"], mat=1)
+        b.cylinder((cx, y0 + 0.07, zc - 0.21), 0.045, 0.3, (1, 0, 0), S["CAMO_CLOTH"], segments=8)
+
+    def medic(b):  # medic pack with maroon cross patch and side pouch
+        y0 = back_y(cx, zc)
+        b.cube((cx, y0 + 0.055, zc), (0.25, 0.11, 0.3), vest_rect)
+        b.disc((cx, y0 + 0.112, zc + 0.03), 0.06, (0, 1, 0), G["MEDIC"], mat=1, segments=4)
+        b.cube((cx + 0.15, y0 + 0.06, zc - 0.05), (0.05, 0.08, 0.13), vest_rect)
+        b.cube((cx, y0 + 0.06, zc + 0.17), (0.2, 0.09, 0.04), G["CLOTH_BLACK"], mat=1)
+
+    def tanks(b):  # twin air tanks on a back plate, valves and a hose over the right shoulder
+        y0 = back_y(cx, zc)
+        b.cube((cx, y0 + 0.008, zc), (0.2, 0.016, 0.34), G["CLOTH_BLACK"])
+        for sx in (-1, 1):
+            c = Vector((cx + sx * 0.055, y0 + 0.06, zc - 0.01))
+            b.cylinder(c, 0.045, 0.36, (0, 0, 1), G["FILTER"], segments=8)
+            b.cylinder(c + Vector((0, 0, 0.2)), 0.014, 0.04, (0, 0, 1), G["METAL"], segments=6, back_cap=False)
+        hose0 = Vector((cx - 0.055, y0 + 0.06, zc + 0.22))
+        hose1 = surf(-0.1, bones["neck"].z - 0.02, front=False, offset=0.02)
+        hose2 = surf(-0.06, ez - 0.1, front=True, offset=0.03)
+        for p0, p1 in ((hose0, hose1), (hose1, hose2)):
+            d = p1 - p0
+            b.cylinder((p0 + p1) / 2, 0.008, d.length, d, G["RUBBER"], segments=4, caps=False)
+
+    build("Backpack_Assault", "Backpack", assault, [soldier, gear])
+    build("Backpack_Medic", "Backpack", medic, [soldier, gear])
+    build("Backpack_Tanks", "Backpack", tanks, [gear])
+
+    # --- Vests ---------------------------------------------------------------------------------
+    z_chest, z_belt = bones["spine.003"].z - 0.02, bones["spine.001"].z - 0.05
+    z_shoulder = bones["neck"].z - 0.03
+
+    def suspenders(b, x, back_cross, rect, mat):
+        top = Vector((x, hc.y, z_shoulder + 0.005))
+        hit, _n, _i, _d = body_tree.ray_cast(Vector((x, hc.y, 2.5)), Vector((0, 0, -1)))
+        if hit is not None:
+            top = hit + Vector((0, 0, 0.006))
+        front = [surf(x * 1.0, z, True) for z in (z_shoulder - 0.04, z_chest, z_belt + 0.06)]
+        bx = -x if back_cross else x
+        back = [surf((x + bx) / 2 if z < z_chest else x, z, False) for z in (z_shoulder - 0.04, z_chest, z_belt + 0.06)]
+        torso_strap(b, front[::-1] + [top] + back, 0.035, rect, mat)
+
+    def belt(b, rect, mat):
+        cy, radii = body.ring_fit(z_belt - 0.02, z_belt + 0.02, pad=0.012)
+        b.ring([z_belt - 0.022, z_belt + 0.022], [radii, radii], cy, rect, mat, sides=12, thickness=0.0)
+        return cy, radii
+
+    def webbing(b):  # LBE: suspenders (X at the back), belt, ammo pouches, canteen, first-aid pouch
+        for sx in (-1, 1):
+            suspenders(b, sx * 0.075, True, G["STRAP"], 1)
+        cy, radii = belt(b, G["STRAP"], 1)
+        for sx in (-1, 1):
+            p = surf(sx * 0.075, z_belt + 0.01, True, 0.03)
+            b.cube(p, (0.06, 0.04, 0.07), vest_rect)
+            p = surf(sx * 0.13, z_belt - 0.005, False, 0.035)
+            if sx > 0:
+                b.cylinder(p, 0.035, 0.1, (0, 0, 1), G["FILTER"], mat=1, segments=8)  # canteen
+            else:
+                b.cube(p, (0.07, 0.05, 0.06), vest_rect)  # first aid
+
+    def vest_tactical(b):  # slim vest panel with MOLLE rows, radio on the shoulder and a knife on the chest
+        rows = []
+        zs = [z_belt + 0.03, z_chest - 0.06, z_chest + 0.04]
+        for z in zs:
+            row = [surf(x, z, True, 0.012) for x in (-0.14, -0.07, 0.0, 0.07, 0.14)]
+            rows.append(row)
+        b.grid(rows, lambda c: True, vest_rect, closed=False, outward_from=Vector((0, hc.y + 0.2, z_chest)))
+        for z in (z_chest - 0.09, z_chest - 0.04):
+            pts = [surf(x, z, True, 0.016) for x in (-0.13, -0.065, 0.0, 0.065, 0.13)]
+            sides = [Vector((0, 0, 0.006))] * len(pts)
+            b.ribbon(pts, sides, G["STRAP"], 1, outward_from=Vector((0, hc.y + 0.2, z)))
+        r = surf(0.1, z_chest + 0.03, True, 0.03)
+        b.cube(r, (0.045, 0.03, 0.08), G["RADIO"], mat=1)
+        b.cylinder(r + Vector((0.01, 0, 0.12)), 0.003, 0.16, (0, 0, 1), G["METAL"], mat=1, segments=4, caps=False)
+        k = surf(-0.07, z_chest - 0.02, True, 0.026)
+        b.cube(k, (0.025, 0.012, 0.12), G["CLOTH_BLACK"], mat=1, rot=Matrix.Rotation(math.radians(25), 4, "Y"))
+        b.cube(k + Vector((0.02, 0, 0.07)), (0.012, 0.012, 0.035), G["METAL"], mat=1, rot=Matrix.Rotation(math.radians(25), 4, "Y"))
+        for sx in (-1, 1):
+            suspenders(b, sx * 0.09, False, G["STRAP"], 1)
+
+    build("Vest_Webbing", "Vest", webbing, [soldier, gear])
+    build("Vest_Tactical", "Vest", vest_tactical, [soldier, gear])
+
+    # --- Masks ---------------------------------------------------------------------------------
+    shell_r = ctx["shell_r"]
+
+    def bandana(b):  # camo bandana over the nose, tip hanging below the chin, knot behind
+        r = (shell_r[0] * 1.02, shell_r[1] * 1.04, shell_r[2] * 1.02)
+        verts = b.shell(hc, r, lambda c: c.y < hc.y + 0.1 * hr.y and ez - 0.12 < c.z < ez - 0.025,
+                        S["CAMO_CLOTH"], thickness=0.0, u=12, v=10)
+        for v in verts:  # the front hangs lower in a point
+            if v.co.y < hc.y - 0.5 * hr.y and v.co.z < ez - 0.09:
+                v.co.z -= 0.035 * (1 - abs(v.co.x) / (hr.x * 0.8))
+        knot = on_head((0, 1, -0.45), 0.012)
+        b.cube(knot, (0.03, 0.02, 0.025), S["CAMO_CLOTH"])
+
+    def ballistic(b):  # ballistic face mask: tan plate, eye holes, mouth vents, straps
+        def keep(c):
+            for sx in (-1, 1):
+                if abs(c.x - sx * 0.036) < 0.03 and abs(c.z - (ez + 0.002)) < 0.022:
+                    return False  # eye holes
+            return c.y < hc.y - 0.3 * hr.y and abs(c.x) < hr.x * 0.9 and ez - 0.11 < c.z < ez + 0.055
+        r = (shell_r[0] * 0.97, shell_r[1] * 1.03, shell_r[2])  # hugs the face, no side wings
+        b.shell(hc, r, keep, G["POLYMER"], thickness=0.0, u=18, v=16)
+        for x in (-0.012, 0.012):
+            b.disc((x, front_y(x, ez - 0.075, r) - 0.002, ez - 0.075), 0.007, (0, -1, 0), G["GRILLE"], segments=6)
+        for sx in (-1, 1):
+            strap(b, [(sx * 0.85, -0.45, 0.25), (sx * 0.8, 0.5, 0.25), (0, 1, 0.25)], width=0.014)
+            strap(b, [(sx * 0.85, -0.45, -0.45), (sx * 0.8, 0.5, -0.35), (0, 1, -0.3)], width=0.014)
+
+    build("Mask_Bandana", "Mask", bandana, [soldier])
+    build("Mask_Ballistic", "Mask", ballistic, [gear])

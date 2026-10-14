@@ -20,6 +20,11 @@ from mathutils.bvhtree import BVHTree
 from mathutils.interpolate import poly_3d_calc
 
 BODY_SHAPES = ("Female", "Heavy", "Muscular", "Thin")
+# Fit adjustments for face gear (Unity sliders Depth / Height / Size): pairs of shape keys so the
+# weights stay in 0..100. Deltas at 100 %: depth 2 cm, height 1.5 cm, size 12 %.
+FIT_SLOTS = ("Glasses", "Mask")
+FIT_SHAPES = ("Fit_In", "Fit_Out", "Fit_Up", "Fit_Down", "Fit_Grow", "Fit_Shrink")
+FIT_DEPTH, FIT_HEIGHT, FIT_SIZE = 0.02, 0.015, 0.12
 # Global intensity per shape: the low-poly PSX silhouette needs readable differences.
 STRENGTH = {"Female": 1.4, "Heavy": 1.3, "Muscular": 1.6, "Thin": 1.6}
 
@@ -122,6 +127,31 @@ def set_shape_keys(obj, deltas):
         key.value = 0.0
 
 
+def add_fit_keys(obj):
+    """Fit shape keys for glasses/masks: move toward/away from the face (+Y is toward the face, the
+    character looks at -Y), up/down, and grow/shrink around the piece's own center."""
+    mw = obj.matrix_world
+    to_local = mw.inverted().to_3x3()
+    basis = obj.data.shape_keys.key_blocks["Basis"].data
+    pts = [mw @ basis[i].co for i in range(len(obj.data.vertices))]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    center = (lo + hi) / 2
+    moves = {
+        "Fit_In": lambda p: Vector((0, FIT_DEPTH, 0)),
+        "Fit_Out": lambda p: Vector((0, -FIT_DEPTH, 0)),
+        "Fit_Up": lambda p: Vector((0, 0, FIT_HEIGHT)),
+        "Fit_Down": lambda p: Vector((0, 0, -FIT_HEIGHT)),
+        "Fit_Grow": lambda p: (p - center) * FIT_SIZE,
+        "Fit_Shrink": lambda p: (p - center) * -FIT_SIZE,
+    }
+    for name in FIT_SHAPES:
+        key = obj.shape_key_add(name=name, from_mix=False)
+        for i, p in enumerate(pts):
+            key.data[i].co = basis[i].co + to_local @ moves[name](p)
+        key.value = 0.0
+
+
 def transfer_to(obj, body, body_delta, tree, tris, body_co):
     """Each accessory vertex follows the nearest point of the body surface, for every shape."""
     mw = obj.matrix_world
@@ -164,6 +194,24 @@ def push_out(obj, body_co, deltas, tris, margin=0.002):
                 kd[i].co += to_local @ (n * (want - dist))
 
 
+def push_base(obj, tree, margin=0.003):
+    """Base-pose clearance for script-made gear: vertices inside (or touching) the body are pushed out
+    along the body normal to margin. Original pieces (*_Default) are hand-made art and left as they are."""
+    mw = obj.matrix_world
+    to_local = mw.inverted().to_3x3()
+    moved = 0
+    for v in obj.data.vertices:
+        p = mw @ v.co
+        loc, n, _ti, _d = tree.find_nearest(p)
+        if loc is None:
+            continue
+        dist = (p - loc).dot(n)
+        if dist < margin and (p - loc).length < 0.10:
+            v.co += to_local @ (n * (margin - dist))
+            moved += 1
+    return moved
+
+
 def make(sv):
     arm, body = sv.rig(), sv.body()
     if body.data.shape_keys:
@@ -173,9 +221,22 @@ def make(sv):
     body.data.calc_loop_triangles()
     tris = [tuple(t.vertices) for t in body.data.loop_triangles]
     tree = BVHTree.FromPolygons(body_co, tris)
+    fixed = {}
     for obj in sv.variant_objects():
+        if obj.data.shape_keys:
+            obj.shape_key_clear()
+        if not obj.name.endswith("_Default"):
+            for _ in range(4):  # a few passes: concave areas (neck, armpits) may need more than one
+                n = push_base(obj, tree)
+                if not n:
+                    break
+                fixed[obj.name] = fixed.get(obj.name, 0) + n
         transfer_to(obj, body, deltas, tree, tris, body_co)
         push_out(obj, body_co, deltas, tris)
+        if obj.name.split("_", 1)[0] in FIT_SLOTS:
+            add_fit_keys(obj)
+    if fixed:
+        sv.log("Base clearance (vertices pushed out of the body): %s" % fixed)
     set_shape_keys(body, deltas)
     sv.log("Body shapes %s on the body and %d accessories." % (", ".join(BODY_SHAPES), len(sv.variant_objects())))
     return report_clipping(sv)
