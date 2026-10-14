@@ -1,9 +1,9 @@
 title: socket_music_box
 ---
 <<if $insert_result == "success">>
-You fit {$item_name} into the music box.
+You used [important]{$item_name}[/important] on the music box.
 <<elseif $insert_result == "wrong_item">>
-{$item_name} doesn't fit here.
+[important]{$item_name}[/important] doesn't fit here.
 <<else>>
 There is a keyhole in the side of the music box.
 <<endif>>

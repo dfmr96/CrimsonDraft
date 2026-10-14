@@ -19,6 +19,7 @@ namespace CrimsonDraft.UI
         private readonly PartyPanelView      partyPanel;
         private readonly IInteractionCaster  interactionCaster;
         private readonly InventorySfxData    sfx;
+        private readonly InventoryOpenCloseController openClose;
 
         private InventoryItem? combineSource;
 
@@ -30,7 +31,8 @@ namespace CrimsonDraft.UI
             ItemContextMenu     contextMenu,
             PartyPanelView      partyPanel,
             IInteractionCaster  interactionCaster,
-            InventorySfxData    sfx)
+            InventorySfxData    sfx,
+            InventoryOpenCloseController openClose)
         {
             this.inventory         = inventory;
             this.presenters        = presenters;
@@ -39,6 +41,7 @@ namespace CrimsonDraft.UI
             this.partyPanel        = partyPanel;
             this.interactionCaster = interactionCaster;
             this.sfx               = sfx;
+            this.openClose         = openClose;
         }
 
         public void Initialize()
@@ -93,10 +96,20 @@ namespace CrimsonDraft.UI
             {
                 if (!this.interactionCaster.CanUseItem(item.Data)) return;
                 this.inventory.Remove(item);
+
+                // Insert only once the close animation is done: its FinishClose switches input
+                // back to Gameplay, which would otherwise cut the socket's insert dialogue off
+                // from its dialogue input and leave it stuck on screen.
+                var data = item.Data;
+                void InsertAfterClose()
+                {
+                    this.openClose.Closed -= InsertAfterClose;
+                    bool used = this.interactionCaster.TryUseItem(data);
+                    if (used && data is SocketItemData { ReturnedOnUse: { } returned })
+                        this.inventory.TryAdd(returned);
+                }
+                this.openClose.Closed += InsertAfterClose;
                 this.cursor.RequestClose();
-                bool used = this.interactionCaster.TryUseItem(item.Data);
-                if (used && item.Data is SocketItemData { ReturnedOnUse: { } returned })
-                    this.inventory.TryAdd(returned);
                 return;
             }
 
