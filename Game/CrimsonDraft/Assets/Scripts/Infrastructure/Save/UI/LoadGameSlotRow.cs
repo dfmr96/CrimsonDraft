@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
@@ -13,8 +15,6 @@ namespace CrimsonDraft.Infrastructure.Save.UI
     [RequireComponent(typeof(RectTransform), typeof(TextMeshProUGUI), typeof(ManualSelectScale))]
     public sealed class LoadGameSlotRow : MonoBehaviour
     {
-        private const string EmptyText = "#------------------------------------";
-
         private TextMeshProUGUI label = null!;
         private ManualSelectScale scaler = null!;
 
@@ -26,8 +26,33 @@ namespace CrimsonDraft.Infrastructure.Save.UI
 
         public void Bind(SaveSlotSummary summary, bool isSelected)
         {
-            this.label.text = summary.isEmpty ? EmptyText : SaveSlotFormat.FormatOccupied(summary);
+            DOTween.Kill(this);
+            this.label.maxVisibleCharacters = int.MaxValue;
+            this.label.text = summary.isEmpty ? SaveSlotFormat.EmptyText : SaveSlotFormat.FormatOccupied(summary);
             this.scaler.SetSelected(isSelected);
+        }
+
+        private void OnDisable() => DOTween.Kill(this);
+
+        /// <summary>
+        /// Types the already-bound text out one character at a time (typewriter). Runs on unscaled
+        /// time so it still plays while the game is paused.
+        /// </summary>
+        public void Reveal(float charsPerSecond, Action? onDone)
+        {
+            DOTween.Kill(this);
+            int total = this.label.text.Length;
+            this.label.maxVisibleCharacters = 0;
+
+            DOVirtual.Int(0, total, total / Mathf.Max(1f, charsPerSecond), v => this.label.maxVisibleCharacters = v)
+                .SetEase(Ease.Linear)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    this.label.maxVisibleCharacters = int.MaxValue;
+                    onDone?.Invoke();
+                });
         }
     }
 }

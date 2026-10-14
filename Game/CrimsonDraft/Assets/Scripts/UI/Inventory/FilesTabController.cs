@@ -94,8 +94,19 @@ namespace CrimsonDraft.UI
         static string ApplyItalicMarkup(string text) =>
             ItalicTextPattern.Replace(text, "<i>$1</i>");
 
+        // Notes are read straight from the localization table, so Yarn's own [important]...[/important]
+        // markup (never parsed here) would show up literally. Same green as the DialogueMarkupPalette.
+        private static readonly System.Text.RegularExpressions.Regex ImportantTextPattern =
+            new(@"\[important\](.+?)\[/important\]",
+                System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        const string ImportantTextColor = "#4E8A62";
+
+        static string ApplyImportantMarkup(string text) =>
+            ImportantTextPattern.Replace(text, $"<color={ImportantTextColor}>$1</color>");
+
         static string ApplyTextMarkup(string text) =>
-            ApplyItalicMarkup(ApplyDamagedTextMarkup(text));
+            ApplyImportantMarkup(ApplyItalicMarkup(ApplyDamagedTextMarkup(text)));
 
         private int categoryIndex;
         private int selectedIndex;
@@ -160,6 +171,8 @@ namespace CrimsonDraft.UI
             this.isVoiceNote
                 ? this.NonBodyPageCount + 1
                 : this.currentPages.Length + (this.currentImage != null ? 2 : 0);
+
+        public NoteDatabase Database => this.database;
 
         private enum Focus { Carousel, Grid }
         private Focus focus;
@@ -677,10 +690,14 @@ namespace CrimsonDraft.UI
             // total duration.
             int maxLines = this.layoutSettings == null
                 ? int.MaxValue
-                : this.layoutSettings.MaxLinesPerPage;
+                : this.layoutSettings.ResolveMaxYarnLines(doc);
             int maxVisualLines = this.layoutSettings == null
                 ? int.MaxValue
-                : this.layoutSettings.MaxVisualLinesPerPage;
+                : this.layoutSettings.ResolveMaxRows(doc);
+
+            // The label must already carry this note's font/alignment, or the row measurement
+            // below would wrap with the previous note's settings.
+            this.detailView.SetLayout(this.layoutSettings, doc);
 
             foreach (var id in lineIds)
             {
@@ -725,8 +742,6 @@ namespace CrimsonDraft.UI
 
             if (this.layoutSettings != null && this.layoutSettings.MaxPages > 0 && pages.Count > this.layoutSettings.MaxPages)
                 Debug.LogWarning($"[Notes] '{doc.NoteId}' has {pages.Count} pages (max {this.layoutSettings.MaxPages}). Consider trimming it.", doc);
-
-            this.detailView.SetLayout(this.layoutSettings, doc.Alignment);
 
             this.currentImage = doc.PageImage;
             if (pages.Count == 0 && this.currentImage == null) return;

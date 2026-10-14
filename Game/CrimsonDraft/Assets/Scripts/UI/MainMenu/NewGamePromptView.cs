@@ -11,10 +11,12 @@ namespace CrimsonDraft.UI.MainMenu
     // reflects which scheme is currently selected via a simple tint plus a description label.
     public sealed class NewGamePromptView : MonoBehaviour
     {
-        [SerializeField] private Button           modernButton   = null!;
-        [SerializeField] private Button           classicButton  = null!;
-        [SerializeField] private Image            modernImage    = null!;
-        [SerializeField] private Image            classicImage   = null!;
+        // Optional: the scheme picker now lives in the Options > Control tab, so these can be
+        // left unassigned on the New Game station (null skips them).
+        [SerializeField] private Button?          modernButton;
+        [SerializeField] private Button?          classicButton;
+        [SerializeField] private Image?           modernImage;
+        [SerializeField] private Image?           classicImage;
         // Optional: null skips it. Left unassigned on the New Game station right now (only the
         // Pause menu's description label is wired) -- was crashing MainMenuController's whole
         // VContainer scope (SetSelectedScheme is called during Construct), which is why no UI
@@ -34,24 +36,24 @@ namespace CrimsonDraft.UI.MainMenu
         // Controls hint (Controls-Windows/Control_Scheme vs Keys) -- shows the mapping for
         // whichever device last performed an input, kept in sync live by MainMenuController.
         [Header("Controls Layout")]
-        [SerializeField] private GameObject gamepadLayout  = null!;
-        [SerializeField] private GameObject keyboardLayout = null!;
+        [SerializeField] private GameObject? gamepadLayout;
+        [SerializeField] private GameObject? keyboardLayout;
 
-        public Button ModernButton  => this.modernButton;
-        public Button ClassicButton => this.classicButton;
+        public Button? ModernButton  => this.modernButton;
+        public Button? ClassicButton => this.classicButton;
 
         public void SetSelectedScheme(bool isClassic)
         {
-            this.modernImage.color  = isClassic ? this.unselectedColor : this.selectedColor;
-            this.classicImage.color = isClassic ? this.selectedColor   : this.unselectedColor;
+            if (this.modernImage != null)  this.modernImage.color  = isClassic ? this.unselectedColor : this.selectedColor;
+            if (this.classicImage != null) this.classicImage.color = isClassic ? this.selectedColor   : this.unselectedColor;
             if (this.descriptionText != null)
                 this.descriptionText.text = isClassic ? this.classicDescription : this.modernDescription;
         }
 
         public void ShowControlsLayout(bool gamepad)
         {
-            this.gamepadLayout.SetActive(gamepad);
-            this.keyboardLayout.SetActive(!gamepad);
+            if (this.gamepadLayout != null)  this.gamepadLayout.SetActive(gamepad);
+            if (this.keyboardLayout != null) this.keyboardLayout.SetActive(!gamepad);
         }
     }
 }

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -22,15 +23,40 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public void Interact(InteractionContext context)
         {
+            // First visit to the telegraph room: explain it, then carry on into the normal flow.
+            var station = GetComponent<TelegraphSaveStation>();
+            if (station != null && !station.IntroSeen && !string.IsNullOrEmpty(station.IntroNodeName))
+            {
+                context.DialogueService.StartDialogue(
+                    station.IntroNodeName,
+                    onComplete: () =>
+                    {
+                        station.MarkIntroSeen();
+
+                        // Still inside the runner's completion callback: a follow-up on the same
+                        // runner (the missing-item message) is dropped if started from here, so
+                        // continue once the input update has finished.
+                        DeferredInputAction.Run(() => Proceed(context, station));
+                    });
+                return;
+            }
+
+            Proceed(context, station);
+        }
+
+        private void Proceed(InteractionContext context, TelegraphSaveStation? station)
+        {
             var item = this.requiredItem;
             if (item == null)
             {
-                context.SaveController.Open();
+                OpenSave(context, station, onSaved: null);
                 return;
             }
 
             if (!context.InventoryService.HasItem(item.ItemId))
             {
+                // The pickup runner is for Yes/No prompts: it shows a plain line and ends at once,
+                // without waiting for input. DialogueService waits for the player to read it.
                 context.DialogueService.StartDialogue(this.missingItemDialogue.nodeName ?? "");
                 return;
             }
@@ -43,12 +69,31 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () =>
                 {
                     if (!send) return;
-                    context.SaveController.Open(onSaved: () => context.InventoryService.TryConsumeOne(item));
+                    OpenSave(context, station, onSaved: () => context.InventoryService.TryConsumeOne(item));
                 },
                 commands: new Dictionary<string, Action>
                 {
                     [SendCommand] = () => send = true
                 });
+        }
+
+        private static void OpenSave(InteractionContext context, TelegraphSaveStation? station, Action? onSaved)
+        {
+            if (station == null)
+            {
+                context.SaveController.Open(onSaved);
+                return;
+            }
+
+            // The panel lives in the room, so the camera cut is ours; Cancel is locked on the
+            // inspection because the save panel owns it (back out of Yes/No, then the list).
+            var inspection = context.InspectionController;
+            inspection.Enter(station.Camera);
+            inspection.ExitLocked = true;
+            context.SaveController.OpenTelegraph(
+                station.View,
+                onSaved,
+                onClosed: () => DeferredInputAction.Run(inspection.ExitNow));
         }
     }
 }

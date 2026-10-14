@@ -20,6 +20,8 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         private readonly Action<int>                   onConfirmSlot;
         private readonly Func<SaveSlotSummary, bool>    canConfirm;
         private readonly Action?                        onClosed;
+        private readonly bool                           wrapCursor;
+        private readonly bool                           closeOnConfirm;
 
         private IReadOnlyList<SaveSlotSummary> slots = Array.Empty<SaveSlotSummary>();
         private int  cursorIndex;
@@ -33,13 +35,17 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             string                     confirmVerb,
             Action<int>                onConfirmSlot,
             Func<SaveSlotSummary, bool>? canConfirm = null,
-            Action?                    onClosed = null)
+            Action?                    onClosed = null,
+            bool                       wrapCursor = true,
+            bool                       closeOnConfirm = true)
         {
             this.view          = view;
             this.confirmVerb   = confirmVerb;
             this.onConfirmSlot = onConfirmSlot;
             this.canConfirm    = canConfirm ?? (_ => true);
             this.onClosed      = onClosed;
+            this.wrapCursor    = wrapCursor;
+            this.closeOnConfirm = closeOnConfirm;
         }
 
         public void Open(IReadOnlyList<SaveSlotSummary> slots)
@@ -58,7 +64,13 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             int delta = direction.y > 0.5f ? -1 : direction.y < -0.5f ? 1 : 0;
             if (delta == 0) return;
 
-            this.cursorIndex = (this.cursorIndex + delta + this.slots.Count) % this.slots.Count;
+            int next = this.cursorIndex + delta;
+            if (this.wrapCursor)
+                next = (next + this.slots.Count) % this.slots.Count;
+            else if (next < 0 || next >= this.slots.Count)
+                return;
+
+            this.cursorIndex = next;
             this.view.Show(this.slots, this.cursorIndex);
         }
 
@@ -72,7 +84,8 @@ namespace CrimsonDraft.Infrastructure.Save.UI
                 // callback may trigger a scene load (e.g. loading a save), which can destroy
                 // the view's GameObject before we'd get a chance to hide it.
                 int slot = this.slots[this.cursorIndex].slot;
-                Close();
+                if (this.closeOnConfirm) Close();
+                else this.isConfirming = false;
                 this.onConfirmSlot(slot);
                 return;
             }

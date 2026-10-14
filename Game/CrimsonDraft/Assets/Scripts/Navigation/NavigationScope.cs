@@ -167,6 +167,11 @@ namespace CrimsonDraft.Navigation
             foreach (var gate in FindObjectsByType<RemoteSocketGate>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(gate);
 
+            // Optional — only the save room has a telegraph station (needs the world registries
+            // for its one-time intro flag).
+            foreach (var station in FindObjectsByType<TelegraphSaveStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(station);
+
             // Optional — only the pipe-valve socket (Deck C) has one.
             foreach (var tighten in FindObjectsByType<SocketValveTighten>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(tighten);

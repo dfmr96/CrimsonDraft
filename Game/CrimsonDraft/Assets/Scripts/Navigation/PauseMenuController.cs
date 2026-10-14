@@ -35,9 +35,8 @@ namespace CrimsonDraft.Navigation
         // the Controls window shows, and flips it live if the player switches mid-menu.
         private bool usingGamepad;
 
-        // True while the controller itself flips toggles (restoring saved state, following the
-        // device in hand) -- those aren't player presses, so they must not play the confirm sound.
-        private bool syncingView;
+        // Row cursor inside the Controls window (0 = Classic/Modern, 1 = Keyboard/Gamepad).
+        private int controlsRow;
 
         [Preserve]
         public PauseMenuController(
@@ -79,11 +78,9 @@ namespace CrimsonDraft.Navigation
 
             // Toggles share a ToggleGroup (mutually exclusive) -- only react to the one turning
             // ON, or a single click would fire both listeners (the one switching off too).
-            this.view.ModernToggle.onValueChanged.AddListener(isOn => { if (isOn) { PlayToggleConfirm(); SetScheme(ControlScheme.Modern); } });
-            this.view.ClassicToggle.onValueChanged.AddListener(isOn => { if (isOn) { PlayToggleConfirm(); SetScheme(ControlScheme.Classic); } });
-
-            this.view.KeyboardLayoutToggle.onValueChanged.AddListener(isOn => { if (isOn) { PlayToggleConfirm(); this.view.ShowControlsLayout(false); } });
-            this.view.GamepadLayoutToggle.onValueChanged.AddListener(isOn  => { if (isOn) { PlayToggleConfirm(); this.view.ShowControlsLayout(true); } });
+            this.view.ControlsPanel.Setup(this.controlScheme, this.view.PlayCursor, this.view.PlayConfirm);
+            this.inputService.UINavigate.performed += OnNavigate;
+            this.inputService.UIConfirm.performed  += OnConfirm;
 
             InputSystem.onActionChange += OnActionChange;
 
@@ -130,7 +127,6 @@ namespace CrimsonDraft.Navigation
                 this.audioSettings.SfxVolume,
                 this.audioSettings.MusicVolume);
             this.view.SetGammaValue(this.graphicsSettings.Gamma * this.graphicsSettings.GammaSteps);
-            this.view.SetControlToggle(this.controlScheme.CurrentScheme == ControlScheme.Classic);
             this.view.ShowOptions();
             EventSystem.current.SetSelectedGameObject(this.view.FirstOptionsSelectable);
 
@@ -146,12 +142,15 @@ namespace CrimsonDraft.Navigation
             this.openWindow = window;
             this.view.ShowWindow(window);
 
-            // Always open on the mapping of the device in hand; the layout toggles only
-            // override it until the window is reopened or the player switches device.
+            // Always open on the mapping of the device in hand; the Keyboard/Gamepad row only
+            // overrides it until the window is reopened or the player switches device.
             if (window == OptionsWindow.Controls)
             {
-                SyncControlsLayout(this.usingGamepad);
-                this.view.SetSchemeDescription(this.controlScheme.CurrentScheme == ControlScheme.Classic);
+                this.controlsRow = 0;
+                this.view.ControlsPanel.SetDevice(this.usingGamepad);
+                this.view.ControlsPanel.ShowOutline(this.controlsRow);
+                EventSystem.current.SetSelectedGameObject(null); // The panel is navigated by this controller, not the EventSystem.
+                return;
             }
 
             // Brightness has to be judged on the raw scene -- drop the pause menu's CRT/PSX
@@ -166,6 +165,7 @@ namespace CrimsonDraft.Navigation
 
         private void CloseWindow()
         {
+            if (this.openWindow == OptionsWindow.Controls) this.view.ControlsPanel.HideOutlines();
             this.state = PauseState.Options;
             this.view.ShowOptions();
             if (this.openWindow == OptionsWindow.Video)
@@ -173,22 +173,32 @@ namespace CrimsonDraft.Navigation
             EventSystem.current.SetSelectedGameObject(this.view.CategoryButton(this.openWindow).gameObject);
         }
 
-        private void SyncControlsLayout(bool gamepad)
+        private bool ControlsOpen => this.state == PauseState.Window && this.openWindow == OptionsWindow.Controls;
+
+        private void OnNavigate(InputAction.CallbackContext ctx)
         {
-            this.syncingView = true;
-            this.view.ShowControlsLayout(gamepad);
-            this.syncingView = false;
+            if (!ControlsOpen) return;
+            var panel = this.view.ControlsPanel;
+            var direction = ctx.ReadValue<Vector2>();
+
+            int vertical = direction.y > 0.5f ? -1 : direction.y < -0.5f ? 1 : 0;
+            if (vertical != 0)
+            {
+                int next = Mathf.Clamp(this.controlsRow + vertical, 0, panel.ChannelCount - 1);
+                if (next == this.controlsRow) return;
+                this.controlsRow = next;
+                this.view.PlayCursor();
+                panel.ShowOutline(this.controlsRow);
+                return;
+            }
+
+            int horizontal = direction.x > 0.5f ? 1 : direction.x < -0.5f ? -1 : 0;
+            if (horizontal != 0) panel.Adjust(this.controlsRow, horizontal);
         }
 
-        private void PlayToggleConfirm()
+        private void OnConfirm(InputAction.CallbackContext _)
         {
-            if (!this.syncingView) this.view.PlayConfirm();
-        }
-
-        private void SetScheme(ControlScheme scheme)
-        {
-            this.controlScheme.SetScheme(scheme);
-            this.view.SetSchemeDescription(scheme == ControlScheme.Classic);
+            if (ControlsOpen) this.view.ControlsPanel.Confirm(this.controlsRow);
         }
 
         private void OnActionChange(object obj, InputActionChange change)
@@ -206,8 +216,8 @@ namespace CrimsonDraft.Navigation
                 return;
 
             this.usingGamepad = gamepad;
-            if (this.state == PauseState.Window && this.openWindow == OptionsWindow.Controls)
-                SyncControlsLayout(gamepad);
+            if (ControlsOpen)
+                this.view.ControlsPanel.SetDevice(gamepad);
         }
 
         private void CloseOptions()
@@ -255,6 +265,8 @@ namespace CrimsonDraft.Navigation
             this.inputService.Pause.performed    -= OnPauseToggle;
             this.inputService.UIBack.performed   -= OnBack;
             this.inputService.UICancel.performed -= OnBack;
+            this.inputService.UINavigate.performed -= OnNavigate;
+            this.inputService.UIConfirm.performed  -= OnConfirm;
             InputSystem.onActionChange -= OnActionChange;
         }
     }

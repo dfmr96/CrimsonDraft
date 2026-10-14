@@ -24,8 +24,8 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private GameObject optionsCanvas   = null!;
         [SerializeField] private GameObject loadGameCanvas  = null!;
         [SerializeField] private OptionsTabController optionsController = null!;
-        [Tooltip("Selectable enfocado al llegar al canvas de New Game -- sin esto el EventSystem se queda sin selección y Navigate/Submit/Cancel no tienen nada sobre lo que actuar.")]
-        [SerializeField] private Selectable newGameFirstSelected = null!;
+        [Tooltip("Navegación del canvas de New Game (filas de controles + botón de inicio).")]
+        [SerializeField] private NewGameNavigator newGameNavigator = null!;
         [Tooltip("Con esto se abre la lista de saves al llegar a LoadGame_canva. El Load Game de LoadGame_canva maneja su propio Confirm/Cancel (navegación anidada lista/confirmar), así que OnCancel lo ignora por completo -- ver TravelBackFromLoadGame.")]
         [SerializeField] private MainMenuController mainMenuController = null!;
 
@@ -81,7 +81,7 @@ namespace CrimsonDraft.UI.MainMenu
                 {
                     this.isTravelling = false;
                     this.newGameCanvas.SetActive(true);
-                    EventSystem.current?.SetSelectedGameObject(this.newGameFirstSelected.gameObject);
+                    this.newGameNavigator.Open();
                 });
         }
 
@@ -163,6 +163,7 @@ namespace CrimsonDraft.UI.MainMenu
             switch (from)
             {
                 case Destination.NewGame:
+                    this.newGameNavigator.Close();
                     this.newGameCanvas.SetActive(false);
                     break;
                 case Destination.Options:
