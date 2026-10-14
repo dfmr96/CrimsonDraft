@@ -94,8 +94,19 @@ namespace CrimsonDraft.UI
         static string ApplyItalicMarkup(string text) =>
             ItalicTextPattern.Replace(text, "<i>$1</i>");
 
+        // Notes are read straight from the localization table, so Yarn's own [important]...[/important]
+        // markup (never parsed here) would show up literally. Same green as the DialogueMarkupPalette.
+        private static readonly System.Text.RegularExpressions.Regex ImportantTextPattern =
+            new(@"\[important\](.+?)\[/important\]",
+                System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        const string ImportantTextColor = "#4E8A62";
+
+        static string ApplyImportantMarkup(string text) =>
+            ImportantTextPattern.Replace(text, $"<color={ImportantTextColor}>$1</color>");
+
         static string ApplyTextMarkup(string text) =>
-            ApplyItalicMarkup(ApplyDamagedTextMarkup(text));
+            ApplyImportantMarkup(ApplyItalicMarkup(ApplyDamagedTextMarkup(text)));
 
         private int categoryIndex;
         private int selectedIndex;
@@ -160,6 +171,8 @@ namespace CrimsonDraft.UI
             this.isVoiceNote
                 ? this.NonBodyPageCount + 1
                 : this.currentPages.Length + (this.currentImage != null ? 2 : 0);
+
+        public NoteDatabase Database => this.database;
 
         private enum Focus { Carousel, Grid }
         private Focus focus;
