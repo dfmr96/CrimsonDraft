@@ -57,6 +57,9 @@ namespace CrimsonDraft.Combat
             float hpRatio = this.roster.Count > op ? this.roster[op].HpRatio : 1f;
             this.aimView.SetOperatorHpRatio(hpRatio);
 
+            int targetSlot = this.context.CurrentTargetSlot;
+            this.aimView.SetTargetHp(targetSlot >= 0 ? this.battlefieldView.GetEnemyCurrentHp(targetSlot) : int.MaxValue);
+
             this.aimView.Show();
         }
 
@@ -74,6 +77,9 @@ namespace CrimsonDraft.Combat
 
             if (this.awaitingDismiss)
             {
+                if (this.aimView.TryAdvancePostShots())
+                    return;
+
                 CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }

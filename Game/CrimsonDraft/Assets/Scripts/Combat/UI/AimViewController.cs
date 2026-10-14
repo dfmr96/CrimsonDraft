@@ -54,6 +54,22 @@ namespace CrimsonDraft.Combat
         [SerializeField] private RectTransform? totalFeedbackAnchor;
         [SerializeField] private float          totalFeedbackScale = 1.6f;
 
+        // Running damage total. When assigned, per-shot numbers stay on screen until they are
+        // "absorbed" into this counter one by one (each absorb pops both the counter and the
+        // number, which then disappears) and the end-of-QTE total popup above is skipped.
+        [Header("Damage Counter")]
+        [SerializeField] private TMP_Text? damageCounterText;
+        // Parent object holding the counter's frame + text; inactive until the first absorb.
+        // Falls back to the text's own object when not assigned.
+        [SerializeField] private GameObject? damageCounterRoot;
+        [SerializeField] private Color    damageCounterColor        = Color.white;
+        [SerializeField] private Color     damageCounterLethalColor  = new Color(1f, 0.15f, 0.15f, 1f);
+        [SerializeField] private float     absorbInterval            = 0.1f;   // seconds between absorbed shots
+        [SerializeField] private float     absorbPunchScale          = 1.35f;
+        [SerializeField] private float     absorbPunchDuration       = 0.05f;  // per half of the pop; keep it snappy
+        // After the second axis is locked in the shots fire on their own after this short beat.
+        [SerializeField] private float     resolveDelayAfterConfirm  = 0.1f;
+
         // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
         // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
         // 1.0x -> 1.1x -> 1.2x -> 1.3x -> 1.4x, never a flat x2/x3/x4 jump.
@@ -110,6 +126,14 @@ namespace CrimsonDraft.Combat
         private bool                 warnedUnreadableOverlayMask;
         private GameObject?          totalFeedbackInstance;
         private bool                 warnedMissingTotalAnchor;
+        private enum CountPhase { NotStarted, Counting, Done }
+
+        private CountPhase           countPhase = CountPhase.Done;
+        private List<AbsorbableShot> pendingAbsorbables = new List<AbsorbableShot>();
+        private int                  targetCurrentHp = int.MaxValue;
+        private int                  sequenceVersion; // bumped by Show/Hide so a stale resolve sequence stops touching the UI
+        private Vector3              damageCounterBaseScale = Vector3.one;
+        private bool                 damageCounterScaleCaptured;
         private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
@@ -223,10 +247,17 @@ namespace CrimsonDraft.Combat
             this.debuffController?.SetTier(tier);
         }
 
+        public void SetTargetHp(int currentHp) =>
+            this.targetCurrentHp = currentHp;
+
         public void Show()
         {
             this.ClearTotalFeedback();
+            this.sequenceVersion++;
             this.gameObject.SetActive(true);
+            this.ResetDamageCounter();
+            this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.countPhase = CountPhase.Done;
             this.basePanelLocalPos = this.transform.localPosition;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
             this.StartVerticalOscillation();
@@ -278,11 +309,39 @@ namespace CrimsonDraft.Combat
                 // Both axes are locked in -- the debuffs have done their job, let them fade out
                 // instead of holding through the resolve/dismiss phases.
                 this.debuffController?.EndForShot();
-                return;
-            }
 
-            if (this.phase == AimPhase.WaitingResolve && !this.isResolvingSequence)
-                this.ResolvePendingShotsAsync().Forget();
+                // No extra input needed: the shots fire on their own after a short beat.
+                this.AutoResolveAsync(this.sequenceVersion).Forget();
+            }
+        }
+
+        // Called by the aiming state on an input after the shots are on screen. The first one
+        // starts the damage count (returns true = consumed); once it is running or finished the
+        // next one is not consumed and the caller closes the panel, which also skips whatever is
+        // left of the count.
+        public bool TryAdvancePostShots()
+        {
+            if (this.phase != AimPhase.WaitingDismiss || this.countPhase != CountPhase.NotStarted)
+                return false;
+
+            this.StartCountingAsync(this.sequenceVersion).Forget();
+            return true;
+        }
+
+        private async UniTaskVoid AutoResolveAsync(int version)
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.resolveDelayAfterConfirm)));
+            if (this == null || version != this.sequenceVersion) return;
+            if (this.phase != AimPhase.WaitingResolve || this.isResolvingSequence) return;
+            this.ResolvePendingShotsAsync().Forget();
+        }
+
+        private async UniTaskVoid StartCountingAsync(int version)
+        {
+            this.countPhase = CountPhase.Counting;
+            await this.AbsorbIntoCounterAsync(this.pendingAbsorbables, version);
+            if (this == null || version != this.sequenceVersion) return;
+            this.countPhase = CountPhase.Done;
         }
 
         public void Hide()
@@ -299,6 +358,10 @@ namespace CrimsonDraft.Combat
             this.horizontalTween = null;
             this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
             this.ClearTotalFeedback();
+            this.sequenceVersion++;
+            this.ResetDamageCounter();
+            this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.countPhase = CountPhase.Done;
             this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
@@ -499,22 +562,46 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
+            int version     = this.sequenceVersion;
+            bool useCounter = this.damageCounterText != null;
+            var absorbables = new List<AbsorbableShot>(this.pendingResolvedShots.Length);
+
             for (int i = 0; i < this.pendingResolvedShots.Length; i++)
             {
                 var shot = this.pendingResolvedShots[i];
+                bool isMiss = shot.Zone == ShotZone.Miss;
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
                 this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss, shot.ArmorBlocked);
+
+                if (useCounter)
+                {
+                    var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                    if (popup != null)
+                        absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss));
+                }
+                else
+                {
+                    this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                }
 
                 // Only pause between distinct bullets, not between pellets of the same shell -
                 // a shotgun blast should read as one simultaneous spread, not a slow trickle.
                 bool isLastShot     = i == this.pendingResolvedShots.Length - 1;
                 bool advancesBullet = !isLastShot && this.pendingResolvedShots[i + 1].BulletIndex != shot.BulletIndex;
                 if (advancesBullet && this.bulletSequenceDelay > 0f)
+                {
                     await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
+                    if (this == null || version != this.sequenceVersion) return;
+                }
             }
 
-            this.SpawnTotalFeedback(this.pendingResolvedShots);
+            // With a counter the numbers stay up and the count starts on the player's next input
+            // (TryAdvancePostShots); without one, fall back to the old end-of-QTE total popup.
+            this.pendingAbsorbables = absorbables;
+            this.countPhase = useCounter ? CountPhase.NotStarted : CountPhase.Done;
+            if (!useCounter)
+                this.SpawnTotalFeedback(this.pendingResolvedShots);
+
             this.OnShotsResolved?.Invoke(this.pendingResolvedShots);
             this.isResolvingSequence = false;
             this.phase = AimPhase.WaitingDismiss;
@@ -581,6 +668,142 @@ namespace CrimsonDraft.Combat
             this.totalFeedbackInstance = null;
         }
 
+        private readonly struct AbsorbableShot
+        {
+            public readonly GameObject Go;
+            public readonly TMP_Text   Text;
+            public readonly int        Damage;
+            public readonly bool       IsMiss;
+
+            public AbsorbableShot(GameObject go, TMP_Text text, int damage, bool isMiss)
+            {
+                this.Go = go; this.Text = text; this.Damage = damage; this.IsMiss = isMiss;
+            }
+        }
+
+        // Instantiates the shot's number under aimSpace at the impact point and returns it, or
+        // null when the prefab is missing. Doesn't schedule any fade -- callers own its lifetime.
+        private (GameObject Go, TMP_Text Text)? CreateFeedbackText(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked)
+        {
+            if (this.feedbackTextPrefab == null)
+            {
+                Debug.LogWarning("[AimView] Feedback text prefab is not assigned.");
+                return null;
+            }
+
+            var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+
+            var rt = go.transform as RectTransform;
+            if (rt != null)
+            {
+                Vector2 localShot = this.DenormalizeShotLocal(normalizedPos);
+                rt.localPosition = new Vector3(
+                    Mathf.Round(localShot.x + this.feedbackOffset.x),
+                    Mathf.Round(localShot.y + this.feedbackOffset.y),
+                    0f);
+            }
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text == null)
+            {
+                Debug.LogWarning("[AimView] Feedback prefab must include TMP_Text.");
+                Destroy(go);
+                return null;
+            }
+
+            text.text = isMiss ? "MISS" : $"-{damage}";
+            var baseColor = isMiss ? this.missFeedbackColor
+                : armorBlocked ? this.armorBlockedFeedbackColor
+                : this.hitFeedbackColor;
+            baseColor.a = 1f;
+            text.color = baseColor;
+            return (go, text);
+        }
+
+        // Feeds the shots' numbers into the counter in order, one every absorbInterval: the counter
+        // shows the running sum and pops, and the shot's own number pops while fading away. The
+        // hit markers are untouched. Turns the counter red when the final sum would kill the target.
+        private async UniTask AbsorbIntoCounterAsync(List<AbsorbableShot> shots, int version)
+        {
+            var counter = this.damageCounterText;
+            if (counter == null) return;
+
+            int running = 0;
+            bool anyDamage = false;
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var shot = shots[i];
+                if (shot.Go != null)
+                    this.AbsorbPopup(shot.Go, shot.Text);
+
+                if (!shot.IsMiss)
+                {
+                    running += shot.Damage;
+                    anyDamage = true;
+                    this.GetDamageCounterRoot()?.SetActive(true);
+                    counter.color   = this.damageCounterColor;
+                    counter.text    = running.ToString();
+                    this.PunchDamageCounter();
+                }
+
+                await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.absorbInterval)));
+                if (this == null || version != this.sequenceVersion) return;
+            }
+
+            if (anyDamage && running >= this.targetCurrentHp)
+            {
+                counter.color = this.damageCounterLethalColor;
+                this.PunchDamageCounter();
+            }
+        }
+
+        // A quick "pop": the number bursts up in size and vanishes at the peak, then is destroyed.
+        private void AbsorbPopup(GameObject go, TMP_Text text)
+        {
+            go.transform.DOKill();
+            text.DOKill();
+            float duration = Mathf.Max(0.01f, this.absorbPunchDuration * 1.5f);
+            go.transform.DOScale(go.transform.localScale * this.absorbPunchScale, duration).SetEase(Ease.OutBack);
+            text.DOFade(0f, duration).SetDelay(duration * 0.35f).SetEase(Ease.InQuad).OnComplete(() =>
+            {
+                if (go != null) Destroy(go);
+            });
+        }
+
+        // Visual only: swell and settle back to the resting scale.
+        private void PunchDamageCounter()
+        {
+            if (this.damageCounterText == null) return;
+            var rt = this.damageCounterText.rectTransform;
+            rt.DOKill();
+            rt.localScale = this.damageCounterBaseScale;
+            rt.DOScale(this.damageCounterBaseScale * this.absorbPunchScale, Mathf.Max(0.01f, this.absorbPunchDuration))
+                .SetLoops(2, LoopType.Yoyo)
+                .SetEase(Ease.OutQuad);
+        }
+
+        private void ResetDamageCounter()
+        {
+            if (this.damageCounterText == null) return;
+            var rt = this.damageCounterText.rectTransform;
+            if (!this.damageCounterScaleCaptured)
+            {
+                this.damageCounterBaseScale    = rt.localScale;
+                this.damageCounterScaleCaptured = true;
+            }
+
+            rt.DOKill();
+            rt.localScale = this.damageCounterBaseScale;
+            this.damageCounterText.color   = this.damageCounterColor;
+            this.damageCounterText.text    = string.Empty;
+            this.GetDamageCounterRoot()?.SetActive(false);
+        }
+
+        private GameObject? GetDamageCounterRoot() =>
+            this.damageCounterRoot != null
+                ? this.damageCounterRoot
+                : this.damageCounterText != null ? this.damageCounterText.gameObject : null;
+
         private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked = false)
         {
             if (this.feedbackTextPrefab == null)
@@ -601,34 +824,12 @@ namespace CrimsonDraft.Combat
                 }
             }
 
-            var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+            var created = this.CreateFeedbackText(normalizedPos, damage, isMiss, armorBlocked);
+            if (created == null) return;
+
+            var go   = created.Value.Go;
+            var text = created.Value.Text;
             this.activeFeedback.Add(go);
-
-            var rt = go.transform as RectTransform;
-            if (rt != null)
-            {
-                Vector2 localShot = this.DenormalizeShotLocal(normalizedPos);
-                rt.localPosition = new Vector3(
-                    Mathf.Round(localShot.x + this.feedbackOffset.x),
-                    Mathf.Round(localShot.y + this.feedbackOffset.y),
-                    0f);
-            }
-
-            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
-            if (text == null)
-            {
-                Debug.LogWarning("[AimView] Feedback prefab must include TMP_Text.");
-                this.activeFeedback.Remove(go);
-                Destroy(go);
-                return;
-            }
-
-            text.text = isMiss ? "MISS" : $"-{damage}";
-            var baseColor = isMiss ? this.missFeedbackColor
-                : armorBlocked ? this.armorBlockedFeedbackColor
-                : this.hitFeedbackColor;
-            baseColor.a = 1f;
-            text.color = baseColor;
 
             float hold = Mathf.Max(0f, this.feedbackHoldDuration);
             float fade = Mathf.Max(0f, this.feedbackDuration);
