@@ -18,6 +18,7 @@ namespace CrimsonDraft.Inventory
         bool TryAdd(ItemData data, ContainerId target, int quantity = 0);
         void Remove(InventoryItem item);
         bool TryRemove(string itemId);
+        bool TryReplace(string itemId, ItemData replacement);
         bool HasItem(string itemId);
         bool TryConsumeOne(ItemData data);
         bool IsCarried(ContainerId id);

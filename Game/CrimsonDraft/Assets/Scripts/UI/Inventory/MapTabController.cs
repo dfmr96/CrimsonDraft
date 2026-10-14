@@ -24,6 +24,7 @@ namespace CrimsonDraft.UI
         [Inject] private MapDataSet        mapSet           = null!;
         [Inject] private IRoomOrchestrator roomOrchestrator = null!;
         [Inject] private RoomStateRegistry rooms            = null!;
+        [Inject] private DoorStateRegistry doors            = null!;
         [Inject] private PickupRegistry    pickups          = null!;
         [Inject] private KnownMapsRegistry knownMaps        = null!;
 
@@ -76,8 +77,11 @@ namespace CrimsonDraft.UI
                 ? this.roomOrchestrator.CurrentRoom?.RoomId
                 : null;
 
-            var visuals = MapRoomVisuals.Resolve(map, this.rooms, this.pickups, this.knownMaps, currentRoomId);
-            this.mapScreenView.Show(visuals, MapLayoutBounds.Floor(map), map.DisplayName, this.floors!.HasUp, this.floors.HasDown);
+            var visuals   = MapRoomVisuals.Resolve(map, this.rooms, this.pickups, this.knownMaps, currentRoomId);
+            var doorViews = MapDoorVisuals.Resolve(map, this.rooms, this.doors, this.knownMaps);
+            this.mapScreenView.Show(
+                visuals, doorViews, this.mapSet.DoorSprites,
+                MapLayoutBounds.Floor(map), map.DisplayName, this.floors!.HasUp, this.floors.HasDown);
         }
     }
 }

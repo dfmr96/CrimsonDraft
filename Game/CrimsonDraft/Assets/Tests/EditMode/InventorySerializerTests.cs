@@ -225,11 +225,13 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Restore_skipsUnknownIds_andClearsPreviousState()
+        public void Restore_skipsUnknownIds_logsThem_andClearsPreviousState()
         {
             var data = Consumable(id: "med");
             var s    = Service();
             s.TryAdd(Consumable(id: "old"));
+
+            LogAssert.Expect(LogType.Error, new Regex("ghost"));
             s.Restore(new[] { Entry("ghost", 0, 0, 0), Entry("med", 0, 1, 0) }, Database(data));
 
             Assert.IsFalse(s.HasItem("old"));

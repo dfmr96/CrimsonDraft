@@ -4,7 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Map;
+using CrimsonDraft.Navigation.Map;
+using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Editor
 {
@@ -12,29 +15,41 @@ namespace CrimsonDraft.Navigation.Editor
     /// bottom-left corner in map pixels; dragging snaps to the grid and, with Magnet on, to
     /// nearby room edges (Alt inverts the magnet while dragging). Edits the MapData asset only
     /// (never the scene): sprites, pixel position and 90° rotation. Rooms and their pickup/door
-    /// ids come from the scene bake (MapBaker); rooms no longer in the scene show as orphans.</summary>
+    /// ids come from the scene bake (MapBaker, run with the Bake button); rooms no longer in the
+    /// scene show as orphans.
+    /// Doors draw on top of their room with the MapDataSet sprite for the state picked in the
+    /// toolbar (grey/red/blue); a door's position is its sprite's bottom-left corner, stored
+    /// relative to its room.</summary>
     public sealed class MapEditorWindow : EditorWindow
     {
         private const string SnapPrefKey   = "CrimsonDraft.MapEditor.Snap";
         private const string MagnetPrefKey = "CrimsonDraft.MapEditor.Magnet";
+        private const string DoorsPrefKey  = "CrimsonDraft.MapEditor.Doors";
         private const float  ListWidth   = 280f;
         private const float  MinZoom     = 0.1f;
         private const float  MaxZoom     = 8f;
         private static readonly int[]    SnapOptions = { 1, 4, 8 };
         private static readonly string[] SnapLabels  = { "Snap 1px", "Snap 4px", "Snap 8px" };
+        private static readonly Vector2  MissingDoorSpriteSize = new(4f, 4f);
+        private static readonly DoorMapState[] DoorPreviewStates = { DoorMapState.Unknown, DoorMapState.Locked, DoorMapState.Unlocked };
+        private static readonly string[]       DoorPreviewLabels = { "Doors: Grey", "Doors: Red", "Doors: Blue" };
 
         [SerializeField] private MapData? map;
         [SerializeField] private string   selectedRoomId = "";
+        [SerializeField] private string   selectedDoorId = "";
         [SerializeField] private Vector2  pan;
         [SerializeField] private float    zoom = 1f;
         [SerializeField] private int      snap = 1;
         [SerializeField] private bool     previewComplete;
         [SerializeField] private bool     magnet = true;
+        [SerializeField] private bool     showDoors = true;
+        [SerializeField] private DoorMapState previewDoorState = DoorMapState.Unknown;
         [SerializeField] private Vector2  listScroll;
 
         private bool       dragging;
         private Vector2    dragStartMouse;
         private Vector2Int dragStartPosition;
+        private MapDataSet? mapDataSet;
 
         [MenuItem("Tools/CrimsonDraft/Map Editor")]
         public static void Open()
@@ -47,7 +62,69 @@ namespace CrimsonDraft.Navigation.Editor
         {
             this.snap   = EditorPrefs.GetInt(SnapPrefKey, this.snap);
             this.magnet = EditorPrefs.GetBool(MagnetPrefKey, this.magnet);
+            this.showDoors = EditorPrefs.GetBool(DoorsPrefKey, this.showDoors);
             Undo.undoRedoPerformed += Repaint;
+        }
+
+        private MapDoorSprites? DoorSprites()
+        {
+            if (this.mapDataSet == null)
+            {
+                var guid = AssetDatabase.FindAssets("t:MapDataSet").FirstOrDefault();
+                if (guid != null)
+                    this.mapDataSet = AssetDatabase.LoadAssetAtPath<MapDataSet>(AssetDatabase.GUIDToAssetPath(guid));
+            }
+
+            return this.mapDataSet != null ? this.mapDataSet.DoorSprites : null;
+        }
+
+        private void Select(string roomId, string doorId)
+        {
+            this.selectedRoomId = roomId;
+            this.selectedDoorId = doorId;
+
+            if (doorId.Length > 0)
+                SelectDoorInHierarchy(doorId);
+            else if (roomId.Length > 0)
+                SelectRoomInHierarchy(roomId);
+        }
+
+        // Same pick as MapBaker: a non-excluded marker in this floor's scene, so the selected
+        // GameObject is the one whose placement seeded the map door.
+        private void SelectDoorInHierarchy(string doorId)
+        {
+            var floorScenes = FloorScenes();
+            var marker = Object.FindObjectsByType<MapDoorMarker>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(m => !m.ExcludeFromMap && m.ResolveDoorId() == doorId && floorScenes.Contains(m.gameObject.scene));
+
+            SelectInHierarchy(marker != null ? marker.gameObject : null, doorId);
+        }
+
+        private void SelectRoomInHierarchy(string roomId)
+        {
+            var floorScenes = FloorScenes();
+            var room = Object.FindObjectsByType<RoomController>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(r => r.RoomId == roomId && floorScenes.Contains(r.gameObject.scene));
+
+            SelectInHierarchy(room != null ? room.gameObject : null, roomId);
+        }
+
+        private List<UnityEngine.SceneManagement.Scene> FloorScenes()
+            => Object.FindObjectsByType<MapSceneConfig>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(config => config.Map == this.map)
+                .Select(config => config.gameObject.scene)
+                .ToList();
+
+        private void SelectInHierarchy(GameObject? target, string id)
+        {
+            if (target == null)
+            {
+                ShowNotification(new GUIContent($"{id}: open this floor's scene to select it"));
+                return;
+            }
+
+            Selection.activeGameObject = target;
+            EditorGUIUtility.PingObject(target);
         }
 
         private void OnDisable() => Undo.undoRedoPerformed -= Repaint;
@@ -89,7 +166,7 @@ namespace CrimsonDraft.Navigation.Editor
             if (picked != index && picked >= 0)
             {
                 this.map = maps[picked];
-                this.selectedRoomId = "";
+                Select("", "");
             }
 
             this.previewComplete = GUILayout.Toggle(this.previewComplete, this.previewComplete ? "Preview: Complete" : "Preview: Incomplete", EditorStyles.toolbarButton, GUILayout.Width(130f));
@@ -106,12 +183,32 @@ namespace CrimsonDraft.Navigation.Editor
             if (GUILayout.Button("Frame", EditorStyles.toolbarButton, GUILayout.Width(50f)))
                 Frame();
 
+            if (GUILayout.Button(new GUIContent("Bake", "Re-read rooms, pickups and doors from the open scenes into their MapData and save it. The only way the scene updates a map: saving a scene or entering Play never bakes."),
+                    EditorStyles.toolbarButton, GUILayout.Width(45f)))
+                MapBaker.BakeAllInOpenScenes();
+
             EditorGUI.BeginChangeCheck();
             this.magnet = GUILayout.Toggle(this.magnet, new GUIContent("Magnet",
                 $"Snap dragged room edges to other rooms' edges within {MapAlign.DefaultTolerance}px. Hold Alt to invert while dragging."),
                 EditorStyles.toolbarButton, GUILayout.Width(60f));
             if (EditorGUI.EndChangeCheck())
                 EditorPrefs.SetBool(MagnetPrefKey, this.magnet);
+
+            EditorGUI.BeginChangeCheck();
+            this.showDoors = GUILayout.Toggle(this.showDoors, "Doors", EditorStyles.toolbarButton, GUILayout.Width(50f));
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorPrefs.SetBool(DoorsPrefKey, this.showDoors);
+                if (!this.showDoors)
+                    this.selectedDoorId = "";
+            }
+
+            using (new EditorGUI.DisabledScope(!this.showDoors))
+            {
+                int stateIndex = Mathf.Max(0, System.Array.IndexOf(DoorPreviewStates, this.previewDoorState));
+                stateIndex = EditorGUILayout.Popup(stateIndex, DoorPreviewLabels, EditorStyles.toolbarPopup, GUILayout.Width(95f));
+                this.previewDoorState = DoorPreviewStates[stateIndex];
+            }
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -142,15 +239,81 @@ namespace CrimsonDraft.Navigation.Editor
             {
                 var style = room.RoomId == this.selectedRoomId ? EditorStyles.boldLabel : EditorStyles.label;
                 if (GUILayout.Button($"{Status(room, standard)}  {room.RoomId}", style))
-                    this.selectedRoomId = room.RoomId;
+                    Select(room.RoomId, "");
             }
             EditorGUILayout.EndScrollView();
 
+            var door = target.Doors.FirstOrDefault(d => d.DoorId == this.selectedDoorId);
             var selected = target.Rooms.FirstOrDefault(r => r.RoomId == this.selectedRoomId);
-            if (selected != null)
+            if (door != null)
+                DrawDoorInspector(target, door);
+            else if (selected != null)
                 DrawRoomInspector(target, selected, standard);
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawRoomDoors(MapData target, MapRoomData room)
+        {
+            if (!this.showDoors || room.DoorIds.Length == 0)
+                return;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Doors", EditorStyles.miniBoldLabel);
+            foreach (var doorId in room.DoorIds)
+            {
+                bool baked = target.Doors.Any(d => d.DoorId == doorId);
+                using (new EditorGUI.DisabledScope(!baked))
+                {
+                    if (GUILayout.Button(baked ? doorId : $"{doorId} (not baked)", EditorStyles.miniButton))
+                        Select(room.RoomId, doorId);
+                }
+            }
+        }
+
+        private void DrawDoorInspector(MapData target, MapDoorData door)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField(door.DoorId, EditorStyles.boldLabel);
+
+            var visual = MapDoorVisuals.Preview(target, this.previewDoorState).FirstOrDefault(v => v.DoorId == door.DoorId);
+            if (visual.DoorId == null)
+            {
+                EditorGUILayout.HelpBox("No room owns this door, so it is never drawn. Put its MapDoorMarker under a RoomController and press Bake.", MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Room", visual.RoomId);
+                if (DoorSprites()?.For(visual.State, visual.IsVertical) == null)
+                    EditorGUILayout.HelpBox("Assign the door sprites on the MapDataSet asset.", MessageType.Warning);
+            }
+
+            EditorGUI.BeginChangeCheck();
+            var offset = EditorGUILayout.Vector2IntField("Offset from room", Vector2Int.RoundToInt(door.Transform.Offset));
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(target, "Move map door");
+                door.Transform.Offset = offset;
+                EditorUtility.SetDirty(target);
+            }
+
+            bool vertical = MapDoorVisual.IsVerticalRotation(door.Transform.Rotation);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(!vertical, "Horizontal", EditorStyles.miniButtonLeft) && vertical)
+                SetDoorRotation(target, door, 0f);
+            if (GUILayout.Toggle(vertical, "Vertical", EditorStyles.miniButtonRight) && !vertical)
+                SetDoorRotation(target, door, 90f);
+            EditorGUILayout.EndHorizontal();
+
+            if (GUILayout.Button("Back to room") && visual.DoorId != null)
+                Select(visual.RoomId, "");
+        }
+
+        private static void SetDoorRotation(MapData target, MapDoorData door, float rotation)
+        {
+            Undo.RecordObject(target, "Rotate map door");
+            door.Transform.Rotation = rotation;
+            EditorUtility.SetDirty(target);
         }
 
         private static string Status(MapRoomData room, (float PixelsPerUnit, FilterMode Filter)? standard)
@@ -196,11 +359,13 @@ namespace CrimsonDraft.Navigation.Editor
                 FixButton(room.CompleteSprite, standard.Value);
             }
 
+            DrawRoomDoors(target, room);
+
             if (room.IsOrphan && GUILayout.Button("Delete orphan"))
             {
                 Undo.RecordObject(target, "Delete map room");
                 target.EditorRemoveRoom(room.RoomId);
-                this.selectedRoomId = "";
+                Select("", "");
                 EditorUtility.SetDirty(target);
             }
         }
@@ -278,8 +443,24 @@ namespace CrimsonDraft.Navigation.Editor
                 DrawSprite(canvas, visual);
 
             foreach (var visual in visuals)
-                if (visual.RoomId == this.selectedRoomId)
+                if (visual.RoomId == this.selectedRoomId && this.selectedDoorId.Length == 0)
                     DrawOutline(ScreenRect(canvas, visual), Color.yellow);
+
+            if (this.showDoors)
+            {
+                foreach (var door in MapDoorVisuals.Preview(target, this.previewDoorState))
+                {
+                    var rect   = DoorScreenRect(canvas, door);
+                    var sprite = DoorSprite(door);
+                    if (sprite != null)
+                        DrawSpriteAt(sprite, rect.center, 0f);
+                    else
+                        EditorGUI.DrawRect(rect, Color.magenta);
+
+                    if (door.DoorId == this.selectedDoorId)
+                        DrawOutline(rect, Color.yellow);
+                }
+            }
 
             if (visuals.Count > 0)
             {
@@ -289,11 +470,22 @@ namespace CrimsonDraft.Navigation.Editor
             }
         }
 
-        private void DrawSprite(Rect canvas, MapRoomVisual visual)
+        private Sprite? DoorSprite(MapDoorVisual door)
+            => DoorSprites()?.For(door.State, door.IsVertical);
+
+        // Like rooms, a door's Position is its footprint's bottom-left corner (map y up).
+        private Rect DoorScreenRect(Rect canvas, MapDoorVisual door)
         {
-            var sprite  = visual.Sprite;
+            var size = DoorSprite(door)?.rect.size ?? MissingDoorSpriteSize;
+            return new Rect(ToScreen(canvas, door.Position + new Vector2(0f, size.y)), size * this.zoom);
+        }
+
+        private void DrawSprite(Rect canvas, MapRoomVisual visual)
+            => DrawSpriteAt(visual.Sprite, ScreenRect(canvas, visual).center, visual.QuarterTurns * 90f);
+
+        private void DrawSpriteAt(Sprite sprite, Vector2 centre, float rotation)
+        {
             var size    = sprite.rect.size * this.zoom;
-            var centre  = ScreenRect(canvas, visual).center;
             var rect    = new Rect(centre - size * 0.5f, size);
             var tex     = sprite.texture;
             var uv      = new Rect(
@@ -303,7 +495,7 @@ namespace CrimsonDraft.Navigation.Editor
                 sprite.textureRect.height / tex.height);
 
             var matrix = GUI.matrix;
-            GUIUtility.RotateAroundPivot(-visual.QuarterTurns * 90f, centre);
+            GUIUtility.RotateAroundPivot(-rotation, centre);
             GUI.DrawTextureWithTexCoords(rect, tex, uv);
             GUI.matrix = matrix;
         }
@@ -339,10 +531,16 @@ namespace CrimsonDraft.Navigation.Editor
                     break;
                 case EventType.MouseDown when e.button == 0:
                 {
+                    if (TryPickDoor(target, canvas, e.mousePosition))
+                    {
+                        e.Use();
+                        break;
+                    }
+
                     var hit = MapRoomVisuals.Preview(target, this.previewComplete)
                         .Reverse()
                         .FirstOrDefault(v => ScreenRect(canvas, v).Contains(e.mousePosition));
-                    this.selectedRoomId = hit.Sprite != null ? hit.RoomId : "";
+                    Select(hit.Sprite != null ? hit.RoomId : "", "");
                     var room = target.Rooms.FirstOrDefault(r => r.RoomId == this.selectedRoomId);
                     if (room != null)
                     {
@@ -350,6 +548,22 @@ namespace CrimsonDraft.Navigation.Editor
                         this.dragging          = true;
                         this.dragStartMouse    = e.mousePosition;
                         this.dragStartPosition = room.Position;
+                    }
+                    e.Use();
+                    break;
+                }
+                case EventType.MouseDrag when e.button == 0 && this.dragging && this.selectedDoorId.Length > 0:
+                {
+                    var door = target.Doors.FirstOrDefault(d => d.DoorId == this.selectedDoorId);
+                    if (door != null)
+                    {
+                        var delta = (e.mousePosition - this.dragStartMouse) / this.zoom;
+                        var moved = Snap(this.dragStartPosition + new Vector2(delta.x, -delta.y));
+                        if (moved != Vector2Int.RoundToInt(door.Transform.Offset))
+                        {
+                            door.Transform.Offset = moved;
+                            EditorUtility.SetDirty(target);
+                        }
                     }
                     e.Use();
                     break;
@@ -380,6 +594,26 @@ namespace CrimsonDraft.Navigation.Editor
 
             if (e.type == EventType.Used)
                 Repaint();
+        }
+
+        private bool TryPickDoor(MapData target, Rect canvas, Vector2 mouse)
+        {
+            if (!this.showDoors)
+                return false;
+
+            var hit = MapDoorVisuals.Preview(target, this.previewDoorState)
+                .Reverse()
+                .FirstOrDefault(v => DoorScreenRect(canvas, v).Contains(mouse));
+            var door = hit.DoorId != null ? target.Doors.FirstOrDefault(d => d.DoorId == hit.DoorId) : null;
+            if (door == null)
+                return false;
+
+            Select(hit.RoomId, door.DoorId);
+            Undo.RecordObject(target, "Move map door");
+            this.dragging          = true;
+            this.dragStartMouse    = mouse;
+            this.dragStartPosition = Vector2Int.RoundToInt(door.Transform.Offset);
+            return true;
         }
     }
 }

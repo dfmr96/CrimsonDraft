@@ -23,7 +23,8 @@ MonoBehaviour:
     Position: {x: -31, y: -56}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_188
     PickupIds: []
   - RoomId: BALCONY_A
     IncompleteSprite: {fileID: 628464479, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -31,7 +32,8 @@ MonoBehaviour:
     Position: {x: 182, y: -78}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_04
     PickupIds: []
   - RoomId: DINNER_ROOM
     IncompleteSprite: {fileID: -1633136750, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -39,7 +41,8 @@ MonoBehaviour:
     Position: {x: 33, y: 3}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_32B
     PickupIds: []
   - RoomId: HALLWAY_A
     IncompleteSprite: {fileID: -1058353178, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -47,7 +50,13 @@ MonoBehaviour:
     Position: {x: 96, y: 61}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_05
+    - DR_06
+    - DR_07B
+    - DR_08
+    - DR_28
+    - DR_71
     PickupIds: []
   - RoomId: EXTERIOR_HALLWAY
     IncompleteSprite: {fileID: -581195341, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -55,7 +64,8 @@ MonoBehaviour:
     Position: {x: 65, y: -119}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_02
     PickupIds: []
   - RoomId: SAVE_ROOM
     IncompleteSprite: {fileID: 29343131, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -95,7 +105,8 @@ MonoBehaviour:
     Position: {x: -121, y: -67}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_19B
     PickupIds: []
   - RoomId: BROKEN_SEAMAN_ROOM
     IncompleteSprite: {fileID: 1804883407, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -103,7 +114,8 @@ MonoBehaviour:
     Position: {x: -99, y: -56}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_24B
     PickupIds:
     - 9mm_Box_4
     - KI_05
@@ -152,7 +164,8 @@ MonoBehaviour:
     Position: {x: 65, y: -97}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_03
     PickupIds: []
   - RoomId: HALLWAY B1
     IncompleteSprite: {fileID: -1472420701, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -160,7 +173,11 @@ MonoBehaviour:
     Position: {x: -99, y: 61}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_101
+    - DR_130
+    - DR_241
+    - DR_30
     PickupIds:
     - CS_01_3
   - RoomId: HALLWAY B3
@@ -169,7 +186,9 @@ MonoBehaviour:
     Position: {x: -31, y: 128}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_21
+    - DR_22
     PickupIds:
     - CS_01_3
   - RoomId: HALLWAY_B2
@@ -178,7 +197,8 @@ MonoBehaviour:
     Position: {x: -31, y: -56}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_25
     PickupIds: []
   - RoomId: HALLWAY_U
     IncompleteSprite: {fileID: 1107819740, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -186,7 +206,9 @@ MonoBehaviour:
     Position: {x: -31, y: -14}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - DR_0072
+    - DR_23
     PickupIds: []
   - RoomId: INTERROGATION ROOM
     IncompleteSprite: {fileID: 1601076775, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -194,8 +216,7 @@ MonoBehaviour:
     Position: {x: -14, y: 61}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_21B
+    DoorIds: []
     PickupIds:
     - KI_27
   - RoomId: KITCHEN_FRIDGE
@@ -228,9 +249,156 @@ MonoBehaviour:
     - 9mm_Box
     - KI_09
   doors:
-  - DoorId: DR_21B
+  - DoorId: DR_0072
     Transform:
-      Offset: {x: 0, y: 0}
+      Offset: {x: 119, y: 23}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_02
+    Transform:
+      Offset: {x: 115, y: 49}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_03
+    Transform:
+      Offset: {x: 8, y: -2}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_04
+    Transform:
+      Offset: {x: -2, y: 143}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_05
+    Transform:
+      Offset: {x: 34, y: -2}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_06
+    Transform:
+      Offset: {x: 69, y: -2}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_07B
+    Transform:
+      Offset: {x: -2, y: 89}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_08
+    Transform:
+      Offset: {x: 15, y: 31}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_101
+    Transform:
+      Offset: {x: 73, y: 65}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_130
+    Transform:
+      Offset: {x: 73, y: -2}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_188
+    Transform:
+      Offset: {x: 119, y: 5}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_19B
+    Transform:
+      Offset: {x: 20, y: 133}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_21
+    Transform:
+      Offset: {x: 15, y: 20}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_22
+    Transform:
+      Offset: {x: -2, y: 21}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_23
+    Transform:
+      Offset: {x: -2, y: 23}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_241
+    Transform:
+      Offset: {x: 83, y: 20}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_24B
+    Transform:
+      Offset: {x: 66, y: 4}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_25
+    Transform:
+      Offset: {x: 62, y: 5}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_28
+    Transform:
+      Offset: {x: -2, y: 54}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_30
+    Transform:
+      Offset: {x: 83, y: 53}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_32B
+    Transform:
+      Offset: {x: 12, y: -2}
+      Rotation: 0
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 1, y: 0.25}
+  - DoorId: DR_71
+    Transform:
+      Offset: {x: 5, y: -2}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0

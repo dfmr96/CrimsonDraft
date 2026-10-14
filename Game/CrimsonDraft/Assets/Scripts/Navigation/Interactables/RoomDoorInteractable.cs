@@ -59,6 +59,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.mechanismLocked = false;
             this.registry?.MarkUnlocked(CrossUnlockKey);
+            this.registry?.MarkUnlocked(this.doorId);
         }
 
         // Doors have their own opening/transition animation — the player shouldn't also play
@@ -91,6 +92,7 @@ namespace CrimsonDraft.Navigation.Interactables
             {
                 if (this.mechanismLocked)
                 {
+                    this.registry.MarkLocked(this.doorId);
                     context.DialogueService.StartDialogue(this.mechanismLockedDialogue.nodeName ?? "");
                     return;
                 }

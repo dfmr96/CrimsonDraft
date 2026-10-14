@@ -82,6 +82,52 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void UpsertDoors_keepsEditorLayoutOfKnownDoor()
+        {
+            var existing = MapTestData.Door("d1", new Vector2(5f, 6f), 90f, new Vector2(2f, 3f));
+            var baked    = MapTestData.Door("d1", new Vector2(1f, 1f), 0f);
+
+            var result = MapLayoutMerge.UpsertDoors(new[] { existing }, new[] { baked });
+
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(new Vector2(5f, 6f), result[0].Transform.Offset);
+            Assert.AreEqual(90f, result[0].Transform.Rotation);
+            Assert.AreEqual(new Vector2(2f, 3f), result[0].Size);
+        }
+
+        [Test]
+        public void UpsertDoors_seedsNewDoorFromBake()
+        {
+            var baked = MapTestData.Door("d2", new Vector2(1f, 2f), 90f);
+
+            var result = MapLayoutMerge.UpsertDoors(new[] { MapTestData.Door("d1") }, new[] { MapTestData.Door("d1"), baked });
+
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("d2", result[1].DoorId);
+            Assert.AreEqual(new Vector2(1f, 2f), result[1].Transform.Offset);
+            Assert.AreEqual(90f, result[1].Transform.Rotation);
+        }
+
+        [Test]
+        public void UpsertDoors_dropsDoorsNoLongerInScene()
+        {
+            var result = MapLayoutMerge.UpsertDoors(new[] { MapTestData.Door("d1"), MapTestData.Door("gone") }, new[] { MapTestData.Door("d1") });
+
+            CollectionAssert.AreEqual(new[] { "d1" }, new[] { result[0].DoorId });
+            Assert.AreEqual(1, result.Count);
+        }
+
+        [Test]
+        public void UpsertDoors_followsBakeOrder()
+        {
+            var result = MapLayoutMerge.UpsertDoors(
+                new[] { MapTestData.Door("b"), MapTestData.Door("a") },
+                new[] { MapTestData.Door("a"), MapTestData.Door("b") });
+
+            CollectionAssert.AreEqual(new[] { "a", "b" }, new[] { result[0].DoorId, result[1].DoorId });
+        }
+
+        [Test]
         public void Upsert_isIdempotent()
         {
             var baked = new[] { Baked("a", new[] { "p1" }), Baked("b") };

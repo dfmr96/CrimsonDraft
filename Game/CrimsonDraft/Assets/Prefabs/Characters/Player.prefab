@@ -35,6 +35,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5972646950085176240}
+  - {fileID: 7573748659022488366}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6248927136952844247
@@ -277,6 +278,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1368635199715338670}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8099634854895420787}
   m_SourcePrefab: {fileID: 100100000, guid: 11fd19c89d3b3dd45bb6dba97a671e14, type: 3}
 --- !u!95 &289134265740325322 stripped
 Animator:
@@ -422,6 +426,21 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 9a565e7176a079d40aab30f0ec3b5dca, type: 2}
+--- !u!114 &8099634854895420787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460636235736412426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce2162a1eb3291b4fb09db7aaae6211d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shadows.BlobShadowFootstepRelay
+  shadow: {fileID: 3004792723565867815}
+  rb: {fileID: 7586606001846501166}
+  minSpeedSqr: 0.05
 --- !u!1001 &7460521612496676615
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -508,6 +527,79 @@ Transform:
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d76ffd77e8128a74db8244e70fff8110, type: 3}
   m_PrefabInstance: {fileID: 7460521612496676615}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7591864528943882314
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4853855590609233854}
+    m_Modifications:
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 712697355095729498, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+      propertyPath: m_Name
+      value: BlobShadow
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+--- !u!114 &3004792723565867815 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4677150524423066477, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+  m_PrefabInstance: {fileID: 7591864528943882314}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d18a6efc264747b403c4417c6756d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.Shadows.BlobShadow
+--- !u!4 &7573748659022488366 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 18266014499652452, guid: bd6e5ed848d95c54eb800b45cb9e31ce, type: 3}
+  m_PrefabInstance: {fileID: 7591864528943882314}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8995722892044293155
 PrefabInstance:

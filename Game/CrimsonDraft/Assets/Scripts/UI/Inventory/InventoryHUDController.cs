@@ -95,18 +95,20 @@ namespace CrimsonDraft.UI
             if (item.Data.ItemType == ItemType.SocketItem)
             {
                 if (!this.interactionCaster.CanUseItem(item.Data)) return;
-                this.inventory.Remove(item);
 
                 // Insert only once the close animation is done: its FinishClose switches input
                 // back to Gameplay, which would otherwise cut the socket's insert dialogue off
-                // from its dialogue input and leave it stuck on screen.
+                // from its dialogue input and leave it stuck on screen. The item leaves the
+                // inventory only once the insert succeeded; a returned item (the empty flask)
+                // takes its exact spot so it can't be lost to a full grid.
                 var data = item.Data;
                 void InsertAfterClose()
                 {
                     this.openClose.Closed -= InsertAfterClose;
-                    bool used = this.interactionCaster.TryUseItem(data);
-                    if (used && data is SocketItemData { ReturnedOnUse: { } returned })
-                        this.inventory.TryAdd(returned);
+                    if (!this.interactionCaster.TryUseItem(data)) return;
+                    if (data is SocketItemData { ReturnedOnUse: { } returned }
+                        && this.inventory.TryReplace(data.ItemId, returned)) return;
+                    if (this.inventory.FindContainerOf(item) != null) this.inventory.Remove(item);
                 }
                 this.openClose.Closed += InsertAfterClose;
                 this.cursor.RequestClose();

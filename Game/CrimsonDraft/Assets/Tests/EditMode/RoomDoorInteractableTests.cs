@@ -285,6 +285,58 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Interact_whenMechanismLocked_marksDoorLockedInRegistry()
+        {
+            var registry     = new DoorStateRegistry();
+            var destination  = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var door         = MakeDoor(MakeUnlockedDoor(), destination, prefab, orchestrator, registry, "door-1");
+            var so           = new SerializedObject(door);
+            so.FindProperty("useMechanismLock").boolValue = true;
+            so.FindProperty("mechanismLocked").boolValue  = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
+
+            Assert.AreEqual(DoorMapState.Locked, registry.GetMapState("door-1"),
+                "trying a mechanism-locked door must show it as locked on the map");
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(destination.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void Interact_whenCrossingPairedDoor_marksOtherSideUnlockedInRegistry()
+        {
+            var registry     = new DoorStateRegistry();
+            var destinationA = MakeRoom();
+            var destinationB = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+
+            var doorA = MakeDoor(MakeUnlockedDoor(), destinationA, prefab, orchestrator, registry, "door-a");
+            var soA   = new SerializedObject(doorA);
+            soA.FindProperty("useMechanismLock").boolValue = true;
+            soA.FindProperty("mechanismLocked").boolValue  = true;
+            soA.ApplyModifiedPropertiesWithoutUndo();
+            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b", doorA);
+
+            doorA.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
+            doorB.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
+
+            Assert.AreEqual(DoorMapState.Unlocked, registry.GetMapState("door-a"),
+                "a door opened from its far side must stop showing as locked on the map");
+
+            UnityEngine.Object.DestroyImmediate(doorA.gameObject);
+            UnityEngine.Object.DestroyImmediate(doorB.gameObject);
+            UnityEngine.Object.DestroyImmediate(destinationA.gameObject);
+            UnityEngine.Object.DestroyImmediate(destinationB.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
         public void Interact_whenKeySuccess_updatesRegistry()
         {
             var registry     = new DoorStateRegistry();

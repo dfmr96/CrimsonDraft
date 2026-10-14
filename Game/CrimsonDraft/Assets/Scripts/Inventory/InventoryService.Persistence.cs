@@ -19,7 +19,12 @@ namespace CrimsonDraft.Inventory
             var unplaced = new List<(InventoryItem item, InventoryItemEntry entry)>();
             foreach (var entry in entries)
             {
-                if (!database.TryGetById(entry.itemId, out var data)) continue;
+                if (!database.TryGetById(entry.itemId, out var data))
+                {
+                    Debug.LogError($"Inventory restore: '{entry.itemId}' is not in the ItemDatabase, item dropped. " +
+                                   "Register it with the ItemDatabase's 'Populate From Project' button.");
+                    continue;
+                }
 
                 var item = InventoryItemFactory.Create(data, entry.quantity);
                 ApplyEntryState(item, entry);
