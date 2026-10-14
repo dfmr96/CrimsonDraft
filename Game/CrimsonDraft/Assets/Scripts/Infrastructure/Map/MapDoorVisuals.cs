@@ -54,8 +54,10 @@ namespace CrimsonDraft.Infrastructure.Map
                 doors.GetMapState);
         }
 
-        public static IReadOnlyList<MapDoorVisual> Preview(MapData map)
-            => Build(map, _ => true, _ => DoorMapState.Unknown);
+        /// <summary>Every door owned by a room, ignoring discovery, all shown in one state (for
+        /// the Map Editor).</summary>
+        public static IReadOnlyList<MapDoorVisual> Preview(MapData map, DoorMapState state = DoorMapState.Unknown)
+            => Build(map, _ => true, _ => state);
 
         private static IReadOnlyList<MapDoorVisual> Build(
             MapData map,

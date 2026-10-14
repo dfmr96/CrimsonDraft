@@ -149,6 +149,14 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(DoorMapState.Unknown, preview[0].State);
         }
 
+        [TestCase(DoorMapState.Locked)]
+        [TestCase(DoorMapState.Unlocked)]
+        public void Preview_canShowEveryDoorInARequestedState(DoorMapState state)
+        {
+            var preview = MapDoorVisuals.Preview(SingleDoorMap(), state);
+            Assert.AreEqual(state, preview[0].State);
+        }
+
         [TestCase(0f,    false)]
         [TestCase(180f,  false)]
         [TestCase(-180f, false)]

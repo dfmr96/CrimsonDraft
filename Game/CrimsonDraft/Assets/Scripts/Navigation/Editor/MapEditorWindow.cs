@@ -15,9 +15,11 @@ namespace CrimsonDraft.Navigation.Editor
     /// bottom-left corner in map pixels; dragging snaps to the grid and, with Magnet on, to
     /// nearby room edges (Alt inverts the magnet while dragging). Edits the MapData asset only
     /// (never the scene): sprites, pixel position and 90° rotation. Rooms and their pickup/door
-    /// ids come from the scene bake (MapBaker); rooms no longer in the scene show as orphans.
-    /// Doors draw on top of their room with the grey (Unknown) sprite from the MapDataSet; a
-    /// door's position is its sprite's bottom-left corner, stored relative to its room.</summary>
+    /// ids come from the scene bake (MapBaker, run with the Bake button); rooms no longer in the
+    /// scene show as orphans.
+    /// Doors draw on top of their room with the MapDataSet sprite for the state picked in the
+    /// toolbar (grey/red/blue); a door's position is its sprite's bottom-left corner, stored
+    /// relative to its room.</summary>
     public sealed class MapEditorWindow : EditorWindow
     {
         private const string SnapPrefKey   = "CrimsonDraft.MapEditor.Snap";
@@ -29,6 +31,8 @@ namespace CrimsonDraft.Navigation.Editor
         private static readonly int[]    SnapOptions = { 1, 4, 8 };
         private static readonly string[] SnapLabels  = { "Snap 1px", "Snap 4px", "Snap 8px" };
         private static readonly Vector2  MissingDoorSpriteSize = new(4f, 4f);
+        private static readonly DoorMapState[] DoorPreviewStates = { DoorMapState.Unknown, DoorMapState.Locked, DoorMapState.Unlocked };
+        private static readonly string[]       DoorPreviewLabels = { "Doors: Grey", "Doors: Red", "Doors: Blue" };
 
         [SerializeField] private MapData? map;
         [SerializeField] private string   selectedRoomId = "";
@@ -39,6 +43,7 @@ namespace CrimsonDraft.Navigation.Editor
         [SerializeField] private bool     previewComplete;
         [SerializeField] private bool     magnet = true;
         [SerializeField] private bool     showDoors = true;
+        [SerializeField] private DoorMapState previewDoorState = DoorMapState.Unknown;
         [SerializeField] private Vector2  listScroll;
 
         private bool       dragging;
@@ -178,7 +183,7 @@ namespace CrimsonDraft.Navigation.Editor
             if (GUILayout.Button("Frame", EditorStyles.toolbarButton, GUILayout.Width(50f)))
                 Frame();
 
-            if (GUILayout.Button(new GUIContent("Bake", "Re-read rooms, pickups and doors from the open scenes. Also runs on scene save and on entering Play; use it after editing prefabs, which doesn't dirty the scene."),
+            if (GUILayout.Button(new GUIContent("Bake", "Re-read rooms, pickups and doors from the open scenes into their MapData and save it. The only way the scene updates a map: saving a scene or entering Play never bakes."),
                     EditorStyles.toolbarButton, GUILayout.Width(45f)))
                 MapBaker.BakeAllInOpenScenes();
 
@@ -196,6 +201,13 @@ namespace CrimsonDraft.Navigation.Editor
                 EditorPrefs.SetBool(DoorsPrefKey, this.showDoors);
                 if (!this.showDoors)
                     this.selectedDoorId = "";
+            }
+
+            using (new EditorGUI.DisabledScope(!this.showDoors))
+            {
+                int stateIndex = Mathf.Max(0, System.Array.IndexOf(DoorPreviewStates, this.previewDoorState));
+                stateIndex = EditorGUILayout.Popup(stateIndex, DoorPreviewLabels, EditorStyles.toolbarPopup, GUILayout.Width(95f));
+                this.previewDoorState = DoorPreviewStates[stateIndex];
             }
 
             GUILayout.FlexibleSpace();
@@ -264,15 +276,15 @@ namespace CrimsonDraft.Navigation.Editor
             EditorGUILayout.Space();
             EditorGUILayout.LabelField(door.DoorId, EditorStyles.boldLabel);
 
-            var visual = MapDoorVisuals.Preview(target).FirstOrDefault(v => v.DoorId == door.DoorId);
+            var visual = MapDoorVisuals.Preview(target, this.previewDoorState).FirstOrDefault(v => v.DoorId == door.DoorId);
             if (visual.DoorId == null)
             {
-                EditorGUILayout.HelpBox("No room owns this door, so it is never drawn. Put its MapDoorMarker under a RoomController and save the scene.", MessageType.Warning);
+                EditorGUILayout.HelpBox("No room owns this door, so it is never drawn. Put its MapDoorMarker under a RoomController and press Bake.", MessageType.Warning);
             }
             else
             {
                 EditorGUILayout.LabelField("Room", visual.RoomId);
-                if (DoorSprites()?.For(DoorMapState.Unknown, visual.IsVertical) == null)
+                if (DoorSprites()?.For(visual.State, visual.IsVertical) == null)
                     EditorGUILayout.HelpBox("Assign the door sprites on the MapDataSet asset.", MessageType.Warning);
             }
 
@@ -436,7 +448,7 @@ namespace CrimsonDraft.Navigation.Editor
 
             if (this.showDoors)
             {
-                foreach (var door in MapDoorVisuals.Preview(target))
+                foreach (var door in MapDoorVisuals.Preview(target, this.previewDoorState))
                 {
                     var rect   = DoorScreenRect(canvas, door);
                     var sprite = DoorSprite(door);
@@ -589,7 +601,7 @@ namespace CrimsonDraft.Navigation.Editor
             if (!this.showDoors)
                 return false;
 
-            var hit = MapDoorVisuals.Preview(target)
+            var hit = MapDoorVisuals.Preview(target, this.previewDoorState)
                 .Reverse()
                 .FirstOrDefault(v => DoorScreenRect(canvas, v).Contains(mouse));
             var door = hit.DoorId != null ? target.Doors.FirstOrDefault(d => d.DoorId == hit.DoorId) : null;
