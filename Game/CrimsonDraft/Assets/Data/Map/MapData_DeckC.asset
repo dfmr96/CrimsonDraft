@@ -23,8 +23,7 @@ MonoBehaviour:
     Position: {x: -178, y: -34}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_18
+    DoorIds: []
     PickupIds:
     - CS_01_6
   - RoomId: HALLWAY_B
@@ -35,7 +34,6 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_107
-    - DR_16B
     - DR_177
     - DR_17B
     - DR_18B
@@ -70,7 +68,6 @@ MonoBehaviour:
     - DR_108
     - DR_11
     - DR_110
-    - DR_12
     - DR_188
     PickupIds: []
   - RoomId: LAB_HALLWAY
@@ -83,7 +80,6 @@ MonoBehaviour:
     - DR_109
     - DR_111
     - DR_113
-    - DR_11B
     - DR_16
     PickupIds:
     - CS_04_2
@@ -94,8 +90,7 @@ MonoBehaviour:
     Position: {x: 23, y: 55}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_188B
+    DoorIds: []
     PickupIds:
     - KI_10
   - RoomId: GARBAGE ROOM
@@ -113,10 +108,7 @@ MonoBehaviour:
     Position: {x: -42, y: 15}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_73B
-    - DR_74B
-    - DR_78
+    DoorIds: []
     PickupIds: []
   - RoomId: OFFICE
     IncompleteSprite: {fileID: 1140899808, guid: 0ca375fa596ac2b4ca020b7dd4204a44, type: 3}
@@ -124,8 +116,7 @@ MonoBehaviour:
     Position: {x: 91, y: 38}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_108B
+    DoorIds: []
     PickupIds:
     - KI_09
     - KI_22
@@ -136,8 +127,7 @@ MonoBehaviour:
     Position: {x: -61, y: 44}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_177B
+    DoorIds: []
     PickupIds:
     - KI_16
   - RoomId: WATER_ROOM
@@ -147,44 +137,28 @@ MonoBehaviour:
     QuarterTurns: 0
     IsOrphan: 0
     DoorIds:
-    - DR_17
     - DR_73
     PickupIds: []
   - RoomId: SAVEROOM_C
     IncompleteSprite: {fileID: 29343131, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
-    CompleteSprite: {fileID: -1456645670, guid: 81ad2e7aea672f34cbfd532f15c70dfd, type: 3}
+    CompleteSprite: {fileID: 29343131, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
     Position: {x: -156, y: 59}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds:
-    - DR_107B
+    DoorIds: []
     PickupIds:
     - KI_19_2
   doors:
   - DoorId: DR_107
     Transform:
-      Offset: {x: 10, y: 57}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_107B
-    Transform:
-      Offset: {x: 10, y: 31}
+      Offset: {x: 9, y: 55}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_108
     Transform:
-      Offset: {x: 21, y: 44}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_108B
-    Transform:
-      Offset: {x: 0, y: 41}
+      Offset: {x: 23, y: 44}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
@@ -198,14 +172,14 @@ MonoBehaviour:
     Size: {x: 1, y: 0.25}
   - DoorId: DR_11
     Transform:
-      Offset: {x: 4, y: 73}
+      Offset: {x: 4, y: 75}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_110
     Transform:
-      Offset: {x: 12, y: 0}
+      Offset: {x: 12, y: -2}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
@@ -224,93 +198,44 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
-  - DoorId: DR_11B
-    Transform:
-      Offset: {x: 145, y: 0}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_12
-    Transform:
-      Offset: {x: 76, y: 64}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
   - DoorId: DR_12B
     Transform:
-      Offset: {x: 0, y: 144}
+      Offset: {x: -2, y: 144}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_16
     Transform:
-      Offset: {x: 13, y: 0}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_16B
-    Transform:
-      Offset: {x: 94, y: 71}
-      Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_17
-    Transform:
-      Offset: {x: 60, y: 69}
+      Offset: {x: 13, y: -2}
       Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_177
     Transform:
-      Offset: {x: 91, y: 30}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_177B
-    Transform:
-      Offset: {x: 0, y: 23}
+      Offset: {x: 93, y: 30}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_17B
     Transform:
-      Offset: {x: 81, y: 0}
+      Offset: {x: 81, y: -2}
       Rotation: 0
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_18
-    Transform:
-      Offset: {x: 18, y: 134}
-      Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_188
     Transform:
-      Offset: {x: 7, y: 29}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_188B
-    Transform:
-      Offset: {x: 46, y: 9}
+      Offset: {x: 5, y: 29}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
   - DoorId: DR_18B
     Transform:
-      Offset: {x: 0, y: 63}
+      Offset: {x: -2, y: 62}
       Rotation: 90
       Scale: {x: 1, y: 1}
       ZOrder: 0
@@ -322,31 +247,10 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
-  - DoorId: DR_73B
-    Transform:
-      Offset: {x: 56, y: 7}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
   - DoorId: DR_74
     Transform:
       Offset: {x: 91, y: 83}
       Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_74B
-    Transform:
-      Offset: {x: 0, y: 7}
-      Rotation: 90
-      Scale: {x: 1, y: 1}
-      ZOrder: 0
-    Size: {x: 1, y: 0.25}
-  - DoorId: DR_78
-    Transform:
-      Offset: {x: 28, y: 0}
-      Rotation: 0
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
