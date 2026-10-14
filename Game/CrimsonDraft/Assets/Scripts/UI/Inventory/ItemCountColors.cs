@@ -12,6 +12,6 @@ namespace CrimsonDraft.UI
         public static readonly Color Loaded = new Color(0f, 1f, 0f, 1f);
 
         // Stack counts: ammo boxes, Ticker Tape and any other stackable item.
-        public static readonly Color Stack = new Color(0f, 0.6f, 1f, 1f); // 0 153 255
+        public static readonly Color Stack = new Color(0f, 0.85f, 1f, 1f); // 0 217 255
     }
 }
