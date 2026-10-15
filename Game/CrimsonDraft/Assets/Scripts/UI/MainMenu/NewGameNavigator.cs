@@ -20,7 +20,7 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private ControlOptionsController panel = null!;
 
         private IInputService   inputService = null!;
-        private MainMenuSfxData sfx          = null!;
+        private InventorySfxData sfx         = null!;
         // Channel ids of the panel (0 = scheme row, 1 = device row, 2 = start button) listed
         // top to bottom as laid out on the canvas, so Up/Down follows what the player sees.
         private static readonly int[] OrderWithStart    = { 2, 0, 1 };
@@ -33,7 +33,7 @@ namespace CrimsonDraft.UI.MainMenu
         private int  Channel => this.Order[this.position];
 
         [Inject]
-        public void Construct(IInputService inputService, MainMenuSfxData sfx)
+        public void Construct(IInputService inputService, InventorySfxData sfx)
         {
             this.inputService = inputService;
             this.sfx          = sfx;

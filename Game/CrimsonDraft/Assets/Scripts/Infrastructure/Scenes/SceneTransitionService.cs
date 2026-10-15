@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Infrastructure.Scenes
 {
@@ -31,6 +32,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
         private readonly ScreenFader screenFader;
         private readonly StaticTransitionView staticTransition;
         private readonly GameOverView gameOverView;
+        private readonly InventorySfxData sfx;
 
         private IDisposable? combatEndedSubscription;
         private bool isInCombat;
@@ -46,7 +48,8 @@ namespace CrimsonDraft.Infrastructure.Scenes
             ICameraService cameraService,
             ScreenFader screenFader,
             StaticTransitionView staticTransition,
-            GameOverView gameOverView)
+            GameOverView gameOverView,
+            InventorySfxData sfx)
         {
             this.inputService          = inputService;
             this.combatStartedPublisher = combatStartedPublisher;
@@ -56,6 +59,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.screenFader           = screenFader;
             this.staticTransition      = staticTransition;
             this.gameOverView          = gameOverView;
+            this.sfx                   = sfx;
         }
 
         void IInitializable.Initialize()
@@ -132,7 +136,11 @@ namespace CrimsonDraft.Infrastructure.Scenes
             EventSystem.current.SetSelectedGameObject(this.gameOverView.ReturnToMenuButton.gameObject);
 
             var tcs = new UniTaskCompletionSource();
-            void OnReturnToMenuClicked() => tcs.TrySetResult();
+            void OnReturnToMenuClicked()
+            {
+                this.sfx.PlayDecide(this.gameOverView.gameObject);
+                tcs.TrySetResult();
+            }
             this.gameOverView.ReturnToMenuButton.onClick.AddListener(OnReturnToMenuClicked);
             try
             {

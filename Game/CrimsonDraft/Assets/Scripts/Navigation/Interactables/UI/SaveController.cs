@@ -14,6 +14,7 @@ using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
+using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -28,6 +29,8 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker     playtimeTracker;
         private readonly SaveSlotNavigator   navigator;
+        // The save telegraph reuses the main menu's list sounds (same slot-list UI).
+        private readonly MainMenuSfxData?    menuSfx;
         private Action?                      pendingOnSaved;
 
         // Telegraph (save room) session -- null while the legacy overlay or nothing is open.
@@ -47,7 +50,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
             WorldStateRegistries world,
-            PlaytimeTracker      playtimeTracker)
+            PlaytimeTracker      playtimeTracker,
+            MainMenuSfxData?     menuSfx = null)
         {
             this.inputService     = inputService;
             this.saveGameService  = saveGameService;
@@ -57,6 +61,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.player           = player;
             this.world            = world;
             this.playtimeTracker  = playtimeTracker;
+            this.menuSfx          = menuSfx;
             this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
 
@@ -147,11 +152,13 @@ namespace CrimsonDraft.Navigation.Interactables
             // While the Yes/No prompt is up, horizontal input picks the option instead.
             if (this.telegraphNavigator.IsConfirming)
             {
-                if (direction.x > 0.5f)       this.telegraphView!.SetConfirmSelection(yesSelected: true);
-                else if (direction.x < -0.5f) this.telegraphView!.SetConfirmSelection(yesSelected: false);
+                if (direction.x > 0.5f)       { this.telegraphView!.SetConfirmSelection(yesSelected: true);  this.menuSfx?.PlayCursor(this.player.gameObject); }
+                else if (direction.x < -0.5f) { this.telegraphView!.SetConfirmSelection(yesSelected: false); this.menuSfx?.PlayCursor(this.player.gameObject); }
                 return;
             }
 
+            if (direction.y > 0.5f || direction.y < -0.5f)
+                this.menuSfx?.PlayFilesChange(this.player.gameObject);
             this.telegraphNavigator.HandleNavigate(direction);
         }
 
@@ -167,11 +174,18 @@ namespace CrimsonDraft.Navigation.Interactables
             {
                 case TelegraphPhase.Browsing:
                     if (this.telegraphNavigator.IsConfirming && !this.telegraphView!.IsYesSelected)
+                    {
+                        this.menuSfx?.PlayCancel(this.player.gameObject);
                         this.telegraphNavigator.HandleBack();
+                    }
                     else
+                    {
+                        this.menuSfx?.PlayDecide(this.player.gameObject);
                         this.telegraphNavigator.HandleConfirm();
+                    }
                     break;
                 case TelegraphPhase.Done:
+                    this.menuSfx?.PlayDecide(this.player.gameObject);
                     this.telegraphNavigator.Close();
                     break;
             }
@@ -186,7 +200,10 @@ namespace CrimsonDraft.Navigation.Interactables
             }
 
             if (this.telegraphPhase == TelegraphPhase.Browsing)
+            {
+                this.menuSfx?.PlayCancel(this.player.gameObject);
                 this.telegraphNavigator.HandleBack();
+            }
         }
 
         public void Save(int slot)

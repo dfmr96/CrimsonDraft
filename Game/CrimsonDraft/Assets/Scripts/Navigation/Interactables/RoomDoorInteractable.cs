@@ -93,6 +93,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (this.mechanismLocked)
                 {
                     this.registry.MarkLocked(this.doorId);
+                    context.Sfx?.PlayInvalidAction(gameObject);
                     context.DialogueService.StartDialogue(this.mechanismLockedDialogue.nodeName ?? "");
                     return;
                 }

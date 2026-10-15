@@ -23,7 +23,7 @@ namespace CrimsonDraft.UI.MainMenu
             builder.RegisterBuildCallback(resolver =>
             {
                 var controlScheme = resolver.Resolve<IControlSchemeService>();
-                var sfx           = this.mainMenuSfxData;
+                var sfx           = resolver.Resolve<InventorySfxData>(); // shared UI sounds, from the root scope
                 this.optionsControls.Setup(controlScheme, () => sfx.PlayCursor(this.optionsControls.gameObject), () => sfx.PlayDecide(this.optionsControls.gameObject));
                 this.newGameControls.Setup(controlScheme, () => sfx.PlayCursor(this.newGameControls.gameObject), () => sfx.PlayDecide(this.newGameControls.gameObject));
             });

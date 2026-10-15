@@ -29,7 +29,8 @@ namespace CrimsonDraft.UI.MainMenu
         private IGameStateResetter    gameStateResetter    = null!;
         private IControlSchemeService controlSchemeService = null!;
         private ScreenFader           screenFader          = null!;
-        private MainMenuSfxData       sfx                  = null!;
+        private MainMenuSfxData       sfx                  = null!; // Load Game list only
+        private InventorySfxData      uiSfx                = null!; // shared UI sounds for everything else
         private SaveSlotNavigator     loadNavigator        = null!;
         private bool                  isLoadingSlot;
         private bool                  isStartingNewGame;
@@ -46,7 +47,8 @@ namespace CrimsonDraft.UI.MainMenu
             IGameStateResetter     gameStateResetter,
             IControlSchemeService  controlSchemeService,
             ScreenFader            screenFader,
-            MainMenuSfxData        sfx)
+            MainMenuSfxData        sfx,
+            InventorySfxData       uiSfx)
         {
             this.inputService         = inputService;
             this.saveGameService      = saveGameService;
@@ -54,6 +56,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.controlSchemeService = controlSchemeService;
             this.screenFader          = screenFader;
             this.sfx                  = sfx;
+            this.uiSfx                = uiSfx;
 
             this.loadNavigator = new SaveSlotNavigator(
                 this.loadListView,
@@ -99,7 +102,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (current == this.lastSelected) return;
 
             if (this.lastSelected != null && current != null)
-                this.sfx.PlayCursor(gameObject);
+                this.uiSfx.PlayCursor(gameObject);
             this.lastSelected = current;
         }
 
@@ -144,7 +147,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.isStartingNewGame) return;
             this.isStartingNewGame = true;
 
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.gameStateResetter.ResetAll();
             StartNewGameAsync().Forget();
         }
@@ -153,7 +156,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void SelectScheme(ControlScheme scheme)
         {
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.controlSchemeService.SetScheme(scheme);
             this.newGamePromptView.SetSelectedScheme(scheme == ControlScheme.Classic);
         }
@@ -257,7 +260,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnExitClicked()
         {
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

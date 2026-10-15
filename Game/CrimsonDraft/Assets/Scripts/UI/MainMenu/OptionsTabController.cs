@@ -34,7 +34,7 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private float repeatInterval     = 0.08f;
 
         private IInputService   inputService = null!;
-        private MainMenuSfxData sfx          = null!;
+        private InventorySfxData sfx         = null!;
 
         private bool isOpen;
         private int  activeTab;
@@ -47,7 +47,7 @@ namespace CrimsonDraft.UI.MainMenu
         private IOptionsChannelPanel Panel(int tab) => (IOptionsChannelPanel)this.tabs[tab].panel;
 
         [Inject]
-        public void Construct(IInputService inputService, MainMenuSfxData sfx)
+        public void Construct(IInputService inputService, InventorySfxData sfx)
         {
             this.inputService = inputService;
             this.sfx          = sfx;

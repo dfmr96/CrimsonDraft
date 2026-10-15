@@ -13,6 +13,8 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Infrastructure.UI;
+using CrimsonDraft.UI;
+using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Infrastructure
 {
@@ -22,6 +24,9 @@ namespace CrimsonDraft.Infrastructure
         [SerializeField] private AudioSettingsData audioSettingsData = null!;
         [SerializeField] private GameOverView gameOverViewPrefab = null!;
         [SerializeField] private StaticTransitionView staticTransitionViewPrefab = null!;
+        // Shared UI sounds reachable from every scene's scope (navigation panels, save telegraph...).
+        [SerializeField] private InventorySfxData inventorySfxData = null!;
+        [SerializeField] private MainMenuSfxData  mainMenuSfxData  = null!;
 
         protected override void Awake()
         {
@@ -54,6 +59,8 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<InputService>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterInstance(this.audioSettingsData);
+            builder.RegisterInstance(this.inventorySfxData);
+            builder.RegisterInstance(this.mainMenuSfxData);
             builder.Register<AudioSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.Register<GraphicsSettingsService>(Lifetime.Singleton).AsImplementedInterfaces();
