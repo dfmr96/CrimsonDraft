@@ -116,6 +116,10 @@ namespace CrimsonDraft.Combat
         private BurstPatternData? activeBurstPattern;
         private int               activePelletCount = 1;
         private IShotResolutionStrategy activeShotStrategy = new SingleShotStrategy();
+        // A melee slash is ONE cut drawn as a dense row of points: it deals SlashFixedDamage in total
+        // (carried by its first point that touches the body), not damage per point.
+        private bool activeMeleeSlash;
+        internal const int SlashFixedDamage = 1;
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
@@ -204,6 +208,7 @@ namespace CrimsonDraft.Combat
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
             this.activeBurstPattern     = weaponData?.BurstPattern;
             this.activePelletCount      = Mathf.Max(1, weaponData?.PelletCount ?? 1);
+            this.activeMeleeSlash       = false;
             this.activeShotStrategy     = weaponData?.GunType is GunType.Shotgun or GunType.REShotgun
                 ? new PelletSpreadStrategy()
                 : new SingleShotStrategy();
@@ -218,10 +223,11 @@ namespace CrimsonDraft.Combat
             this.activePelletCount      = Mathf.Max(2, meleeData?.SlashPointCount ?? 5);
             float slashLength           = meleeData?.SlashLength ?? 40f;
             this.activeDispersionRadius = Mathf.Max(1, Mathf.RoundToInt(slashLength * 0.5f));
+            this.activeMeleeSlash       = true;
             this.activeShotStrategy     = new SlashStrategy(
                 slashLength,
-                meleeData?.SlashAngleDegrees ?? 45f,
-                meleeData?.SlashAngleJitterDegrees ?? 15f);
+                meleeData?.SlashAngleDegrees ?? 0f,
+                meleeData?.SlashAngleJitterDegrees ?? 20f);
         }
 
         public void SetShotCount(int shotCount)
@@ -546,7 +552,42 @@ namespace CrimsonDraft.Combat
                     flatIndex++;
                 }
             }
+
+            if (this.activeMeleeSlash)
+                ApplyFixedSlashDamage(resolved);
+
             return resolved.ToArray();
+        }
+
+        // The cut counts as a single hit: only the first point that touches the body keeps damage
+        // (SlashFixedDamage); the rest keep their zone -- misses still mark the cut as having left the
+        // body -- but deal nothing, so summing the points can never turn one slash into many hits.
+        // If no point touches the body there is no damage at all.
+        internal static void ApplyFixedSlashDamage(List<ResolvedShot> shots)
+        {
+            bool damageGiven = false;
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var s = shots[i];
+                int damage = 0;
+                if (!damageGiven && s.Zone != ShotZone.Miss)
+                {
+                    damage = SlashFixedDamage;
+                    damageGiven = true;
+                }
+                shots[i] = new ResolvedShot(s.Index, s.BulletIndex, s.NormalizedPos, s.Zone, s.Precision, damage, s.ArmorBlocked);
+            }
+        }
+
+        // Index of the point that carries a slash's single number popup: the one dealing the damage,
+        // or the first point when the whole cut missed (it then shows one MISS).
+        private static int FindSlashPopupIndex(ResolvedShot[] shots)
+        {
+            for (int i = 0; i < shots.Length; i++)
+            {
+                if (shots[i].Zone != ShotZone.Miss) return i;
+            }
+            return 0;
         }
 
         private async UniTaskVoid ResolvePendingShotsAsync()
@@ -566,6 +607,11 @@ namespace CrimsonDraft.Combat
             bool useCounter = this.damageCounterText != null;
             var absorbables = new List<AbsorbableShot>(this.pendingResolvedShots.Length);
 
+            // A slash is one cut: every point still gets its marker (all appear together, drawing the
+            // trail at once), but there's a single number for the whole thing.
+            bool melee      = this.activeMeleeSlash;
+            int  popupIndex = melee ? FindSlashPopupIndex(this.pendingResolvedShots) : -1;
+
             for (int i = 0; i < this.pendingResolvedShots.Length; i++)
             {
                 var shot = this.pendingResolvedShots[i];
@@ -573,16 +619,20 @@ namespace CrimsonDraft.Combat
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
                 this.SpawnMarker(local);
 
-                if (useCounter)
+                if (!melee || i == popupIndex)
                 {
-                    var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
-                    if (popup != null)
-                        absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss));
+                    if (useCounter)
+                    {
+                        var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                        if (popup != null)
+                            absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss));
+                    }
+                    else
+                    {
+                        this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                    }
                 }
-                else
-                {
-                    this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
-                }
+
 
                 // Only pause between distinct bullets, not between pellets of the same shell -
                 // a shotgun blast should read as one simultaneous spread, not a slow trickle.
