@@ -37,7 +37,7 @@
 				</StateGroup>
 			</StateGroups>
 		</SoundBank>
-		<SoundBank Id="3161908922" Language="SFX" Hash="1269259476">
+		<SoundBank Id="3161908922" Language="SFX" Hash="760081819">
 			<ObjectPath>\SoundBanks\Default Work Unit\Main</ObjectPath>
 			<ShortName>Main</ShortName>
 			<Path>Main.bnk</Path>
@@ -284,27 +284,27 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="3424589339" Name="Play_Inventory_Cancel" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cancel" DurationType="OneShot" DurationMin="0.259297" DurationMax="0.259297">
+				<Event Id="3424589339" Name="Play_Inventory_Cancel" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cancel" DurationType="OneShot" DurationMin="0.240159" DurationMax="0.240159">
 					<IncludedMemoryFiles>
-						<File Id="716525506" Language="SFX">
-							<ShortName>Cancel (2).wav</ShortName>
-							<Path>SFX\Cancel (2)_6186DEDE.wem</Path>
+						<File Id="52425477" Language="SFX">
+							<ShortName>denied.wav</ShortName>
+							<Path>SFX\denied_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="918818359" Name="Play_Inventory_Cursor" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cursor" DurationType="OneShot" DurationMin="0.211769" DurationMax="0.211769">
+				<Event Id="918818359" Name="Play_Inventory_Cursor" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cursor" DurationType="OneShot" DurationMin="0.107528" DurationMax="0.107528">
 					<IncludedMemoryFiles>
-						<File Id="1001515774" Language="SFX">
-							<ShortName>CURSOR (2).wav</ShortName>
-							<Path>SFX\CURSOR (2)_6186DEDE.wem</Path>
+						<File Id="570950330" Language="SFX">
+							<ShortName>Cursor_Move.wav</ShortName>
+							<Path>SFX\Cursor_Move_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="553967029" Name="Play_Inventory_Decide" ObjectPath="\Events\Default Work Unit\Play_Inventory_Decide" DurationType="OneShot" DurationMin="0.254104" DurationMax="0.254104">
+				<Event Id="553967029" Name="Play_Inventory_Decide" ObjectPath="\Events\Default Work Unit\Play_Inventory_Decide" DurationType="OneShot" DurationMin="0.18898" DurationMax="0.18898">
 					<IncludedMemoryFiles>
 						<File Id="752742090" Language="SFX">
-							<ShortName>DECIDE.wav</ShortName>
-							<Path>SFX\DECIDE_6186DEDE.wem</Path>
+							<ShortName>decide.wav</ShortName>
+							<Path>SFX\decide_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -626,11 +626,99 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="367771734" Name="Play_UI_InvalidAction" ObjectPath="\Events\Default Work Unit\Play_UI_InvalidAction" DurationType="OneShot" DurationMin="0.091791" DurationMax="0.091791">
+				<Event Id="1804929125" Name="Play_UI_Beeper_MorseBeep" ObjectPath="\Events\Default Work Unit\Play_UI_Beeper_MorseBeep" DurationType="Infinite">
 					<IncludedMemoryFiles>
-						<File Id="642066005" Language="SFX">
-							<ShortName>CORE22.SAP 00004.wav</ShortName>
-							<Path>SFX\CORE22.SAP 00004_6186DEDE.wem</Path>
+						<File Id="708273550" Language="SFX">
+							<ShortName>SFX\morse_beep.wav</ShortName>
+							<Path>SFX\SFX\morse_beep_5F2FFB8F.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="2769983225" Name="Play_UI_Files_VoiceStart" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceStart" DurationType="OneShot" DurationMin="0.5" DurationMax="0.5">
+					<IncludedMemoryFiles>
+						<File Id="1046219614" Language="SFX">
+							<ShortName>SFX\start_recording.wav</ShortName>
+							<Path>SFX\SFX\start_recording_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="3881013322" Name="Play_UI_Files_VoiceTypewriter" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceTypewriter" DurationType="OneShot" DurationMin="0.182698" DurationMax="0.182698">
+					<IncludedMemoryFiles>
+						<File Id="187550915" Language="SFX">
+							<ShortName>SFX\write.wav</ShortName>
+							<Path>SFX\SFX\write_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="367771734" Name="Play_UI_InvalidAction" ObjectPath="\Events\Default Work Unit\Play_UI_InvalidAction" DurationType="OneShot" DurationMin="0.240159" DurationMax="0.240159">
+					<IncludedMemoryFiles>
+						<File Id="52425477" Language="SFX">
+							<ShortName>denied.wav</ShortName>
+							<Path>SFX\denied_6186DEDE.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1453023494" Name="Play_UI_MainMenu_Cancel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cancel" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1187859758" Name="Play_UI_MainMenu_Cursor" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cursor" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1053706072" Name="Play_UI_MainMenu_Decide" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Decide" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="4143229233" Name="Play_UI_MainMenu_FilesChange" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_FilesChange" DurationType="OneShot" DurationMin="0.227271" DurationMax="0.227271">
+					<IncludedMemoryFiles>
+						<File Id="330754536" Language="SFX">
+							<ShortName>SFX\change_files.wav</ShortName>
+							<Path>SFX\SFX\change_files_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1350620445" Name="Play_UI_MainMenu_KnobLimit" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobLimit" DurationType="OneShot" DurationMin="0.257052" DurationMax="0.257052">
+					<IncludedMemoryFiles>
+						<File Id="338764166" Language="SFX">
+							<ShortName>SFX\KnobTick.wav</ShortName>
+							<Path>SFX\SFX\KnobTick_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1794575571" Name="Play_UI_MainMenu_KnobTick" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobTick" DurationType="OneShot" DurationMin="0.420604" DurationMax="0.420604">
+					<IncludedMemoryFiles>
+						<File Id="682514390" Language="SFX">
+							<ShortName>SFX\knobnew.wav</ShortName>
+							<Path>SFX\SFX\knobnew_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="2987736382" Name="Play_UI_MainMenu_PanelTravel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_PanelTravel" DurationType="OneShot" DurationMin="3.312086" DurationMax="3.312086">
+					<IncludedMemoryFiles>
+						<File Id="453653971" Language="SFX">
+							<ShortName>SFX\Start.wav</ShortName>
+							<Path>SFX\SFX\Start_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="907179948" Name="Play_UI_MainMenu_Start" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Start" DurationType="OneShot" DurationMin="1.916644" DurationMax="1.916644">
+					<IncludedMemoryFiles>
+						<File Id="226753358" Language="SFX">
+							<ShortName>SFX\enter.wav</ShortName>
+							<Path>SFX\SFX\enter_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
