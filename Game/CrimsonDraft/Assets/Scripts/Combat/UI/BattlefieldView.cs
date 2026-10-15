@@ -45,6 +45,14 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Transform[] playerSlotTransforms = Array.Empty<Transform>();
         [SerializeField] private GameObject  operatorIndicator    = null!;
         [SerializeField] private GameObject  enemyTargetIndicator = null!;
+        // World-space halo (ring + rising column of light) at the selected enemy's feet. When assigned
+        // it replaces the sprite frame above.
+        [SerializeField] private TargetHalo? enemyTargetHalo;
+        // Same halo for the operator currently focused/acting; replaces operatorIndicator when assigned.
+        [SerializeField] private TargetHalo? operatorTargetHalo;
+        [SerializeField] private Color enemyHaloColor    = new Color(0.78f, 0.27f, 0.22f, 1f); // reddish
+        [SerializeField] private Color operatorHaloColor = new Color(0.604f, 0.624f, 0.361f, 1f); // the UI green (#9A9F5C)
+        [SerializeField, Range(0.2f, 1.5f)] private float operatorHaloSize = 0.8f; // vs. the enemy halo
         [SerializeField, Min(0.1f)] private float enemyDeathAnimTimeoutSec = 3f;
         [SerializeField, Min(0f)] private float bloodPoolRevealDurationSec = 0.5f;
         [SerializeField] private Canvas? operatorDamageCanvas;
@@ -84,6 +92,7 @@ namespace CrimsonDraft.Combat
         private readonly List<GameObject> spawnedSprites = new();
         private readonly Dictionary<int, EnemyRuntimeState> enemyStateBySlot = new();
         private readonly Dictionary<int, GameObject> enemyGoBySlot = new();
+        private readonly Dictionary<int, GameObject> operatorGoBySlot = new();
         private readonly Dictionary<int, MeshRenderer> enemyRendererBySlot = new();
         private int[] occupiedEnemySlots = Array.Empty<int>();
         private EnemyData?[] currentEnemySlots = Array.Empty<EnemyData?>();
@@ -130,6 +139,19 @@ namespace CrimsonDraft.Combat
         private void Awake()
         {
             this.operatorIndicator.SetActive(false);
+
+            // The operator halo is the enemy halo's twin: build it from that one when the scene
+            // doesn't provide its own, so there's a single object to author and tune.
+            if (this.operatorTargetHalo == null && this.enemyTargetHalo != null)
+            {
+                this.operatorTargetHalo = Instantiate(this.enemyTargetHalo, this.enemyTargetHalo.transform.parent);
+                this.operatorTargetHalo.name = "OperatorTargetHalo";
+            }
+
+            // Same shared material, different look: enemies read reddish, operators UI-green and smaller.
+            this.enemyTargetHalo?.Configure(this.enemyHaloColor, 1f);
+            this.operatorTargetHalo?.Configure(this.operatorHaloColor, this.operatorHaloSize);
+
             this.indicatorOriginalLayer = this.enemyTargetIndicator.layer;
             this.enemyTargetIndicator.SetActive(false);
         }
@@ -141,6 +163,7 @@ public void Populate(EncounterData encounter)
             this.spawnedSprites.Clear();
             this.enemyStateBySlot.Clear();
             this.enemyGoBySlot.Clear();
+            this.operatorGoBySlot.Clear();
             this.enemyRendererBySlot.Clear();
             this.operatorAnimatorBySlot.Clear();
             this.operatorWeaponPoseBySlot.Clear();
@@ -231,6 +254,7 @@ public void Populate(EncounterData encounter)
                 }
                 go.name = $"Operator_{i}";
                 this.spawnedSprites.Add(go);
+                this.operatorGoBySlot[i] = go;
 
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
                 if (operatorAnimator != null)
@@ -775,6 +799,19 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
         public void SetOperatorIndicator(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= this.playerSlotTransforms.Length) return;
+
+            // The halo follows the focused operator as the UI moves, and simply stays on them while
+            // they pick a command / ammo / target (nothing hides or moves it until focus changes).
+            if (this.operatorTargetHalo != null)
+            {
+                this.operatorIndicator.SetActive(false);
+                if (this.operatorGoBySlot.TryGetValue(slotIndex, out var operatorGo) && operatorGo != null)
+                    this.operatorTargetHalo.ShowAround(operatorGo);
+                else
+                    this.operatorTargetHalo.ShowAt(this.playerSlotTransforms[slotIndex]);
+                return;
+            }
+
             this.operatorIndicator.SetActive(true);
             this.operatorIndicator.transform.position = this.playerSlotTransforms[slotIndex].position;
             var mr = this.operatorIndicator.GetComponent<MeshRenderer>();
@@ -783,6 +820,9 @@ public async UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enem
 
         public void DimOperatorIndicator()
         {
+            // The halo stays fully lit on the acting operator -- only the old marker greys out.
+            if (this.operatorTargetHalo != null) return;
+
             var mr = this.operatorIndicator.GetComponent<MeshRenderer>();
             if (mr != null) mr.material.color = new Color(0.4f, 0.4f, 0.4f, 1f);
         }
@@ -993,6 +1033,16 @@ public void PlayOperatorReload(int operatorSlotIndex)
         public void SetEnemyTargetIndicator(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= this.enemySlotTransforms.Length) return;
+
+            // The world-space halo replaces the old sprite frame whenever it's wired up.
+            if (this.enemyTargetHalo != null && this.enemyGoBySlot.TryGetValue(slotIndex, out var enemyGo) && enemyGo != null)
+            {
+                this.indicatorSlot = -1;
+                this.enemyTargetIndicator.SetActive(false);
+                this.enemyTargetHalo.ShowAround(enemyGo);
+                return;
+            }
+
             this.enemyTargetIndicator.SetActive(true);
             this.indicatorSlot = slotIndex;
             this.PlaceEnemyTargetIndicator(slotIndex);
@@ -1002,6 +1052,8 @@ public void PlayOperatorReload(int operatorSlotIndex)
         {
             this.indicatorSlot = -1;
             this.enemyTargetIndicator.SetActive(false);
+            if (this.enemyTargetHalo != null)
+                this.enemyTargetHalo.Hide();
         }
 
         // The enemy animates (flinch, stagger...), so keep the frame glued to its current bounds.

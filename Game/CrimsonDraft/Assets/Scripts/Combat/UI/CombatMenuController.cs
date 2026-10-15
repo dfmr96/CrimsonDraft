@@ -212,6 +212,9 @@ namespace CrimsonDraft.Combat
         {
             ForceCloseInterruptedUI();
             this.SelectedOperator = slot;
+            // The queued action may fire while the player's focus (and the halo) sits on another
+            // operator -- bring the halo to whoever is actually acting.
+            this.battlefieldView.SetOperatorIndicator(slot);
             RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.ShotCountState);
@@ -223,6 +226,7 @@ namespace CrimsonDraft.Combat
             this.SelectedOperator  = slot;
             this.IsMeleeAttack     = true;
             this.SelectedShotCount = 1;
+            this.battlefieldView.SetOperatorIndicator(slot);
             RepositionCommandPanelToOperator(slot);
             this.menuView.SetDimmed(true);
             this.TransitionTo(this.TargetSelState);
