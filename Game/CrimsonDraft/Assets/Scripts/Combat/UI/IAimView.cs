@@ -8,6 +8,9 @@ namespace CrimsonDraft.Combat
     public interface IAimView
     {
         event Action<ResolvedShot[]>? OnShotsResolved;
+        // Melee count: the first missing point of the cut has just been revealed -- the moment the
+        // counter-hit lands. Default no-op accessors keep existing implementers (test fakes) compiling.
+        event Action? OnMeleeMissRevealed { add { } remove { } }
         void ConfigureHitMask(AimHitMaskProfile? profile);
         void ConfigureOverlay(ActiveOverlay? overlay);
         void ConfigureWeapon(WeaponData? weaponData);
