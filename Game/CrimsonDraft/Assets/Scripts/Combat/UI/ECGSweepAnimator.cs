@@ -16,6 +16,9 @@ namespace CrimsonDraft.Combat
         private static readonly int TrailLengthId = Shader.PropertyToID("_TrailLength");
         private static readonly int FadeExponentId = Shader.PropertyToID("_FadeExponent");
         private static readonly int SpriteRectId = Shader.PropertyToID("_SpriteRect");
+        private static readonly int GlitchAmountId = Shader.PropertyToID("_GlitchAmount");
+        private static readonly int GlitchSeedId = Shader.PropertyToID("_GlitchSeed");
+        private static readonly int GlitchTintId = Shader.PropertyToID("_GlitchTint");
 
         [SerializeField] private Image traceImage = null!;
         [SerializeField] private float sweepDuration = 2f;
@@ -68,6 +71,11 @@ namespace CrimsonDraft.Combat
         [SerializeField, Min(0f)] private float glitchDuration = 0.35f;
         [SerializeField, Min(0f)] private float glitchJitterAmount = 6f;
         [SerializeField, Range(0f, 1f)] private float glitchMinAlpha = 0.15f;
+        [Tooltip("Colour the trace and its glow flash toward when hit (fades back over the glitch).")]
+        [SerializeField] private Color glitchTint = new(1f, 0.2f, 0.15f, 1f);
+        [SerializeField, Range(0f, 1f)] private float glitchTintStrength = 0.9f;
+        [Tooltip("How many times per second the torn bands / fringes change during the glitch.")]
+        [SerializeField, Min(1f)] private float glitchSeedRate = 24f;
 
         // Mercy (0 HP, still alive): the sprite and its glow breathe in and out like a
         // warning beacon instead of sitting at a flat tint, so the card visibly flags
@@ -333,29 +341,61 @@ namespace CrimsonDraft.Combat
                 this.traceImage.color = this.glitchTraceRestColor;
                 if (this.effectImage != null)
                     this.effectImage.color = this.glitchEffectRestColor;
+                this.SetShaderGlitch(0f, 0f);
                 return;
             }
+
+            // 1 at the moment of impact, easing to 0 as the glitch ends.
+            float envelope = 1f - this.glitchTimer / Mathf.Max(0.0001f, this.glitchDuration);
+            float step     = Mathf.Floor(Time.unscaledTime * this.glitchSeedRate);
+            float amount   = envelope * Mathf.Lerp(0.65f, 1f, Hash01(step));
+            this.SetShaderGlitch(amount, step);
 
             float jitterX = Random.Range(-this.glitchJitterAmount, this.glitchJitterAmount);
             this.glitchRect!.anchoredPosition = this.glitchRestPosition + new Vector2(jitterX, 0f);
 
-            var traceColor = this.glitchTraceRestColor;
+            // The trace (and its glow) flash toward the glitch tint, then settle back to their own color.
+            float tintMix = this.glitchTintStrength * Mathf.Pow(envelope, 0.6f);
+
+            var traceColor = TintTowards(this.glitchTraceRestColor, this.glitchTint, tintMix);
             traceColor.a *= Random.Range(this.glitchMinAlpha, 1f);
             this.traceImage.color = traceColor;
 
             if (this.effectImage != null)
             {
-                var effectColor = this.glitchEffectRestColor;
+                var effectColor = TintTowards(this.glitchEffectRestColor, this.glitchTint, tintMix);
                 effectColor.a *= Random.Range(this.glitchMinAlpha, 1f);
                 this.effectImage.color = effectColor;
             }
         }
+
+        // Only the sweeping ECG material knows the tear/fringe shader; in the flatline and Mercy
+        // looks the trace uses the default UI material, which just gets the color flash above.
+        private void SetShaderGlitch(float amount, float seed)
+        {
+            if (this.runtimeMaterial == null || this.traceImage.material != this.runtimeMaterial) return;
+
+            this.runtimeMaterial.SetFloat(GlitchAmountId, amount);
+            if (amount <= 0f) return;
+            this.runtimeMaterial.SetFloat(GlitchSeedId, seed);
+            this.runtimeMaterial.SetColor(GlitchTintId, this.glitchTint);
+        }
+
+        private static Color TintTowards(Color rest, Color tint, float amount)
+        {
+            var mixed = Color.Lerp(rest, tint, amount);
+            mixed.a = rest.a; // brightness/flicker is handled separately; only the hue shifts here
+            return mixed;
+        }
+
+        private static float Hash01(float n) => Mathf.Repeat(Mathf.Sin(n * 12.9898f) * 43758.5453f, 1f);
 
         private void OnDisable()
         {
             if (!this.isGlitching || this.glitchRect == null) return;
             this.isGlitching = false;
             this.glitchRect.anchoredPosition = this.glitchRestPosition;
+            this.SetShaderGlitch(0f, 0f);
         }
 
         #endregion

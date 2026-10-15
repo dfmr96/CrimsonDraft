@@ -5,29 +5,35 @@ using UnityEngine;
 
 namespace CrimsonDraft.Combat
 {
-    // Melee's equivalent of PelletSpreadStrategy: pelletCount points, all zone-sampled and
-    // damage-summed the same way a shotgun's pellets are. Placement has two modes:
-    //  - Hand-authored (burstPattern assigned via MeleeWeaponData.SlashPattern, made with the
-    //    same Burst Pattern Editor tool guns use): point i samples entry i of the pattern
-    //    (clamped), so each point of the cut can be placed exactly where it should land.
-    //  - Procedural fallback (no pattern assigned): pelletCount points laid out evenly along a
-    //    straight line (with a little perpendicular jitter so it doesn't read as a perfectly
-    //    straight ruler) through the confirmed aim point, so the result still renders as a
-    //    cut/slash rather than a spread.
-    // firstShotLocal/bulletIndex are unused either way -- melee is always a single swing.
+    // Melee's counterpart of PelletSpreadStrategy, but it lays out ONE continuous cut instead of
+    // separate hits: a dense row of points along a (mostly horizontal) line of lengthPx that begins
+    // a little BEFORE the confirmed aim point (StartBehindFraction of its length) and runs past it. The points sit PointSpacingPx apart -- tighter
+    // than the marker sprite -- so they render as a single trail, and AimViewController treats the
+    // whole row as one hit (fixed damage, one popup, one poise/decapitation tick).
+    //
+    // The direction is angleDeg +/- a random angleJitterDeg (0 deg = straight to the right), so a
+    // swing can go level, slightly up or slightly down. Any hand-authored burstPattern is ignored:
+    // the cut is always generated from the weapon's length/angle.
+    // firstShotLocal/bulletIndex are unused -- melee is always a single swing.
     public sealed class SlashStrategy : IShotResolutionStrategy
     {
+        // Much closer than the 3 px marker (positions snap to whole pixels, so 1 is the tightest
+        // possible): neighbouring markers overlap heavily and read as one solid stroke.
+        internal const float PointSpacingPx = 1f;
+
+        // How much of the cut lies BEFORE the confirmed aim point (0 = starts exactly there,
+        // 0.5 = the aim point is the middle of the stroke).
+        internal const float StartBehindFraction = 0.35f;
+
         private readonly float lengthPx;
         private readonly float angleDeg;
         private readonly float angleJitterDeg;
-        private readonly float perpJitterPx;
 
-        public SlashStrategy(float lengthPx, float angleDeg, float angleJitterDeg, float perpJitterPx = 4f)
+        public SlashStrategy(float lengthPx, float angleDeg, float angleJitterDeg)
         {
-            this.lengthPx       = lengthPx;
+            this.lengthPx       = Mathf.Max(0f, lengthPx);
             this.angleDeg       = angleDeg;
-            this.angleJitterDeg = angleJitterDeg;
-            this.perpJitterPx   = perpJitterPx;
+            this.angleJitterDeg = Mathf.Max(0f, angleJitterDeg);
         }
 
         public Vector2[] GetPelletLocalPositions(
@@ -38,36 +44,18 @@ namespace CrimsonDraft.Combat
             BurstPatternData? burstPattern,
             int pelletCount)
         {
-            int count = Mathf.Max(2, pelletCount);
-
-            var patternShots = burstPattern?.Shots;
-            if (patternShots != null && patternShots.Length > 0)
-            {
-                var patterned = new Vector2[count];
-                for (int i = 0; i < count; i++)
-                {
-                    var entry  = patternShots[Mathf.Min(i, patternShots.Length - 1)];
-                    var offset = BurstPatternData.SamplePoint(in entry);
-                    patterned[i] = new Vector2(
-                        Mathf.Round(confirmedLocalPos.x + offset.x),
-                        Mathf.Round(confirmedLocalPos.y + offset.y));
-                }
-                return patterned;
-            }
-
             float angle = (this.angleDeg + Random.Range(-this.angleJitterDeg, this.angleJitterDeg)) * Mathf.Deg2Rad;
-            Vector2 dir  = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-            Vector2 perp = new Vector2(-dir.y, dir.x);
+            Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
 
+            int count = Mathf.Max(2, Mathf.CeilToInt(this.lengthPx / PointSpacingPx) + 1);
             var result = new Vector2[count];
             for (int i = 0; i < count; i++)
             {
-                float t = (i / (float)(count - 1)) - 0.5f; // -0.5 .. 0.5 along the line
-                Vector2 alongLine = confirmedLocalPos + dir * (t * this.lengthPx);
-                float   jitter    = Random.Range(-this.perpJitterPx, this.perpJitterPx);
-                result[i] = new Vector2(
-                    Mathf.Round(alongLine.x + perp.x * jitter),
-                    Mathf.Round(alongLine.y + perp.y * jitter));
+                // The cut doesn't begin AT the aim point: it starts StartBehindFraction of its length
+                // before it and carries on past it, so the aim point lands part-way along the stroke.
+                float t = i / (float)(count - 1) - StartBehindFraction; // -StartBehindFraction .. 1 - StartBehindFraction
+                Vector2 p = confirmedLocalPos + dir * (t * this.lengthPx);
+                result[i] = new Vector2(Mathf.Round(p.x), Mathf.Round(p.y));
             }
             return result;
         }

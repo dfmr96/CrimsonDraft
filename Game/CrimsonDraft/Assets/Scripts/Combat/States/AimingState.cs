@@ -57,6 +57,9 @@ namespace CrimsonDraft.Combat
             float hpRatio = this.roster.Count > op ? this.roster[op].HpRatio : 1f;
             this.aimView.SetOperatorHpRatio(hpRatio);
 
+            int targetSlot = this.context.CurrentTargetSlot;
+            this.aimView.SetTargetHp(targetSlot >= 0 ? this.battlefieldView.GetEnemyCurrentHp(targetSlot) : int.MaxValue);
+
             this.aimView.Show();
         }
 
@@ -74,6 +77,9 @@ namespace CrimsonDraft.Combat
 
             if (this.awaitingDismiss)
             {
+                if (this.aimView.TryAdvancePostShots())
+                    return;
+
                 CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }
@@ -105,15 +111,22 @@ namespace CrimsonDraft.Combat
             int headshotPellets = 0;
             int damagingPellets = 0;
             bool anyMiss = false;
+            // A melee slash is ONE cut drawn as many points: poise and decapitation count once for the
+            // whole swing (the strongest zone it touched), not once per point. Its damage is already
+            // a single fixed hit, assigned in AimViewController.
+            bool isSlash = this.context.IsMeleeAttack;
             foreach (var shot in this.pendingShots)
             {
                 totalDamage += Mathf.Max(0, shot.Damage);
                 if (shot.Zone != ShotZone.Miss)
-                    totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                {
+                    int poise = CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                    totalPoiseDamage = isSlash ? Mathf.Max(totalPoiseDamage, poise) : totalPoiseDamage + poise;
+                }
                 else
                     anyMiss = true;
                 if (shot.Zone == ShotZone.Head)
-                    headshotPellets++;
+                    headshotPellets = isSlash ? 1 : headshotPellets + 1;
                 if (shot.Damage > 0)
                     damagingPellets++;
             }
