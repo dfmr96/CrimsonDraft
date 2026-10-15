@@ -19,8 +19,8 @@ namespace CrimsonDraft.Inventory
         // The slash is ONE cut: a dense row of marker-sized points that starts at the confirmed aim
         // point and runs slashLength px at slashAngleDegrees (0 = straight right), varied by up to
         // +/- slashAngleJitterDegrees so it can go level, a little up or a little down -- see
-        // SlashStrategy. It deals a fixed 1 damage in total (AimViewController.SlashFixedDamage), so
-        // Damage above no longer scales the slash; PoiseDamage counts once for the whole swing.
+        // SlashStrategy. It deals Damage above in total (flat, one hit, no zone multipliers);
+        // PoiseDamage counts once for the whole swing.
         // Any point of the cut that lands off the body leaves the operator open to a counter-hit.
         [SerializeField, Min(2)] private int   slashPointCount         = 5;     // legacy: point count now follows slashLength
         [SerializeField]         private float slashLength             = 40f;

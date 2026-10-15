@@ -17,6 +17,8 @@ namespace CrimsonDraft.Combat
         #region Events
 
         public event Action<ResolvedShot[]>? OnShotsResolved;
+        // Melee count: raised when the first missing point of the cut vanishes (once per swing).
+        public event Action? OnMeleeMissRevealed;
 
         #endregion
 
@@ -64,9 +66,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private GameObject? damageCounterRoot;
         [SerializeField] private Color    damageCounterColor        = Color.white;
         [SerializeField] private Color     damageCounterLethalColor  = new Color(1f, 0.15f, 0.15f, 1f);
-        [SerializeField] private float     absorbInterval            = 0.1f;   // seconds between absorbed shots
+        [SerializeField] private float     slashPointVanishInterval  = 0.02f;  // melee: seconds between cut points vanishing (faster than absorbInterval)
+        [SerializeField] private float     absorbInterval            = 0.3f;   // seconds between absorbed shots
         [SerializeField] private float     absorbPunchScale          = 1.35f;
-        [SerializeField] private float     absorbPunchDuration       = 0.05f;  // per half of the pop; keep it snappy
+        [SerializeField] private float     absorbPunchDuration       = 0.1f; // per half of the pop; keep it snappy
         // After the second axis is locked in the shots fire on their own after this short beat.
         [SerializeField] private float     resolveDelayAfterConfirm  = 0.1f;
 
@@ -116,10 +119,12 @@ namespace CrimsonDraft.Combat
         private BurstPatternData? activeBurstPattern;
         private int               activePelletCount = 1;
         private IShotResolutionStrategy activeShotStrategy = new SingleShotStrategy();
-        // A melee slash is ONE cut drawn as a dense row of points: it deals SlashFixedDamage in total
+        // A melee slash is ONE cut drawn as a dense row of points: it deals the weapon's Damage in total
         // (carried by its first point that touches the body), not damage per point.
         private bool activeMeleeSlash;
-        internal const int SlashFixedDamage = 1;
+        private int  activeSlashDamage = 1;
+        // Markers of the current slash's points, in order, so the count can make them vanish one by one.
+        private List<(GameObject Go, bool IsMiss)> pendingSlashPoints = new List<(GameObject, bool)>();
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
@@ -152,6 +157,9 @@ namespace CrimsonDraft.Combat
         private float  shakeIntensity01; // 0 = full HP, 1 = 0 HP
         private float  shakeSeedV; // per-QTE seed for the heartbeat's per-beat punch direction
         private Vector3 basePanelLocalPos;
+        private Vector3 panelBaseScale = Vector3.one;
+        private bool   panelScaleCaptured;
+        [SerializeField] private float panelScaleDuration = 0.2f; // open/close Y-scale animation
 #if UNITY_EDITOR
         private bool       hasLastSample;
         private Vector3    lastSampleWorldPos;
@@ -224,6 +232,7 @@ namespace CrimsonDraft.Combat
             float slashLength           = meleeData?.SlashLength ?? 40f;
             this.activeDispersionRadius = Mathf.Max(1, Mathf.RoundToInt(slashLength * 0.5f));
             this.activeMeleeSlash       = true;
+            this.activeSlashDamage      = Mathf.Max(1, meleeData?.Damage ?? 1);
             this.activeShotStrategy     = new SlashStrategy(
                 slashLength,
                 meleeData?.SlashAngleDegrees ?? 0f,
@@ -261,8 +270,10 @@ namespace CrimsonDraft.Combat
             this.ClearTotalFeedback();
             this.sequenceVersion++;
             this.gameObject.SetActive(true);
+            this.PlayPanelScaleIn();
             this.ResetDamageCounter();
             this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
             this.countPhase = CountPhase.Done;
             this.basePanelLocalPos = this.transform.localPosition;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
@@ -345,6 +356,8 @@ namespace CrimsonDraft.Combat
         private async UniTaskVoid StartCountingAsync(int version)
         {
             this.countPhase = CountPhase.Counting;
+            await this.VanishSlashPointsAsync(version);
+            if (this == null || version != this.sequenceVersion) return;
             await this.AbsorbIntoCounterAsync(this.pendingAbsorbables, version);
             if (this == null || version != this.sequenceVersion) return;
             this.countPhase = CountPhase.Done;
@@ -367,6 +380,7 @@ namespace CrimsonDraft.Combat
             this.sequenceVersion++;
             this.ResetDamageCounter();
             this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
             this.countPhase = CountPhase.Done;
             this.DetachFeedbackFromAimView();
 
@@ -375,7 +389,42 @@ namespace CrimsonDraft.Combat
 
             this.pendingResolvedShots = Array.Empty<ResolvedShot>();
             this.isResolvingSequence = false;
-            this.gameObject.SetActive(false);
+            this.PlayPanelScaleOut();
+        }
+
+        // The panel grows from Y scale 0 on open and collapses back to 0 on close.
+        private void CapturePanelBaseScale()
+        {
+            if (this.panelScaleCaptured) return;
+            this.panelBaseScale     = this.transform.localScale;
+            this.panelScaleCaptured = true;
+        }
+
+        private void PlayPanelScaleIn()
+        {
+            this.CapturePanelBaseScale();
+            this.transform.DOKill();
+            var s = this.panelBaseScale;
+            this.transform.localScale = new Vector3(s.x, 0f, s.z);
+            this.transform.DOScaleY(s.y, Mathf.Max(0.01f, this.panelScaleDuration)).SetEase(Ease.OutBack);
+        }
+
+        private void PlayPanelScaleOut()
+        {
+            this.CapturePanelBaseScale();
+            this.transform.DOKill();
+            if (!this.gameObject.activeInHierarchy)
+            {
+                this.transform.localScale = this.panelBaseScale;
+                this.gameObject.SetActive(false);
+                return;
+            }
+
+            this.transform.DOScaleY(0f, Mathf.Max(0.01f, this.panelScaleDuration)).SetEase(Ease.InBack).OnComplete(() =>
+            {
+                this.transform.localScale = this.panelBaseScale;
+                this.gameObject.SetActive(false);
+            });
         }
 
         #endregion
@@ -554,16 +603,16 @@ namespace CrimsonDraft.Combat
             }
 
             if (this.activeMeleeSlash)
-                ApplyFixedSlashDamage(resolved);
+                ApplyFixedSlashDamage(resolved, this.activeSlashDamage);
 
             return resolved.ToArray();
         }
 
         // The cut counts as a single hit: only the first point that touches the body keeps damage
-        // (SlashFixedDamage); the rest keep their zone -- misses still mark the cut as having left the
+        // (slashDamage); the rest keep their zone -- misses still mark the cut as having left the
         // body -- but deal nothing, so summing the points can never turn one slash into many hits.
         // If no point touches the body there is no damage at all.
-        internal static void ApplyFixedSlashDamage(List<ResolvedShot> shots)
+        internal static void ApplyFixedSlashDamage(List<ResolvedShot> shots, int slashDamage)
         {
             bool damageGiven = false;
             for (int i = 0; i < shots.Count; i++)
@@ -572,7 +621,7 @@ namespace CrimsonDraft.Combat
                 int damage = 0;
                 if (!damageGiven && s.Zone != ShotZone.Miss)
                 {
-                    damage = SlashFixedDamage;
+                    damage = slashDamage;
                     damageGiven = true;
                 }
                 shots[i] = new ResolvedShot(s.Index, s.BulletIndex, s.NormalizedPos, s.Zone, s.Precision, damage, s.ArmorBlocked);
@@ -603,6 +652,7 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
             int version     = this.sequenceVersion;
             bool useCounter = this.damageCounterText != null;
             var absorbables = new List<AbsorbableShot>(this.pendingResolvedShots.Length);
@@ -617,7 +667,9 @@ namespace CrimsonDraft.Combat
                 var shot = this.pendingResolvedShots[i];
                 bool isMiss = shot.Zone == ShotZone.Miss;
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
-                this.SpawnMarker(local);
+                var marker = this.SpawnMarker(local);
+                if (melee)
+                    this.pendingSlashPoints.Add((marker, isMiss));
 
                 if (!melee || i == popupIndex)
                 {
@@ -625,7 +677,7 @@ namespace CrimsonDraft.Combat
                     {
                         var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
                         if (popup != null)
-                            absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss));
+                            absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss, melee ? null : marker));
                     }
                     else
                     {
@@ -657,13 +709,14 @@ namespace CrimsonDraft.Combat
             this.phase = AimPhase.WaitingDismiss;
         }
 
-        private void SpawnMarker(Vector2 localPos)
+        private GameObject SpawnMarker(Vector2 localPos)
         {
             var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
             ((RectTransform)marker.transform).localPosition = new Vector3(
                 Mathf.Round(localPos.x),
                 Mathf.Round(localPos.y),
                 0f);
+            return marker;
         }
 
         private void SpawnDispersionCircle(Vector2 localPos)
@@ -724,10 +777,11 @@ namespace CrimsonDraft.Combat
             public readonly TMP_Text   Text;
             public readonly int        Damage;
             public readonly bool       IsMiss;
+            public readonly GameObject? Marker; // impact point that vanishes together with the number
 
-            public AbsorbableShot(GameObject go, TMP_Text text, int damage, bool isMiss)
+            public AbsorbableShot(GameObject go, TMP_Text text, int damage, bool isMiss, GameObject? marker = null)
             {
-                this.Go = go; this.Text = text; this.Damage = damage; this.IsMiss = isMiss;
+                this.Go = go; this.Text = text; this.Damage = damage; this.IsMiss = isMiss; this.Marker = marker;
             }
         }
 
@@ -785,6 +839,8 @@ namespace CrimsonDraft.Combat
                 var shot = shots[i];
                 if (shot.Go != null)
                     this.AbsorbPopup(shot.Go, shot.Text);
+                if (shot.Marker != null)
+                    this.VanishMarker(shot.Marker);
 
                 if (!shot.IsMiss)
                 {
@@ -804,6 +860,36 @@ namespace CrimsonDraft.Combat
             {
                 counter.color = this.damageCounterLethalColor;
                 this.PunchDamageCounter();
+            }
+        }
+
+        // The impact point shrinks to nothing and is destroyed.
+        private void VanishMarker(GameObject marker)
+        {
+            marker.transform.DOKill();
+            marker.transform.DOScale(0f, Mathf.Max(0.01f, this.absorbPunchDuration))
+                .SetEase(Ease.InBack)
+                .OnComplete(() => { if (marker != null) Destroy(marker); });
+        }
+
+        // Melee: the points of the cut vanish in order, fast. The first one that missed is the moment
+        // the operator gets hit back (OnMeleeMissRevealed), so the failure reads at the point it happened.
+        private async UniTask VanishSlashPointsAsync(int version)
+        {
+            var points = this.pendingSlashPoints;
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
+            bool missRaised = false;
+            foreach (var (go, isMiss) in points)
+            {
+                if (go != null)
+                    this.VanishMarker(go);
+                if (isMiss && !missRaised)
+                {
+                    missRaised = true;
+                    this.OnMeleeMissRevealed?.Invoke();
+                }
+                await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.slashPointVanishInterval)));
+                if (this == null || version != this.sequenceVersion) return;
             }
         }
 

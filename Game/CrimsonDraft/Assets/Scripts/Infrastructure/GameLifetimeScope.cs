@@ -21,6 +21,7 @@ namespace CrimsonDraft.Infrastructure
         [SerializeField] private InputActionAsset inputActions   = null!;
         [SerializeField] private AudioSettingsData audioSettingsData = null!;
         [SerializeField] private GameOverView gameOverViewPrefab = null!;
+        [SerializeField] private StaticTransitionView staticTransitionViewPrefab = null!;
 
         protected override void Awake()
         {
@@ -73,6 +74,11 @@ namespace CrimsonDraft.Infrastructure
                 throw new System.InvalidOperationException(
                     $"{nameof(this.gameOverViewPrefab)} is not assigned in {nameof(GameLifetimeScope)}.");
             builder.RegisterComponentInNewPrefab(this.gameOverViewPrefab, Lifetime.Singleton).DontDestroyOnLoad().AsSelf();
+
+            if (this.staticTransitionViewPrefab == null)
+                throw new System.InvalidOperationException(
+                    $"{nameof(this.staticTransitionViewPrefab)} is not assigned in {nameof(GameLifetimeScope)}.");
+            builder.RegisterComponentInNewPrefab(this.staticTransitionViewPrefab, Lifetime.Singleton).DontDestroyOnLoad().AsSelf();
 
             builder.Register<SceneTransitionService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<EncounterContext>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
