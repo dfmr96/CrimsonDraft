@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -41,10 +42,13 @@ namespace CrimsonDraft.Navigation.Interactables
         // code, without needing to be wired as a persistent listener in the Inspector.
         public UnityEvent OnCodeAccepted => this.onCodeAccepted;
 
-        public void Construct(BeeperSignalRegistry registry, ISubscriber<BeeperSignalSentEvent> signalSubscriber)
+        public void Construct(
+            BeeperSignalRegistry registry, ISubscriber<BeeperSignalSentEvent> signalSubscriber,
+            IInventoryService inventory)
         {
             this.registry           = registry;
             this.signalSubscription = signalSubscriber.Subscribe(OnSignalSent);
+            GetComponent<BeeperRadioIndicator>()?.Bind(inventory);
         }
 
         void OnDestroy() => this.signalSubscription?.Dispose();

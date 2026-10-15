@@ -25,6 +25,11 @@ namespace CrimsonDraft.Navigation.Interactables
         // of the silent instant-collect a DocumentInteractable note gets.
         [SerializeField] private DocumentData? openNoteInstead;
 
+        // With openNoteInstead set, also puts the item in the inventory (the pickup needs room)
+        // -- for a pickup that is both a real inventory item and the source of a note, e.g. the
+        // beeper.
+        [SerializeField] private bool alsoAddItem;
+
         // Fires once the pickup actually resolves (item added, or note opened via
         // openNoteInstead) -- empty by default, so most pickups pay nothing for it. Used e.g. by
         // BeeperDoorMechanism to react to the room's beeper being collected without
@@ -96,7 +101,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 {
                     ["try_pickup"] = () =>
                     {
-                        pickupSucceeded = this.openNoteInstead != null
+                        pickupSucceeded = (this.openNoteInstead != null && !this.alsoAddItem)
                             || context.InventoryService.TryAdd(this.item);
                         context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
                     }
