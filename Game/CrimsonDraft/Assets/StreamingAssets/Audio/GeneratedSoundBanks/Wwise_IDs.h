@@ -13,6 +13,7 @@ namespace AK
 {
     namespace EVENTS
     {
+        static const AkUniqueID PAUSE_UI_VOICETAPE = 1072364249U;
         static const AkUniqueID PLAY_AMBIENCESC = 433061256U;
         static const AkUniqueID PLAY_DOORLOCKEDINTERACT = 1907839430U;
         static const AkUniqueID PLAY_DOORSSC = 5477307U;
@@ -39,11 +40,19 @@ namespace AK
         static const AkUniqueID PLAY_UI_MAINMENU_PANELTRAVEL = 2987736382U;
         static const AkUniqueID PLAY_UI_MAINMENU_START = 907179948U;
         static const AkUniqueID PLAY_UI_MAPOPEN = 2183478263U;
+        static const AkUniqueID PLAY_UI_NOTE_PAGETURN = 1208818302U;
+        static const AkUniqueID PLAY_UI_NOTE_PAPEROPEN = 1569393320U;
         static const AkUniqueID PLAY_UI_NOTEOPEN = 164040611U;
+        static const AkUniqueID PLAY_UI_VOICETAPE_INTRO = 1898610300U;
+        static const AkUniqueID PLAY_UI_VOICETAPE_LOOP = 3479398728U;
+        static const AkUniqueID PLAY_UI_VOICETAPE_REWIND = 77470107U;
         static const AkUniqueID PLAY_WEATHERBC = 384760087U;
         static const AkUniqueID PLAY_ZOMBIE_DAMAGE = 876165436U;
         static const AkUniqueID PLAY_ZOMBIESC = 2417702238U;
+        static const AkUniqueID RESUME_UI_VOICETAPE = 2869346406U;
         static const AkUniqueID STOP_RADIO = 151474297U;
+        static const AkUniqueID STOP_UI_VOICETAPE = 1970835057U;
+        static const AkUniqueID STOP_UI_VOICETAPE_REWIND = 269829613U;
     } // namespace EVENTS
 
     namespace STATES
@@ -221,6 +230,7 @@ namespace AK
         static const AkUniqueID SFXVOLUME = 988953028U;
         static const AkUniqueID SIGNALPROXIMITY = 3903230064U;
         static const AkUniqueID UISFXVOLUME = 293774682U;
+        static const AkUniqueID VOICETAPESPEED = 243934298U;
     } // namespace GAME_PARAMETERS
 
     namespace BANKS

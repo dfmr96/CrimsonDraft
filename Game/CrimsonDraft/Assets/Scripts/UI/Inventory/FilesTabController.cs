@@ -50,6 +50,8 @@ namespace CrimsonDraft.UI
 
         [Header("Voice Note Playback")]
         [SerializeField] private float voiceCharsPerSecond  = 18f;
+        [Tooltip("Segundos que suena la cinta al reves cuando se vuelve a un parrafo anterior, antes de retomar normal.")]
+        [SerializeField] private float voiceRewindSeconds   = 0.8f;
         [SerializeField] private float voiceScrubMultiplier = 4f;
         [Tooltip("Minimum real-time gap between typewriter ticks -- caps the tick rate independently of reveal speed, so holding Confirm to fast-forward (voiceScrubMultiplier) never turns it into a machine-gun.")]
         [SerializeField] private float voiceTypewriterMinInterval = 0.35f;
@@ -126,6 +128,11 @@ namespace CrimsonDraft.UI
 
         private bool    isVoiceNote;
         private bool    inVoiceBody;
+
+        // Cassette audio of the voice note being read (see InventorySfxData.StartVoiceTape).
+        private bool       tapePlaying;
+        private bool       tapeFast;
+        private Coroutine? rewindRoutine;
         private int     voiceParagraphIndex;
         private float   voiceCharsShown;
         private float   voiceTotalDuration;
@@ -327,12 +334,18 @@ namespace CrimsonDraft.UI
 
         void OnDisable()
         {
+            StopVoiceTape();
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
         }
 
         void Update()
         {
+            // The tape belongs to the open voice transcript: whatever closes it (Cancel, the last
+            // paragraph, stepping back to the title page) also silences it.
+            if (this.tapePlaying && (!this.detailView.IsOpen || !this.inVoiceBody))
+                StopVoiceTape();
+
             if (this.tabManager == null) return;
             bool tabBarNow = this.tabManager.IsTabBarActive;
             if (tabBarNow != this.wasTabBarActive)
@@ -417,8 +430,48 @@ namespace CrimsonDraft.UI
             this.voiceLastDirX       = ReadDirection().x;
             this.voiceLastTypedChars = 0;
             this.voiceLastTypewriterTime = -999f;
-            this.sfx?.PlayVoiceStart(gameObject);
+            StartVoiceTape();
             ShowVoiceParagraph();
+        }
+
+        void StartVoiceTape()
+        {
+            StopVoiceTape();
+            this.tapePlaying = true;
+            this.tapeFast    = false;
+            this.sfx?.StartVoiceTape(gameObject);
+        }
+
+        void StopVoiceTape()
+        {
+            if (this.rewindRoutine != null)
+            {
+                StopCoroutine(this.rewindRoutine);
+                this.rewindRoutine = null;
+            }
+            if (!this.tapePlaying) return;
+
+            this.tapePlaying = false;
+            this.tapeFast    = false;
+            this.sfx?.StopVoiceTape(gameObject);
+        }
+
+        // Going back a paragraph: the tape runs backwards for a moment, then carries on normally.
+        void BeginVoiceRewind()
+        {
+            if (!this.tapePlaying) return;
+
+            if (this.rewindRoutine != null) StopCoroutine(this.rewindRoutine);
+            else this.sfx?.BeginVoiceTapeRewind(gameObject);
+
+            this.rewindRoutine = StartCoroutine(VoiceRewindRoutine());
+        }
+
+        IEnumerator VoiceRewindRoutine()
+        {
+            yield return new WaitForSecondsRealtime(this.voiceRewindSeconds);
+            this.rewindRoutine = null;
+            this.sfx?.EndVoiceTapeRewind(gameObject);
         }
 
         // Runs every frame while a voice note's transcript is on screen. Each paragraph is its
@@ -450,6 +503,13 @@ namespace CrimsonDraft.UI
 
             bool atEnd = this.voiceCharsShown >= totalVisible;
             this.voiceAccelerating = pressed && this.voiceAccelArmed && !atEnd;
+
+            // Fast-forwarding the text speeds the tape up too (and slows it back down on release).
+            if (this.voiceAccelerating != this.tapeFast)
+            {
+                this.tapeFast = this.voiceAccelerating;
+                this.sfx?.SetVoiceTapeFast(this.tapeFast);
+            }
 
             float rate = this.voiceAccelerating ? this.voiceScrubMultiplier : 1f;
             this.voiceCharsShown = Mathf.Min(
@@ -488,6 +548,8 @@ namespace CrimsonDraft.UI
             this.voiceParagraphIndex = target;
             this.voiceCharsShown     = 0f;
             this.voiceLastTypedChars = 0;
+
+            if (delta < 0) BeginVoiceRewind();
         }
 
         void ShowVoiceParagraph()
@@ -496,20 +558,7 @@ namespace CrimsonDraft.UI
             int    totalVisible = CountVisibleChars(paragraph);
             int    shown        = Mathf.Clamp(Mathf.FloorToInt(this.voiceCharsShown), 0, totalVisible);
 
-            // Typewriter tick: only past the furthest point ever revealed in this paragraph
-            // (voiceLastTypedChars only ever grows here, via Mathf.Max) -- otherwise rewinding
-            // and then scrubbing forward again over text that's already fully on screen would
-            // replay ticks for characters that aren't actually being "typed" anymore. Also
-            // gated by a minimum real-time interval rather than a character count -- a
-            // character-count gate still machine-guns while scrubbing (voiceScrubMultiplier
-            // reveals characters up to 4x faster), since more real ticks fit in the same
-            // second. A wall-clock cooldown keeps the tick rate constant regardless of speed.
-            if (shown > this.voiceLastTypedChars &&
-                Time.unscaledTime - this.voiceLastTypewriterTime >= this.voiceTypewriterMinInterval)
-            {
-                this.sfx?.PlayVoiceTypewriter(gameObject);
-                this.voiceLastTypewriterTime = Time.unscaledTime;
-            }
+            // No typewriter tick here: a voice note's only sound is the cassette (see StartVoiceTape).
             this.voiceLastTypedChars = Mathf.Max(this.voiceLastTypedChars, shown);
 
             float elapsedBefore = 0f;
@@ -656,7 +705,10 @@ namespace CrimsonDraft.UI
             var doc = this.filteredNotes[this.selectedIndex];
             if (!string.IsNullOrEmpty(doc.NoteId))
             {
-                this.sfx?.PlayFileOpen(gameObject);
+                // Paper rustle for a note; a voice note is a cassette, its own tape sound starts
+                // once the transcript opens.
+                if (doc.Category != DocumentCategory.VoiceNotes)
+                    this.sfx?.PlayFileOpen(gameObject);
                 OpenNote(doc);
             }
         }
@@ -814,6 +866,7 @@ namespace CrimsonDraft.UI
                 this.detailView.Hide();
                 return;
             }
+            PlayPageTurnSound();
             ShowCurrentPage();
         }
 
@@ -821,7 +874,16 @@ namespace CrimsonDraft.UI
         {
             if (this.pageIndex <= 0) return;
             this.pageIndex--;
+            PlayPageTurnSound();
             ShowCurrentPage();
+        }
+
+        // Paper rustle for turning the page of a normal note. Voice notes never play it: their
+        // title/image pages and transcript paragraphs aren't sheets of paper.
+        void PlayPageTurnSound()
+        {
+            if (this.isVoiceNote) return;
+            this.sfx?.PlayPageTurn(gameObject);
         }
 
         // ── Focus / Highlights ────────────────────────────────────────────────

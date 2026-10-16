@@ -383,6 +383,117 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_UI_Note_PaperOpen" ID="{614157C1-6C24-4DAC-84F2-7161CE55243A}">
+					<ChildrenList>
+						<Action Name="Play_UI_Note_PaperOpen" ID="{819C8AA9-79FF-4C15-9933-9EBAB9DD85DD}" ShortID="1018188347">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Note_PaperOpen" ID="{E8F9C986-CB56-458C-AE06-A7CB479F7FD0}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_UI_Note_PageTurn" ID="{699549AF-8013-44D1-85BC-77661ED8155B}">
+					<ChildrenList>
+						<Action Name="Play_UI_Note_PageTurn" ID="{196D399F-FDB7-4135-A047-8378A6A2EEF0}" ShortID="454786546">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Note_PageTurn" ID="{BEDA4006-626B-4143-BDD0-5F55FC1338D7}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Stop_UI_VoiceTape" ID="{4BF56EF7-6547-44F7-992C-2A296784B921}">
+					<ChildrenList>
+						<Action Name="Stop_UI_VoiceTape" ID="{2077E007-0F18-415E-A2EF-AB56839FDB78}" ShortID="843840929">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="2"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape" ID="{950F6D42-443F-4499-B619-34CC49C569F9}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Pause_UI_VoiceTape" ID="{F3A2CF6D-BA81-42A4-B75D-56B045A387C1}">
+					<ChildrenList>
+						<Action Name="Pause_UI_VoiceTape" ID="{CB6C5CFA-17E2-4336-AE4E-072C433DAF41}" ShortID="523267334">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="7"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape" ID="{950F6D42-443F-4499-B619-34CC49C569F9}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Resume_UI_VoiceTape" ID="{FCEC02FA-4B51-432D-96B8-B469F10BAD97}">
+					<ChildrenList>
+						<Action Name="Resume_UI_VoiceTape" ID="{E0D013A7-C2F1-42C1-9F18-6005D84D9D52}" ShortID="215243548">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="9"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape" ID="{950F6D42-443F-4499-B619-34CC49C569F9}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_UI_VoiceTape_Rewind" ID="{7E8D637A-B4A3-45BA-B56F-0DB1325D376E}">
+					<ChildrenList>
+						<Action Name="Play_UI_VoiceTape_Rewind" ID="{A386147A-4A21-443D-ABF0-902AEB579C1A}" ShortID="264649628">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape_Rewind" ID="{068E3C60-D94A-4C60-878D-311233916460}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Stop_UI_VoiceTape_Rewind" ID="{BA7E24CA-E40C-4E49-AB95-329F5D414EAB}">
+					<ChildrenList>
+						<Action Name="Stop_UI_VoiceTape_Rewind" ID="{A02EB321-3CDE-493A-ABDE-44A1547A59B1}" ShortID="520426752">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="2"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape_Rewind" ID="{068E3C60-D94A-4C60-878D-311233916460}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_UI_VoiceTape_Intro" ID="{EA98C3C6-8331-4843-806B-EB1F7C7736DA}">
+					<ChildrenList>
+						<Action Name="Play_UI_VoiceTape_Intro" ID="{BC4453CB-6340-4DA3-AB66-C794C8CDC0C7}" ShortID="508863488">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape_Intro" ID="{FAD1EA7D-A6D9-46CA-A803-F63A6C91ECDF}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_UI_VoiceTape_Loop" ID="{93E20AC6-3E92-4E07-A7CC-6B5607C73A79}">
+					<ChildrenList>
+						<Action Name="Play_UI_VoiceTape_Loop" ID="{D2FB0D78-38E4-46BE-82D5-FBBC1522D3DE}" ShortID="424365697">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="VoiceTape_Loop" ID="{0AAEAA2A-8CBF-4762-8E4C-CB48A35E9185}" WorkUnitID="{CCD741DC-B941-451F-808D-D60A6DF1560B}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

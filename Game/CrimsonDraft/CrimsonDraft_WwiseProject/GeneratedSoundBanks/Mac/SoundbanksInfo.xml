@@ -11,7 +11,7 @@
 	<StreamedFiles/>
 	<MediaFilesNotInAnyBank/>
 	<SoundBanks>
-		<SoundBank Id="1355168291" Language="SFX" Hash="2366324567">
+		<SoundBank Id="1355168291" Language="SFX" Hash="117646959">
 			<ObjectPath>Init</ObjectPath>
 			<ShortName>Init</ShortName>
 			<Path>Init.bnk</Path>
@@ -19,6 +19,7 @@
 				<AuxBus Id="425396316" Name="AUX_REVERB" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\SFX\AUX_REVERB"/>
 			</IncludedAuxBusses>
 			<GameParameters>
+				<GameParameter Id="293774682" Name="UiSfxVolume" ObjectPath="\Game Parameters\VolumeSettings\UiSfxVolume"/>
 				<GameParameter Id="988953028" Name="SfxVolume" ObjectPath="\Game Parameters\VolumeSettings\SfxVolume"/>
 				<GameParameter Id="2346531308" Name="MusicVolume" ObjectPath="\Game Parameters\VolumeSettings\MusicVolume"/>
 				<GameParameter Id="2918011349" Name="MasterVolume" ObjectPath="\Game Parameters\VolumeSettings\MasterVolume"/>
@@ -37,11 +38,12 @@
 				</StateGroup>
 			</StateGroups>
 		</SoundBank>
-		<SoundBank Id="3161908922" Language="SFX" Hash="1689023726">
+		<SoundBank Id="3161908922" Language="SFX" Hash="772810774">
 			<ObjectPath>\SoundBanks\Default Work Unit\Main</ObjectPath>
 			<ShortName>Main</ShortName>
 			<Path>Main.bnk</Path>
 			<IncludedEvents>
+				<Event Id="1072364249" Name="Pause_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Pause_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 				<Event Id="433061256" Name="Play_AmbienceSC" ObjectPath="\Events\Default Work Unit\Play_AmbienceSC" DurationType="Infinite">
 					<IncludedMemoryFiles>
 						<File Id="180281241" Language="SFX">
@@ -626,11 +628,99 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
+				<Event Id="1804929125" Name="Play_UI_Beeper_MorseBeep" ObjectPath="\Events\Default Work Unit\Play_UI_Beeper_MorseBeep" DurationType="Infinite">
+					<IncludedMemoryFiles>
+						<File Id="708273550" Language="SFX">
+							<ShortName>SFX\morse_beep.wav</ShortName>
+							<Path>SFX\SFX\morse_beep_FD7EB04F.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="2769983225" Name="Play_UI_Files_VoiceStart" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceStart" DurationType="OneShot" DurationMin="0.5" DurationMax="0.5">
+					<IncludedMemoryFiles>
+						<File Id="1046219614" Language="SFX">
+							<ShortName>SFX\start_recording.wav</ShortName>
+							<Path>SFX\SFX\start_recording_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="3881013322" Name="Play_UI_Files_VoiceTypewriter" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceTypewriter" DurationType="OneShot" DurationMin="0.182698" DurationMax="0.182698">
+					<IncludedMemoryFiles>
+						<File Id="187550915" Language="SFX">
+							<ShortName>SFX\write.wav</ShortName>
+							<Path>SFX\SFX\write_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
 				<Event Id="367771734" Name="Play_UI_InvalidAction" ObjectPath="\Events\Default Work Unit\Play_UI_InvalidAction" DurationType="OneShot" DurationMin="0.240159" DurationMax="0.240159">
 					<IncludedMemoryFiles>
 						<File Id="52425477" Language="SFX">
 							<ShortName>denied.wav</ShortName>
 							<Path>SFX\denied_9ED9F99E.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1453023494" Name="Play_UI_MainMenu_Cancel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cancel" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1187859758" Name="Play_UI_MainMenu_Cursor" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cursor" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1053706072" Name="Play_UI_MainMenu_Decide" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Decide" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
+					<IncludedMemoryFiles>
+						<File Id="886094603" Language="SFX">
+							<ShortName>SFX\cursor.wav</ShortName>
+							<Path>SFX\SFX\cursor_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="4143229233" Name="Play_UI_MainMenu_FilesChange" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_FilesChange" DurationType="OneShot" DurationMin="0.227271" DurationMax="0.227271">
+					<IncludedMemoryFiles>
+						<File Id="330754536" Language="SFX">
+							<ShortName>SFX\change_files.wav</ShortName>
+							<Path>SFX\SFX\change_files_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1350620445" Name="Play_UI_MainMenu_KnobLimit" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobLimit" DurationType="OneShot" DurationMin="0.257052" DurationMax="0.257052">
+					<IncludedMemoryFiles>
+						<File Id="338764166" Language="SFX">
+							<ShortName>SFX\KnobTick.wav</ShortName>
+							<Path>SFX\SFX\KnobTick_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1794575571" Name="Play_UI_MainMenu_KnobTick" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobTick" DurationType="OneShot" DurationMin="0.420604" DurationMax="0.420604">
+					<IncludedMemoryFiles>
+						<File Id="682514390" Language="SFX">
+							<ShortName>SFX\knobnew.wav</ShortName>
+							<Path>SFX\SFX\knobnew_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="2987736382" Name="Play_UI_MainMenu_PanelTravel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_PanelTravel" DurationType="OneShot" DurationMin="3.312086" DurationMax="3.312086">
+					<IncludedMemoryFiles>
+						<File Id="453653971" Language="SFX">
+							<ShortName>SFX\Start.wav</ShortName>
+							<Path>SFX\SFX\Start_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="907179948" Name="Play_UI_MainMenu_Start" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Start" DurationType="OneShot" DurationMin="1.916644" DurationMax="1.916644">
+					<IncludedMemoryFiles>
+						<File Id="226753358" Language="SFX">
+							<ShortName>SFX\enter.wav</ShortName>
+							<Path>SFX\SFX\enter_CEC2E741.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -642,11 +732,51 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
+				<Event Id="1208818302" Name="Play_UI_Note_PageTurn" ObjectPath="\Events\Default Work Unit\Play_UI_Note_PageTurn" DurationType="OneShot" DurationMin="0.951723" DurationMax="0.951723">
+					<IncludedMemoryFiles>
+						<File Id="367374793" Language="SFX">
+							<ShortName>page_turn.wav</ShortName>
+							<Path>SFX\page_turn_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1569393320" Name="Play_UI_Note_PaperOpen" ObjectPath="\Events\Default Work Unit\Play_UI_Note_PaperOpen" DurationType="OneShot" DurationMin="1.043605" DurationMax="1.043605">
+					<IncludedMemoryFiles>
+						<File Id="562646807" Language="SFX">
+							<ShortName>paper_open.wav</ShortName>
+							<Path>SFX\paper_open_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
 				<Event Id="164040611" Name="Play_UI_NoteOpen" ObjectPath="\Events\Default Work Unit\Play_UI_NoteOpen" DurationType="OneShot" DurationMin="0.596644" DurationMax="0.596644">
 					<IncludedMemoryFiles>
 						<File Id="997707427" Language="SFX">
 							<ShortName>CORE22.SAP 00005.wav</ShortName>
 							<Path>SFX\CORE22.SAP 00005_9ED9F99E.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1898610300" Name="Play_UI_VoiceTape_Intro" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Intro" DurationType="OneShot" DurationMin="4.740979" DurationMax="4.740979">
+					<IncludedMemoryFiles>
+						<File Id="473799161" Language="SFX">
+							<ShortName>record_tape_intro.wav</ShortName>
+							<Path>SFX\record_tape_intro_CEC2E741.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="3479398728" Name="Play_UI_VoiceTape_Loop" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Loop" DurationType="Infinite">
+					<IncludedMemoryFiles>
+						<File Id="608327744" Language="SFX">
+							<ShortName>record_tape_loop.wav</ShortName>
+							<Path>SFX\record_tape_loop_FD7EB04F.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="77470107" Name="Play_UI_VoiceTape_Rewind" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Rewind" DurationType="Infinite">
+					<IncludedMemoryFiles>
+						<File Id="528999157" Language="SFX">
+							<ShortName>record_tape_loop_rev.wav</ShortName>
+							<Path>SFX\record_tape_loop_rev_FD7EB04F.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -768,9 +898,13 @@
 						</SwitchContainer>
 					</SwitchContainers>
 				</Event>
+				<Event Id="2869346406" Name="Resume_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Resume_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 				<Event Id="151474297" Name="Stop_Radio" ObjectPath="\Events\Default Work Unit\Stop_Radio" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
+				<Event Id="1970835057" Name="Stop_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Stop_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
+				<Event Id="269829613" Name="Stop_UI_VoiceTape_Rewind" ObjectPath="\Events\Default Work Unit\Stop_UI_VoiceTape_Rewind" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 			</IncludedEvents>
 			<GameParameters>
+				<GameParameter Id="243934298" Name="VoiceTapeSpeed" ObjectPath="\Game Parameters\VolumeSettings\VoiceTapeSpeed"/>
 				<GameParameter Id="444815956" Name="PlayerLife" ObjectPath="\Game Parameters\PlayerParameters\PlayerLife"/>
 				<GameParameter Id="1297380730" Name="OutsideStormForce" ObjectPath="\Game Parameters\WeatherParameters\OutsideStormForce"/>
 				<GameParameter Id="3108935281" Name="InsideStormForce" ObjectPath="\Game Parameters\WeatherParameters\InsideStormForce"/>
