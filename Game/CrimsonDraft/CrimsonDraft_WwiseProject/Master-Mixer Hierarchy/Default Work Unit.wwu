@@ -203,10 +203,40 @@
 									</ReferenceList>
 									<ObjectLists/>
 								</AuxBus>
-								<Bus Name="UI" ID="{2AE02916-CBCC-4D5D-BC63-45ECEF6CEC60}">
-									<ObjectLists/>
-								</Bus>
 							</ChildrenList>
+							<ObjectLists/>
+						</Bus>
+						<Bus Name="UI" ID="{2AE02916-CBCC-4D5D-BC63-45ECEF6CEC60}">
+							<PropertyList>
+								<Property Name="Volume" Type="Real64">
+									<RTPCList>
+										<RTPC Name="" ID="{052E9392-F6DC-478B-BFC9-D2352358BD14}" ShortID="157624959">
+											<ReferenceList>
+												<Reference Name="ControlInput">
+													<ObjectRef Name="UiSfxVolume" ID="{B8C08C2B-A3D2-455A-8842-813DA5927E4A}" WorkUnitID="{B3708C84-0836-486E-86B9-DCE55DB8464B}"/>
+												</Reference>
+											</ReferenceList>
+											<Curve Name="" ID="{479A70F2-E5BB-4EF3-803F-583E54940C2A}">
+												<PropertyList>
+													<Property Name="Flags" Type="int32" Value="3"/>
+												</PropertyList>
+												<PointList>
+													<Point>
+														<XPos>0</XPos>
+														<YPos>-200</YPos>
+														<Flags>5</Flags>
+													</Point>
+													<Point>
+														<XPos>100</XPos>
+														<YPos>0</YPos>
+														<Flags>37</Flags>
+													</Point>
+												</PointList>
+											</Curve>
+										</RTPC>
+									</RTPCList>
+								</Property>
+							</PropertyList>
 							<ObjectLists/>
 						</Bus>
 					</ChildrenList>

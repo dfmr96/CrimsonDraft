@@ -220,6 +220,7 @@ namespace AK
         static const AkUniqueID PLAYERLIFE = 444815956U;
         static const AkUniqueID SFXVOLUME = 988953028U;
         static const AkUniqueID SIGNALPROXIMITY = 3903230064U;
+        static const AkUniqueID UISFXVOLUME = 293774682U;
     } // namespace GAME_PARAMETERS
 
     namespace BANKS

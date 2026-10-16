@@ -101,14 +101,21 @@ namespace CrimsonDraft.Navigation.UI
         /// <summary>Snaps the Keyboard/Gamepad row to the device in hand (no sound, no animation).</summary>
         public void SetDevice(bool gamepad)
         {
+            EnsureInitialized();
             this.device.applied = this.device.cursor = gamepad ? 1 : 0;
             MoveBar(this.device, animate: false);
             ApplyMapping();
             RefreshHover();
         }
 
-        private void Awake()
+        private void Awake() => EnsureInitialized();
+
+        // The pause menu drives this panel (SetDevice, ShowOutline, HideOutlines...) while its
+        // GameObject is still inactive -- Settings only activates the Control tab once it's
+        // reached -- so Unity hasn't run Awake yet and the first call has to build the rows itself.
+        private void EnsureInitialized()
         {
+            if (this.rows != null) return;
             this.rows = new[] { this.scheme, this.device };
             if (this.startButton != null)
             {
@@ -156,18 +163,21 @@ namespace CrimsonDraft.Navigation.UI
 
         public void ShowOutline(int index)
         {
+            EnsureInitialized();
             this.selectedChannel = index;
             RefreshHover();
         }
 
         public void HideOutlines()
         {
+            EnsureInitialized();
             this.selectedChannel = -1;
             RefreshHover();
         }
 
         public void Adjust(int index, int direction)
         {
+            EnsureInitialized();
             if (index >= this.rows.Length) return;
             var row = this.rows[index];
             int next = Mathf.Clamp(row.cursor + direction, 0, 1);
@@ -181,6 +191,7 @@ namespace CrimsonDraft.Navigation.UI
 
         public void Confirm(int index)
         {
+            EnsureInitialized();
             if (index == StartChannel)
             {
                 this.startButton?.onClick.Invoke();
@@ -202,6 +213,7 @@ namespace CrimsonDraft.Navigation.UI
         // Pulls the applied state from the service and snaps everything to it (no animation).
         private void Refresh(bool animate)
         {
+            EnsureInitialized();
             this.scheme.applied = this.controlSchemeService.CurrentScheme == ControlScheme.Classic ? 0 : 1;
             this.scheme.cursor  = this.scheme.applied;
             this.device.cursor  = this.device.applied;

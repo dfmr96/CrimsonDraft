@@ -11,7 +11,7 @@ using VContainer;
 namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
-    /// Sound tab content (Master/SFX/Music). No input of its own -- <see cref="OptionsTabController"/>
+    /// Sound tab content (Master/SFX/UI SFX/Music). No input of its own -- <see cref="OptionsTabController"/>
     /// drives it. The selected channel's label, percentage and underline turn white; the underline
     /// of every other channel stays the label's green.
     /// </summary>
@@ -32,6 +32,7 @@ namespace CrimsonDraft.UI.MainMenu
         [Header("Channels (navigation order: top to bottom)")]
         [SerializeField] private SoundChannel master = null!;
         [SerializeField] private SoundChannel sfx    = null!;
+        [SerializeField] private SoundChannel uiSfx  = null!;
         [SerializeField] private SoundChannel music  = null!;
 
         [SerializeField] private Color selectedColor = Color.white;
@@ -42,7 +43,7 @@ namespace CrimsonDraft.UI.MainMenu
         private IAudioSettingsService audioSettingsService = null!;
         private MainMenuSfxData      sfxData               = null!;
 
-        public int ChannelCount => 3;
+        public int ChannelCount => 4;
 
         [Inject]
         public void Construct(IAudioSettingsService audioSettingsService, MainMenuSfxData sfxData)
@@ -53,7 +54,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void Awake()
         {
-            this.channels = new[] { this.master, this.sfx, this.music };
+            this.channels = new[] { this.master, this.sfx, this.uiSfx, this.music };
             foreach (var channel in this.channels)
             {
                 channel.labelColor = channel.label.color;
@@ -69,6 +70,7 @@ namespace CrimsonDraft.UI.MainMenu
             {
                 this.audioSettingsService.SetMasterVolume,
                 this.audioSettingsService.SetSfxVolume,
+                this.audioSettingsService.SetUiSfxVolume,
                 this.audioSettingsService.SetMusicVolume,
             };
 
@@ -76,6 +78,7 @@ namespace CrimsonDraft.UI.MainMenu
             {
                 this.audioSettingsService.MasterVolume,
                 this.audioSettingsService.SfxVolume,
+                this.audioSettingsService.UiSfxVolume,
                 this.audioSettingsService.MusicVolume,
             };
 

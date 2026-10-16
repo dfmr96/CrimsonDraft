@@ -44,6 +44,9 @@ namespace CrimsonDraft.UI.MainMenu
 
         private bool isOpen;
         private int  activeTab;
+
+        /// <summary>Raised whenever a tab becomes the active one (0 = Video, 1 = Control, 2 = Sound), including on Open().</summary>
+        public event System.Action<int>? ActiveTabChanged;
         private bool onTabRow;
         private int  contentIndex;
 
@@ -222,6 +225,7 @@ namespace CrimsonDraft.UI.MainMenu
                 if (!active) Panel(i).HideOutlines();
             }
             RefreshTabBar();
+            ActiveTabChanged?.Invoke(tab);
         }
     }
 }
