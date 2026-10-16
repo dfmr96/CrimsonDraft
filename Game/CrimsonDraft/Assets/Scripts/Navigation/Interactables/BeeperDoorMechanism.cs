@@ -5,8 +5,8 @@ using UnityEngine;
 namespace CrimsonDraft.Navigation.Interactables
 {
     /// <summary>Wires this room's beeper pickup (a PickupInteractable whose openNoteInstead
-    /// points at Note_B01 -- the operator card the player reads to unlock the BEEPER tab, see
-    /// TabManager's beeperUnlockNoteId), its BeeperReceiverInteractable code-toggle, and the
+    /// points at Note_B01 and has alsoAddItem set, so it shows the note and puts the beeper item KI_21
+    /// in the inventory -- TabManager shows the BEEPER tab while a living operator carries it), its BeeperReceiverInteractable code-toggle, and the
     /// radio's visual feedback together. Sits beside BeeperReceiverInteractable and
     /// BeeperRadioIndicator on the trigger GameObject. Picking up beeperPickup locks door,
     /// reveals bigPaint, and switches the radio on (BeeperRadioIndicator.Activate() -- before
