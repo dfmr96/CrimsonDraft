@@ -2,6 +2,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
@@ -39,6 +41,9 @@ namespace CrimsonDraft.Navigation.Interactables
         private SaveSlotNavigator?           telegraphNavigator;
         private TelegraphPhase               telegraphPhase;
         private Action?                      telegraphOnClosed;
+        private ITelegraphMorse?             telegraphMorse;
+        private CancellationTokenSource?     morseCancellation;
+        private int                          pendingReveals;
 
         [Preserve]
         public SaveController(
@@ -89,11 +94,12 @@ namespace CrimsonDraft.Navigation.Interactables
             DeferredInputAction.Run(this.inputService.SwitchToGameplay);
         }
 
-        public void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed)
+        public void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed, ITelegraphMorse? morse = null)
         {
             if (this.telegraphNavigator != null || this.navigator.IsOpen) return;
             this.pendingOnSaved    = onSaved;
             this.telegraphOnClosed = onClosed;
+            this.telegraphMorse    = morse;
             this.telegraphView     = view;
             this.telegraphPhase    = TelegraphPhase.Browsing;
 
@@ -122,14 +128,54 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             Save(slot);
 
+            // Done once the file's text has typed out AND, if the station has a key, its Morse
+            // message ("SAVE 01") has been sent -- both start together.
             this.telegraphPhase = TelegraphPhase.Revealing;
-            this.telegraphView!.ShowSaved(VisibleSlots(this.telegraphView), slot, () => this.telegraphPhase = TelegraphPhase.Done);
+            this.pendingReveals = this.telegraphMorse != null ? 2 : 1;
+
+            // The text types out over exactly as long as the Morse message lasts, so the typing keeps
+            // the rhythm of the pulses. No input is accepted until both are done (see OnConfirm/OnBack).
+            string message       = $"SAVE {slot + 1:00}";
+            float  morseSeconds  = this.telegraphMorse?.MeasureSeconds(message) ?? 0f;
+            this.telegraphView!.ShowSaved(VisibleSlots(this.telegraphView), slot, OnRevealPartDone, morseSeconds);
+
+            if (this.telegraphMorse != null)
+                TransmitSaveMorseAsync(this.telegraphMorse, message).Forget();
+        }
+
+        private void OnRevealPartDone()
+        {
+            if (--this.pendingReveals <= 0) this.telegraphPhase = TelegraphPhase.Done;
+        }
+
+        private async UniTaskVoid TransmitSaveMorseAsync(ITelegraphMorse morse, string message)
+        {
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = new CancellationTokenSource();
+            var token = this.morseCancellation.Token;
+
+            try
+            {
+                await morse.TransmitAsync(message, token);
+                OnRevealPartDone();
+            }
+            catch (OperationCanceledException)
+            {
+                // Panel closed mid-message: the station already released the key.
+            }
         }
 
         private void OnTelegraphClosed()
         {
             this.telegraphNavigator = null;
             this.telegraphView      = null;
+
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = null;
+            this.telegraphMorse?.StopTransmission();
+            this.telegraphMorse = null;
 
             // Saved or cancelled -- either way the owner leaves the telegraph camera.
             var onClosed = this.telegraphOnClosed;

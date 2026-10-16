@@ -93,7 +93,8 @@ namespace CrimsonDraft.Navigation.Interactables
             context.SaveController.OpenTelegraph(
                 station.View,
                 onSaved,
-                onClosed: () => DeferredInputAction.Run(inspection.ExitNow));
+                onClosed: () => DeferredInputAction.Run(inspection.ExitNow),
+                morse: station);
         }
     }
 }
