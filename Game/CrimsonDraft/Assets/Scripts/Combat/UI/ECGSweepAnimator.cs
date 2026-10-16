@@ -76,6 +76,15 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0f, 1f)] private float glitchTintStrength = 0.9f;
         [Tooltip("How many times per second the torn bands / fringes change during the glitch.")]
         [SerializeField, Min(1f)] private float glitchSeedRate = 24f;
+        [Tooltip("Vertical shake of the whole panel during the glitch, in pixels.")]
+        [SerializeField, Min(0f)] private float glitchJitterAmountY = 2f;
+
+        [Header("Damage Glitch - whole panel")]
+        [Tooltip("Tear / ghost-fringe shader (CrimsonDraft/UI/GlitchPanel) applied to the frame sprites while glitching. Falls back to Shader.Find if unset.")]
+        [SerializeField] private Shader? glitchPanelShader;
+        [Tooltip("Graphics that make up the box around the ECG (frame, backdrop, status text). Empty = every Image/Text under this object except the trace and its glow.")]
+        [SerializeField] private Graphic[] glitchPanelGraphics = System.Array.Empty<Graphic>();
+        [SerializeField, Range(0f, 1f)] private float glitchPanelMinAlpha = 0.45f;
 
         // Mercy (0 HP, still alive): the sprite and its glow breathe in and out like a
         // warning beacon instead of sitting at a flat tint, so the card visibly flags
@@ -106,6 +115,11 @@ namespace CrimsonDraft.Combat
         private bool glitchInitialized;
         private bool isGlitching;
         private float glitchTimer;
+
+        private Graphic[] glitchPanelResolved = System.Array.Empty<Graphic>();
+        private Color[] glitchPanelRestColors = System.Array.Empty<Color>();
+        private Material?[] glitchPanelRestMaterials = System.Array.Empty<Material?>();
+        private Material?[] glitchPanelMaterials = System.Array.Empty<Material?>();
 
         #endregion
 
@@ -316,8 +330,82 @@ namespace CrimsonDraft.Combat
         public void PlayDamageGlitch()
         {
             this.EnsureGlitchInitialized();
+            if (!this.isGlitching)
+                this.BeginPanelGlitch();
             this.isGlitching = true;
             this.glitchTimer = 0f;
+        }
+
+        // Swaps the frame sprites onto the tear shader (one material instance each, since the
+        // shader needs each sprite's own UV rect) and remembers what to put back afterwards.
+        private void BeginPanelGlitch()
+        {
+            if (this.glitchPanelGraphics.Length > 0)
+                this.glitchPanelResolved = this.glitchPanelGraphics;
+            else
+            {
+                var found = new System.Collections.Generic.List<Graphic>();
+                foreach (var g in GetComponentsInChildren<Graphic>(true))
+                {
+                    if (g == this.traceImage || g == this.effectImage) continue;
+                    found.Add(g);
+                }
+                this.glitchPanelResolved = found.ToArray();
+            }
+
+            var shader = this.glitchPanelShader != null ? this.glitchPanelShader : Shader.Find("CrimsonDraft/UI/GlitchPanel");
+            int n = this.glitchPanelResolved.Length;
+            this.glitchPanelRestColors    = new Color[n];
+            this.glitchPanelRestMaterials = new Material?[n];
+            this.glitchPanelMaterials     = new Material?[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                var g = this.glitchPanelResolved[i];
+                this.glitchPanelRestColors[i] = g.color;
+                if (g is not Image img || shader == null) continue;
+
+                this.glitchPanelRestMaterials[i] = img.material;
+                var mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                mat.SetVector(SpriteRectId, GetSpriteUvRect(img.sprite));
+                img.material = mat;
+                this.glitchPanelMaterials[i] = mat;
+            }
+        }
+
+        private void EndPanelGlitch()
+        {
+            for (int i = 0; i < this.glitchPanelResolved.Length; i++)
+            {
+                var g = this.glitchPanelResolved[i];
+                if (g == null) continue;
+                g.color = this.glitchPanelRestColors[i];
+                if (g is Image img && this.glitchPanelMaterials[i] != null)
+                {
+                    img.material = this.glitchPanelRestMaterials[i];
+                    Destroy(this.glitchPanelMaterials[i]);
+                    this.glitchPanelMaterials[i] = null;
+                }
+            }
+        }
+
+        private void UpdatePanelGlitch(float amount, float step, float tintMix)
+        {
+            for (int i = 0; i < this.glitchPanelResolved.Length; i++)
+            {
+                var g = this.glitchPanelResolved[i];
+                if (g == null) continue;
+
+                var color = TintTowards(this.glitchPanelRestColors[i], this.glitchTint, tintMix);
+                color.a *= Random.Range(this.glitchPanelMinAlpha, 1f);
+                g.color = color;
+
+                var mat = this.glitchPanelMaterials[i];
+                if (mat == null) continue;
+                mat.SetFloat(GlitchAmountId, amount);
+                mat.SetFloat(GlitchSeedId, step);
+                mat.SetColor(GlitchTintId, this.glitchTint);
+            }
         }
 
         private void EnsureGlitchInitialized()
@@ -342,6 +430,7 @@ namespace CrimsonDraft.Combat
                 if (this.effectImage != null)
                     this.effectImage.color = this.glitchEffectRestColor;
                 this.SetShaderGlitch(0f, 0f);
+                this.EndPanelGlitch();
                 return;
             }
 
@@ -352,10 +441,12 @@ namespace CrimsonDraft.Combat
             this.SetShaderGlitch(amount, step);
 
             float jitterX = Random.Range(-this.glitchJitterAmount, this.glitchJitterAmount);
-            this.glitchRect!.anchoredPosition = this.glitchRestPosition + new Vector2(jitterX, 0f);
+            float jitterY = Random.Range(-this.glitchJitterAmountY, this.glitchJitterAmountY);
+            this.glitchRect!.anchoredPosition = this.glitchRestPosition + new Vector2(jitterX, jitterY);
 
             // The trace (and its glow) flash toward the glitch tint, then settle back to their own color.
             float tintMix = this.glitchTintStrength * Mathf.Pow(envelope, 0.6f);
+            this.UpdatePanelGlitch(amount, step, tintMix);
 
             var traceColor = TintTowards(this.glitchTraceRestColor, this.glitchTint, tintMix);
             traceColor.a *= Random.Range(this.glitchMinAlpha, 1f);
@@ -396,6 +487,7 @@ namespace CrimsonDraft.Combat
             this.isGlitching = false;
             this.glitchRect.anchoredPosition = this.glitchRestPosition;
             this.SetShaderGlitch(0f, 0f);
+            this.EndPanelGlitch();
         }
 
         #endregion
