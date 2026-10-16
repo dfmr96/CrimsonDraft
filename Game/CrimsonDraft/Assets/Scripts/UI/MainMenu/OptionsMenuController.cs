@@ -4,6 +4,7 @@ using CrimsonDraft.Navigation.UI;
 using System;
 using CrimsonDraft.Infrastructure.Audio;
 using TMPro;
+using UnityEngine.UI;
 using UnityEngine;
 using VContainer;
 
@@ -11,7 +12,8 @@ namespace CrimsonDraft.UI.MainMenu
 {
     /// <summary>
     /// Sound tab content (Master/SFX/Music). No input of its own -- <see cref="OptionsTabController"/>
-    /// drives it. The selected channel's label and percentage turn white.
+    /// drives it. The selected channel's label, percentage and underline turn white; the underline
+    /// of every other channel stays the label's green.
     /// </summary>
     public sealed class OptionsMenuController : MonoBehaviour, IOptionsChannelPanel
     {
@@ -20,6 +22,7 @@ namespace CrimsonDraft.UI.MainMenu
         {
             [SerializeField] public TextMeshProUGUI label      = null!;
             [SerializeField] public TextMeshProUGUI valueLabel = null!;
+            [SerializeField] public Image?          underline;
 
             [NonSerialized] public Color labelColor;
             [NonSerialized] public Color valueColor;
@@ -56,6 +59,7 @@ namespace CrimsonDraft.UI.MainMenu
                 channel.labelColor = channel.label.color;
                 channel.valueColor = channel.valueLabel.color;
             }
+            HideOutlines();
         }
 
         private void Start()
@@ -93,6 +97,7 @@ namespace CrimsonDraft.UI.MainMenu
             HideOutlines();
             this.channels[index].label.color      = this.selectedColor;
             this.channels[index].valueLabel.color = this.selectedColor;
+            if (this.channels[index].underline != null) this.channels[index].underline!.color = this.selectedColor;
         }
 
         public void HideOutlines()
@@ -101,6 +106,7 @@ namespace CrimsonDraft.UI.MainMenu
             {
                 channel.label.color      = channel.labelColor;
                 channel.valueLabel.color = channel.valueColor;
+                if (channel.underline != null) channel.underline.color = channel.labelColor;
             }
         }
 

@@ -23,7 +23,12 @@ namespace CrimsonDraft.Infrastructure.Graphics
         private const float  GammaOffsetRange  = 0.5f;
         private const int    GammaStepCount    = 8;
 
+        // The main menu is never graded by gamma -- the setting is still adjustable there (the
+        // Options > Video image simulates it), it only takes effect in Navigation and Combat.
+        private const string MainMenuSceneName = "MainMenu";
+
         public float Gamma { get; private set; }
+        public event System.Action? GammaChanged;
         public int   GammaSteps => GammaStepCount;
 
         private int suppressionCount;
@@ -45,6 +50,7 @@ namespace CrimsonDraft.Infrastructure.Graphics
             this.Gamma = value01;
             PlayerPrefs.SetFloat(GammaKey, value01);
             Apply();
+            GammaChanged?.Invoke();
         }
 
         public void PushGammaSuppression()
@@ -70,7 +76,8 @@ namespace CrimsonDraft.Infrastructure.Graphics
 
         private void Apply()
         {
-            float offset = this.suppressionCount > 0 ? 0f : Mathf.Lerp(-GammaOffsetRange, GammaOffsetRange, this.Gamma);
+            bool  neutral = this.suppressionCount > 0 || SceneManager.GetActiveScene().name == MainMenuSceneName;
+            float offset  = neutral ? 0f : Mathf.Lerp(-GammaOffsetRange, GammaOffsetRange, this.Gamma);
 
             // A scene can have more than one global Volume (e.g. Deck_B_Development layers an
             // "InventoryVolume" over the base "Global Volume") -- both blend into the final

@@ -150,6 +150,9 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.currentDestination == Destination.None
                 || this.currentDestination == Destination.LoadGame
                 || this.isTravelling) return;
+
+            // New Game has two steps (controls, gamma): cancel first steps back inside it.
+            if (this.currentDestination == Destination.NewGame && this.newGameNavigator.TryGoBack()) return;
             TravelBack();
         }
 

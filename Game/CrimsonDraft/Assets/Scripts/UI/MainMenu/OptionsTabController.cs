@@ -4,6 +4,7 @@ using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Infrastructure.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using VContainer;
 
 namespace CrimsonDraft.UI.MainMenu
@@ -11,7 +12,8 @@ namespace CrimsonDraft.UI.MainMenu
     /// <summary>
     /// Owns navigation for the whole Options screen (all UI, no physical knobs). Three index
     /// buttons (Video / Control / Sound) sit on top: Left/Right switches the active tab right away
-    /// (its button's child image turns on, the others turn off), Down enters that tab's content
+    /// (one shared bar glides under the active tab; it is white while the cursor is on the tab row and
+    /// goes back to the UI green once the cursor enters that tab's content), Down enters that tab's content
     /// list, and Up from the first item returns to the tab row. Inside the content list
     /// Up/Down moves between channels and Left/Right/Confirm go to the active
     /// <see cref="IOptionsChannelPanel"/>.
@@ -28,6 +30,10 @@ namespace CrimsonDraft.UI.MainMenu
 
         [Header("Tabs (0 = Video, 1 = Control, 2 = Sound)")]
         [SerializeField] private Tab[] tabs = null!;
+
+        [Header("Selection bar")]
+        [Tooltip("Barra unica que se desliza bajo el tab activo y se pone blanca al entrar a su contenido. Las imagenes de cada tab quedan solo como anclas invisibles.")]
+        [SerializeField] private MenuSelectionBar? tabBar;
 
         [Header("Hold-to-repeat (Left/Right on a channel)")]
         [SerializeField] private float initialRepeatDelay = 0.35f;
@@ -62,12 +68,31 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UIConfirm.performed  -= OnConfirm;
         }
 
+        private void Awake()
+        {
+            // Each tab's underline Image stays active only as an invisible anchor the bar follows.
+            foreach (var tab in this.tabs)
+            {
+                tab.buttonImage.SetActive(true);
+                var image = tab.buttonImage.GetComponent<Image>();
+                if (image != null) image.enabled = false;
+            }
+        }
+
+        private void RefreshTabBar()
+        {
+            if (this.tabBar == null) return;
+            this.tabBar.Follow((RectTransform)this.tabs[this.activeTab].buttonImage.transform);
+            this.tabBar.SetConfirmed(this.isOpen && this.onTabRow);
+        }
+
         public void Open()
         {
             this.isOpen                  = true;
             this.onTabRow                = true;
             this.heldHorizontalDirection = 0;
             ShowTab(0);
+            this.tabBar?.Snap();
         }
 
         public void Close()
@@ -76,6 +101,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.heldHorizontalDirection = 0;
             for (int i = 0; i < this.tabs.Length; i++)
                 Panel(i).HideOutlines();
+            RefreshTabBar();
         }
 
         private void Update()
@@ -136,6 +162,7 @@ namespace CrimsonDraft.UI.MainMenu
                 this.contentIndex = first;
                 this.sfx.PlayCursor(gameObject);
                 panel.ShowOutline(this.contentIndex);
+                RefreshTabBar();
                 return;
             }
 
@@ -151,6 +178,7 @@ namespace CrimsonDraft.UI.MainMenu
                 panel.HideOutlines();
                 this.onTabRow = true;
                 this.sfx.PlayCursor(gameObject);
+                RefreshTabBar();
             }
         }
 
@@ -190,10 +218,10 @@ namespace CrimsonDraft.UI.MainMenu
             for (int i = 0; i < this.tabs.Length; i++)
             {
                 bool active = i == tab;
-                this.tabs[i].buttonImage.SetActive(active);
                 this.tabs[i].group.SetActive(active);
                 if (!active) Panel(i).HideOutlines();
             }
+            RefreshTabBar();
         }
     }
 }

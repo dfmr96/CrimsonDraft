@@ -12,9 +12,9 @@ namespace CrimsonDraft.Navigation.UI
     /// <summary>
     /// Control tab content. Two rows, each with two options and a highlight bar that slides under
     /// the option the cursor is on: Classic/Modern (channel 0) and Keyboard/Gamepad (channel 1).
-    /// Left/Right moves the cursor (the hovered option grows, the bar slides there and turns
-    /// green); Confirm applies it and the bar turns white. Whenever the cursor sits on the applied
-    /// option the bar is white. An optional third channel (the New Game start button) fires the
+    /// Left/Right moves the cursor (the hovered option grows and the bar slides under it, always
+    /// the UI green); Confirm applies it and the applied option's label turns white while the
+    /// other stays green -- the label color is what shows which one is toggled. An optional third channel (the New Game start button) fires the
     /// button's onClick on Confirm. The description label follows the scheme the cursor is on.
     /// </summary>
     public sealed class ControlOptionsController : MonoBehaviour, IOptionsChannelPanel
@@ -29,6 +29,7 @@ namespace CrimsonDraft.Navigation.UI
             [SerializeField] public RectTransform root = null!;
 
             [NonSerialized] public Vector3 baseScale;
+            [NonSerialized] public TextMeshProUGUI? label;
         }
 
         [Serializable]
@@ -64,9 +65,9 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField, TextArea] private string classicDescription = "Tank controls, the character rotates in place to turn.";
 
         [Header("Feel")]
-        [Tooltip("Color de la barra mientras el cursor está en una opción todavía no confirmada (el verde de la UI).")]
+        [Tooltip("Color de la barra y de la letra de la opción no aplicada (el verde de la UI).")]
         [SerializeField] private Color hoverColor     = Color.green;
-        [Tooltip("Color de la barra cuando la opción bajo ella es la aplicada.")]
+        [Tooltip("Color de la letra de la opción aplicada (toggle).")]
         [SerializeField] private Color confirmedColor = Color.white;
         [SerializeField] private float hoverScale    = 1.15f;
         [SerializeField] private float scaleDuration = 0.1f;
@@ -76,12 +77,17 @@ namespace CrimsonDraft.Navigation.UI
         private Row[] rows = null!;
         private int selectedChannel = -1;
         private Vector3 startBaseScale = Vector3.one;
+        private Image?  startImage;
+        private Color  startBaseColor;
 
         private IControlSchemeService controlSchemeService = null!;
         private Action onCursorSfx = null!;
         private Action onDecideSfx = null!;
 
         public int ChannelCount => this.startButton != null ? 3 : 2;
+
+        /// <summary>The optional start/next button (third channel). Confirm on that channel invokes its onClick.</summary>
+        public Button? StartButton => this.startButton;
 
         /// <summary>Wiring by the host (main menu scope, pause menu): the service plus its own SFX.</summary>
         public void Setup(IControlSchemeService controlSchemeService, Action onCursorSfx, Action onDecideSfx)
@@ -104,12 +110,19 @@ namespace CrimsonDraft.Navigation.UI
         private void Awake()
         {
             this.rows = new[] { this.scheme, this.device };
-            if (this.startButton != null) this.startBaseScale = this.startButton.transform.localScale;
+            if (this.startButton != null)
+            {
+                this.startBaseScale = this.startButton.transform.localScale;
+                this.startImage     = this.startButton.GetComponent<Image>();
+                if (this.startImage != null) this.startBaseColor = this.startImage.color;
+            }
             foreach (var row in this.rows)
             {
                 row.left.baseScale  = row.left.root.localScale;
                 row.right.baseScale = row.right.root.localScale;
                 row.barImage       = row.bar.GetComponent<Image>();
+                row.left.label     = row.left.root.GetComponentInChildren<TextMeshProUGUI>(true);
+                row.right.label    = row.right.root.GetComponentInChildren<TextMeshProUGUI>(true);
             }
         }
 
@@ -129,7 +142,12 @@ namespace CrimsonDraft.Navigation.UI
                 DOTween.Kill(row.right.root);
                 DOTween.Kill(row.bar);
             }
-            if (this.startButton != null) DOTween.Kill(this.startButton.transform);
+            if (this.startButton != null)
+            {
+                DOTween.Kill(this.startButton.transform);
+                this.startButton.transform.localScale = this.startBaseScale;
+                if (this.startImage != null) this.startImage.color = this.startBaseColor;
+            }
         }
 
         public bool IsSelectable(int index) => true;
@@ -232,8 +250,18 @@ namespace CrimsonDraft.Navigation.UI
             TintBar(row);
         }
 
-        private void TintBar(Row row) =>
-            row.barImage.color = row.cursor == row.applied ? this.confirmedColor : this.hoverColor;
+        // The bar stays green wherever it is; the toggle state lives in the labels.
+        private void TintBar(Row row)
+        {
+            row.barImage.color = this.hoverColor;
+            TintLabel(row.left,  row.applied == 0);
+            TintLabel(row.right, row.applied == 1);
+        }
+
+        private void TintLabel(Option option, bool applied)
+        {
+            if (option.label != null) option.label.color = applied ? this.confirmedColor : this.hoverColor;
+        }
 
         private void RefreshHover()
         {
@@ -245,7 +273,16 @@ namespace CrimsonDraft.Navigation.UI
             }
 
             if (this.startButton != null)
-                ScaleTo(this.startButton.transform, this.startBaseScale, this.selectedChannel == StartChannel);
+            {
+                bool on = this.selectedChannel == StartChannel;
+                ScaleTo(this.startButton.transform, this.startBaseScale, on);
+
+                // Same cue as the title buttons: the button's bar goes white while hovered.
+                if (this.startImage != null)
+                    this.startImage.DOColor(on ? this.confirmedColor : this.startBaseColor, this.scaleDuration)
+                        .SetTarget(this.startButton.transform)
+                        .SetUpdate(true);
+            }
         }
 
         private void ScaleTo(Option option, bool enlarged) => ScaleTo(option.root, option.baseScale, enlarged);

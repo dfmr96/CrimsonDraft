@@ -17,7 +17,6 @@ namespace CrimsonDraft.UI.MainMenu
     {
         [SerializeField] private string newGameSceneName = "Deck_B_Development";
 
-        [SerializeField] private Button newGameButton  = null!;
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
         [SerializeField] private LoadGameSaveListView loadListView      = null!;
@@ -69,7 +68,6 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UIConfirm.performed  += OnConfirm;
             this.inputService.UICancel.performed   += OnBack;
 
-            this.newGameButton.onClick.AddListener(OnNewGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
 
             this.newGamePromptView.ModernButton?.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
@@ -142,7 +140,10 @@ namespace CrimsonDraft.UI.MainMenu
             return false;
         }
 
-        private void OnNewGameClicked()
+        /// <summary>Starts a new game. Called by NewGameNavigator once the player confirms the last
+        /// step of the New Game screen (controls, then gamma) -- the title's New Game button only
+        /// travels to that screen.</summary>
+        public void StartNewGame()
         {
             if (this.isStartingNewGame) return;
             this.isStartingNewGame = true;

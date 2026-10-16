@@ -17,6 +17,10 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private ControlOptionsController optionsControls = null!;
         [SerializeField] private ControlOptionsController newGameControls = null!;
 
+        // Same for the gamma control: Options > Video and the second New Game step.
+        [SerializeField] private GeneralMenuController optionsGamma = null!;
+        [SerializeField] private GeneralMenuController newGameGamma = null!;
+
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterInstance(this.mainMenuSfxData);
@@ -32,7 +36,11 @@ namespace CrimsonDraft.UI.MainMenu
             builder.RegisterComponentInHierarchy<MainMenuCameraTravel>();
             builder.RegisterComponentInHierarchy<OptionsTabController>();
             builder.RegisterComponentInHierarchy<OptionsMenuController>();
-            builder.RegisterComponentInHierarchy<GeneralMenuController>();
+            builder.RegisterBuildCallback(resolver =>
+            {
+                resolver.Inject(this.optionsGamma);
+                resolver.Inject(this.newGameGamma);
+            });
         }
     }
 }
