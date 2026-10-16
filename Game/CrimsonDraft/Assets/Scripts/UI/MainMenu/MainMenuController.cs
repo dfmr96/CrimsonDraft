@@ -182,7 +182,6 @@ namespace CrimsonDraft.UI.MainMenu
         private void OnSlotConfirmed(int slot)
         {
             this.sfx.PlayDecide(gameObject);
-            this.isLoadingSlot = true;
 
             // The registries GameStateResetter clears are root-scoped singletons that
             // survive every scene reload for the whole play session (not just this save
@@ -193,7 +192,12 @@ namespace CrimsonDraft.UI.MainMenu
             // loaded scene before SaveGameLoader gets a chance to restore the real save
             // data, and can leak into it.
             this.gameStateResetter.ResetAll();
-            this.saveGameService.LoadSlot(slot);
+
+            if (!this.saveGameService.TryStashPendingLoad(slot, out string sceneName)) return;
+
+            // Same loading screen as New Game: fade, quote screen, then the saved scene.
+            this.isLoadingSlot = true;
+            this.screenFader.LoadSceneAsync(sceneName).Forget();
         }
 
         private void OnLoadNavigatorClosed()

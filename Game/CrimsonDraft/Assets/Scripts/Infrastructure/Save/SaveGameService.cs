@@ -82,13 +82,25 @@ namespace CrimsonDraft.Infrastructure.Save
             return true;
         }
 
-        public bool LoadSlot(int slot)
+        public bool TryStashPendingLoad(int slot, out string sceneName)
         {
             var data = ReadFromDisk(slot);
-            if (data == null) return false;
+            if (data == null)
+            {
+                sceneName = string.Empty;
+                return false;
+            }
 
             this.pendingLoad = data;
-            SceneManager.LoadScene(data.sceneName, LoadSceneMode.Single);
+            sceneName        = data.sceneName;
+            return true;
+        }
+
+        public bool LoadSlot(int slot)
+        {
+            if (!TryStashPendingLoad(slot, out string sceneName)) return false;
+
+            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
             return true;
         }
 

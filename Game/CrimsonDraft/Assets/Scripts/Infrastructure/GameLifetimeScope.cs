@@ -24,6 +24,7 @@ namespace CrimsonDraft.Infrastructure
         [SerializeField] private AudioSettingsData audioSettingsData = null!;
         [SerializeField] private GameOverView gameOverViewPrefab = null!;
         [SerializeField] private StaticTransitionView staticTransitionViewPrefab = null!;
+        [SerializeField] private LoadingScreenView loadingScreenViewPrefab = null!;
         // Shared UI sounds reachable from every scene's scope (navigation panels, save telegraph...).
         [SerializeField] private InventorySfxData inventorySfxData = null!;
         [SerializeField] private MainMenuSfxData  mainMenuSfxData  = null!;
@@ -75,6 +76,10 @@ namespace CrimsonDraft.Infrastructure
             builder.RegisterMessageBroker<BeeperSignalSentEvent>(options);
 
             builder.Register<CameraService>(Lifetime.Singleton).AsImplementedInterfaces();
+            if (this.loadingScreenViewPrefab == null)
+                throw new System.InvalidOperationException(
+                    $"{nameof(this.loadingScreenViewPrefab)} is not assigned in {nameof(GameLifetimeScope)}.");
+            builder.RegisterComponentInNewPrefab(this.loadingScreenViewPrefab, Lifetime.Singleton).DontDestroyOnLoad().AsSelf();
             builder.Register<ScreenFader>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
 
             if (this.gameOverViewPrefab == null)
