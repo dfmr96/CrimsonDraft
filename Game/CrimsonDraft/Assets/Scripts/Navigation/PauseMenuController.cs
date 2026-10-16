@@ -27,6 +27,7 @@ namespace CrimsonDraft.Navigation
         private readonly ScreenFader              screenFader;
 
         private PauseState state = PauseState.Closed;
+        private bool quitting;
 
         // True while the Video tab is up: gamma is live (suppression lifted) and the dimmed
         // backdrop is hidden so the brightness is judged on the actual scene.
@@ -169,6 +170,12 @@ namespace CrimsonDraft.Navigation
 
         private async UniTaskVoid QuitToMenuAsync()
         {
+            // Submit can fire again while the scene load is in flight -- each extra call would
+            // stack another fade + load on top of the first.
+            if (this.quitting) return;
+            this.quitting = true;
+            this.view.QuitButton.interactable = false;
+
             this.state = PauseState.Closed;
             Time.timeScale = 1f;
             this.graphicsSettings.PopGammaSuppression();
