@@ -1600,6 +1600,12 @@ MonoBehaviour:
   - {fileID: 4932293182389426204}
   completionFlickerCount: 2
   completionFlickerDuration: 0.3
+  chargeUpWhenStartingFull: 1
+  chargeUpStartDelay: 0.35
+  chargeUpDuration: 0.35
+  lastStretchBy: 8
+  lastStretchUpDuration: 0.07
+  lastStretchDownDuration: 0.09
 --- !u!1 &4827565480380209918
 GameObject:
   m_ObjectHideFlags: 0
@@ -1880,15 +1886,22 @@ MonoBehaviour:
   stageDurationSevere: 1.7
   stageDurationMercy: 1.5
   effectImage: {fileID: 7091242688206743414}
-  statusLabel: {fileID: 4963810909862291938}
   effectColorStable: {r: 0.09019608, g: 0.45882353, b: 0.19607843, a: 0.55}
   effectColorCaution: {r: 0.6901961, g: 0.7058824, b: 0.29803923, a: 0.55}
   effectColorWarning: {r: 0.59607846, g: 0.3529412, b: 0.050980393, a: 0.55}
   effectColorSevere: {r: 1, g: 0, b: 0, a: 0.55}
   effectColorMercy: {r: 1, g: 0, b: 0, a: 0.55}
-  glitchDuration: 0.35
-  glitchJitterAmount: 6
+  statusLabel: {fileID: 4963810909862291938}
+  glitchDuration: 0.5
+  glitchJitterAmount: 10
   glitchMinAlpha: 0.15
+  glitchTint: {r: 1, g: 0.2, b: 0.15, a: 1}
+  glitchTintStrength: 0.9
+  glitchSeedRate: 24
+  glitchJitterAmountY: 2
+  glitchPanelShader: {fileID: 4800000, guid: b2faec76da010d244a952fd940c24193, type: 3}
+  glitchPanelGraphics: []
+  glitchPanelMinAlpha: 0.45
   mercyPulseSpeed: 2.5
   mercyPulseMinAlpha: 0.35
 --- !u!1 &5531057374965054296

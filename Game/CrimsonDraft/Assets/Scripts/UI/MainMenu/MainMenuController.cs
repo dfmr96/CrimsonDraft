@@ -17,7 +17,6 @@ namespace CrimsonDraft.UI.MainMenu
     {
         [SerializeField] private string newGameSceneName = "Deck_B_Development";
 
-        [SerializeField] private Button newGameButton  = null!;
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
         [SerializeField] private LoadGameSaveListView loadListView      = null!;
@@ -29,7 +28,8 @@ namespace CrimsonDraft.UI.MainMenu
         private IGameStateResetter    gameStateResetter    = null!;
         private IControlSchemeService controlSchemeService = null!;
         private ScreenFader           screenFader          = null!;
-        private MainMenuSfxData       sfx                  = null!;
+        private MainMenuSfxData       sfx                  = null!; // Load Game list only
+        private InventorySfxData      uiSfx                = null!; // shared UI sounds for everything else
         private SaveSlotNavigator     loadNavigator        = null!;
         private bool                  isLoadingSlot;
         private bool                  isStartingNewGame;
@@ -46,7 +46,8 @@ namespace CrimsonDraft.UI.MainMenu
             IGameStateResetter     gameStateResetter,
             IControlSchemeService  controlSchemeService,
             ScreenFader            screenFader,
-            MainMenuSfxData        sfx)
+            MainMenuSfxData        sfx,
+            InventorySfxData       uiSfx)
         {
             this.inputService         = inputService;
             this.saveGameService      = saveGameService;
@@ -54,6 +55,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.controlSchemeService = controlSchemeService;
             this.screenFader          = screenFader;
             this.sfx                  = sfx;
+            this.uiSfx                = uiSfx;
 
             this.loadNavigator = new SaveSlotNavigator(
                 this.loadListView,
@@ -66,7 +68,6 @@ namespace CrimsonDraft.UI.MainMenu
             this.inputService.UIConfirm.performed  += OnConfirm;
             this.inputService.UICancel.performed   += OnBack;
 
-            this.newGameButton.onClick.AddListener(OnNewGameClicked);
             this.exitButton.onClick.AddListener(OnExitClicked);
 
             this.newGamePromptView.ModernButton?.onClick.AddListener(() => SelectScheme(ControlScheme.Modern));
@@ -99,7 +100,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (current == this.lastSelected) return;
 
             if (this.lastSelected != null && current != null)
-                this.sfx.PlayCursor(gameObject);
+                this.uiSfx.PlayCursor(gameObject);
             this.lastSelected = current;
         }
 
@@ -139,12 +140,15 @@ namespace CrimsonDraft.UI.MainMenu
             return false;
         }
 
-        private void OnNewGameClicked()
+        /// <summary>Starts a new game. Called by NewGameNavigator once the player confirms the last
+        /// step of the New Game screen (controls, then gamma) -- the title's New Game button only
+        /// travels to that screen.</summary>
+        public void StartNewGame()
         {
             if (this.isStartingNewGame) return;
             this.isStartingNewGame = true;
 
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.gameStateResetter.ResetAll();
             StartNewGameAsync().Forget();
         }
@@ -153,7 +157,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void SelectScheme(ControlScheme scheme)
         {
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.controlSchemeService.SetScheme(scheme);
             this.newGamePromptView.SetSelectedScheme(scheme == ControlScheme.Classic);
         }
@@ -178,7 +182,6 @@ namespace CrimsonDraft.UI.MainMenu
         private void OnSlotConfirmed(int slot)
         {
             this.sfx.PlayDecide(gameObject);
-            this.isLoadingSlot = true;
 
             // The registries GameStateResetter clears are root-scoped singletons that
             // survive every scene reload for the whole play session (not just this save
@@ -189,7 +192,12 @@ namespace CrimsonDraft.UI.MainMenu
             // loaded scene before SaveGameLoader gets a chance to restore the real save
             // data, and can leak into it.
             this.gameStateResetter.ResetAll();
-            this.saveGameService.LoadSlot(slot);
+
+            if (!this.saveGameService.TryStashPendingLoad(slot, out string sceneName)) return;
+
+            // Same loading screen as New Game: fade, quote screen, then the saved scene.
+            this.isLoadingSlot = true;
+            this.screenFader.LoadSceneAsync(sceneName).Forget();
         }
 
         private void OnLoadNavigatorClosed()
@@ -257,7 +265,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnExitClicked()
         {
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

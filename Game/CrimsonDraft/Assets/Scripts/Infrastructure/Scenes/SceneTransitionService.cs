@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Infrastructure.Scenes
 {
@@ -31,6 +32,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
         private readonly ScreenFader screenFader;
         private readonly StaticTransitionView staticTransition;
         private readonly GameOverView gameOverView;
+        private readonly InventorySfxData sfx;
 
         private IDisposable? combatEndedSubscription;
         private bool isInCombat;
@@ -46,7 +48,8 @@ namespace CrimsonDraft.Infrastructure.Scenes
             ICameraService cameraService,
             ScreenFader screenFader,
             StaticTransitionView staticTransition,
-            GameOverView gameOverView)
+            GameOverView gameOverView,
+            InventorySfxData sfx)
         {
             this.inputService          = inputService;
             this.combatStartedPublisher = combatStartedPublisher;
@@ -56,6 +59,7 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.screenFader           = screenFader;
             this.staticTransition      = staticTransition;
             this.gameOverView          = gameOverView;
+            this.sfx                   = sfx;
         }
 
         void IInitializable.Initialize()
@@ -105,6 +109,11 @@ namespace CrimsonDraft.Infrastructure.Scenes
 
         private async UniTask EndCombatAsync(bool victory)
         {
+            // On defeat the static covers the frozen last frame while the black fader is raised
+            // and Combat unloads underneath, so the swap is hidden the same way as on entry.
+            if (!victory)
+                await this.staticTransition.ShowAsync();
+
             await this.screenFader.FadeOutAsync();
             this.cameraService.ActivateNavigationCamera();
 
@@ -129,20 +138,16 @@ namespace CrimsonDraft.Infrastructure.Scenes
         {
             this.inputService.SwitchToUI();
             this.gameOverView.Show();
-            EventSystem.current.SetSelectedGameObject(this.gameOverView.ReturnToMenuButton.gameObject);
 
-            var tcs = new UniTaskCompletionSource();
-            void OnReturnToMenuClicked() => tcs.TrySetResult();
-            this.gameOverView.ReturnToMenuButton.onClick.AddListener(OnReturnToMenuClicked);
-            try
-            {
-                await tcs.Task;
-            }
-            finally
-            {
-                this.gameOverView.ReturnToMenuButton.onClick.RemoveListener(OnReturnToMenuClicked);
-            }
+            // The game over view renders through the UI camera, i.e. *under* the screen-space
+            // overlay fader, so the black cover has to come off (behind the static, unseen)
+            // before the view can be visible. The view's own background is opaque black.
+            await this.screenFader.FadeInAsync();
+            await this.staticTransition.HideAsync();
 
+            // Nothing is interactive here: the title types itself out, holds, then we fade out and leave.
+            await this.gameOverView.PlayAsync(this.sfx);
+            await this.screenFader.FadeOutAsync();
             this.gameOverView.Hide();
 
             // Async rather than the bare synchronous LoadScene(Single) this used to call --

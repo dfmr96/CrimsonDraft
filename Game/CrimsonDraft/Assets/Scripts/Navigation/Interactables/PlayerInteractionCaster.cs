@@ -10,6 +10,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -41,6 +42,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private ISaveController         saveController          = null!;
         private InspectionController    inspectionController    = null!;
         private IPublisher<StorageOpenRequestedEvent> storageOpenPublisher = null!;
+        private InventorySfxData?       sfx;
 
         private ISubscriber<DialogueActiveChangedEvent>? dialogueActiveSubscriber;
         private IDisposable?                              dialogueActiveSub;
@@ -58,7 +60,8 @@ namespace CrimsonDraft.Navigation.Interactables
             ISaveController         saveController,
             InspectionController    inspectionController,
             IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
-            ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber)
+            ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber,
+            InventorySfxData        sfx)
         {
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
@@ -71,6 +74,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.saveController          = saveController;
             this.inspectionController    = inspectionController;
             this.storageOpenPublisher    = storageOpenPublisher;
+            this.sfx                     = sfx;
             this.dialogueActiveSubscriber = dialogueActiveSubscriber;
             this.inputService.Interact.performed += OnInteract;
             this.dialogueActiveSub = this.dialogueActiveSubscriber?.Subscribe(OnDialogueActiveChanged);
@@ -125,7 +129,8 @@ namespace CrimsonDraft.Navigation.Interactables
                 this.pickupPreviewController,
                 this.saveController,
                 this.inspectionController,
-                this.storageOpenPublisher);
+                this.storageOpenPublisher,
+                this.sfx);
             interactable.Interact(context);
         }
 

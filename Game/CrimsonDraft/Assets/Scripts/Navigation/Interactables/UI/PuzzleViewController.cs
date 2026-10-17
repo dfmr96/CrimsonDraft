@@ -7,6 +7,7 @@ using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.Interactables.UI;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -15,6 +16,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private const float NavCooldown = 0.2f;
 
         private readonly IInputService inputService;
+        private readonly InventorySfxData? sfx;
 
         private GameObject?      spawnedCanvas;
         private INavigablePuzzle? navigablePuzzle;
@@ -22,9 +24,10 @@ namespace CrimsonDraft.Navigation.Interactables
         private float       lastNavTime = float.MinValue;
 
         [Preserve]
-        public PuzzleViewController(IInputService inputService)
+        public PuzzleViewController(IInputService inputService, InventorySfxData? sfx = null)
         {
             this.inputService = inputService;
+            this.sfx          = sfx;
         }
 
         void IInitializable.Initialize()
@@ -62,18 +65,21 @@ namespace CrimsonDraft.Navigation.Interactables
             else if (y >  0.5f) this.navigablePuzzle.MoveUp();
             else return;
 
+            if (this.spawnedCanvas != null) this.sfx?.PlayCursor(this.spawnedCanvas);
             this.lastNavTime = Time.unscaledTime;
         }
 
         private void OnConfirm(InputAction.CallbackContext _)
         {
             if (!this.isOpen || this.navigablePuzzle == null) return;
+            if (this.spawnedCanvas != null) this.sfx?.PlayDecide(this.spawnedCanvas);
             this.navigablePuzzle.Toggle();
         }
 
         private void OnCancel(InputAction.CallbackContext _)
         {
             if (!this.isOpen) return;
+            if (this.spawnedCanvas != null) this.sfx?.PlayCancel(this.spawnedCanvas);
             Close();
         }
 

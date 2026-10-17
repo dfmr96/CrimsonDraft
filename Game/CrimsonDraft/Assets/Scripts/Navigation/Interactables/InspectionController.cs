@@ -10,6 +10,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Enemy;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -32,6 +33,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly IFixedCameraZoneService zoneService;
         private readonly PlayerController        player;
         private readonly EnemyNavAgent[]         enemies;
+        private readonly InventorySfxData?       sfx;
 
         private bool               isInspecting;
         private Action?            onExit;
@@ -42,12 +44,14 @@ namespace CrimsonDraft.Navigation.Interactables
             IInputService     inputService,
             IFixedCameraZoneService zoneService,
             PlayerController  player,
-            EnemyNavAgent[]   enemies)
+            EnemyNavAgent[]   enemies,
+            InventorySfxData? sfx = null)
         {
             this.inputService = inputService;
             this.zoneService  = zoneService;
             this.player       = player;
             this.enemies      = enemies;
+            this.sfx          = sfx;
         }
 
         public bool IsInspecting => this.isInspecting;
@@ -81,6 +85,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private void OnCancel(InputAction.CallbackContext _)
         {
             if (!this.isInspecting || this.ExitLocked) return;
+            this.sfx?.PlayCancel(this.player.gameObject);
             Exit();
         }
 

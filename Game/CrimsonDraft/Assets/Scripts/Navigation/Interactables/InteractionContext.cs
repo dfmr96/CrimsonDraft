@@ -5,6 +5,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -21,6 +22,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly ISaveController        SaveController;
         public readonly InspectionController   InspectionController;
         public readonly IPublisher<StorageOpenRequestedEvent> StorageOpenPublisher;
+        public readonly InventorySfxData?      Sfx;
 
         public InteractionContext(
             IInventoryService      inventoryService,
@@ -33,7 +35,8 @@ namespace CrimsonDraft.Navigation.Interactables
             PickupPreviewController pickupPreviewController,
             ISaveController         saveController,
             InspectionController    inspectionController,
-            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher)
+            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
+            InventorySfxData?       sfx = null)
         {
             InventoryService      = inventoryService;
             InputService          = inputService;
@@ -46,6 +49,7 @@ namespace CrimsonDraft.Navigation.Interactables
             SaveController          = saveController;
             InspectionController    = inspectionController;
             StorageOpenPublisher    = storageOpenPublisher;
+            Sfx                     = sfx;
         }
     }
 }

@@ -14,6 +14,7 @@ namespace CrimsonDraft.Navigation.Interactables
         // Save-room variant: drives the world-space panel instead of the screen overlay and
         // leaves the camera/input to the caller. onClosed runs once the panel is dismissed,
         // saved or not -- after the typewriter reveal and a final input, or a cancel.
-        void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed);
+        // morse (optional): the station's key, which transmits "SAVE <slot>" while the file's text types out.
+        void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed, ITelegraphMorse? morse = null);
     }
 }
