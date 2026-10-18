@@ -124,6 +124,9 @@ namespace CrimsonDraft.Combat
         private bool activeMeleeSlash;
         private int  activeSlashDamage = 1;
         // Markers of the current slash's points, in order, so the count can make them vanish one by one.
+        // Shot numbers under aimSpace; re-raised above every marker/circle spawned later so a hit
+        // never covers a number.
+        private readonly List<Transform> feedbackTexts = new();
         private List<(GameObject Go, bool IsMiss)> pendingSlashPoints = new List<(GameObject, bool)>();
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
@@ -716,7 +719,15 @@ namespace CrimsonDraft.Combat
                 Mathf.Round(localPos.x),
                 Mathf.Round(localPos.y),
                 0f);
+            this.RaiseFeedbackTexts();
             return marker;
+        }
+
+        private void RaiseFeedbackTexts()
+        {
+            this.feedbackTexts.RemoveAll(t => t == null);
+            foreach (var t in this.feedbackTexts)
+                t.SetAsLastSibling();
         }
 
         private void SpawnDispersionCircle(Vector2 localPos)
@@ -724,6 +735,7 @@ namespace CrimsonDraft.Combat
             var circle = Instantiate(this.dispersionCirclePrefab, this.aimSpace);
             var rt     = (RectTransform)circle.transform;
             rt.localPosition = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
+            this.RaiseFeedbackTexts();
             var img = circle.GetComponent<Image>();
             if (this.activeDispersionSprite != null)
                 img.sprite = this.activeDispersionSprite;
@@ -796,6 +808,8 @@ namespace CrimsonDraft.Combat
             }
 
             var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+            go.transform.SetAsLastSibling();
+            this.feedbackTexts.Add(go.transform);
 
             var rt = go.transform as RectTransform;
             if (rt != null)
