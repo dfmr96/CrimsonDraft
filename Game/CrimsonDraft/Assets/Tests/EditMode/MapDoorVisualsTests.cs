@@ -103,6 +103,61 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(1, Resolve(map).Count);
         }
 
+        // Kitchen <-> Dinner: only DR_32B (in "dinner") is drawn; its far half DR_187 (in
+        // "kitchen") is excluded from the map and recorded as its other side.
+        private static MapData PairedDoorMap(Vector2Int dinnerPosition = default, Vector2 doorOffset = default)
+            => MapTestData.Map(
+                "deck-a",
+                new[]
+                {
+                    MapTestData.Room("dinner", dinnerPosition, doors: new[] { "DR_32B" }),
+                    MapTestData.Room("kitchen", new Vector2Int(100, 100)),
+                },
+                new[] { MapTestData.Door("DR_32B", doorOffset, otherSides: new[] { MapTestData.Side("DR_187", "kitchen") }) });
+
+        [Test]
+        public void PairedDoor_isHidden_whileNeitherRoomIsVisited()
+        {
+            Assert.IsEmpty(Resolve(PairedDoorMap()));
+        }
+
+        [Test]
+        public void PairedDoor_isDrawn_fromItsOtherSidesRoom()
+        {
+            this.rooms.MarkVisited("kitchen");
+            var visuals = Resolve(PairedDoorMap());
+
+            Assert.AreEqual(1, visuals.Count);
+            Assert.AreEqual("DR_32B", visuals[0].DoorId);
+        }
+
+        [Test]
+        public void PairedDoor_seenFromItsOtherSide_staysPlacedOnItsOwnRoom()
+        {
+            this.rooms.MarkVisited("kitchen");
+            var visual = Resolve(PairedDoorMap(new Vector2Int(10, -4), new Vector2(2f, 3f)))[0];
+
+            Assert.AreEqual("dinner", visual.RoomId);
+            Assert.AreEqual(new Vector2(12f, -1f), visual.Position);
+        }
+
+        [Test]
+        public void PairedDoor_triedLockedFromItsOtherSide_isLocked()
+        {
+            this.rooms.MarkVisited("kitchen");
+            this.doors.MarkLocked("DR_187");
+            Assert.AreEqual(DoorMapState.Locked, Resolve(PairedDoorMap())[0].State);
+        }
+
+        [Test]
+        public void PairedDoor_unlockedOnEitherHalf_beatsLockedOnTheOther()
+        {
+            this.rooms.MarkVisited("dinner");
+            this.doors.MarkLocked("DR_187");
+            this.doors.MarkUnlocked("DR_32B");
+            Assert.AreEqual(DoorMapState.Unlocked, Resolve(PairedDoorMap())[0].State);
+        }
+
         [Test]
         public void Visual_positionIsRoomPositionPlusDoorOffset()
         {

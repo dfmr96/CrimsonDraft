@@ -216,7 +216,10 @@ namespace CrimsonDraft.Navigation.Rooms
 
                 var collider = trigger.GetComponent<Collider>();
                 if (collider != null && Contains(collider, position))
-                    return trigger.ZoneCamera;
+                {
+                    var camera = trigger.ResolveCameraAt(position, null);
+                    if (camera != null) return camera;
+                }
             }
             return null;
         }

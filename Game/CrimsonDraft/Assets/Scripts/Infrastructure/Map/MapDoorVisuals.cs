@@ -35,10 +35,12 @@ namespace CrimsonDraft.Infrastructure.Map
     }
 
     /// <summary>Which doors a floor draws and in which state. A door shows when any room that
-    /// owns it (MapRoomData.DoorIds) is shown, so it follows the same discovery rules as rooms;
-    /// a door owned by no room is never drawn. Its Position is the bottom-left corner of its
-    /// sprite in map pixels: the owning room's Position plus the door's Transform.Offset, so a
-    /// door moves with its room.</summary>
+    /// owns it (MapRoomData.DoorIds) is shown, so it follows the same discovery rules as rooms,
+    /// or when the room of one of its other sides (the excluded far half of a doubled door) is
+    /// shown; a door owned by no room is never drawn. Its state is the most advanced one among
+    /// its halves (Unlocked over Locked over Unknown). Its Position is the bottom-left corner of
+    /// its sprite in map pixels: the owning room's Position plus the door's Transform.Offset, so
+    /// a door moves with its room.</summary>
     public static class MapDoorVisuals
     {
         public static IReadOnlyList<MapDoorVisual> Resolve(
@@ -64,26 +66,51 @@ namespace CrimsonDraft.Infrastructure.Map
             Func<MapRoomData, bool> isRoomShown,
             Func<string, DoorMapState> stateOf)
         {
-            var ownerByDoorId = new Dictionary<string, MapRoomData>();
+            var shownRoomIds = new HashSet<string>();
+            var ownersByDoor = new Dictionary<string, List<MapRoomData>>();
 
-            foreach (var room in map.Rooms.Where(isRoomShown))
-            foreach (var doorId in room.DoorIds)
-                ownerByDoorId.TryAdd(doorId, room);
+            foreach (var room in map.Rooms)
+            {
+                if (isRoomShown(room))
+                    shownRoomIds.Add(room.RoomId);
 
-            return map.Doors
-                .Where(door => ownerByDoorId.ContainsKey(door.DoorId))
-                .Select(door =>
+                foreach (var doorId in room.DoorIds)
                 {
-                    var owner = ownerByDoorId[door.DoorId];
-                    return new MapDoorVisual(
-                        door.DoorId,
-                        owner.RoomId,
-                        stateOf(door.DoorId),
-                        owner.Position + door.Transform.Offset,
-                        door.Transform.Rotation,
-                        door.Size);
-                })
-                .ToList();
+                    if (!ownersByDoor.TryGetValue(doorId, out var owners))
+                        ownersByDoor[doorId] = owners = new List<MapRoomData>();
+                    owners.Add(room);
+                }
+            }
+
+            var visuals = new List<MapDoorVisual>();
+            foreach (var door in map.Doors)
+            {
+                if (!ownersByDoor.TryGetValue(door.DoorId, out var owners))
+                    continue;
+
+                // Placed on a shown owner when there is one; seen only from its other side, it
+                // still sits on its own room (its offset is relative to that room).
+                var owner = owners.FirstOrDefault(room => shownRoomIds.Contains(room.RoomId));
+                if (owner == null && door.OtherSides.Any(side => shownRoomIds.Contains(side.RoomId)))
+                    owner = owners[0];
+                if (owner == null)
+                    continue;
+
+                // DoorMapState is ordered Unknown < Locked < Unlocked.
+                var state = door.OtherSides
+                    .Select(side => stateOf(side.DoorId))
+                    .Append(stateOf(door.DoorId))
+                    .Max();
+
+                visuals.Add(new MapDoorVisual(
+                    door.DoorId,
+                    owner.RoomId,
+                    state,
+                    owner.Position + door.Transform.Offset,
+                    door.Transform.Rotation,
+                    door.Size));
+            }
+            return visuals;
         }
     }
 }
