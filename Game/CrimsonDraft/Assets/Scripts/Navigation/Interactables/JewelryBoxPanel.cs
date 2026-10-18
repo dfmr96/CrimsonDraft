@@ -181,7 +181,9 @@ namespace CrimsonDraft.Navigation.Interactables
             if (step == 0) return;
 
             var targets = BuildTargets(out _);
+            int previousCursor = this.cursor;
             this.cursor = Mathf.Clamp(this.cursor + step, 0, targets.Count - 1);
+            if (this.cursor != previousCursor) this.context?.Sfx?.PlayCursor(gameObject);
             this.lastNavTime = Time.unscaledTime;
             UpdateHighlight();
         }
@@ -198,6 +200,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.cursor == keyIndex && this.keyPickup != null)
             {
                 this.isBusy = true;
+                ctx.Sfx?.PlayDecide(gameObject);
                 // Force-clear so the outline isn't left on an object the pickup disables.
                 this.highlight.Clear();
                 this.keyPickup.Interact(ctx, onClosed: ResumeAfterDialogue);
@@ -207,6 +210,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.cursor < this.slots.Length && !this.filled[this.cursor])
             {
                 this.isBusy = true;
+                ctx.Sfx?.PlayInvalidAction(gameObject);
                 ctx.DialogueService.StartDialogue(
                     this.emptySocketDialogue.nodeName ?? "",
                     onComplete: ResumeAfterDialogue);

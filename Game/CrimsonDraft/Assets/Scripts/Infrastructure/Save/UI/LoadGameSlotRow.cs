@@ -38,13 +38,15 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         /// Types the already-bound text out one character at a time (typewriter). Runs on unscaled
         /// time so it still plays while the game is paused.
         /// </summary>
-        public void Reveal(float charsPerSecond, Action? onDone)
+        /// <param name="durationOverride">Above zero: take this many seconds regardless of charsPerSecond.</param>
+        public void Reveal(float charsPerSecond, Action? onDone, float durationOverride = 0f)
         {
             DOTween.Kill(this);
             int total = this.label.text.Length;
             this.label.maxVisibleCharacters = 0;
+            float duration = durationOverride > 0f ? durationOverride : total / Mathf.Max(1f, charsPerSecond);
 
-            DOVirtual.Int(0, total, total / Mathf.Max(1f, charsPerSecond), v => this.label.maxVisibleCharacters = v)
+            DOVirtual.Int(0, total, duration, v => this.label.maxVisibleCharacters = v)
                 .SetEase(Ease.Linear)
                 .SetUpdate(true)
                 .SetTarget(this)

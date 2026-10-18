@@ -68,7 +68,11 @@ namespace CrimsonDraft.Combat
 
             if (command == CombatCommand.Shoot)
             {
-                if (GetMaxAvailableShotCount() <= 0) return;
+                if (GetMaxAvailableShotCount() <= 0)
+                {
+                    this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
+                    return;
+                }
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
                 this.commandPanel.Hide();

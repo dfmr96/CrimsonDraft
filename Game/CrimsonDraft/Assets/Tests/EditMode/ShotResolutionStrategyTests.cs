@@ -215,7 +215,7 @@ namespace CrimsonDraft.Tests
             new ResolvedShot(index, 0, Vector2.zero, zone, ShotPrecision.Normal, damage);
 
         [Test]
-        public void ApplyFixedSlashDamage_onlyTheFirstBodyPointDealsDamage_andItIsOne()
+        public void ApplyFixedSlashDamage_onlyTheFirstBodyPointDealsDamage_andItIsTheWeaponDamage()
         {
             var shots = new System.Collections.Generic.List<ResolvedShot>
             {
@@ -225,13 +225,13 @@ namespace CrimsonDraft.Tests
                 Shot(3, ShotZone.Torso, 7),
             };
 
-            AimViewController.ApplyFixedSlashDamage(shots);
+            AimViewController.ApplyFixedSlashDamage(shots, 8);
 
             int total = 0;
             foreach (var s in shots) total += s.Damage;
-            Assert.AreEqual(AimViewController.SlashFixedDamage, total);
+            Assert.AreEqual(8, total);
             Assert.AreEqual(0, shots[0].Damage);
-            Assert.AreEqual(1, shots[1].Damage);
+            Assert.AreEqual(8, shots[1].Damage);
             Assert.AreEqual(ShotZone.Head, shots[2].Zone, "zones are kept (a miss still marks the cut as leaving the body)");
         }
 
@@ -240,7 +240,7 @@ namespace CrimsonDraft.Tests
         {
             var shots = new System.Collections.Generic.List<ResolvedShot> { Shot(0, ShotZone.Miss, 0), Shot(1, ShotZone.Miss, 0) };
 
-            AimViewController.ApplyFixedSlashDamage(shots);
+            AimViewController.ApplyFixedSlashDamage(shots, 8);
 
             Assert.AreEqual(0, shots[0].Damage + shots[1].Damage);
         }

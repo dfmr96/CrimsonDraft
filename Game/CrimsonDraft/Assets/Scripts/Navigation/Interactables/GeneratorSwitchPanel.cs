@@ -9,6 +9,7 @@ using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.UI;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Rendering.Outline;
 
@@ -107,6 +108,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private IDialogueService    dialogueService      = null!;
         private InspectionController inspectionController = null!;
         private ItemSocketStateRegistry registry          = null!;
+        private InventorySfxData?    sfx;
 
         private readonly SelectionOutlineHighlight highlight = new();
 
@@ -125,12 +127,13 @@ namespace CrimsonDraft.Navigation.Interactables
         public bool IsSolved => this.isSolved;
 
         [Inject]
-        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ItemSocketStateRegistry registry)
+        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ItemSocketStateRegistry registry, InventorySfxData sfx)
         {
             this.inputService         = inputService;
             this.dialogueService      = dialogueService;
             this.inspectionController = inspectionController;
             this.registry             = registry;
+            this.sfx                  = sfx;
         }
 
         private string SolvedKey => this.solvedId + "#solved";
@@ -255,6 +258,7 @@ namespace CrimsonDraft.Navigation.Interactables
             else if (dir.y < -0.5f) MoveDown();
             else return;
 
+            this.sfx?.PlayCursor(gameObject);
             this.lastNavTime = Time.unscaledTime;
         }
 
@@ -264,24 +268,28 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (this.onLever)
             {
+                this.sfx?.PlayDecide(gameObject);
                 PullLever();
                 return;
             }
 
             if (this.currentRow == 0 && !this.topRowPowered)
             {
+                this.sfx?.PlayInvalidAction(gameObject);
                 ShowMissingPowerPrompt();
                 return;
             }
 
             if (IsRusted(this.currentRow, this.currentCol))
             {
+                this.sfx?.PlayInvalidAction(gameObject);
                 ShowRustedFusePrompt();
                 return;
             }
 
             bool newState = !this.switchOn[this.currentRow][this.currentCol];
             this.switchOn[this.currentRow][this.currentCol] = newState;
+            this.sfx?.PlayDecide(gameObject);
             ApplySwitchVisual(this.rows[this.currentRow][this.currentCol], newState);
             UpdateRowDisplay(this.currentRow);
 
@@ -313,6 +321,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (topOk && bottomOk)
             {
+                this.sfx?.PlayDecide(gameObject);
                 await UniTask.Delay(TimeSpan.FromSeconds(SuccessHoldSeconds), ignoreTimeScale: true);
                 this.isSolved = true;
                 this.registry.SetInserted(SolvedKey, new[] { true });
@@ -323,6 +332,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 return;
             }
 
+            this.sfx?.PlayInvalidAction(gameObject);
             await UniTask.Delay(TimeSpan.FromSeconds(FailureHoldSeconds), ignoreTimeScale: true);
             ResetAllSwitches();
             await AnimateLeverAsync(down: false);

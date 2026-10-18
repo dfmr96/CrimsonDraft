@@ -2,6 +2,7 @@
 
 using System.Collections;
 using UnityEngine;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -12,7 +13,13 @@ namespace CrimsonDraft.Navigation.Interactables
     /// beeper is picked up. Once active, swaps the radio screen between insideMaterial (player
     /// in range) and outsideMaterial (player out of range) and drives a small glow Light on the
     /// screen -- steady when inside, blinking when outside. PlayAcceptedFlash briefly overrides
-    /// both with a "code accepted" material/color before resuming that cycle.</summary>
+    /// both with a "code accepted" material/color before resuming that cycle.
+    ///
+    /// "In range" only counts while a living operator carries the beeper item (polled from the
+    /// inventory): without it the radio shows the out-of-range look even with the player inside
+    /// the trigger. Bind() is called by BeeperReceiverInteractable.Construct. A radio without a
+    /// BeeperDoorMechanism beside it switches on at Bind(); one with a mechanism waits for its
+    /// Activate() call.</summary>
     public sealed class BeeperRadioIndicator : MonoBehaviour
     {
         [Header("Screen")]
@@ -29,11 +36,17 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private float  glowIntensity      = 1.2f;
         [SerializeField] private float  blinkInterval      = 0.4f;
 
+        [Header("Beeper")]
+        [SerializeField] private string beeperItemId       = "KI_21";
+
         private static readonly int LightnessMultiplier = Shader.PropertyToID("_LightnessMultiplier");
 
         private MaterialPropertyBlock? block;
         private bool       active; // set by Activate() -- before that the screen/light are left untouched
         private bool       playerInRange;
+        private bool       hasBeeper;
+        private float      beeperPollTimer;
+        private IInventoryService? inventory;
         private bool       blinkOn = true;
         private float      blinkTimer;
         private Coroutine? flashRoutine;
@@ -45,6 +58,20 @@ namespace CrimsonDraft.Navigation.Interactables
             // Stays dark until Activate() -- otherwise the light would shine at its authored
             // intensity from scene load, before the player has any reason to notice this radio.
             if (this.glowLight != null) this.glowLight.enabled = false;
+        }
+
+        private const float BeeperPollInterval = 0.25f;
+
+        // Player is inside the trigger AND carries the beeper -- what the screen/light follow.
+        private bool InRange => this.playerInRange && this.hasBeeper;
+
+        public void Bind(IInventoryService inventoryService)
+        {
+            this.inventory = inventoryService;
+            this.hasBeeper = inventoryService.HasItem(this.beeperItemId);
+
+            if (GetComponent<BeeperDoorMechanism>() == null)
+                Activate();
         }
 
         void OnEnable()
@@ -79,7 +106,21 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void Update()
         {
-            if (!this.active || this.playerInRange || this.flashRoutine != null) return;
+            if (!this.active) return;
+
+            this.beeperPollTimer += Time.deltaTime;
+            if (this.beeperPollTimer >= BeeperPollInterval)
+            {
+                this.beeperPollTimer = 0f;
+                bool carried = this.inventory != null && this.inventory.HasItem(this.beeperItemId);
+                if (carried != this.hasBeeper)
+                {
+                    this.hasBeeper = carried;
+                    if (this.flashRoutine == null) ApplyState();
+                }
+            }
+
+            if (InRange || this.flashRoutine != null) return;
 
             this.blinkTimer += Time.deltaTime;
             if (this.blinkTimer < this.blinkInterval) return;
@@ -121,7 +162,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void ApplyState()
         {
-            SetScreenMaterial(this.playerInRange ? this.insideMaterial : this.outsideMaterial);
+            SetScreenMaterial(InRange ? this.insideMaterial : this.outsideMaterial);
             this.blinkOn    = true;
             this.blinkTimer = 0f;
             ApplyGlow();
@@ -140,12 +181,12 @@ namespace CrimsonDraft.Navigation.Interactables
 
         void ApplyGlow()
         {
-            float lit = this.playerInRange || this.blinkOn ? 1f : 0.1f;
+            float lit = InRange || this.blinkOn ? 1f : 0.1f;
 
             if (this.glowLight != null)
             {
                 this.glowLight.enabled   = true;
-                this.glowLight.color     = this.playerInRange ? this.insideGlowColor : this.outsideGlowColor;
+                this.glowLight.color     = InRange ? this.insideGlowColor : this.outsideGlowColor;
                 this.glowLight.intensity = this.glowIntensity * lit;
             }
 

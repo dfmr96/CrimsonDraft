@@ -511,7 +511,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -5.9300003, y: -1.6499996}
+  m_AnchoredPosition: {x: -8, y: -0.10000038}
   m_SizeDelta: {x: 11.85, y: 3.29}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &919513283482943618
@@ -1216,7 +1216,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -0.7896, y: 0.9919}
+  m_AnchoredPosition: {x: -1.98, y: 0.9919}
   m_SizeDelta: {x: 30.9332, y: 11.8279}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &8896602468546651068
@@ -1274,8 +1274,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 9
-  m_fontSizeBase: 9
+  m_fontSize: 11
+  m_fontSizeBase: 11
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1600,6 +1600,12 @@ MonoBehaviour:
   - {fileID: 4932293182389426204}
   completionFlickerCount: 2
   completionFlickerDuration: 0.3
+  chargeUpWhenStartingFull: 1
+  chargeUpStartDelay: 0.35
+  chargeUpDuration: 0.35
+  lastStretchBy: 8
+  lastStretchUpDuration: 0.07
+  lastStretchDownDuration: 0.09
 --- !u!1 &4827565480380209918
 GameObject:
   m_ObjectHideFlags: 0
@@ -1634,8 +1640,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 15.743784, y: -9.094177}
-  m_SizeDelta: {x: -33.0668, y: -20.1721}
+  m_AnchoredPosition: {x: 14.389572, y: -12.540001}
+  m_SizeDelta: {x: -33.0668, y: -30.68}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3193763471385800298
 CanvasRenderer:
@@ -1658,7 +1664,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_Color: {r: 0.6039216, g: 0.62352943, b: 0.36078432, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1880,15 +1886,22 @@ MonoBehaviour:
   stageDurationSevere: 1.7
   stageDurationMercy: 1.5
   effectImage: {fileID: 7091242688206743414}
-  statusLabel: {fileID: 4963810909862291938}
   effectColorStable: {r: 0.09019608, g: 0.45882353, b: 0.19607843, a: 0.55}
   effectColorCaution: {r: 0.6901961, g: 0.7058824, b: 0.29803923, a: 0.55}
   effectColorWarning: {r: 0.59607846, g: 0.3529412, b: 0.050980393, a: 0.55}
   effectColorSevere: {r: 1, g: 0, b: 0, a: 0.55}
   effectColorMercy: {r: 1, g: 0, b: 0, a: 0.55}
-  glitchDuration: 0.35
-  glitchJitterAmount: 6
+  statusLabel: {fileID: 4963810909862291938}
+  glitchDuration: 0.5
+  glitchJitterAmount: 10
   glitchMinAlpha: 0.15
+  glitchTint: {r: 1, g: 0.2, b: 0.15, a: 1}
+  glitchTintStrength: 0.9
+  glitchSeedRate: 24
+  glitchJitterAmountY: 2
+  glitchPanelShader: {fileID: 4800000, guid: b2faec76da010d244a952fd940c24193, type: 3}
+  glitchPanelGraphics: []
+  glitchPanelMinAlpha: 0.45
   mercyPulseSpeed: 2.5
   mercyPulseMinAlpha: 0.35
 --- !u!1 &5531057374965054296

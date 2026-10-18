@@ -31,6 +31,7 @@ namespace CrimsonDraft.Tests
             public SaveGameData? ReadFromDisk(int slot) => null;
             public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
+            public bool TryStashPendingLoad(int slot, out string sceneName) { sceneName = string.Empty; return false; }
             public SaveGameData? ConsumePendingLoad() => null;
         }
 

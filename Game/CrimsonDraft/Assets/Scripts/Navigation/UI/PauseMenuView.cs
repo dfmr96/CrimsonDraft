@@ -1,22 +1,29 @@
 #nullable enable
 
-using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 using CrimsonDraft.UI;
+using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Navigation.UI
 {
-    public enum OptionsWindow { Audio, Video, Controls }
-
+    /// <summary>
+    /// The pause menu's panels. Main (Resume / Settings / Quit) is navigated through the
+    /// EventSystem with a single sliding <see cref="MenuSelectionBar"/>; Settings works like the
+    /// main menu's Options screen -- the tab row (Video / Control / Sound) and the active tab's
+    /// content are on screen together, driven by <see cref="OptionsTabController"/>.
+    /// </summary>
     public sealed class PauseMenuView : MonoBehaviour
     {
         [Header("Roots")]
         [SerializeField] private GameObject root            = null!;
         [SerializeField] private GameObject dimBackground   = null!;
         [SerializeField] private GameObject mainPanel        = null!;
+        [Tooltip("Fila de tabs de Settings (Video / Control / Sound).")]
         [SerializeField] private GameObject optionsPanel     = null!;
+        [Tooltip("Contenido de los tabs (Options-Windows).")]
+        [SerializeField] private GameObject windowsRoot      = null!;
 
         // Same shared Volume Inventory/pickup-preview/Inspect fade in -- gives the pause menu
         // the same CRT/PSX-boosted look while it's open. Optional: null just skips the fade.
@@ -31,48 +38,55 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Button optionsButton = null!;
         [SerializeField] private Button quitButton    = null!;
 
-        [Header("Options Categories")]
-        [SerializeField] private Button audioButton    = null!;
-        [SerializeField] private Button videoButton    = null!;
-        [SerializeField] private Button controlsButton = null!;
+        [Header("Settings tabs")]
+        [SerializeField] private OptionsTabController optionsTabs = null!;
+        [Tooltip("Video: slider de gamma.")]
+        [SerializeField] private SliderGammaPanel gammaPanel = null!;
+        [Tooltip("Control: Classic/Modern y Keyboard/Gamepad.")]
+        [SerializeField] private ControlOptionsController controlsPanel = null!;
+        [Tooltip("Sound: Master / SFX / UI SFX / Music.")]
+        [SerializeField] private OptionsMenuController soundPanel = null!;
 
-        [Header("Options Windows")]
-        [SerializeField] private GameObject windowsRoot    = null!;
-        [SerializeField] private GameObject audioWindow    = null!;
-        [SerializeField] private GameObject videoWindow    = null!;
-        [SerializeField] private GameObject controlsWindow = null!;
+        // Video tab: the stacked UI CRT camera post-processes the whole frame (world included),
+        // so while Video is up the pause canvas is drawn by a dedicated camera into a render
+        // texture instead and composited over the screen -- the UI keeps its CRT look while the
+        // world stays raw. Optional: null keeps the canvas on the stacked camera.
+        [Header("Video tab (UI-only effect)")]
+        [SerializeField] private Camera? stackedUiCamera;
+        [SerializeField] private Camera? videoUiCamera;
+        [SerializeField] private GameObject? videoUiComposite;
 
-        [Header("Audio Window")]
-        [SerializeField] private Slider masterSlider = null!;
-        [SerializeField] private Slider sfxSlider    = null!;
-        [SerializeField] private Slider musicSlider  = null!;
-
-        [Header("Video Window")]
-        [SerializeField] private Slider gammaSlider  = null!;
-
-        // Menu backdrop layers hidden while the Video window is open, so brightness is judged
+        // Menu backdrop layers hidden while the Video tab is up, so brightness is judged
         // against the actual scene instead of the dimmed pause background.
         [SerializeField] private GameObject[] videoHiddenBackdrop = System.Array.Empty<GameObject>();
-
-        // Controls window: driven by ControlOptionsController (same panel as the main menu's
-        // Options > Control), navigated by PauseMenuController rather than the EventSystem.
-        [Header("Controls Window")]
-        [SerializeField] private ControlOptionsController controlsPanel = null!;
 
         public Button ResumeButton            => this.resumeButton;
         public Button OptionsButton           => this.optionsButton;
         public Button QuitButton              => this.quitButton;
-        public Button AudioButton             => this.audioButton;
-        public Button VideoButton             => this.videoButton;
-        public Button ControlsButton          => this.controlsButton;
-        public Slider MasterSlider            => this.masterSlider;
-        public Slider SfxSlider               => this.sfxSlider;
-        public Slider MusicSlider             => this.musicSlider;
-        public Slider GammaSlider             => this.gammaSlider;
+        public OptionsTabController OptionsTabs => this.optionsTabs;
+        public SliderGammaPanel GammaPanel      => this.gammaPanel;
         public ControlOptionsController ControlsPanel => this.controlsPanel;
+        public OptionsMenuController SoundPanel => this.soundPanel;
 
-        public GameObject FirstMainSelectable    => this.resumeButton.gameObject;
-        public GameObject FirstOptionsSelectable => this.audioButton.gameObject;
+        public GameObject FirstMainSelectable => this.resumeButton.gameObject;
+
+        private GameObject? lastSelected;
+
+        // Watches the EventSystem's selection (Resume / Settings / Quit) and plays the cursor
+        // sound on every move between two real selectables -- opening or closing a panel selects
+        // from/to nothing, so those keep their own confirm/cancel sounds only. Settings tabs make
+        // their own cursor sounds (OptionsTabController).
+        private void Update()
+        {
+            var current = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
+            if (current == this.lastSelected) return;
+
+            if (this.lastSelected != null && current != null)
+                PlayCursor();
+            this.lastSelected = current;
+        }
+
+        private void OnDisable() => this.lastSelected = null;
 
         public void ShowMain()
         {
@@ -80,7 +94,7 @@ namespace CrimsonDraft.Navigation.UI
             this.dimBackground.SetActive(true);
             this.mainPanel.SetActive(true);
             this.optionsPanel.SetActive(false);
-            HideWindows();
+            this.windowsRoot.SetActive(false);
         }
 
         public void ShowOptions()
@@ -88,71 +102,35 @@ namespace CrimsonDraft.Navigation.UI
             this.dimBackground.SetActive(true);
             this.mainPanel.SetActive(false);
             this.optionsPanel.SetActive(true);
-            HideWindows();
-        }
-
-        // The window replaces the category list; Back (ShowOptions) brings the list back.
-        public void ShowWindow(OptionsWindow window)
-        {
-            this.optionsPanel.SetActive(false);
             this.windowsRoot.SetActive(true);
-            this.audioWindow.SetActive(window == OptionsWindow.Audio);
-            this.videoWindow.SetActive(window == OptionsWindow.Video);
-            this.controlsWindow.SetActive(window == OptionsWindow.Controls);
-            SetBackdropVisible(window != OptionsWindow.Video);
-        }
-
-        public void HideWindows()
-        {
-            SetBackdropVisible(true);
-            this.windowsRoot.SetActive(false);
-            this.audioWindow.SetActive(false);
-            this.videoWindow.SetActive(false);
-            this.controlsWindow.SetActive(false);
         }
 
         public void HideAll()
         {
+            SetVideoUiMode(false);
             this.root.SetActive(false);
             this.mainPanel.SetActive(false);
             this.optionsPanel.SetActive(false);
-            HideWindows();
+            this.windowsRoot.SetActive(false);
+            SetBackdropVisible(true);
         }
 
-        private void SetBackdropVisible(bool visible)
+        public void SetBackdropVisible(bool visible)
         {
             foreach (var layer in this.videoHiddenBackdrop)
                 if (layer != null) layer.SetActive(visible);
         }
 
-        public Button CategoryButton(OptionsWindow window) => window switch
+        /// <summary>Video tab on: UI-only CRT path (render texture + composite). Off: back to the stacked UI camera.</summary>
+        public void SetVideoUiMode(bool on)
         {
-            OptionsWindow.Audio => this.audioButton,
-            OptionsWindow.Video => this.videoButton,
-            _                   => this.controlsButton,
-        };
+            if (this.videoUiCamera == null || this.videoUiComposite == null) return;
 
-        // Null when the window has nothing selectable yet (e.g. a row still disabled while
-        // it's being built) -- caller keeps focus on the category button instead.
-        public GameObject? FirstWindowSelectable(OptionsWindow window)
-        {
-            Selectable? target = window switch
-            {
-                OptionsWindow.Audio => this.masterSlider,
-                OptionsWindow.Video => this.gammaSlider,
-                _                   => null,
-            };
-            return target != null && target.gameObject.activeInHierarchy ? target.gameObject : null;
+            var canvas = GetComponent<Canvas>();
+            this.videoUiCamera.gameObject.SetActive(on);
+            this.videoUiComposite.SetActive(on);
+            if (canvas != null) canvas.worldCamera = on ? this.videoUiCamera : this.stackedUiCamera;
         }
-
-        public void SetSliderValues(float master, float sfx, float music)
-        {
-            this.masterSlider.SetValueWithoutNotify(master);
-            this.sfxSlider.SetValueWithoutNotify(sfx);
-            this.musicSlider.SetValueWithoutNotify(music);
-        }
-
-        public void SetGammaValue(float gamma) => this.gammaSlider.SetValueWithoutNotify(gamma);
 
         public void PlayConfirm() => this.sfx?.PlayDecide(gameObject);
         public void PlayCancel()  => this.sfx?.PlayCancel(gameObject);

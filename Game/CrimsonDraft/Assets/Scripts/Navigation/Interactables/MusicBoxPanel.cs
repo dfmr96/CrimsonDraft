@@ -278,6 +278,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (next == this.cursor) return;
 
             this.cursor = next;
+            this.context?.Sfx?.PlayCursor(gameObject);
             UpdateHighlight();
         }
 
@@ -293,11 +294,13 @@ namespace CrimsonDraft.Navigation.Interactables
             // Confirm on a melody socket lights its ping directly (and turns off the rest of its group).
             ResolveSocket(this.cursor, out int g, out int s);
             this.selected[g] = s;
+            this.context.Sfx?.PlayDecide(gameObject);
             ApplyPings(g);
         }
 
         private void ConfirmDoll()
         {
+            this.context?.Sfx?.PlayInvalidAction(gameObject);
             var node = this.dollPlaced ? this.dollWaitingDialogue : this.emptyDollDialogue;
             ShowNotice(node);
         }
@@ -306,12 +309,14 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             if (!this.keyPlaced)
             {
+                this.context?.Sfx?.PlayInvalidAction(gameObject);
                 ShowNotice(this.missingKeyDialogue);
                 return;
             }
 
             this.isBusy = true;
             var ctx = this.context!;
+            ctx.Sfx?.PlayDecide(gameObject);
             ctx.DialogueService.StartDialogue(
                 this.crankReadyDialogue.nodeName ?? "",
                 onComplete: () => StartCrankPrompt(ctx));
