@@ -18,6 +18,7 @@ Shader "CrimsonDraft/VFX/TargetHalo"
         _RingWidth      ("Ring Width", Range(0.01, 0.4)) = 0.05
         _RingOpacity    ("Ring Opacity", Range(0, 2)) = 1
         _DiscOpacity    ("Disc Fill Opacity", Range(0, 1)) = 0
+        [Toggle] _HardEdge ("Hard Edges (no gradient, no glow)", Float) = 0
 
         [Header(Glow)]
         _GlowAmount     ("Glow Amount", Range(0, 2)) = 0.7
@@ -63,6 +64,7 @@ Shader "CrimsonDraft/VFX/TargetHalo"
                 half  _RingWidth;
                 half  _RingOpacity;
                 half  _DiscOpacity;
+                half  _HardEdge;
                 half  _GlowAmount;
                 half  _GlowSpread;
                 half  _HDRBoost;
@@ -123,13 +125,26 @@ Shader "CrimsonDraft/VFX/TargetHalo"
                     // Split the ring into _ArcCount sections, each drawn only over _ArcFill of its length.
                     half a = atan2(c.y, c.x) * (1.0 / 6.2831853) + 0.5;     // 0..1 around the circle
                     half t = frac(a * _ArcCount);                            // position inside the section
-                    half arcMask = smoothstep(0.0, _ArcSoftness, t) * smoothstep(0.0, _ArcSoftness, _ArcFill - t);
-
-                    half dr   = d - _RingRadius;
-                    half core = exp(-pow(dr / max(_RingWidth, 0.001), 2.0));
-                    half glow = exp(-pow(dr / max(_RingWidth * _GlowSpread, 0.001), 2.0)) * _GlowAmount;
-                    half fill = saturate(1.0 - d) * _DiscOpacity;
-                    half edge = saturate((1.0 - d) / 0.06); // no hard cut at the quad's boundary
+                    half dr = d - _RingRadius;
+                    half arcMask, core, glow, fill, edge;
+                    if (_HardEdge > 0.5)
+                    {
+                        // Binary coverage: every fragment is fully on or off, so the ring and arc
+                        // ends have crisp edges with no soft falloff and no glow.
+                        arcMask = step(0.0, t) * step(t, _ArcFill);
+                        core    = step(abs(dr), _RingWidth);
+                        glow    = 0;
+                        fill    = _DiscOpacity;
+                        edge    = 1;
+                    }
+                    else
+                    {
+                        arcMask = smoothstep(0.0, _ArcSoftness, t) * smoothstep(0.0, _ArcSoftness, _ArcFill - t);
+                        core    = exp(-pow(dr / max(_RingWidth, 0.001), 2.0));
+                        glow    = exp(-pow(dr / max(_RingWidth * _GlowSpread, 0.001), 2.0)) * _GlowAmount;
+                        fill    = saturate(1.0 - d) * _DiscOpacity;
+                        edge    = saturate((1.0 - d) / 0.06); // no hard cut at the quad's boundary
+                    }
 
                     alpha = ((core * _RingOpacity + glow) * arcMask + fill) * edge;
                     hot   = core * arcMask;
