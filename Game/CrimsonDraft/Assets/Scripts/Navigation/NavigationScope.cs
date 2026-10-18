@@ -81,7 +81,10 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
 
-            builder.RegisterInstance(this.cachedCameraZoneTriggers);
+            // Discover zones at startup so newly placed triggers receive their service
+            // even when the editor cache has not been refreshed.
+            builder.RegisterInstance(FindObjectsByType<FixedCameraZoneTrigger>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None));
             builder.Register<FixedCameraZoneService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<FixedCameraZoneBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
