@@ -86,13 +86,39 @@ namespace CrimsonDraft.UI
             this.tooltip.ShowAtItem(label, item.GetComponent<RectTransform>());
         }
 
+        public void ShowOnLogo(OperatorWidgetView widget)
+        {
+            RectTransform? logo = widget.LogoRect;
+            if (logo == null) return;
+
+            ClearMeleeHover();
+            PlaceOnRect(logo);
+            HideTooltip();
+        }
+
         public void ShowOnMelee(OperatorWidgetView widget)
+        {
+            RectTransform slot = widget.MeleeSlotRoot;
+            PlaceOnRect(slot);
+
+            if (this.tooltip != null && widget.MeleeData != null)
+                this.tooltip.ShowAtItem(widget.MeleeData.DisplayName, slot);
+
+            RectTransform? icon = widget.MeleeIconRect;
+            if (icon == null) return;
+            icon.anchoredPosition = (1f - this.hoverScaleMultiplier) * icon.rect.center;
+            icon.localScale       = Vector3.one * this.hoverScaleMultiplier;
+            this.hoveredMeleeIcon = icon;
+        }
+
+        // Parks the selector over a fixed (non-grid) widget element: the melee slot or the logo.
+        private void PlaceOnRect(RectTransform slot)
         {
             if (this.hoveredItem != null) ResetHover(this.hoveredItem);
             this.hoveredItem = null;
 
-            RectTransform slot = widget.MeleeSlotRoot;
             this.selectorRect.SetParent(slot.parent, false);
+            this.selectorRect.SetAsLastSibling();
             this.selectorRect.pivot     = slot.pivot;
             this.selectorRect.anchorMin = slot.anchorMin;
             this.selectorRect.anchorMax = slot.anchorMax;
@@ -103,15 +129,6 @@ namespace CrimsonDraft.UI
             var image = Image();
             image.color = ColorSelector;
             if (this.selectorSpriteNormal != null) image.sprite = this.selectorSpriteNormal;
-
-            if (this.tooltip != null && widget.MeleeData != null)
-                this.tooltip.ShowAtItem(widget.MeleeData.DisplayName, slot);
-
-            RectTransform? icon = widget.MeleeIconRect;
-            if (icon == null) return;
-            icon.anchoredPosition = (1f - this.hoverScaleMultiplier) * icon.rect.center;
-            icon.localScale       = Vector3.one * this.hoverScaleMultiplier;
-            this.hoveredMeleeIcon = icon;
         }
 
         public void ClearMeleeHover()

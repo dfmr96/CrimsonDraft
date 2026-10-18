@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crimson Dialogues</title>
+<style>
+  :root {
+    --bg: #000;
+    --green: #5fd4a0;
+    --green-dim: #2f7a5c;
+    --green-dark: #0f3a2b;
+    --panel: #0b2a20;
+    --text: #f2f2f2;
+    --muted: #8aa79a;
+    --danger: #d45f5f;
+    --font: "Consolas", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+  button, input, select, textarea { font-family: inherit; font-size: 14px; }
+  .hidden { display: none !important; }
+  .screen { min-height: 100%; }
+
+  button {
+    background: transparent; color: var(--green); border: 1px solid var(--green-dim);
+    padding: 6px 12px; cursor: pointer; letter-spacing: .05em;
+  }
+  button:hover { background: var(--green-dark); border-color: var(--green); }
+  button.primary { background: var(--green); color: #000; border-color: var(--green); font-weight: bold; }
+  button.primary:hover { filter: brightness(1.15); }
+  button.danger { color: var(--danger); border-color: #6b2d2d; }
+  button.danger:hover { background: #2a1010; }
+  button:disabled { opacity: .4; cursor: default; }
+
+  input, select, textarea {
+    background: #050f0b; color: var(--text); border: 1px solid var(--green-dim); padding: 6px 8px;
+  }
+  input:focus, select:focus, textarea:focus { outline: 1px solid var(--green); }
+  label { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ---------- MENU ---------- */
+  #menu { display: flex; flex-direction: column; align-items: center; padding: 40px 16px; }
+  #menu h1 { color: var(--green); letter-spacing: .3em; font-size: 22px; margin: 0 0 4px; }
+  #menu .sub { color: var(--muted); font-size: 12px; margin-bottom: 28px; letter-spacing: .15em; }
+  .menu-box { width: 100%; max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .menu-box { grid-template-columns: 1fr; } }
+  .frame { border: 1px solid var(--green-dim); padding: 12px; background: #020806; }
+  .frame h2 { margin: 0 0 10px; font-size: 13px; color: var(--green); letter-spacing: .2em; }
+  #convList { list-style: none; margin: 0; padding: 0; max-height: 380px; overflow-y: auto; }
+  #convList li { display: flex; gap: 12px; padding: 8px 10px; cursor: pointer; border: 1px solid transparent; }
+  #convList li:hover { background: #07160f; }
+  #convList li.sel { border-color: var(--green); background: var(--green-dark); }
+  #convList li.sel::before { content: "▶"; color: var(--green); }
+  #convList .freq { color: var(--green); min-width: 56px; }
+  #convList .empty { color: var(--muted); cursor: default; }
+  #preview .pv-title { font-size: 16px; margin-bottom: 6px; }
+  #preview .pv-meta { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  #preview .pv-lines { font-size: 13px; max-height: 260px; overflow-y: auto; border-top: 1px solid var(--green-dark); padding-top: 8px; }
+  #preview .pv-lines div { margin-bottom: 6px; white-space: pre-wrap; }
+  #preview .pv-lines b { color: var(--green); }
+  .menu-actions { width: 100%; max-width: 900px; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .menu-actions .spacer { flex: 1; }
+  .settings { width: 100%; max-width: 900px; margin-top: 16px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; color: var(--muted); font-size: 12px; }
+  .settings label { display: inline; margin: 0; }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 18px; text-align: center; line-height: 1.7; }
+
+  /* ---------- EDITOR ---------- */
+  #editor { padding: 20px 16px 60px; max-width: 1100px; margin: 0 auto; }
+  #editor header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  #editor header h2 { color: var(--green); letter-spacing: .2em; font-size: 16px; margin: 0; }
+  #editor header .btns { display: flex; gap: 8px; }
+  .ed-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 820px) { .ed-grid { grid-template-columns: 1fr; } }
+  .ed-grid input, .ed-grid select { width: 100%; }
+  .line-row { display: grid; grid-template-columns: 26px 150px 1fr auto; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--green-dark); }
+  @media (max-width: 600px) { .line-row { grid-template-columns: 26px 1fr; } .line-row textarea, .line-row .row-btns { grid-column: 1 / -1; } }
+  .line-row .num { color: var(--muted); padding-top: 7px; font-size: 12px; }
+  .line-row textarea { width: 100%; min-height: 54px; resize: vertical; }
+  .row-btns { display: flex; gap: 4px; }
+  .row-btns button { padding: 4px 8px; }
+  .char-row { display: grid; grid-template-columns: 56px 1fr 40px auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--green-dark); }
+  .char-row input[type=color] { padding: 0; height: 32px; width: 40px; }
+  .thumb { width: 56px; height: 56px; border: 1px solid var(--green-dim); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--panel); color: var(--green); font-size: 20px; position: relative; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb:hover::after { content: "📷"; position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .toggles { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .toggles button { padding: 3px 10px; font-size: 12px; }
+  .toggles button.down { color: var(--danger); border-color: #6b2d2d; background: #1a0a0a; }
+  .cond { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 0 2px 34px; border-top: 1px dashed var(--green-dark); margin-top: 6px; }
+  .cond label { display: inline-flex; align-items: center; gap: 4px; margin: 0; text-transform: none; letter-spacing: 0; font-size: 11px; }
+  .cond select { padding: 2px 4px; font-size: 12px; width: auto; }
+  .badge { display: inline-block; font-size: 10px; color: var(--danger); border: 1px solid #6b2d2d; padding: 0 4px; margin-top: 4px; }
+  .pv-lines .skip { opacity: .35; text-decoration: line-through; }
+  .chk-list { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--green-dark); padding: 6px 8px; }
+  .chk-list label { display: flex; align-items: center; gap: 6px; margin: 0; text-transform: none; font-size: 13px; color: var(--text); letter-spacing: 0; cursor: pointer; }
+  .chk-list input { width: auto; }
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .small { font-size: 11px; color: var(--muted); }
+
+  /* ---------- RADIO ---------- */
+  #radio { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; cursor: pointer; user-select: none; overflow: hidden; }
+  #radio::after { /* scanlines */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
+  }
+  .radio-wrap { width: 100%; max-width: 820px; }
+  .radio-top { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 14px; align-items: stretch; }
+  .portrait {
+    aspect-ratio: 1 / 1; background: var(--panel); border: 2px solid var(--green-dim); position: relative; overflow: hidden;
+    transition: filter .25s, opacity .25s; transform-origin: center;
+  }
+  .portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tint .portrait img { filter: grayscale(1) sepia(1) hue-rotate(105deg) saturate(1.8) brightness(.95); }
+  .portrait .initials { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 56px; color: var(--green); font-weight: bold; letter-spacing: .05em; }
+  .portrait::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, rgba(0,0,0,.18) 0 2px, transparent 2px 4px); pointer-events: none; }
+  .portrait.inactive { filter: brightness(.45); }
+  .portrait.talking { animation: talk .18s steps(2) infinite; }
+  @keyframes talk { 50% { filter: brightness(1.12); } }
+  .portrait.static::before {
+    content: ""; position: absolute; inset: 0; z-index: 2;
+    background: repeating-linear-gradient(to bottom, var(--green) 0 1px, #000 1px 3px);
+    animation: staticfx .08s steps(3) infinite; opacity: .85;
+  }
+  @keyframes staticfx { 0% { transform: translateY(0); } 50% { transform: translateY(2px); } 100% { transform: translateY(-1px); } }
+
+  .center { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
+  .tag { align-self: center; background: var(--green-dark); color: var(--green); border: 1px solid var(--green-dim); padding: 2px 18px; letter-spacing: .2em; font-weight: bold; font-size: 14px; }
+  .tag.memory { background: var(--green-dim); color: #d9fff0; }
+  .tuner { flex: 1; display: grid; grid-template-columns: 24px 1fr 24px; gap: 8px; align-items: center; }
+  .arrow { color: var(--green); font-size: 16px; text-align: center; border: 1px solid var(--green-dim); padding: 6px 0; background: var(--green-dark); }
+  .display { position: relative; height: 100%; min-height: 110px; background: var(--green-dark); border: 2px solid var(--green-dim); padding: 8px; overflow: hidden; }
+  .bars { display: flex; flex-direction: column; gap: 5px; height: 100%; justify-content: center; }
+  .bar { height: 8px; background: var(--green); opacity: .85; transition: width .08s linear; }
+  .freq-big { position: absolute; right: 10px; bottom: 6px; font-size: clamp(26px, 6vw, 48px); color: var(--green); font-weight: bold; letter-spacing: .02em; text-shadow: 0 0 6px rgba(95,212,160,.5); background: var(--green-dark); padding-left: 6px; }
+  .opening .radio-top > * { animation: unfold .35s ease-out both; }
+  @keyframes unfold { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+  .closing .radio-top > *, .closing .dialog { animation: fold .3s ease-in both; }
+  @keyframes fold { to { transform: scaleY(0); opacity: 0; } }
+
+  .dialog { margin: 40px auto 0; max-width: 620px; min-height: 160px; position: relative; padding: 0 8px; }
+  .speaker { color: var(--green); font-size: 22px; letter-spacing: .12em; font-weight: bold; margin-bottom: 14px; }
+  .text { font-size: 22px; line-height: 1.5; letter-spacing: .06em; white-space: pre-wrap; min-height: 100px; }
+  .next { position: absolute; right: 0; bottom: -10px; color: var(--green); font-size: 20px; animation: blink .7s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .radio-hud { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; color: #3a5a4c; font-size: 11px; z-index: 3; }
+  .radio-hud span { margin: 0 8px; }
+  @media (max-width: 600px) { .text, .speaker { font-size: 17px; } .portrait .initials { font-size: 32px; } }
+
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--green-dark); color: var(--green); border: 1px solid var(--green); padding: 10px 16px; z-index: 99; font-size: 13px; max-width: 90vw; }
+</style>
+</head>
+<body>
+
+<!-- ================= MENU ================= -->
+<div id="menu" class="screen">
+  <h1>CRIMSON DIALOGUES</h1>
+  <div class="sub">CODEC / RADIO — TESTER DE DIÁLOGOS</div>
+
+  <div class="menu-box">
+    <div class="frame">
+      <h2>CONVERSACIONES</h2>
+      <ul id="convList"></ul>
+    </div>
+    <div class="frame" id="preview"></div>
+  </div>
+
+  <div class="menu-actions">
+    <button class="primary" id="btnPlay">OK ▶</button>
+    <button id="btnEdit">Editar</button>
+    <button id="btnNew">+ Nueva</button>
+    <button id="btnDup">Duplicar</button>
+    <button class="danger" id="btnDel">Borrar</button>
+    <span class="spacer"></span>
+    <button id="btnExport">Exportar JSON</button>
+    <button id="btnImportAdd">Importar (agregar)</button>
+    <button class="danger" id="btnImport">Importar (reemplazar)</button>
+    <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+  </div>
+
+  <div class="settings">
+    <span>Simular caídos:</span>
+    <span id="deadToggles" class="toggles"></span>
+    <span class="small" id="deadInfo"></span>
+  </div>
+
+  <div class="settings">
+    <span>Velocidad texto:
+      <select id="optSpeed">
+        <option value="12">Rápida</option>
+        <option value="28">Normal</option>
+        <option value="50">Lenta</option>
+        <option value="0">Instantánea</option>
+      </select>
+    </span>
+    <label><input type="checkbox" id="optTint"> Teñir retratos de verde</label>
+    <label><input type="checkbox" id="optBeep"> Sonido de tipeo</label>
+  </div>
+
+  <div class="hint">
+    ↑ ↓ elegir · ENTER / OK iniciar · En la radio: ESPACIO / ENTER / click avanzar · ← línea anterior · ESC salir
+  </div>
+</div>
+
+<!-- ================= EDITOR ================= -->
+<div id="editor" class="screen hidden">
+  <header>
+    <h2>EDITAR CONVERSACIÓN</h2>
+    <div class="btns">
+      <button id="edTest">▶ Probar</button>
+      <button id="edCancel">Cancelar</button>
+      <button class="primary" id="edSave">Guardar</button>
+    </div>
+  </header>
+  <div class="ed-grid">
+    <div>
+      <div class="frame">
+        <h2>DATOS</h2>
+        <label for="edTitle">Título</label>
+        <input id="edTitle">
+        <label for="edFreq">Frecuencia</label>
+        <input id="edFreq" placeholder="140.85">
+        <label>Grupo del jugador (derecha)</label>
+        <div id="edRightGroup" class="chk-list"></div>
+        <label for="edLeft">Personaje izquierda (inicial)</label>
+        <select id="edLeft"></select>
+        <div class="small" style="margin-top:8px">Los del grupo comparten el retrato de la derecha y se alternan según quién habla. Cualquier otro aparece a la izquierda.</div>
+      </div>
+      <div class="frame" style="margin-top:16px">
+        <h2>PERSONAJES</h2>
+        <div id="charList"></div>
+        <div class="card-actions"><button id="addChar">+ Personaje</button></div>
+        <div class="small" style="margin-top:8px">Click en el cuadrado para subir retrato. Los personajes son compartidos por todas las conversaciones.</div>
+        <input type="file" id="portraitFile" accept="image/*" class="hidden">
+      </div>
+    </div>
+    <div class="frame">
+      <h2>LÍNEAS</h2>
+      <div id="lineList"></div>
+      <div class="card-actions"><button id="addLine">+ Línea</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RADIO ================= -->
+<div id="radio" class="screen hidden">
+  <div class="radio-wrap" id="radioWrap">
+    <div class="radio-top">
+      <div class="portrait" id="pLeft"></div>
+      <div class="center">
+        <div class="tag">PTT</div>
+        <div class="tuner">
+          <div class="arrow">◀</div>
+          <div class="display">
+            <div class="bars" id="bars"></div>
+            <div class="freq-big" id="freqBig">140.85</div>
+          </div>
+          <div class="arrow">▶</div>
+        </div>
+        <div class="tag memory">MEMORY</div>
+      </div>
+      <div class="portrait" id="pRight"></div>
+    </div>
+    <div class="dialog">
+      <div class="speaker" id="speaker"></div>
+      <div class="text" id="text"></div>
+      <div class="next hidden" id="nextArrow">▼</div>
+    </div>
+  </div>
+  <div class="radio-hud"><span id="lineCounter"></span><span id="deadHud"></span><span>ESC salir</span><span>← anterior</span></div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+const LS_KEY = 'crimson-dialogues-v1';
+const LS_OPTS = 'crimson-dialogues-opts';
+const $ = id => document.getElementById(id);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- datos ---------- */
+// Estado inicial en un navegador limpio: los personajes del proyecto y ninguna conversación.
+// Las conversaciones entran con "Importar (agregar)" desde dialogos.json.
+function seed() {
+  return {
+    characters: [
+      { id: 'vulture', name: 'VULTURE', color: '#c9a227', portrait: '' },
+      { id: 'deer',    name: 'DEER',    color: '#8fd4b0', portrait: '' },
+      { id: 'sterna',  name: 'STERNA',  color: '#6fb8e0', portrait: '' },
+      { id: 'bear',    name: 'BEAR',    color: '#d4825f', portrait: '' },
+    ],
+    conversations: [],
+  };
+}
+function load() {
+  try { const s = localStorage.getItem(LS_KEY); if (s) return JSON.parse(s); } catch (e) {}
+  return seed();
+}
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); return true; }
+  catch (e) { toast('No se pudo guardar en el navegador (¿retratos muy pesados?). Usá Exportar JSON.'); return false; }
+}
+let db = load();
+let opts = { speed: 28, tint: true, beep: false, dead: [] };
+try { Object.assign(opts, JSON.parse(localStorage.getItem(LS_OPTS) || '{}')); } catch (e) {}
+function saveOpts() { try { localStorage.setItem(LS_OPTS, JSON.stringify(opts)); } catch (e) {} }
+
+const charById = (id, list = db.characters) => list.find(c => c.id === id);
+// El lado derecho es un grupo (el jugador). Acepta el viejo rightId de un solo personaje.
+// Tolera rightIds como array o como string suelto (PowerShell desenvuelve los arrays de 1 elemento).
+const rightGroup = conv => {
+  const r = conv.rightIds ?? conv.rightId;
+  return (Array.isArray(r) ? r : (r ? [r] : [])).filter(Boolean);
+};
+
+/* ---------- variantes por caídos ---------- */
+// dead = ids del grupo que están muertos en esta simulación.
+let dead = new Set();   // se rellena desde opts al final del script
+// Una condición { alive: [...], dead: [...] } se cumple si TODOS los listados cumplen.
+function condOk(c, deadSet) {
+  if (!c) return true;
+  if (Array.isArray(c.alive) && !c.alive.every(id => !deadSet.has(id))) return false;
+  if (Array.isArray(c.dead) && !c.dead.every(id => deadSet.has(id))) return false;
+  return true;
+}
+// Devuelve las líneas que quedan, cada una con `i` = su índice original.
+function resolveLines(conv, deadSet = dead) {
+  const out = [];
+  (conv.lines || []).forEach((l, i) => {
+    if (l.speaker && deadSet.has(l.speaker)) return; // el que murió no habla
+    if (!condOk(l.if, deadSet)) return;              // línea condicionada
+    const alt = (l.alt || []).find(a => condOk(a, deadSet));
+    out.push({ speaker: l.speaker, text: alt?.text ?? l.text, beat: l.beat, i });
+  });
+  return out;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
+}
+function show(screen) {
+  ['menu', 'editor', 'radio'].forEach(s => $(s).classList.toggle('hidden', s !== screen));
+  current = screen;
+}
+let current = 'menu';
+
+/* ---------- MENU ---------- */
+let sel = 0;
+function renderMenu() {
+  const list = $('convList');
+  list.innerHTML = '';
+  if (!db.conversations.length) {
+    list.innerHTML = '<li class="empty">No hay conversaciones. Importá dialogos.json con "Importar (agregar)", o creá una con "+ Nueva".</li>';
+  }
+  sel = Math.max(0, Math.min(sel, db.conversations.length - 1));
+  db.conversations.forEach((c, i) => {
+    const li = document.createElement('li');
+    if (i === sel) li.className = 'sel';
+    li.innerHTML = `<span class="freq">${esc(c.freq)}</span><span>${esc(c.title || '(sin título)')}</span>`;
+    li.onclick = () => { sel = i; renderMenu(); };
+    li.ondblclick = () => { sel = i; playSelected(); };
+    list.append(li);
+  });
+  list.querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
+
+  const c = db.conversations[sel];
+  const pv = $('preview');
+  renderDeadToggles();
+  if (!c) { pv.innerHTML = '<h2>DETALLE</h2>'; return; }
+  const name = id => esc(charById(id)?.name ?? '???');
+  const grupo = rightGroup(c).map(id => dead.has(id) ? `<s>${name(id)}</s>` : name(id)).join('/') || '—';
+  const res = resolveLines(c);
+  const keep = new Map(res.map(l => [l.i, l.text]));
+  const omit = c.lines.length - res.length;
+  pv.innerHTML = `<h2>DETALLE</h2>
+    <div class="pv-title">${esc(c.title || '(sin título)')}</div>
+    <div class="pv-meta">FREQ ${esc(c.freq)} · ${name(c.leftId)} ↔ ${grupo} · ${res.length} de ${c.lines.length} líneas${omit ? ` · ${omit} omitida(s)` : ''}</div>
+    <div class="pv-lines">${c.lines.map((l, i) => {
+      const cuerpo = l.beat ? `<i class="small">— ${esc(l.beat)} —</i>` : `<b>${name(l.speaker)}:</b> ${esc(keep.has(i) ? keep.get(i) : l.text)}`;
+      return `<div${keep.has(i) ? '' : ' class="skip"'}>${cuerpo}</div>`;
+    }).join('') || '<div class="small">Sin líneas.</div>'}</div>`;
+}
+
+function renderDeadToggles() {
+  const c = db.conversations[sel];
+  const ids = c ? rightGroup(c) : [];
+  const box = $('deadToggles'); box.innerHTML = '';
+  ids.forEach(id => {
+    const ch = charById(id);
+    const b = document.createElement('button');
+    b.textContent = (dead.has(id) ? '† ' : '') + (ch?.name ?? id);
+    b.className = dead.has(id) ? 'down' : '';
+    b.onclick = () => {
+      dead.has(id) ? dead.delete(id) : dead.add(id);
+      opts.dead = [...dead]; saveOpts(); renderMenu();
+    };
+    box.append(b);
+  });
+  const caidos = ids.filter(id => dead.has(id));
+  $('deadInfo').textContent = !ids.length ? ''
+    : caidos.length === ids.length ? 'Todo el grupo caído.'
+    : caidos.length ? `Variante: quedan ${ids.length - caidos.length} de ${ids.length}.`
+    : 'Variante base: todos vivos.';
+}
+
+$('btnPlay').onclick = playSelected;
+$('btnEdit').onclick = () => db.conversations[sel] && openEditor(db.conversations[sel]);
+$('btnNew').onclick = () => {
+  // arranca con el grupo de la última conversación, que normalmente es el mismo
+  const prev = db.conversations[sel];
+  const right = prev ? rightGroup(prev) : db.characters.slice(0, 1).map(c => c.id);
+  const left = prev?.leftId ?? db.characters.find(c => !right.includes(c.id))?.id ?? '';
+  openEditor({ id: uid(), title: 'Nueva conversación', freq: '140.85', rightIds: right, leftId: left, lines: [] }, true);
+};
+$('btnDup').onclick = () => {
+  const c = db.conversations[sel]; if (!c) return;
+  const d = clone(c); d.id = uid(); d.title += ' (copia)';
+  db.conversations.splice(sel + 1, 0, d); sel++; save(); renderMenu();
+};
+$('btnDel').onclick = () => {
+  const c = db.conversations[sel]; if (!c) return;
+  if (!confirm(`¿Borrar "${c.title}"?`)) return;
+  db.conversations.splice(sel, 1); save(); renderMenu();
+};
+$('btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'dialogos.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+let importMode = 'replace';
+$('btnImport').onclick = () => { importMode = 'replace'; $('importFile').click(); };
+$('btnImportAdd').onclick = () => { importMode = 'merge'; $('importFile').click(); };
+
+// Acepta: db completa { characters, conversations }, { conversations: [...] },
+// un array de conversaciones, o una sola conversación { title, lines, ... }.
+function normalizeImport(data) {
+  if (Array.isArray(data)) data = { conversations: data };
+  if (data && Array.isArray(data.lines)) data = { conversations: [data] };
+  const characters = Array.isArray(data?.characters) ? data.characters : [];
+  const conversations = (Array.isArray(data?.conversations) ? data.conversations : [])
+    .filter(c => c && typeof c === 'object')
+    .map(c => ({
+      id: c.id || uid(),
+      title: String(c.title ?? ''),
+      freq: String(c.freq ?? ''),
+      rightIds: rightGroup(c).map(String),
+      leftId: String(c.leftId ?? ''),
+      lines: (Array.isArray(c.lines) ? c.lines : []).map(l => {
+        const o = l?.beat ? { beat: String(l.beat) }
+          : { speaker: String(l?.speaker ?? ''), text: String(l?.text ?? '') };
+        const ids = v => Array.isArray(v) ? v.filter(Boolean).map(String) : [];
+        const cond = src => {
+          const r = {};
+          if (ids(src?.alive).length) r.alive = ids(src.alive);
+          if (ids(src?.dead).length) r.dead = ids(src.dead);
+          return Object.keys(r).length ? r : null;
+        };
+        const si = cond(l?.if);
+        if (si) o.if = si;
+        const alt = (Array.isArray(l?.alt) ? l.alt : [])
+          .map(a => ({ ...(cond(a) ?? {}), text: String(a?.text ?? '') }))
+          .filter(a => a.alive || a.dead);
+        if (alt.length) o.alt = alt;
+        return o;
+      }),
+    }));
+  if (!characters.length && !conversations.length) throw new Error('formato');
+  return { characters, conversations };
+}
+// Personajes: fusiona por id y conserva el retrato que ya tengas si el entrante no trae uno.
+function mergeImport(inc) {
+  let newChars = 0, added = 0, updated = 0;
+  inc.characters.forEach(ch => {
+    if (!ch?.id) return;
+    const ex = charById(ch.id);
+    if (ex) {
+      if (ch.name) ex.name = ch.name;
+      if (ch.color) ex.color = ch.color;
+      if (ch.portrait) ex.portrait = ch.portrait;
+    } else {
+      db.characters.push({ id: ch.id, name: ch.name || ch.id, color: ch.color || '#5fd4a0', portrait: ch.portrait || '' });
+      newChars++;
+    }
+  });
+  inc.conversations.forEach(c => {
+    const i = db.conversations.findIndex(x => x.id === c.id);
+    if (i >= 0) { db.conversations[i] = c; updated++; sel = i; }
+    else { db.conversations.push(c); added++; sel = db.conversations.length - 1; }
+  });
+  const missing = [...new Set(inc.conversations.flatMap(c =>
+    [...c.lines.map(l => l.speaker), ...c.rightIds, c.leftId].filter(id => id && !charById(id))))];
+  let msg = `${added} nueva(s), ${updated} actualizada(s), ${newChars} personaje(s) nuevo(s).`;
+  if (missing.length) msg += ` Ojo: ids sin personaje → ${missing.join(', ')}`;
+  return msg;
+}
+$('importFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => {
+    const inc = normalizeImport(JSON.parse(txt.replace(/^﻿/, '')));
+    if (importMode === 'replace') {
+      if (!inc.characters.length) return toast('Para reemplazar, el archivo necesita "characters". Usá "Importar (agregar)".');
+      if (!confirm('Esto reemplaza todas las conversaciones y personajes actuales (incluidos los retratos). ¿Continuar?')) return;
+      db = inc; sel = 0; save(); renderMenu(); toast('Importado (reemplazo).');
+    } else {
+      const msg = mergeImport(inc);
+      save(); renderMenu(); toast(msg);
+    }
+  }).catch(() => toast('JSON inválido.')).finally(() => { e.target.value = ''; });
+};
+
+$('optSpeed').value = String(opts.speed);
+$('optTint').checked = opts.tint;
+$('optBeep').checked = opts.beep;
+$('optSpeed').onchange = e => { opts.speed = +e.target.value; saveOpts(); };
+$('optTint').onchange = e => { opts.tint = e.target.checked; saveOpts(); };
+$('optBeep').onchange = e => { opts.beep = e.target.checked; saveOpts(); };
+
+/* ---------- EDITOR ---------- */
+let draft = null; // { conv, chars, isNew }
+function openEditor(conv, isNew = false) {
+  draft = { conv: clone(conv), chars: clone(db.characters), isNew };
+  draft.conv.rightIds = rightGroup(draft.conv);
+  delete draft.conv.rightId;
+  openCond.clear();
+  $('edTitle').value = draft.conv.title;
+  $('edFreq').value = draft.conv.freq;
+  renderEditor();
+  show('editor');
+}
+function charOptions(selected) {
+  return draft.chars.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(c.name)}</option>`).join('')
+    + (selected && !charById(selected, draft.chars) ? `<option value="${esc(selected)}" selected>??? (borrado)</option>` : '');
+}
+let openCond = new Set();
+// Panel por línea: para cada integrante del grupo, indiferente / tiene que estar vivo / muerto.
+function condPanel(l, i) {
+  const p = document.createElement('div'); p.className = 'cond';
+  p.innerHTML = '<span class="small">Mostrar esta línea solo si:</span>';
+  draft.conv.rightIds.forEach(id => {
+    const ch = charById(id, draft.chars);
+    const estado = l.if?.dead?.includes(id) ? 'dead' : l.if?.alive?.includes(id) ? 'alive' : '';
+    const lab = document.createElement('label');
+    lab.innerHTML = `${esc(ch?.name ?? id)}
+      <select>
+        <option value=""${estado === '' ? ' selected' : ''}>indistinto</option>
+        <option value="alive"${estado === 'alive' ? ' selected' : ''}>vivo</option>
+        <option value="dead"${estado === 'dead' ? ' selected' : ''}>muerto</option>
+      </select>`;
+    lab.querySelector('select').onchange = e => {
+      const alive = new Set(l.if?.alive ?? []), dd = new Set(l.if?.dead ?? []);
+      alive.delete(id); dd.delete(id);
+      if (e.target.value === 'alive') alive.add(id);
+      if (e.target.value === 'dead') dd.add(id);
+      const cond = {};
+      if (alive.size) cond.alive = [...alive];
+      if (dd.size) cond.dead = [...dd];
+      if (Object.keys(cond).length) l.if = cond; else delete l.if;
+      renderEditor();
+    };
+    p.append(lab);
+  });
+  if (l.alt?.length) {
+    const n = document.createElement('span');
+    n.className = 'small';
+    n.textContent = `· ${l.alt.length} texto(s) alternativo(s) — se editan en el JSON`;
+    p.append(n);
+  }
+  return p;
+}
+function renderRightGroup() {
+  const g = $('edRightGroup'); g.innerHTML = '';
+  draft.chars.forEach(ch => {
+    const l = document.createElement('label');
+    l.innerHTML = `<input type="checkbox"${draft.conv.rightIds.includes(ch.id) ? ' checked' : ''}> ${esc(ch.name)}`;
+    l.querySelector('input').onchange = e => {
+      const ids = draft.conv.rightIds, i = ids.indexOf(ch.id);
+      if (e.target.checked) { if (i < 0) ids.push(ch.id); } else if (i >= 0) ids.splice(i, 1);
+    };
+    g.append(l);
+  });
+}
+function renderEditor() {
+  const c = draft.conv;
+  renderRightGroup();
+  $('edLeft').innerHTML = charOptions(c.leftId);
+
+  // personajes
+  const cl = $('charList'); cl.innerHTML = '';
+  draft.chars.forEach((ch, i) => {
+    const row = document.createElement('div'); row.className = 'char-row';
+    row.innerHTML = `
+      <div class="thumb" title="Subir retrato">${ch.portrait ? `<img src="${ch.portrait}" alt="">` : esc(initials(ch.name))}</div>
+      <input value="${esc(ch.name)}" placeholder="Nombre">
+      <input type="color" value="${esc(ch.color || '#5fd4a0')}" title="Color del nombre">
+      <div class="row-btns">${ch.portrait ? '<button title="Quitar retrato" data-a="clr">⌫</button>' : ''}<button class="danger" title="Borrar personaje" data-a="del">✕</button></div>`;
+    row.querySelector('.thumb').onclick = () => pickPortrait(i);
+    const [nameIn, colorIn] = row.querySelectorAll('input');
+    nameIn.oninput = () => { ch.name = nameIn.value; refreshSelects(); };
+    colorIn.oninput = () => { ch.color = colorIn.value; };
+    row.querySelectorAll('button').forEach(b => b.onclick = () => {
+      if (b.dataset.a === 'clr') ch.portrait = '';
+      else {
+        const used = db.conversations.some(cv => cv.lines.some(l => l.speaker === ch.id) || rightGroup(cv).includes(ch.id) || cv.leftId === ch.id)
+          || c.lines.some(l => l.speaker === ch.id) || c.rightIds.includes(ch.id);
+        if (!confirm(used ? `"${ch.name}" se usa en conversaciones. ¿Borrar igual?` : `¿Borrar "${ch.name}"?`)) return;
+        draft.chars.splice(i, 1);
+      }
+      renderEditor();
+    });
+    cl.append(row);
+  });
+
+  // líneas
+  const ll = $('lineList'); ll.innerHTML = '';
+  if (!c.lines.length) ll.innerHTML = '<div class="small">Sin líneas todavía.</div>';
+  c.lines.forEach((l, i) => {
+    const row = document.createElement('div'); row.className = 'line-row';
+    const marcas = [
+      l.if?.alive?.length ? '✔' + l.if.alive.length : '',
+      l.if?.dead?.length ? '†' + l.if.dead.length : '',
+      l.alt?.length ? 'alt' + l.alt.length : '',
+    ].filter(Boolean).join(' ');
+    const medio = l.beat
+      ? `<div class="small" style="grid-column:2/4;padding-top:9px">— ${esc(l.beat)} — <i>(beat: sin hablante)</i></div>`
+      : `<select>${charOptions(l.speaker)}</select>
+         <textarea placeholder="Texto...">${esc(l.text)}</textarea>`;
+    row.innerHTML = `
+      <div class="num">${i + 1}${marcas ? `<div class="badge">${marcas}</div>` : ''}</div>
+      ${medio}
+      <div class="row-btns">
+        <button title="Condición de caídos" data-a="cond">⚑</button>
+        <button title="Probar desde acá" data-a="play">▶</button>
+        <button title="Subir" data-a="up"${i === 0 ? ' disabled' : ''}>▲</button>
+        <button title="Bajar" data-a="down"${i === c.lines.length - 1 ? ' disabled' : ''}>▼</button>
+        <button title="Insertar debajo" data-a="ins">+</button>
+        <button class="danger" title="Borrar" data-a="del">✕</button>
+      </div>`;
+    const s = row.querySelector('select'), t = row.querySelector('textarea');
+    if (s) s.onchange = () => { l.speaker = s.value; };
+    if (t) t.oninput = () => { l.text = t.value; };
+    if (openCond.has(i)) row.append(condPanel(l, i));
+    row.querySelectorAll('.row-btns button').forEach(b => b.onclick = () => {
+      const a = b.dataset.a;
+      if (a === 'play') return testDraft(i);
+      if (a === 'cond') { openCond.has(i) ? openCond.delete(i) : openCond.add(i); return renderEditor(); }
+      if (a === 'up') [c.lines[i - 1], c.lines[i]] = [c.lines[i], c.lines[i - 1]];
+      if (a === 'down') [c.lines[i + 1], c.lines[i]] = [c.lines[i], c.lines[i + 1]];
+      if (a === 'ins') c.lines.splice(i + 1, 0, { speaker: nextSpeaker(l.speaker), text: '' });
+      if (a === 'del') c.lines.splice(i, 1);
+      openCond.clear();   // al reordenar, los índices abiertos ya no corresponden
+      renderEditor();
+      if (a === 'ins') ll.querySelectorAll('textarea')[i + 1]?.focus();
+    });
+    ll.append(row);
+  });
+}
+function refreshSelects() {
+  // actualiza nombres en selects sin perder foco del input de nombre
+  const c = draft.conv;
+  renderRightGroup();
+  $('edLeft').innerHTML = charOptions(c.leftId);
+  $('lineList').querySelectorAll('.line-row select').forEach((s, i) => { s.innerHTML = charOptions(c.lines[i].speaker); });
+}
+function nextSpeaker(prev) {
+  const c = draft.conv;
+  if (c.rightIds.includes(prev)) return c.leftId || prev;
+  return c.rightIds[0] || prev;
+}
+function initials(name) {
+  return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+}
+$('edTitle').oninput = e => { draft.conv.title = e.target.value; };
+$('edFreq').oninput = e => { draft.conv.freq = e.target.value; };
+$('edLeft').onchange = e => { draft.conv.leftId = e.target.value; };
+$('addLine').onclick = () => {
+  const ls = draft.conv.lines;
+  const prev = ls[ls.length - 1]?.speaker;
+  ls.push({ speaker: prev ? nextSpeaker(prev) : (draft.conv.leftId || draft.chars[0]?.id || ''), text: '' });
+  renderEditor();
+  const tas = $('lineList').querySelectorAll('textarea'); tas[tas.length - 1]?.focus();
+};
+$('addChar').onclick = () => {
+  draft.chars.push({ id: uid(), name: 'Nuevo', color: '#5fd4a0', portrait: '' });
+  renderEditor();
+};
+let portraitTarget = -1;
+function pickPortrait(i) { portraitTarget = i; $('portraitFile').click(); }
+$('portraitFile').onchange = e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    // recorte cuadrado + reducción a 256px para no llenar el almacenamiento
+    const size = 256, cv = document.createElement('canvas'); cv.width = cv.height = size;
+    const s = Math.min(img.width, img.height);
+    cv.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+    draft.chars[portraitTarget].portrait = cv.toDataURL('image/png');
+    URL.revokeObjectURL(img.src);
+    renderEditor();
+  };
+  img.src = URL.createObjectURL(f);
+};
+$('edCancel').onclick = () => { show('menu'); renderMenu(); };
+$('edSave').onclick = () => {
+  db.characters = draft.chars;
+  const idx = db.conversations.findIndex(c => c.id === draft.conv.id);
+  if (idx >= 0) { db.conversations[idx] = draft.conv; sel = idx; }
+  else { db.conversations.push(draft.conv); sel = db.conversations.length - 1; }
+  draft.isNew = false;
+  if (save()) toast('Guardado.');
+  show('menu'); renderMenu();
+};
+$('edTest').onclick = () => testDraft(0);
+function testDraft(from) {
+  playConversation(draft.conv, draft.chars, from, 'editor');
+}
+
+/* ---------- RADIO ---------- */
+const BAR_COUNT = 7;
+const bars = [];
+for (let i = 0; i < BAR_COUNT; i++) { const b = document.createElement('div'); b.className = 'bar'; $('bars').append(b); bars.push(b); }
+function idleBars() { bars.forEach((b, i) => b.style.width = (100 - i * 12) + '%'); }
+function jitterBars() { bars.forEach(b => b.style.width = (15 + Math.random() * 85) + '%'); }
+
+let run = null;
+function playSelected() {
+  const c = db.conversations[sel];
+  if (c) playConversation(c, db.characters, 0, 'menu');
+}
+function playConversation(conv, chars, from, returnTo) {
+  if (!conv.lines.length) return toast('La conversación no tiene líneas.');
+  const lines = resolveLines(conv);
+  if (!lines.length) return toast('Con estos caídos no queda ninguna línea.');
+  // `from` es un índice del guión original: arranco en la primera línea que sobrevivió desde ahí
+  let start = lines.findIndex(l => l.i >= from);
+  if (start < 0) start = lines.length - 1;
+  stopTyping();
+  const rs = new Set(rightGroup(conv));
+  run = { conv, chars, rs, lines, idx: start, returnTo, typing: false, closing: false };
+  from = start;
+  $('radio').classList.toggle('tint', opts.tint);
+  $('freqBig').textContent = conv.freq || '---.--';
+  setPortrait($('pLeft'), charById(conv.leftId, chars));
+  // el retrato de la derecha arranca en el primero del grupo que hable (ya resuelto)
+  const firstRight = lines.find(l => rs.has(l.speaker))?.speaker ?? [...rs].find(id => !dead.has(id)) ?? [...rs][0];
+  setPortrait($('pRight'), charById(firstRight, chars));
+  $('pLeft').className = 'portrait inactive'; $('pRight').className = 'portrait inactive';
+  $('speaker').textContent = ''; $('text').textContent = ''; $('nextArrow').classList.add('hidden');
+  const caidos = rightGroup(conv).filter(id => dead.has(id)).map(id => charById(id, chars)?.name ?? id);
+  $('deadHud').textContent = caidos.length ? '† ' + caidos.join(' † ') : '';
+  idleBars();
+  show('radio');
+  const wrap = $('radioWrap');
+  wrap.className = 'radio-wrap opening';
+  setTimeout(() => { if (run && !run.closing) { wrap.className = 'radio-wrap'; showLine(from); } }, 380);
+}
+function setPortrait(el, ch) {
+  el.innerHTML = ch?.portrait ? `<img src="${ch.portrait}" alt="">` : `<div class="initials">${esc(initials(ch?.name ?? '?'))}</div>`;
+  el.dataset.id = ch?.id ?? '';
+}
+function showLine(i) {
+  const { chars, rs, lines } = run;
+  run.idx = i;
+  const line = lines[i];
+  const sp = charById(line.speaker, chars);
+  const isRight = rs.has(line.speaker);
+  const L = $('pLeft'), R = $('pRight');
+
+  // beat: un silencio sin hablante. El click del jugador ES la pausa.
+  if (line.beat) {
+    $('speaker').textContent = ''; $('text').textContent = '';
+    $('lineCounter').textContent = `${i + 1} / ${lines.length}`;
+    run.full = ''; run.typing = false;
+    if (line.beat === 'static') {
+      jitterBars();
+      [L, R].forEach(el => { el.classList.add('static'); setTimeout(() => el.classList.remove('static'), 420); });
+      setTimeout(idleBars, 420);
+    } else { idleBars(); }
+    $('nextArrow').classList.remove('hidden');
+    return;
+  }
+
+  const side = isRight ? R : L;
+  if (side.dataset.id !== line.speaker) {
+    // releva el retrato de ese lado, con estática: sirve igual para el grupo de la derecha
+    setPortrait(side, sp);
+    side.classList.add('static'); setTimeout(() => side.classList.remove('static'), 250);
+  }
+  L.classList.toggle('inactive', isRight); R.classList.toggle('inactive', !isRight);
+  run.activeEl = isRight ? R : L;
+  $('speaker').textContent = sp?.name ?? '???';
+  $('speaker').style.color = sp?.color || 'var(--green)';
+  $('lineCounter').textContent = `${i + 1} / ${lines.length}`;
+  typeText(line.text);
+}
+let typeTimer = null, audioCtx = null;
+function beep() {
+  if (!opts.beep) return;
+  try {
+    audioCtx ??= new AudioContext();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.value = 900 + Math.random() * 200;
+    g.gain.value = 0.03; o.connect(g).connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.02);
+  } catch (e) {}
+}
+function typeText(full) {
+  stopTyping();
+  const t = $('text'); $('nextArrow').classList.add('hidden');
+  run.full = full;
+  if (!opts.speed) { t.textContent = full; endTyping(); return; }
+  run.typing = true; run.activeEl.classList.add('talking');
+  let n = 0; t.textContent = '';
+  typeTimer = setInterval(() => {
+    n++;
+    t.textContent = full.slice(0, n);
+    if (full[n - 1] && full[n - 1].trim()) { jitterBars(); if (n % 2) beep(); }
+    if (n >= full.length) endTyping();
+  }, opts.speed);
+}
+function stopTyping() { clearInterval(typeTimer); typeTimer = null; }
+function endTyping() {
+  stopTyping();
+  if (!run) return;
+  run.typing = false;
+  $('text').textContent = run.full;
+  run.activeEl?.classList.remove('talking');
+  idleBars();
+  $('nextArrow').classList.remove('hidden');
+}
+function advance() {
+  if (!run || run.closing) return;
+  if (run.typing) return endTyping();
+  if (run.idx < run.lines.length - 1) showLine(run.idx + 1);
+  else closeRadio();
+}
+function back() {
+  if (!run || run.closing || run.idx === 0) return;
+  showLine(run.idx - 1);
+}
+function closeRadio() {
+  if (!run || run.closing) return;
+  run.closing = true; stopTyping();
+  $('radioWrap').className = 'radio-wrap closing';
+  const to = run.returnTo;
+  setTimeout(() => { run = null; $('radioWrap').className = 'radio-wrap'; show(to); if (to === 'menu') renderMenu(); }, 320);
+}
+$('radio').onclick = advance;
+
+/* ---------- teclado ---------- */
+document.addEventListener('keydown', e => {
+  if (current === 'radio') {
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); advance(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'Backspace') { e.preventDefault(); back(); }
+    else if (e.key === 'Escape') closeRadio();
+  } else if (current === 'menu') {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, db.conversations.length - 1); renderMenu(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); renderMenu(); }
+    else if (e.key === 'Enter') { e.preventDefault(); playSelected(); }
+  }
+});
+
+dead = new Set(Array.isArray(opts.dead) ? opts.dead : []);
+renderMenu();
+</script>
+</body>
+</html>
