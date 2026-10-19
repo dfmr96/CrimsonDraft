@@ -2,6 +2,7 @@
 
 using System;
 using UnityEngine;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation.Radio
 {
@@ -19,7 +20,16 @@ namespace CrimsonDraft.Navigation.Radio
             public string  id          = string.Empty;
             public string  displayName = string.Empty;
             public Color   color       = Color.white;
+
+            [Tooltip("Optional: when set, the portrait comes from this operator (so it follows any " +
+                     "change made to the operator's data). Leave empty for characters that aren't " +
+                     "operators and use the portrait below.")]
+            public OperatorData? operatorData;
             public Sprite? portrait;
+
+            public Sprite? Portrait => this.operatorData != null && this.operatorData.Portrait != null
+                ? this.operatorData.Portrait
+                : this.portrait;
         }
 
         [SerializeField] private Entry[] entries = Array.Empty<Entry>();

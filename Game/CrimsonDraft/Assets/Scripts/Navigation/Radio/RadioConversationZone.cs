@@ -8,7 +8,8 @@ namespace CrimsonDraft.Navigation.Radio
     /// <summary>
     /// A trigger volume that offers a radio call while the player is inside it. The call waits
     /// (HUD icon) until it is answered from the inventory, even if the player walks out, unless
-    /// <see cref="withdrawOnExit"/> is set.
+    /// <see cref="withdrawOnExit"/> is set. Once the call has been heard -- in this session or in
+    /// a loaded save -- the trigger switches itself off for good.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class RadioConversationZone : MonoBehaviour
@@ -20,15 +21,45 @@ namespace CrimsonDraft.Navigation.Radio
         [SerializeField] private bool withdrawOnExit;
 
         private IRadioConversationService? service;
+        private Collider? trigger;
 
         public string NodeName => this.nodeName;
 
         [Inject]
-        public void Construct(IRadioConversationService service) => this.service = service;
+        public void Construct(IRadioConversationService service)
+        {
+            this.service = service;
+            this.service.ConversationHeard += OnConversationHeard;
+            RefreshTrigger();   // injection can land after this zone's OnEnable
+        }
+
+        private void Awake() => this.trigger = GetComponent<Collider>();
+
+        // Rooms deactivate and reactivate, so the heard check runs on every enable: it covers a
+        // save loaded with this call already heard as well as one heard earlier in the session.
+        private void OnEnable() => RefreshTrigger();
+
+        private void OnDestroy()
+        {
+            if (this.service != null) this.service.ConversationHeard -= OnConversationHeard;
+        }
 
         private void Reset()
         {
             if (TryGetComponent<Collider>(out var col)) col.isTrigger = true;
+        }
+
+        private void OnConversationHeard(string heardNode)
+        {
+            if (heardNode == this.nodeName) RefreshTrigger();
+        }
+
+        private void RefreshTrigger()
+        {
+            if (this.service == null) return;
+            this.trigger ??= GetComponent<Collider>();
+            if (this.trigger == null) return;
+            if (this.service.HasHeard(this.nodeName)) this.trigger.enabled = false;
         }
 
         private void OnTriggerEnter(Collider other)

@@ -59,6 +59,29 @@ namespace CrimsonDraft.Navigation.Radio
 
         public void Stop() => _ = this.runner.Stop();
 
+        // The node headers (freq / left / right) written by to-yarn.ps1, readable before the node
+        // runs so the radio can show who is on the call while it is still waiting to be answered.
+        public bool TryGetMeta(string nodeName, out string freq, out string leftId, out string[] rightIds)
+        {
+            freq = leftId = string.Empty;
+            rightIds = Array.Empty<string>();
+            try
+            {
+                var dialogue = this.runner.Dialogue;
+                leftId = dialogue.GetHeaderValue(nodeName, "left");
+                if (string.IsNullOrEmpty(leftId)) return false;
+
+                freq     = dialogue.GetHeaderValue(nodeName, "freq") ?? string.Empty;
+                rightIds = (dialogue.GetHeaderValue(nodeName, "right") ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         // Radio calls play over the inventory (which stays open underneath), so control goes back
         // to it -- same reasoning as InspectDialogueService.
         protected override void ReturnToPreviousInputContext() => this.inputService.SwitchToInventory();

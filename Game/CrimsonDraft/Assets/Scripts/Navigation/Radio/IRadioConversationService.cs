@@ -14,7 +14,17 @@ namespace CrimsonDraft.Navigation.Radio
         /// <summary>Yarn node of the call currently waiting, or null.</summary>
         string? PendingNode { get; }
 
+        /// <summary>
+        /// A call is waiting AND the radio is allowed to ring: it goes quiet during combat and
+        /// picks up again afterwards (the pending call is kept). While this is true the player
+        /// can't interact with the world -- they have to answer the communicator first.
+        /// </summary>
+        bool IsRinging { get; }
+
         event Action? PendingChanged;
+
+        /// <summary>A call finished and was recorded as heard (and so will be saved).</summary>
+        event Action<string>? ConversationHeard;
         event Action? InventoryOpened;
         event Action? InventoryClosed;
 

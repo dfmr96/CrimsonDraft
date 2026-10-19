@@ -10,6 +10,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -21,6 +22,8 @@ namespace CrimsonDraft.Navigation.Interactables
         private static readonly int InteractCrouchHash     = Animator.StringToHash("InteractCrouchEnter");
         private static readonly int InteractExitHash     = Animator.StringToHash("InteractExit");
         
+
+        private const string RadioBlockedNode = "radio_blocked";
 
         [SerializeField] private float     rayDistance = 2f;
         [SerializeField] private LayerMask interactableLayer;
@@ -43,6 +46,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private InspectionController    inspectionController    = null!;
         private IPublisher<StorageOpenRequestedEvent> storageOpenPublisher = null!;
         private InventorySfxData?       sfx;
+        private IRadioConversationService radioService = null!;
 
         private ISubscriber<DialogueActiveChangedEvent>? dialogueActiveSubscriber;
         private IDisposable?                              dialogueActiveSub;
@@ -61,8 +65,10 @@ namespace CrimsonDraft.Navigation.Interactables
             InspectionController    inspectionController,
             IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
             ISubscriber<DialogueActiveChangedEvent> dialogueActiveSubscriber,
-            InventorySfxData        sfx)
+            InventorySfxData        sfx,
+            IRadioConversationService radioService)
         {
+            this.radioService          = radioService;
             this.inputService          = inputService;
             this.inventoryService      = inventoryService;
             this.dialogueService       = dialogueService;
@@ -101,6 +107,14 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<IInteractable>(out var interactable))
                 return;
 
+            // A call is ringing: nothing in the world can be touched until it is answered from
+            // the inventory (doors, items, POIs, everything).
+            if (this.radioService.IsRinging)
+            {
+                if (!this.dialogueService.IsRunning)
+                    this.dialogueService.StartDialogue(RadioBlockedNode);
+                return;
+            }
 
 
             var isPickup = hit.collider.TryGetComponent<PickupInteractable>(out var pickup);
