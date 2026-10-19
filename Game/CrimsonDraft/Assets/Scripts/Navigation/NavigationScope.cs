@@ -126,8 +126,15 @@ namespace CrimsonDraft.Navigation
             var radioIndicator = FindFirstObjectByType<RadioIndicatorView>(FindObjectsInactive.Include);
             if (radioIndicator != null)
                 builder.RegisterComponent(radioIndicator);
-            foreach (var zone in FindObjectsByType<RadioConversationZone>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                builder.RegisterComponent(zone);
+            // Several zones can share a scene; RegisterComponent per instance throws a VContainer
+            // "Conflict implementation type" for the second one, so inject them directly instead.
+            var radioZones = FindObjectsByType<RadioConversationZone>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (radioZones.Length > 0)
+                builder.RegisterBuildCallback(resolver =>
+                {
+                    foreach (var zone in radioZones)
+                        resolver.Inject(zone);
+                });
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
             // The pause menu's Settings tabs reuse the main menu's Options components; they sit
