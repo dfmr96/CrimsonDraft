@@ -1,7 +1,7 @@
 # Objetos empujables (cajas, escaleras de mano, estatuas)
 
 > Verificado en la Beta 2: código de `OM.C` / `OMA.C` y una prueba en DuckStation. El usuario empujó la escalera de mano de la sala `103` y se compararon dos volcados de RAM (antes, en reposo y después).
-> No se comparó con PC.
+> Verificado después en PC (`LeonU.exe`): mismo algoritmo, con retardo de 6 frames en vez de 9 → [tabla al final](#verificado-también-en-pc-leonuexe).
 
 ## Qué es un empujable
 
@@ -37,10 +37,10 @@ Por cada objeto activo:
 
 Después del bucle, **solo si el jugador toca exactamente un objeto**, ese objeto es candidato y tiene el flag `0x80`:
 
-7. `+0x144` += 1. **Mientras sea < 9, el objeto no se mueve**: hay que empujar 9 frames seguidos (≈ 0,3 s a 30 fps).
-8. Desde el frame 9: `Oma_ck_oba` en **modo 1**: el objeto se desplaza fuera del jugador, **lo mismo que avanzó el jugador y en un solo eje**.
+7. `+0x144` += 1. **Mientras sea < 9, el objeto no se mueve**: hay que empujar 9 frames seguidos (≈ 0,3 s a 30 fps). **En PC el umbral es 6** (ver abajo).
+8. Desde ese frame: `Oma_ck_oba` en **modo 1**: el objeto se desplaza fuera del jugador, **lo mismo que avanzó el jugador y en un solo eje**.
 9. Si en la nueva posición choca con el escenario (`Sca_ck_hit_om`), con un enemigo o con otro objeto: **vuelve a la posición anterior y el contador pasa a 0**.
-10. Si no: activa el bit **`0x2000` de `0x800C250C`** ("empujando este frame"; se borra al empezar cada frame) y el contador queda en 10.
+10. Si no: activa el bit **`0x2000` de `0x800C250C`** ("empujando este frame"; se borra al empezar cada frame). **El frame del umbral deshace el movimiento** (solo pone al jugador en el estado de empujar); a partir del siguiente el contador queda fijo en 10 y el objeto avanza cada frame.
 
 ## "De frente" (`Oma_ck_front`)
 
@@ -63,6 +63,22 @@ Después del bucle, **solo si el jugador toca exactamente un objeto**, ese objet
 - **Solo un objeto a la vez y solo en los ejes**: el empuje es determinista y encaja en una rejilla, sin física.
 - **Bloqueo limpio**: si algo estorba, el objeto no se mueve ni un píxel (vuelve a la posición anterior) y el jugador sale del estado de empujar.
 - La distancia la decide el jugador (en la prueba, 1986 u ≈ 2 m): no hay pasos fijos. Los puzzles se resuelven con AOT o flags en la posición de destino (deducido de los scripts).
+
+## Verificado también en PC (`LeonU.exe`)
+
+Mismo algoritmo; solo cambia el retardo.
+
+| Pieza | PC | Beta 2 |
+|---|---|---|
+| Bucle de objetos (`Om_move`) | `0x4CC320` | `0x80034D44` |
+| Umbral de empuje | `cmp al, 5; jbe` → se evalúa con contador ≥ 6; el 6 activa el estado, desde el 7 se mueve (contador fijo en 7) | ≥ 9; desde el 10 se mueve |
+| De frente (`Oma_ck_front`) | `0x4CD2A0` (1,2 × semiancho + 128, idéntico) | `0x80036204` |
+| Personaje contra objeto (`Oma_ck_oba`) | `0x4CCD10` | `0x80035CAC` |
+| Encima de un objeto (`Oma_pull`) | `0x4CDBB0` | `0x80036CFC` |
+| Objeto contra escenario (`Sca_ck_hit_om`) / caer | `0x4E3D80` / `0x4CCB70` | `0x80048AE0` / `0x80035A10` |
+| Caminar → empujar | `0x4D9AC1`: bit `0x2000` de `0x9944D0` → estado `0xA01` | `pl_mv01_pad` |
+| Estado de empujar (`pl_mv0a`) | `0x4DB810` (giro a 90° con `(Y_DIR >> 2) & 0xFF`, bucle con la animación 7/8) | `0x8003CC98` |
+| Objetos / fin del array / objeto bajo el jugador | `0x994C1C` (paso `0x1F8`) / `[0x998B1C]` / `0x9946D4` | `0x800C2C54` / `[0x800C6B54]` / `0x800C2710` |
 
 ## Persistencia
 
