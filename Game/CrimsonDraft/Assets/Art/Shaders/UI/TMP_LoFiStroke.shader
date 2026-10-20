@@ -1,21 +1,27 @@
 // Lo-Fi Stroke: TextMeshPro bitmap shader for indexed fonts baked by CrimsonDraft > Fonts > Lo-Fi Stroke Baker.
 // The atlas stores a palette index per pixel (alpha = index / 15): 0 background, 1-3 fill, 4-7 smoothing, 8 border.
-// Each index is looked up in an 8-step ramp and multiplied by the vertex colour (tint), so <color> tags and
-// Yarn markup colours recolour the whole ramp, border included. Based on TextMesh Pro's TMP_Bitmap.shader.
+// Exact ramps: if the vertex colour matches a key colour of _PaletteTex (column 0 of each row, gamma values),
+// that row's 8 hand-picked colours (columns 1-8) are used. Otherwise the index is looked up in the _Ramp1-8
+// ramp and multiplied by the vertex colour (tint), so any <color> tag or Yarn markup colour still recolours
+// the whole ramp, border included. Based on TextMesh Pro's TMP_Bitmap.shader.
 Shader "CrimsonDraft/UI/TMP Lo-Fi Stroke" {
 
 Properties {
 	_MainTex		    ("Font Atlas (indices)", 2D) = "white" {}
 	_FaceColor	        ("Text Color", Color) = (1,1,1,1)
 
-	_Ramp1              ("Ramp 1 (fill light)", Color)  = (0.847, 0.847, 0.784, 1)
-	_Ramp2              ("Ramp 2 (fill)", Color)        = (0.784, 0.784, 0.722, 1)
-	_Ramp3              ("Ramp 3 (fill dark)", Color)   = (0.659, 0.659, 0.596, 1)
-	_Ramp4              ("Ramp 4 (smoothing)", Color)   = (0.533, 0.533, 0.502, 1)
-	_Ramp5              ("Ramp 5 (smoothing)", Color)   = (0.439, 0.439, 0.408, 1)
-	_Ramp6              ("Ramp 6 (smoothing)", Color)   = (0.314, 0.314, 0.314, 1)
-	_Ramp7              ("Ramp 7 (smoothing)", Color)   = (0.220, 0.220, 0.220, 1)
+	_Ramp1              ("Ramp 1 (fill light)", Color)  = (0.973, 0.973, 0.925, 1)
+	_Ramp2              ("Ramp 2 (fill)", Color)        = (0.910, 0.910, 0.863, 1)
+	_Ramp3              ("Ramp 3 (fill dark)", Color)   = (0.784, 0.784, 0.737, 1)
+	_Ramp4              ("Ramp 4 (smoothing)", Color)   = (0.627, 0.627, 0.588, 1)
+	_Ramp5              ("Ramp 5 (smoothing)", Color)   = (0.502, 0.502, 0.471, 1)
+	_Ramp6              ("Ramp 6 (smoothing)", Color)   = (0.361, 0.361, 0.345, 1)
+	_Ramp7              ("Ramp 7 (smoothing)", Color)   = (0.251, 0.251, 0.251, 1)
 	_Ramp8              ("Ramp 8 (border)", Color)      = (0.220, 0.188, 0.282, 1)
+
+	_PaletteTex         ("Exact ramps (9x16, linear, col 0 = key)", 2D) = "black" {}
+	_PaletteRows        ("Exact ramp rows", Float) = 0
+	_KeyTolerance       ("Key tolerance (0-1, gamma)", Float) = 0.006
 
 	_VertexOffsetX	    ("Vertex OffsetX", float) = 0
 	_VertexOffsetY	    ("Vertex OffsetY", float) = 0
@@ -59,6 +65,7 @@ SubShader{
 		CGPROGRAM
 		#pragma vertex vert
 		#pragma fragment frag
+		#pragma target 3.0
 
 		#pragma multi_compile __ UNITY_UI_CLIP_RECT
 		#pragma multi_compile __ UNITY_UI_ALPHACLIP
@@ -79,11 +86,42 @@ SubShader{
 			fixed4	color		: COLOR;
 			float2	texcoord0	: TEXCOORD0;
 			float4	mask		: TEXCOORD2;
+			float	paletteRow	: TEXCOORD3;
 		};
+
+		#define PALETTE_COLUMNS 9.0
+		#define PALETTE_HEIGHT  16.0
 
 		uniform	sampler2D 	_MainTex;
 		uniform	fixed4		_FaceColor;
 		uniform fixed4		_Ramp1, _Ramp2, _Ramp3, _Ramp4, _Ramp5, _Ramp6, _Ramp7, _Ramp8;
+		uniform sampler2D	_PaletteTex;
+		uniform float		_PaletteRows;
+		uniform float		_KeyTolerance;
+
+		// Exact sRGB transfer functions (UnityCG's GammaToLinearSpace is an approximation, off by up to ~3/255).
+		float3 SrgbToLinear(float3 c)
+		{
+			return lerp(pow((c + 0.055) / 1.055, 2.4), c / 12.92, step(c, 0.04045));
+		}
+
+		float3 LinearToSrgb(float3 c)
+		{
+			return lerp(1.055 * pow(max(c, 0), 1.0 / 2.4) - 0.055, c * 12.92, step(c, 0.0031308));
+		}
+
+		// Row of _PaletteTex whose key colour (column 0) matches the vertex colour, or -1.
+		float FindPaletteRow(float3 linearColor)
+		{
+			float3 gammaColor = IsGammaSpace() ? linearColor : LinearToSrgb(linearColor);
+			for (int row = 0; row < 16; row++)
+			{
+				if (row >= _PaletteRows) break;
+				float3 key = tex2Dlod(_PaletteTex, float4(0.5 / PALETTE_COLUMNS, (row + 0.5) / PALETTE_HEIGHT, 0, 0)).rgb;
+				if (all(abs(key - gammaColor) <= _KeyTolerance)) return row;
+			}
+			return -1;
+		}
 
 		uniform float		_VertexOffsetX;
 		uniform float		_VertexOffsetY;
@@ -113,6 +151,7 @@ SubShader{
 			OUT.vertex = vPosition;
 			OUT.color = v.color * _FaceColor;
 			OUT.texcoord0 = v.texcoord0;
+			OUT.paletteRow = FindPaletteRow(v.color.rgb);
 			float2 pixelSize = vPosition.w;
 			pixelSize /= abs(float2(_ScreenParams.x * UNITY_MATRIX_P[0][0], _ScreenParams.y * UNITY_MATRIX_P[1][1]));
 
@@ -131,6 +170,14 @@ SubShader{
 			                   _Ramp5.rgb, _Ramp6.rgb, _Ramp7.rgb, _Ramp8.rgb };
 			int i = clamp(index, 0, 8);
 			fixed4 color = fixed4(ramp[i] * IN.color.rgb, index > 0 ? IN.color.a : 0);
+
+			// Exact ramp: every vertex of a character carries the same row, so rounding is enough.
+			float row = round(IN.paletteRow);
+			if (row >= 0 && i > 0)
+			{
+				float3 exact = tex2D(_PaletteTex, float2((i + 0.5) / PALETTE_COLUMNS, (row + 0.5) / PALETTE_HEIGHT)).rgb;
+				color.rgb = IsGammaSpace() ? exact : SrgbToLinear(exact);
+			}
 
 			#if UNITY_UI_CLIP_RECT
 				half2 m = saturate((_ClipRect.zw - _ClipRect.xy - abs(IN.mask.xy)) * IN.mask.zw);
