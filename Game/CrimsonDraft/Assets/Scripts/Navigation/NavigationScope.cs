@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using MessagePipe;
 using Unity.Cinemachine;
 using VContainer;
@@ -69,6 +70,8 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
         [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
         [SerializeField] private PushableObject[]         cachedPushables   = System.Array.Empty<PushableObject>();
+        // MonoBehaviour[] because Unity can't serialize interface arrays; holds only IPuzzle components.
+        [SerializeField] private MonoBehaviour[]          cachedPuzzles     = System.Array.Empty<MonoBehaviour>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -254,6 +257,9 @@ namespace CrimsonDraft.Navigation
             builder.Register<ItemSocketBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterInstance(this.cachedPushables);
             builder.Register<PushableBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedPuzzles.OfType<IPuzzle>().ToArray());
+            builder.Register<PuzzleBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
@@ -270,12 +276,13 @@ namespace CrimsonDraft.Navigation
             CacheSceneBeeperReceivers();
             CacheSceneItemSockets();
             CacheScenePushables();
+            CacheScenePuzzles();
 
             Debug.Log($"{name}: cached {this.cachedRoomDoors.Length} room doors, {this.cachedSceneDoors.Length} scene doors, " +
                       $"{this.cachedPickups.Length} pickups, {this.cachedMapPickups.Length} map pickups, " +
                       $"{this.cachedDocumentPickups.Length} document pickups, {this.cachedEnemies.Length} enemies, " +
                       $"{this.cachedCameraZoneTriggers.Length} camera zone triggers, {this.cachedBeeperReceivers.Length} beeper receivers, " +
-                      $"{this.cachedItemSockets.Length} item sockets, {this.cachedPushables.Length} pushables.", this);
+                      $"{this.cachedItemSockets.Length} item sockets, {this.cachedPushables.Length} pushables, {this.cachedPuzzles.Length} puzzles.", this);
         }
 
         [Button("Cache Scene Doors")]
@@ -343,6 +350,15 @@ namespace CrimsonDraft.Navigation
         {
             this.cachedPushables = FindObjectsByType<PushableObject>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Puzzles")]
+        private void CacheScenePuzzles()
+        {
+            this.cachedPuzzles = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(b => b is IPuzzle)
+                .ToArray();
             UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif

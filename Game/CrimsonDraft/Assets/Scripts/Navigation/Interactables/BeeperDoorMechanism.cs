@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -13,7 +14,7 @@ namespace CrimsonDraft.Navigation.Interactables
     /// that the radio keeps its default screen material). Each accepted SOS while in range then
     /// toggles door lock / bigPaint, and the radio flashes acceptedFlashMaterial for
     /// acceptedFlashDuration before resuming its in/out-of-range cycle.</summary>
-    public sealed class BeeperDoorMechanism : MonoBehaviour
+    public sealed class BeeperDoorMechanism : MonoBehaviour, IPuzzle
     {
         [SerializeField] private PickupInteractable         beeperPickup = null!;
         [SerializeField] private BeeperReceiverInteractable receiver     = null!;
@@ -24,7 +25,13 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private Material acceptedFlashMaterial = null!;
         [SerializeField] private float    acceptedFlashDuration = 2f;
 
+        [SerializeField] private string puzzleId = "beeper_door";
+
         private bool triggered;
+        private PuzzleStateRegistry? puzzleStates;
+
+        public string PuzzleId => this.puzzleId;
+        public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
 
         void Awake()
         {
@@ -60,6 +67,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private void OnCodeAccepted()
         {
             if (!this.triggered) return;
+            this.puzzleStates?.SetSolved(this.puzzleId);
 
             bool nowLocked = !this.door.MechanismLocked;
             this.door.SetMechanismLocked(nowLocked);

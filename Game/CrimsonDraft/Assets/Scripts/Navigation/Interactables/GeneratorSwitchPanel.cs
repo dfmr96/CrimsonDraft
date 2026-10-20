@@ -38,7 +38,7 @@ namespace CrimsonDraft.Navigation.Interactables
     // each row green/red. All three correct -> 2s hold, then the inspection view force-closes
     // and the panel locks forever (IsSolved). Any row wrong -> shorter hold, then every switch
     // resets to off and the handle animates back up.
-    public sealed class GeneratorSwitchPanel : MonoBehaviour
+    public sealed class GeneratorSwitchPanel : MonoBehaviour, IPuzzle
     {
         private const float NavCooldown = 0.2f;
 
@@ -125,6 +125,12 @@ namespace CrimsonDraft.Navigation.Interactables
         private Quaternion leverRestLocalRotation;
 
         public bool IsSolved => this.isSolved;
+
+        private PuzzleStateRegistry? puzzleStates;
+
+        // Same id as its own "#solved" key, so one string names this generator everywhere.
+        public string PuzzleId => this.solvedId;
+        public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
 
         [Inject]
         public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ItemSocketStateRegistry registry, InventorySfxData sfx)
@@ -325,6 +331,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 await UniTask.Delay(TimeSpan.FromSeconds(SuccessHoldSeconds), ignoreTimeScale: true);
                 this.isSolved = true;
                 this.registry.SetInserted(SolvedKey, new[] { true });
+                this.puzzleStates?.SetSolved(this.solvedId);
                 this.inspectionController.ExitNow();
                 // Left verifying + the green flash on -- the panel is locked (Activate() now
                 // refuses) and the handle stays pulled down as a visible "already solved" cue.
