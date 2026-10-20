@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RE2 Room Viewer</title>
+<style>
+  :root {
+    --bg: #14161a; --panel: #1c1f25; --line: #2c3038; --text: #d7dbe2; --muted: #8a919c;
+    --accent: #5aa0ff; --player: #ff4d5e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif;
+         display: grid; grid-template-columns: 300px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+  header { grid-column: 1 / 3; display: flex; gap: 12px; align-items: center; padding: 8px 12px;
+           border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 14px; margin: 0 8px 0 0; }
+  select, button { background: #262a31; color: var(--text); border: 1px solid var(--line); border-radius: 4px;
+                   padding: 4px 6px; font: inherit; }
+  #status { margin-left: auto; padding: 3px 8px; border-radius: 10px; background: #333; color: var(--muted); }
+  #status.live { background: #3a1820; color: #ffb3bc; }
+  aside { border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 10px; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 6px; }
+  label { display: block; margin: 3px 0; cursor: pointer; }
+  #cams button { display: flex; justify-content: space-between; width: 100%; margin: 2px 0; text-align: left; }
+  #cams button.sel { border-color: var(--accent); background: #1d2b40; }
+  #cams button.live::after { content: "● en juego"; color: var(--player); font-size: 11px; }
+  #info { white-space: pre-wrap; background: #15181d; border: 1px solid var(--line); border-radius: 4px;
+          padding: 8px; min-height: 90px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .legend span { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: middle; }
+  main { position: relative; overflow: hidden; }
+  svg { width: 100%; height: 100%; display: block; cursor: grab; }
+  svg text { font-family: system-ui, sans-serif; font-weight: 600; paint-order: stroke; stroke: #000;
+             stroke-width: 3px; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .hint { position: absolute; bottom: 8px; right: 12px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RE2 Room Viewer</h1>
+  <select id="scenario"></select>
+  <select id="room"></select>
+  <label style="display:inline"><input type="checkbox" id="follow" checked> Seguir al juego</label>
+  <span id="status">Sin conexión con el juego</span>
+</header>
+<aside>
+  <h2>Cámaras</h2>
+  <div id="cams"></div>
+  <h2>Capas</h2>
+  <label><input type="checkbox" data-layer="areas" checked> Área de la cámara seleccionada</label>
+  <label><input type="checkbox" data-layer="allAreas"> Áreas de todas las cámaras</label>
+  <label><input type="checkbox" data-layer="zones" checked> Zonas de cambio (cámara seleccionada)</label>
+  <label><input type="checkbox" data-layer="allZones"> Zonas de cambio (todas)</label>
+  <label><input type="checkbox" data-layer="aots" checked> AOT (interacción / disparadores)</label>
+  <label><input type="checkbox" data-layer="arrivals" checked> Llegadas de puertas</label>
+  <label><input type="checkbox" data-layer="camIcons" checked> Posición de las cámaras</label>
+  <h2>Leyenda AOT</h2>
+  <div class="legend" id="legend"></div>
+  <p style="color:var(--muted)">Línea continua = con botón (MANUAL). Discontinua = al pisar (UNDER). Punteada = solo enemigos.</p>
+  <h2>Detalle</h2>
+  <div id="info">Pasa el ratón por encima de una zona o AOT.</div>
+</aside>
+<main>
+  <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="hint">Rueda: zoom · Arrastrar: mover · Doble clic: encuadrar</div>
+</main>
+<script>
+const SCE_COLORS = { DOOR: "#ff9f43", ITEM: "#2ed573", MESSAGE: "#a4b0be", EVENT: "#b06cff", FLAG_CHG: "#ffd32a",
+  SAVE: "#18dcff", ITEMBOX: "#1abc9c", DAMAGE: "#ff4757", WATER: "#3d7eff", NORMAL: "#747d8c" };
+const state = { data: null, scen: "Pl0", room: null, cam: 0, layers: {}, live: null, view: null };
+const $ = (id) => document.getElementById(id);
+const svg = $("map");
+const NS = "http://www.w3.org/2000/svg";
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  (parent || svg).appendChild(e);
+  return e;
+}
+const pts = (quad) => quad.map(([x, z]) => `${x},${-z}`).join(" ");
+const hue = (n) => `hsl(${(n * 47) % 360} 75% 58%)`;
+const centroid = (q) => [q.reduce((s, p) => s + p[0], 0) / q.length, q.reduce((s, p) => s + p[1], 0) / q.length];
+
+function inside([x, z], quad) {
+  let sign = 0;
+  for (let k = 0; k < 4; k++) {
+    const [x1, z1] = quad[k], [x2, z2] = quad[(k + 1) % 4];
+    const c = (x2 - x1) * (z - z1) - (z2 - z1) * (x - x1);
+    if (c !== 0) { const s = c > 0 ? 1 : -1; if (!sign) sign = s; else if (s !== sign) return false; }
+  }
+  return true;
+}
+
+function info(obj) { $("info").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 1); }
+
+function roomData() { return state.data[state.scen].rooms[state.room]; }
+
+function arrivalsInto(roomId) {
+  const out = [];
+  for (const [rid, r] of Object.entries(state.data[state.scen].rooms))
+    for (const a of r.aots) if (a.door && a.door.room === roomId) out.push({ from: rid, ...a.door });
+  return out;
+}
+
+function fitView() {
+  const r = roomData();
+  const all = [...r.zones.flatMap((z) => z.quad), ...r.aots.flatMap((a) => a.quad)];
+  if (!all.length) { state.view = [-20000, -20000, 40000, 40000]; return applyView(); }
+  const xs = all.map((p) => p[0]), zs = all.map((p) => -p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...zs), maxY = Math.max(...zs);
+  const pad = Math.max(maxX - minX, maxY - minY) * 0.06 + 500;
+  state.view = [minX - pad, minY - pad, maxX - minX + 2 * pad, maxY - minY + 2 * pad];
+  applyView();
+}
+function applyView() { svg.setAttribute("viewBox", state.view.join(" ")); }
+
+function render() {
+  svg.innerHTML = "";
+  const r = roomData();
+  const L = state.layers;
+  const scale = state.view ? state.view[2] / svg.clientWidth : 30;
+  const sw = (px) => px * scale;
+  const player = state.live && state.live.room === state.room ? [state.live.x, state.live.z] : null;
+
+  // Camera areas (first RVD record of each camera group).
+  for (const z of r.zones.filter((z) => z.area)) {
+    const sel = z.from === state.cam;
+    if (!(L.allAreas || (L.areas && sel))) continue;
+    el("polygon", { points: pts(z.quad), fill: sel ? "rgba(90,160,255,.10)" : "none",
+      stroke: sel ? "#5aa0ff" : "#3b4250", "stroke-width": sw(sel ? 2 : 1) });
+    const [cx, cz] = centroid(z.quad);
+    if (sel || L.allAreas) {
+      const t = el("text", { x: cx, y: -cz, fill: sel ? "#9cc4ff" : "#6b7380", "font-size": sw(13), "text-anchor": "middle" });
+      t.textContent = `área cam ${z.from}`;
+    }
+  }
+
+  // Switch zones.
+  for (const z of r.zones.filter((z) => !z.area)) {
+    const sel = z.from === state.cam;
+    if (!(L.allZones || (L.zones && sel))) continue;
+    const hit = player && sel && inside(player, z.quad);
+    const p = el("polygon", { points: pts(z.quad), fill: hue(z.to), "fill-opacity": sel ? (hit ? 0.6 : 0.28) : 0.08,
+      stroke: hit ? "#fff" : hue(z.to), "stroke-width": sw(hit ? 3 : 1.5),
+      "stroke-dasharray": z.enabled ? "" : `${sw(6)} ${sw(4)}` });
+    p.onmouseenter = () => info({ tipo: "zona de cambio", desde_cam: z.from, a_cam: z.to,
+      activa: !!z.enabled, planta: z.floor ?? "cualquiera", quad: z.quad });
+    p.onclick = () => selectCam(z.to);
+    const [cx, cz] = centroid(z.quad);
+    const t = el("text", { x: cx, y: -cz, fill: "#fff", "font-size": sw(14), "text-anchor": "middle" });
+    t.textContent = sel ? `→ cam ${z.to}` : `${z.from}→${z.to}`;
+  }
+
+  // AOTs.
+  if (L.aots) for (const a of r.aots) {
+    const col = SCE_COLORS[a.sce] || "#ffffff";
+    const enemyOnly = a.sat.includes("EM") && !a.sat.includes("PL");
+    const dash = enemyOnly ? `${sw(2)} ${sw(4)}` : a.sat.includes("MANUAL") ? "" : `${sw(8)} ${sw(5)}`;
+    const p = el("polygon", { points: pts(a.quad), fill: col, "fill-opacity": 0.15, stroke: col,
+      "stroke-width": sw(1.6), "stroke-dasharray": dash });
+    p.onmouseenter = () => info(a);
+    if (a.door) p.onclick = () => { if (state.data[state.scen].rooms[a.door.room]) { setRoom(a.door.room, a.door.camera); } };
+    const [cx, cz] = centroid(a.quad);
+    const label = a.door ? `puerta → ${a.door.room} (cam ${a.door.camera})` : a.item ? a.item.name :
+      a.use_item ? `usar ${a.use_item}` : a.sce.toLowerCase();
+    const t = el("text", { x: cx, y: -cz, fill: col, "font-size": sw(11), "text-anchor": "middle" });
+    t.textContent = label;
+  }
+
+  // Door arrivals into this room.
+  if (L.arrivals) for (const d of arrivalsInto(state.room)) {
+    const [x, , z] = d.arrive;
+    const c = el("circle", { cx: x, cy: -z, r: sw(6), fill: hue(d.camera), stroke: "#000", "stroke-width": sw(1) });
+    c.onmouseenter = () => info({ tipo: "llegada de puerta", desde_sala: d.from, camara_inicial: d.camera,
+      posicion: d.arrive, direccion: d.dir, planta: d.floor });
+    const t = el("text", { x: x + sw(9), y: -z + sw(4), fill: hue(d.camera), "font-size": sw(11) });
+    t.textContent = `desde ${d.from} → cam ${d.camera}`;
+  }
+
+  // Camera positions and FOV wedges.
+  if (L.camIcons) for (const c of r.cameras) {
+    const sel = c.id === state.cam;
+    const [fx, , fz] = c.from, [tx, , tz] = c.to;
+    const ang = Math.atan2(-(tz - fz), tx - fx), half = (c.fov_h * Math.PI) / 360;
+    const len = Math.hypot(tx - fx, tz - fz);
+    if (sel) {
+      const a1 = [fx + len * Math.cos(ang - half), -fz + len * Math.sin(ang - half)];
+      const a2 = [fx + len * Math.cos(ang + half), -fz + len * Math.sin(ang + half)];
+      el("polygon", { points: `${fx},${-fz} ${a1} ${a2}`, fill: "rgba(90,160,255,.08)", stroke: "#5aa0ff",
+        "stroke-width": sw(1), "stroke-dasharray": `${sw(3)} ${sw(3)}` });
+    }
+    el("line", { x1: fx, y1: -fz, x2: tx, y2: -tz, stroke: sel ? "#5aa0ff" : "#4b5260", "stroke-width": sw(1) });
+    const dot = el("circle", { cx: fx, cy: -fz, r: sw(sel ? 7 : 5), fill: sel ? "#5aa0ff" : "#4b5260" });
+    dot.onmouseenter = () => info({ camara: c.id, fov_vertical: c.fov_v, fov_horizontal: c.fov_h, H: c.h,
+      desde: c.from, mira_a: c.to });
+    dot.onclick = () => selectCam(c.id);
+    const t = el("text", { x: fx + sw(9), y: -fz - sw(6), fill: sel ? "#9cc4ff" : "#7a8290", "font-size": sw(12) });
+    t.textContent = `cam ${c.id}`;
+  }
+
+  // Live player.
+  if (player) {
+    el("circle", { cx: player[0], cy: -player[1], r: sw(9), fill: "var(--player)", stroke: "#fff", "stroke-width": sw(2) });
+    const t = el("text", { x: player[0] + sw(12), y: -player[1] - sw(8), fill: "#ffb3bc", "font-size": sw(13) });
+    t.textContent = "jugador";
+  }
+}
+
+function renderCams() {
+  const r = roomData();
+  $("cams").innerHTML = "";
+  for (const c of r.cameras) {
+    const b = document.createElement("button");
+    b.innerHTML = `<span>cam ${c.id} · FOV ${c.fov_v}°</span>`;
+    if (c.id === state.cam) b.classList.add("sel");
+    if (state.live && state.live.room === state.room && state.live.cut === c.id) b.classList.add("live");
+    b.onclick = () => selectCam(c.id);
+    $("cams").appendChild(b);
+  }
+}
+
+function selectCam(id) { state.cam = id; renderCams(); render(); }
+
+function setRoom(id, cam = 0) {
+  state.room = id; state.cam = cam; $("room").value = id;
+  renderCams(); fitView(); render();
+}
+
+function fillRooms() {
+  const rooms = Object.keys(state.data[state.scen].rooms).sort();
+  $("room").innerHTML = rooms.map((r) => `<option value="${r}">ROOM${r}</option>`).join("");
+  setRoom(rooms.includes(state.room) ? state.room : rooms[0]);
+}
+
+// Pan / zoom.
+svg.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const [x, y, w, h] = state.view, rect = svg.getBoundingClientRect();
+  const k = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+  const mx = x + ((e.clientX - rect.left) / rect.width) * w, my = y + ((e.clientY - rect.top) / rect.height) * h;
+  state.view = [mx - (mx - x) * k, my - (my - y) * k, w * k, h * k];
+  applyView(); render();
+}, { passive: false });
+let drag = null;
+svg.addEventListener("mousedown", (e) => { drag = { x: e.clientX, y: e.clientY, v: [...state.view] }; });
+window.addEventListener("mouseup", () => { drag = null; });
+window.addEventListener("mousemove", (e) => {
+  if (!drag) return;
+  const k = state.view[2] / svg.clientWidth;
+  state.view = [drag.v[0] - (e.clientX - drag.x) * k, drag.v[1] - (e.clientY - drag.y) * k, drag.v[2], drag.v[3]];
+  applyView();
+});
+svg.addEventListener("dblclick", () => { fitView(); render(); });
+
+for (const cb of document.querySelectorAll("[data-layer]")) {
+  state.layers[cb.dataset.layer] = cb.checked;
+  cb.onchange = () => { state.layers[cb.dataset.layer] = cb.checked; render(); };
+}
+$("legend").innerHTML = Object.entries(SCE_COLORS).map(([k, c]) => `<div><span style="background:${c}"></span>${k}</div>`).join("");
+$("scenario").onchange = () => { state.scen = $("scenario").value; fillRooms(); };
+$("room").onchange = () => setRoom($("room").value);
+
+async function poll() {
+  try {
+    const s = await (await fetch("/state", { cache: "no-store" })).json();
+    if (!s.connected) throw new Error(s.error || "no game");
+    state.live = s;
+    $("status").textContent = `En vivo: ROOM${s.room} · cam ${s.cut} · (${s.x}, ${s.z}) · planta ${s.floor}`;
+    $("status").className = "live";
+    if ($("follow").checked && state.data[state.scen].rooms[s.room]) {
+      if (s.room !== state.room) setRoom(s.room, s.cut);
+      else if (s.cut !== state.cam) selectCam(s.cut);
+      else { renderCams(); render(); }
+    } else { render(); }
+  } catch (err) {
+    state.live = null;
+    $("status").textContent = "Sin conexión con el juego";
+    $("status").className = "";
+  }
+  setTimeout(poll, 120);
+}
+
+(async () => {
+  state.data = await (await fetch("data.json")).json();
+  $("scenario").innerHTML = Object.entries(state.data).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
+  fillRooms();
+  // Deep link for testing / sharing a view: #ROOM1000/3
+  const m = location.hash.match(/^#ROOM([0-9A-F]{4})(?:\/(\d+))?$/i);
+  if (m && state.data[state.scen].rooms[m[1].toUpperCase()]) setRoom(m[1].toUpperCase(), +(m[2] || 0));
+  poll();
+})();
+</script>
+</body>
+</html>
