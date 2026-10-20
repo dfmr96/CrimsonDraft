@@ -34,6 +34,9 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
 
         private void OnUndoRedo() => this.view?.Load();
 
+        // Picks up lane edits made in the Inspector while the window was unfocused.
+        private void OnFocus() => this.view?.Load();
+
         private void SetGraph(MilestoneGraph? asset)
         {
             this.graph = asset;
@@ -49,6 +52,8 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             field.RegisterValueChangedCallback(e => SetGraph(e.newValue as MilestoneGraph));
             toolbar.Add(field);
             toolbar.Add(new ToolbarButton(() => this.view?.FrameAll()) { text = "Frame All" });
+            // Lanes (name + colour) are edited in the asset's Inspector; OnFocus reloads the view.
+            toolbar.Add(new ToolbarButton(() => Selection.activeObject = this.graph) { text = "Edit Lanes" });
             rootVisualElement.Add(toolbar);
 
             if (this.graph == null)

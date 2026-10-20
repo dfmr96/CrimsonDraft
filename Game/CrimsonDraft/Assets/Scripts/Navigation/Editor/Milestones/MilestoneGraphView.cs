@@ -33,8 +33,31 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             Insert(0, grid);
             grid.StretchToParentSize();
 
-            graphViewChanged = OnGraphViewChanged;
+            graphViewChanged         = OnGraphViewChanged;
+            elementsAddedToGroup     = (_, _) => ScheduleSave();
+            elementsRemovedFromGroup = (_, _) => ScheduleSave();
+            groupTitleChanged        = (_, _) => ScheduleSave();
             this.AddManipulator(new ContextualMenuManipulator(BuildCanvasMenu));
+
+            // Copy/paste milestones. EditorJsonUtility keeps the ItemData / DocumentData
+            // references; pasted nodes get new ids so saves never alias them.
+            serializeGraphElements = elements => string.Join("\n",
+                elements.OfType<MilestoneNodeView>().Select(v => EditorJsonUtility.ToJson(v.Node)));
+            canPasteSerializedData = data => !string.IsNullOrEmpty(data);
+            unserializeAndPaste = (_, data) =>
+            {
+                Undo.RecordObject(this.graph, "Paste Milestones");
+                foreach (var line in data.Split('\n'))
+                {
+                    var copy = new MilestoneNode();
+                    EditorJsonUtility.FromJsonOverwrite(line, copy);
+                    copy.id = MilestoneGraph.NewId();
+                    copy.position += new Vector2(30f, 30f);
+                    this.graph.Nodes.Add(copy);
+                }
+                EditorUtility.SetDirty(this.graph);
+                Load();
+            };
         }
 
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter) =>
@@ -44,12 +67,48 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
         {
             if (evt.target is not GraphView) return;
             Vector2 local = contentViewContainer.WorldToLocal(evt.mousePosition);
+
             evt.menu.AppendAction("Add Milestone", _ =>
             {
                 Undo.RecordObject(this.graph, "Add Milestone");
                 var node = this.graph.AddNode("New milestone", local);
                 EditorUtility.SetDirty(this.graph);
                 AddElement(new MilestoneNodeView(node, this));
+            });
+
+            evt.menu.AppendAction("Add Note", _ =>
+            {
+                Undo.RecordObject(this.graph, "Add Note");
+                this.graph.Notes.Add(new MilestoneNote { id = MilestoneGraph.NewId(), text = "Note", rect = new Rect(local, new Vector2(200f, 120f)) });
+                EditorUtility.SetDirty(this.graph);
+                Load();
+            });
+
+            var selectedNodes = selection.OfType<MilestoneNodeView>().ToList();
+            evt.menu.AppendAction("Add Frame Around Selection", _ =>
+            {
+                Undo.RecordObject(this.graph, "Add Frame");
+                this.graph.Frames.Add(new MilestoneFrame
+                {
+                    id = MilestoneGraph.NewId(),
+                    title = "Frame",
+                    nodeIds = selectedNodes.Select(v => v.Node.id).ToList(),
+                });
+                EditorUtility.SetDirty(this.graph);
+                Load();
+            }, selectedNodes.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+
+            evt.menu.AppendAction("Add Lane", _ =>
+            {
+                Undo.RecordObject(this.graph, "Add Lane");
+                this.graph.Lanes.Add(new MilestoneLane
+                {
+                    id = MilestoneGraph.NewId(),
+                    name = $"Lane {this.graph.Lanes.Count + 1}",
+                    color = Color.HSVToRGB(Random.value, 0.6f, 0.9f),
+                });
+                EditorUtility.SetDirty(this.graph);
+                Load();
             });
         }
 
@@ -74,6 +133,17 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 AddElement(view);
             }
 
+            foreach (var note in this.graph.Notes)
+                AddElement(new MilestoneNoteView(note, this));
+
+            foreach (var frame in this.graph.Frames)
+            {
+                var group = new MilestoneFrameView(frame, this);
+                AddElement(group);
+                foreach (var id in frame.nodeIds)
+                    if (views.TryGetValue(id, out var member)) group.AddElement(member);
+            }
+
             this.loading = false;
         }
 
@@ -96,8 +166,8 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             schedule.Execute(() => { this.saveScheduled = false; Save(); });
         }
 
-        // Drops deleted nodes and rebuilds the edge list from the view. Node positions and titles
-        // are written into the data by MilestoneNodeView as they change.
+        // Drops deleted nodes and rebuilds edges, notes and frames from the view. Node positions and
+        // titles, and note rects, are written into the data by their views as they change.
         public void Save()
         {
             Undo.RecordObject(this.graph, "Edit Milestone Graph");
@@ -117,9 +187,30 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 this.graph.Edges.Add(edge.Data);
             }
 
+            this.graph.Notes.Clear();
+            foreach (var note in graphElements.OfType<MilestoneNoteView>())
+                this.graph.Notes.Add(note.Capture());
+
+            this.graph.Frames.Clear();
+            foreach (var frame in graphElements.OfType<MilestoneFrameView>())
+                this.graph.Frames.Add(frame.Capture(alive));
+
             EditorUtility.SetDirty(this.graph);
         }
 
         public Color LaneColor(string laneId) => this.graph.FindLane(laneId)?.color ?? new Color(0.35f, 0.35f, 0.35f);
+
+        // Appends "Lane/(none)" + one entry per lane to a context menu.
+        public void AppendLaneMenu(DropdownMenu menu, string currentLaneId, System.Action<string> setLane)
+        {
+            menu.AppendAction("Lane/(none)", _ => setLane(""),
+                _ => currentLaneId == "" ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            foreach (var lane in this.graph.Lanes)
+            {
+                var id = lane.id;
+                menu.AppendAction($"Lane/{lane.name}", _ => setLane(id),
+                    _ => currentLaneId == id ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            }
+        }
     }
 }

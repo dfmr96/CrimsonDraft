@@ -1,6 +1,8 @@
 #nullable enable
 
+using System.Linq;
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using CrimsonDraft.Navigation.Milestones;
@@ -38,6 +40,18 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 this.owner.ScheduleSave();
             });
             extensionContainer.Add(titleField);
+
+            var laneNames = owner.Graph.Lanes.Select(l => l.name).Prepend("(none)").ToList();
+            int current = owner.Graph.Lanes.FindIndex(l => l.id == node.laneId) + 1;
+            var lane = new PopupField<string>("Lane", laneNames, current);
+            lane.RegisterValueChangedCallback(e =>
+            {
+                int index = laneNames.IndexOf(e.newValue) - 1;
+                this.Node.laneId = index >= 0 ? this.owner.Graph.Lanes[index].id : "";
+                ApplyLaneColor();
+                this.owner.ScheduleSave();
+            });
+            extensionContainer.Add(lane);
 
             ApplyLaneColor();
             RefreshExpandedState();

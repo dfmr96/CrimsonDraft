@@ -20,6 +20,30 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             this.dashes.StretchToParentSize();
             this.dashes.generateVisualContent += DrawDashes;
             edgeControl.Add(this.dashes);
+
+            this.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                evt.menu.AppendAction("Style/Solid",  _ => SetStyle(EdgeStyle.Solid),
+                    _ => this.Data.style == EdgeStyle.Solid ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+                evt.menu.AppendAction("Style/Dashed", _ => SetStyle(EdgeStyle.Dashed),
+                    _ => this.Data.style == EdgeStyle.Dashed ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+                this.owner?.AppendLaneMenu(evt.menu, this.Data.useCustomColor ? "\0custom" : this.Data.laneId, SetLane);
+            }));
+        }
+
+        private void SetStyle(EdgeStyle style)
+        {
+            this.Data.style = style;
+            UpdateEdgeControl();
+            this.owner?.ScheduleSave();
+        }
+
+        private void SetLane(string laneId)
+        {
+            this.Data.laneId = laneId;
+            this.Data.useCustomColor = false;
+            UpdateEdgeControl();
+            this.owner?.ScheduleSave();
         }
 
         public void Bind(MilestoneEdge data, MilestoneGraphView view)
