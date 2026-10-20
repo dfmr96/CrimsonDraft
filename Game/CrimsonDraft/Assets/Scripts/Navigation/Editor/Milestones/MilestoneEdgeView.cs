@@ -33,6 +33,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
 
         private void SetStyle(EdgeStyle style)
         {
+            this.owner?.RecordUndo("Change Edge Style");
             this.Data.style = style;
             UpdateEdgeControl();
             this.owner?.ScheduleSave();
@@ -40,6 +41,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
 
         private void SetLane(string laneId)
         {
+            this.owner?.RecordUndo("Change Edge Lane");
             this.Data.laneId = laneId;
             this.Data.useCustomColor = false;
             UpdateEdgeControl();

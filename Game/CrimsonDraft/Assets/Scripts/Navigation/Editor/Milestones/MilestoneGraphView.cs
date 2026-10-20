@@ -20,9 +20,13 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
 
         public MilestoneGraph Graph => this.graph;
 
+        // Rebuilt by every Load(); badges check against it instead of rescanning.
+        public MilestoneValidation Validation { get; private set; }
+
         public MilestoneGraphView(MilestoneGraph graph)
         {
             this.graph = graph;
+            this.Validation = new MilestoneValidation(graph);
 
             SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
             this.AddManipulator(new ContentDragger());
@@ -115,6 +119,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
         public void Load()
         {
             this.loading = true;
+            this.Validation = new MilestoneValidation(this.graph);
             DeleteElements(graphElements.ToList());
 
             var views = new Dictionary<string, MilestoneNodeView>();
@@ -196,6 +201,22 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 this.graph.Frames.Add(frame.Capture(alive));
 
             EditorUtility.SetDirty(this.graph);
+        }
+
+        // Call BEFORE writing into the asset's data: RecordObject snapshots the current state, so
+        // recording after the write would leave nothing to undo. Skipped while Load() rebuilds.
+        public void RecordUndo(string label)
+        {
+            if (!this.loading) Undo.RecordObject(this.graph, label);
+        }
+
+        // Re-applies lane colours (edited in the Inspector) without rebuilding the view, so the
+        // selection survives the window regaining focus.
+        public void RefreshLaneColors()
+        {
+            foreach (var node in nodes.OfType<MilestoneNodeView>()) node.ApplyLaneColor();
+            foreach (var edge in edges.OfType<MilestoneEdgeView>()) edge.UpdateEdgeControl();
+            foreach (var frame in graphElements.OfType<MilestoneFrameView>()) frame.ApplyLaneColor();
         }
 
         public Color LaneColor(string laneId) => this.graph.FindLane(laneId)?.color ?? new Color(0.35f, 0.35f, 0.35f);

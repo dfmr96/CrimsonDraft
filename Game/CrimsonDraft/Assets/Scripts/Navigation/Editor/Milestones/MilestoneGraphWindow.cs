@@ -21,8 +21,11 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
         [OnOpenAsset]
         public static bool OnOpenAsset(int instanceId, int line)
         {
-            // The double-clicked asset is the selection (InstanceIDToObject is obsolete in 6.3).
-            if (Selection.activeObject is not MilestoneGraph asset) return false;
+            // Must be the asset actually being opened, not merely the current selection: other
+            // open requests (Console double-click, Edit Script…) arrive here too.
+#pragma warning disable CS0618 // InstanceIDToObject: OnOpenAsset still hands us an instance id
+            if (EditorUtility.InstanceIDToObject(instanceId) is not MilestoneGraph asset) return false;
+#pragma warning restore CS0618
             var window = GetWindow<MilestoneGraphWindow>("Milestone Graph");
             window.SetGraph(asset);
             return true;
@@ -35,8 +38,8 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
 
         private void OnUndoRedo() => this.view?.Load();
 
-        // Picks up lane edits made in the Inspector while the window was unfocused.
-        private void OnFocus() => this.view?.Load();
+        // Picks up lane colours edited in the Inspector, without rebuilding (keeps the selection).
+        private void OnFocus() => this.view?.RefreshLaneColors();
 
         private void SetGraph(MilestoneGraph? asset)
         {

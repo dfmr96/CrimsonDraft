@@ -26,13 +26,14 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             this.AddManipulator(new ContextualMenuManipulator(evt =>
                 owner.AppendLaneMenu(evt.menu, this.frame.laneId, laneId =>
                 {
+                    owner.RecordUndo("Change Frame Lane");
                     this.frame.laneId = laneId;
                     ApplyLaneColor();
                     owner.ScheduleSave();
                 })));
         }
 
-        private void ApplyLaneColor()
+        public void ApplyLaneColor()
         {
             var color = this.owner.LaneColor(this.frame.laneId);
             style.backgroundColor = new Color(color.r, color.g, color.b, 0.15f);

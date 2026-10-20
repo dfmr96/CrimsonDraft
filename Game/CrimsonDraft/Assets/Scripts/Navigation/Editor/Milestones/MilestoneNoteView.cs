@@ -22,6 +22,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             SetPosition(note.rect);
             RegisterCallback<StickyNoteChangeEvent>(_ =>
             {
+                this.owner.RecordUndo("Edit Note");
                 this.note.text = contents;
                 this.owner.ScheduleSave();
             });
@@ -32,6 +33,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             base.SetPosition(newPos);
             if (this.note == null) return; // base constructor positions before our fields are set
             var size = newPos.width > 0f && newPos.height > 0f ? newPos.size : this.note.rect.size;
+            this.owner.RecordUndo("Move Note");
             this.note.rect = new Rect(newPos.position, size);
             this.owner.ScheduleSave();
         }

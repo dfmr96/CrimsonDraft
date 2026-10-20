@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Linq;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -33,13 +32,9 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             inputContainer.Add(Input);
             outputContainer.Add(Output);
 
-            var titleField = new TextField { value = node.title };
-            titleField.RegisterValueChangedCallback(e =>
-            {
-                this.Node.title = e.newValue;
-                title = e.newValue;
-                this.owner.ScheduleSave();
-            });
+            // Delayed: one edit (and one undo step) per committed title, not per keystroke.
+            var titleField = new TextField { value = node.title, isDelayed = true };
+            titleField.RegisterValueChangedCallback(e => SetTitle(e.newValue));
             extensionContainer.Add(titleField);
 
             var laneNames = owner.Graph.Lanes.Select(l => l.name).Prepend("(none)").ToList();
@@ -48,19 +43,19 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             lane.RegisterValueChangedCallback(e =>
             {
                 int index = laneNames.IndexOf(e.newValue) - 1;
-                this.Node.laneId = index >= 0 ? this.owner.Graph.Lanes[index].id : "";
-                ApplyLaneColor();
-                this.owner.ScheduleSave();
+                SetLane(index >= 0 ? this.owner.Graph.Lanes[index].id : "");
             });
             extensionContainer.Add(lane);
 
             this.badge = new Label { style = { color = new Color(1f, 0.8f, 0.2f), unityFontStyleAndWeight = FontStyle.Bold } };
             titleContainer.Add(this.badge);
-            extensionContainer.Add(new MilestoneTriggerField(node.trigger, () =>
-            {
-                RefreshBadge();
-                this.owner.ScheduleSave();
-            }));
+            extensionContainer.Add(new MilestoneTriggerField(node.trigger,
+                beforeChange: () => this.owner.RecordUndo("Edit Milestone Trigger"),
+                onChanged: () =>
+                {
+                    RefreshBadge();
+                    this.owner.ScheduleSave();
+                }));
             RefreshBadge();
 
             ApplyLaneColor();
@@ -92,7 +87,7 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 case MilestoneTriggerKind.SocketCompleted:
                 case MilestoneTriggerKind.DoorUnlocked:
                 case MilestoneTriggerKind.PuzzleSolved:
-                    if (!MilestoneSceneIds.For(t.kind).Contains(t.targetId)) return "Id not found in open scenes";
+                    if (!this.owner.Validation.SceneHas(t.kind, t.targetId)) return "Id not found in open scenes";
                     break;
             }
 
@@ -100,13 +95,24 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 && n.trigger.targetId == t.targetId && n.trigger.item == t.item && n.trigger.note == t.note);
             if (twin != null) return $"Same trigger as '{twin.title}'";
 
-            foreach (var guid in AssetDatabase.FindAssets("t:MilestoneGraph"))
-            {
-                var other = AssetDatabase.LoadAssetAtPath<MilestoneGraph>(AssetDatabase.GUIDToAssetPath(guid));
-                if (other != null && other != this.owner.Graph && other.FindNode(this.Node.id) != null)
-                    return $"Duplicate id in {other.name}";
-            }
-            return "";
+            var otherGraph = this.owner.Validation.OtherGraphWith(this.Node.id);
+            return otherGraph != null ? $"Duplicate id in {otherGraph}" : "";
+        }
+
+        public void SetTitle(string value)
+        {
+            this.owner.RecordUndo("Rename Milestone");
+            this.Node.title = value;
+            title = value;
+            this.owner.ScheduleSave();
+        }
+
+        public void SetLane(string laneId)
+        {
+            this.owner.RecordUndo("Change Milestone Lane");
+            this.Node.laneId = laneId;
+            ApplyLaneColor();
+            this.owner.ScheduleSave();
         }
 
         public void ApplyLaneColor() =>
@@ -117,8 +123,10 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
         public override void SetPosition(Rect newPos)
         {
             base.SetPosition(newPos);
+            if (this.owner == null) return;
+            this.owner.RecordUndo("Move Milestone");
             this.Node.position = newPos.position;
-            this.owner?.ScheduleSave();
+            this.owner.ScheduleSave();
         }
     }
 }

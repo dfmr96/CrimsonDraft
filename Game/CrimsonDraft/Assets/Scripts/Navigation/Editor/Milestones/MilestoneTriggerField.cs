@@ -15,24 +15,30 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
     public sealed class MilestoneTriggerField : VisualElement
     {
         private readonly MilestoneTrigger trigger;
+        private readonly Action beforeChange;
         private readonly Action onChanged;
         private readonly VisualElement body = new();
 
-        public MilestoneTriggerField(MilestoneTrigger trigger, Action onChanged)
+        // beforeChange runs before every write into the trigger (the owner records Undo there).
+        public MilestoneTriggerField(MilestoneTrigger trigger, Action beforeChange, Action onChanged)
         {
-            this.trigger   = trigger;
-            this.onChanged = onChanged;
+            this.trigger      = trigger;
+            this.beforeChange = beforeChange;
+            this.onChanged    = onChanged;
 
             var kind = new EnumField("Trigger", trigger.kind);
-            kind.RegisterValueChangedCallback(e =>
-            {
-                this.trigger.kind = (MilestoneTriggerKind)e.newValue;
-                RebuildBody();
-                this.onChanged();
-            });
+            kind.RegisterValueChangedCallback(e => SetKind((MilestoneTriggerKind)e.newValue));
             Add(kind);
             Add(this.body);
             RebuildBody();
+        }
+
+        public void SetKind(MilestoneTriggerKind kind)
+        {
+            this.beforeChange();
+            this.trigger.kind = kind;
+            RebuildBody();
+            this.onChanged();
         }
 
         private void RebuildBody()
@@ -43,14 +49,14 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 case MilestoneTriggerKind.ItemHeld:
                 {
                     var field = new ObjectField("Item") { objectType = typeof(ItemData), value = this.trigger.item };
-                    field.RegisterValueChangedCallback(e => { this.trigger.item = e.newValue as ItemData; this.onChanged(); });
+                    field.RegisterValueChangedCallback(e => { this.beforeChange(); this.trigger.item = e.newValue as ItemData; this.onChanged(); });
                     this.body.Add(field);
                     break;
                 }
                 case MilestoneTriggerKind.NoteRead:
                 {
                     var field = new ObjectField("Note") { objectType = typeof(DocumentData), value = this.trigger.note };
-                    field.RegisterValueChangedCallback(e => { this.trigger.note = e.newValue as DocumentData; this.onChanged(); });
+                    field.RegisterValueChangedCallback(e => { this.beforeChange(); this.trigger.note = e.newValue as DocumentData; this.onChanged(); });
                     this.body.Add(field);
                     break;
                 }
@@ -60,8 +66,9 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 case MilestoneTriggerKind.PuzzleSolved:
                 {
                     var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-                    var text = new TextField("Id") { value = this.trigger.targetId, style = { flexGrow = 1 } };
-                    text.RegisterValueChangedCallback(e => { this.trigger.targetId = e.newValue; this.onChanged(); });
+                    // Delayed: validated (and undoable) once per committed id, not per keystroke.
+                    var text = new TextField("Id") { value = this.trigger.targetId, isDelayed = true, style = { flexGrow = 1 } };
+                    text.RegisterValueChangedCallback(e => { this.beforeChange(); this.trigger.targetId = e.newValue; this.onChanged(); });
                     var pick = new Button(() => ShowIdMenu(text)) { text = "…" };
                     row.Add(text);
                     row.Add(pick);

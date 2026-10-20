@@ -155,6 +155,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
             this.isSolved    = true;
             this.isVerifying = true;
+            // Saves from before PuzzleStateRegistry only have the "#solved" key; report it so a
+            // PuzzleSolved milestone still completes (PuzzleBootstrap has bound us by Start).
+            this.puzzleStates?.SetSolved(this.solvedId);
             if (this.leverHandle != null)
             {
                 this.leverHandle.localPosition = LeverPulledLocalPosition;
