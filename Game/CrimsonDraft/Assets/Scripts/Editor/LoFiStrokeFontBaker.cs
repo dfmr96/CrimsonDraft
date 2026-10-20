@@ -52,7 +52,7 @@ namespace CrimsonDraft.Editor
             var font = AssetDatabase.LoadAssetAtPath<Font>(DefaultFontPath);
             if (font == null)
             {
-                Debug.LogError($"[LoFiStrokeFontBaker] No se encontró la fuente en {DefaultFontPath}.");
+                Debug.LogError($"[LoFiStrokeFontBaker] Font not found at {DefaultFontPath}.");
                 return;
             }
 
@@ -69,29 +69,29 @@ namespace CrimsonDraft.Editor
         private void OnGUI()
         {
             EditorGUILayout.Space(4);
-            EditorGUILayout.LabelField("Fuente Lo-Fi Stroke", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Lo-Fi Stroke Font", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Crea un font asset de TextMesh Pro con glifos indexados (relleno, suavizado y borde) " +
-                "para el shader '" + ShaderName + "'. Para Silver usa 19 px: 100 unidades = 1 píxel.",
+                "Creates a TextMesh Pro font asset with indexed glyphs (fill, smoothing and outline) " +
+                "for the '" + ShaderName + "' shader. Use 19 px for Silver: 100 units = 1 pixel.",
                 MessageType.Info);
             EditorGUILayout.Space(6);
 
-            this.sourceFont      = (Font?)EditorGUILayout.ObjectField("Fuente (TTF)", this.sourceFont, typeof(Font), false);
-            this.pointSize       = EditorGUILayout.IntField("Tamaño (px)", this.pointSize);
-            this.atlasPadding    = EditorGUILayout.IntSlider("Margen del atlas", this.atlasPadding, 2, 8);
-            this.atlasSize       = EditorGUILayout.IntPopup("Tamaño del atlas", this.atlasSize,
+            this.sourceFont      = (Font?)EditorGUILayout.ObjectField("Font (TTF)", this.sourceFont, typeof(Font), false);
+            this.pointSize       = EditorGUILayout.IntField("Size (px)", this.pointSize);
+            this.atlasPadding    = EditorGUILayout.IntSlider("Atlas padding", this.atlasPadding, 2, 8);
+            this.atlasSize       = EditorGUILayout.IntPopup("Atlas size", this.atlasSize,
                                        new[] { "256", "512", "1024", "2048" }, new[] { 256, 512, 1024, 2048 });
             this.extraAdvance    = EditorGUILayout.IntSlider(
-                new GUIContent("Espaciado extra (px)", "Se suma al avance de cada glifo para que el borde no se funda con la letra siguiente."),
+                new GUIContent("Extra advance (px)", "Added to every glyph advance so the outline does not merge with the next letter."),
                 this.extraAdvance, 0, 4);
-            this.includeDialogue = EditorGUILayout.Toggle("Caracteres de los .yarn", this.includeDialogue);
-            this.extraCharacters = EditorGUILayout.TextField("Caracteres extra", this.extraCharacters);
-            this.outputPath      = EditorGUILayout.TextField("Asset de salida", this.outputPath);
+            this.includeDialogue = EditorGUILayout.Toggle("Characters from .yarn files", this.includeDialogue);
+            this.extraCharacters = EditorGUILayout.TextField("Extra characters", this.extraCharacters);
+            this.outputPath      = EditorGUILayout.TextField("Output asset", this.outputPath);
 
             EditorGUILayout.Space(8);
             using (new EditorGUI.DisabledScope(this.sourceFont == null))
             {
-                if (GUILayout.Button("Hornear", GUILayout.Height(28)) && this.sourceFont != null)
+                if (GUILayout.Button("Bake", GUILayout.Height(28)) && this.sourceFont != null)
                 {
                     this.lastReport = Bake(new Settings(this.sourceFont, this.pointSize, this.atlasPadding,
                         this.atlasSize, this.extraAdvance, this.includeDialogue, this.extraCharacters, this.outputPath));
@@ -133,14 +133,14 @@ namespace CrimsonDraft.Editor
         {
             var shader = Shader.Find(ShaderName);
             if (shader == null)
-                return $"No se encontró el shader '{ShaderName}'.";
+                return $"Shader '{ShaderName}' not found.";
 
             var charset = BuildCharset(settings.IncludeDialogue, settings.Extra);
 
             var fontAsset = TMP_FontAsset.CreateFontAsset(settings.Font, settings.PointSize, settings.Padding,
                 GlyphRenderMode.RASTER, settings.AtlasSize, settings.AtlasSize, AtlasPopulationMode.Dynamic, false);
             if (fontAsset == null)
-                return "TextMesh Pro no pudo crear el font asset.";
+                return "TextMesh Pro could not create the font asset.";
 
             fontAsset.TryAddCharacters(charset, out var missing);
 
@@ -174,11 +174,11 @@ namespace CrimsonDraft.Editor
             if (tempMaterial != null)
                 Object.DestroyImmediate(tempMaterial);
             var builder = new StringBuilder();
-            builder.AppendLine($"[LoFiStrokeFontBaker] {settings.OutputPath}: {characterCount} caracteres, " +
-                               $"{glyphCount} glifos, atlas {width}x{height}.");
+            builder.AppendLine($"[LoFiStrokeFontBaker] {settings.OutputPath}: {characterCount} characters, " +
+                               $"{glyphCount} glyphs, atlas {width}x{height}.");
             builder.AppendLine(report);
             if (!string.IsNullOrEmpty(missing))
-                builder.AppendLine($"Sin glifo en la fuente ({missing.Length}): {missing}");
+                builder.AppendLine($"Missing from the font ({missing.Length}): {missing}");
             return builder.ToString().TrimEnd();
         }
 
@@ -339,7 +339,7 @@ namespace CrimsonDraft.Editor
                 AssetDatabase.AddObjectToAsset(atlas, fontAsset);
                 AssetDatabase.AddObjectToAsset(material, fontAsset);
                 AssetDatabase.SaveAssets();
-                return "Asset creado.";
+                return "Asset created.";
             }
 
             var oldAtlas    = existing.atlasTextures != null && existing.atlasTextures.Length > 0 ? existing.atlasTextures[0] : null;
@@ -384,7 +384,7 @@ namespace CrimsonDraft.Editor
 
             // The freshly built asset was only a source for CopySerialized.
             Object.DestroyImmediate(fontAsset);
-            return "Asset actualizado (mismo GUID, las referencias se conservan).";
+            return "Asset updated (same GUID, references are kept).";
         }
 
         private static Texture2D CreateAtlas(string assetName, byte[] indices, int width, int height)
