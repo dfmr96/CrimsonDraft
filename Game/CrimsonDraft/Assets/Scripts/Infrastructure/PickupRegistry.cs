@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine.Scripting;
 
@@ -13,7 +14,12 @@ namespace CrimsonDraft.Infrastructure
         public PickupRegistry() { }
 
         public bool IsCollected(string pickupId)  => this.collected.Contains(pickupId);
-        public void SetCollected(string pickupId) => this.collected.Add(pickupId);
+        public event Action? Changed;
+
+        public void SetCollected(string pickupId)
+        {
+            if (this.collected.Add(pickupId)) Changed?.Invoke();
+        }
 
         public IReadOnlyCollection<string> CollectedIds => this.collected;
 

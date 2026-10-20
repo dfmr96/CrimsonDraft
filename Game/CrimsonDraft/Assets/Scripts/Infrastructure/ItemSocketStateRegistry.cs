@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine.Scripting;
 
@@ -15,7 +16,13 @@ namespace CrimsonDraft.Infrastructure
         public bool[] GetInserted(string socketId)
             => this.inserted.TryGetValue(socketId, out var value) ? value : System.Array.Empty<bool>();
 
-        public void SetInserted(string socketId, bool[] slots) => this.inserted[socketId] = slots;
+        public event Action? Changed;
+
+        public void SetInserted(string socketId, bool[] slots)
+        {
+            this.inserted[socketId] = slots;
+            Changed?.Invoke();
+        }
 
         public IReadOnlyDictionary<string, bool[]> GetState() => this.inserted;
 
