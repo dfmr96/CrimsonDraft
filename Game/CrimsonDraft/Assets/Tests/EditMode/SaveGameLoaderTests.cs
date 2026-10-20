@@ -91,7 +91,7 @@ namespace CrimsonDraft.Tests
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -138,6 +138,10 @@ namespace CrimsonDraft.Tests
                     {
                         new OperatorCorpseEntry { slotIndex = 0, roomId = "room-2", position = new Vector3(1f, 0f, 1f), rotation = Quaternion.identity },
                     },
+                    pushables          = new List<PushableStateEntry>
+                    {
+                        new PushableStateEntry { pushableId = "crate-1", position = new Vector3(4f, 0f, 5f) },
+                    },
                     operatorHp         = new[] { 80 },
                     inventorySlots     = new List<InventorySlotEntry>
                     {
@@ -151,7 +155,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -168,6 +172,8 @@ namespace CrimsonDraft.Tests
                 Assert.IsTrue(world.Enemies.IsDefeated("enemy-1"));
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
                 CollectionAssert.AreEqual(new[] { true, false }, world.ItemSockets.GetInserted("socket-1"));
+                Assert.IsTrue(world.Pushables.TryGet("crate-1", out var cratePosition));
+                Assert.AreEqual(new Vector3(4f, 0f, 5f), cratePosition);
                 CollectionAssert.AreEqual(new[] { 80 }, roster.RestoredHp);
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);

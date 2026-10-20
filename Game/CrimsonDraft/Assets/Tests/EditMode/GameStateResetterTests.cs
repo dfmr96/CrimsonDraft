@@ -19,7 +19,7 @@ namespace CrimsonDraft.Tests
             var enemies   = new EnemyStateRegistry();
             var operatorCorpses = new OperatorCorpseRegistry();
             var itemSockets = new ItemSocketStateRegistry();
-            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets, new RadioCallRegistry());
+            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets, new RadioCallRegistry(), new PushableStateRegistry());
             var inventoryState = new InventoryStateRegistry();
             var rosterHealth   = new RosterHealthRegistry();
 
@@ -31,6 +31,7 @@ namespace CrimsonDraft.Tests
             enemies.SetDefeated("enemy-a");
             world.OperatorCorpses.Record(0, "room-a", UnityEngine.Vector3.zero, UnityEngine.Quaternion.identity);
             itemSockets.SetInserted("socket-a", new[] { true });
+            world.Pushables.Record("crate-a", UnityEngine.Vector3.one);
             inventoryState.Save(new System.Collections.Generic.List<CrimsonDraft.Infrastructure.Save.InventoryItemEntry>());
             rosterHealth.Save(new[] { 100 });
 
@@ -45,6 +46,7 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(enemies.IsDefeated("enemy-a"));
             Assert.IsFalse(world.OperatorCorpses.IsRecorded(0));
             Assert.AreEqual(0, itemSockets.GetInserted("socket-a").Length);
+            Assert.IsFalse(world.Pushables.TryGet("crate-a", out _));
             Assert.IsFalse(inventoryState.HasSavedState);
             Assert.IsFalse(rosterHealth.HasSavedState);
         }

@@ -37,6 +37,13 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class PushableStateEntry
+    {
+        public string  pushableId = "";
+        public Vector3 position;
+    }
+
+    [Serializable]
     public sealed class InventorySlotEntry
     {
         public int    slotIndex;
@@ -91,6 +98,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             heardRadioCallIds  = new List<string>();
         public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
+        public List<PushableStateEntry> pushables          = new List<PushableStateEntry>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
         public List<InventoryItemEntry> inventoryItems     = new List<InventoryItemEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();

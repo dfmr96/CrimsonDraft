@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 namespace CrimsonDraft.Infrastructure.Save
 {
     /// <summary>
-    /// Bundles the nine cross-scene world-state registries that Save/Load and New-Game-reset
-    /// all need together, so consumers don't carry eight separate constructor parameters.
+    /// Bundles the ten cross-scene world-state registries that Save/Load and New-Game-reset
+    /// all need together, so consumers don't carry ten separate constructor parameters.
     /// </summary>
     public sealed class WorldStateRegistries
     {
@@ -19,6 +19,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public readonly OperatorCorpseRegistry  OperatorCorpses;
         public readonly ItemSocketStateRegistry ItemSockets;
         public readonly RadioCallRegistry       RadioCalls;
+        public readonly PushableStateRegistry   Pushables;
 
         [Preserve]
         public WorldStateRegistries(
@@ -30,8 +31,10 @@ namespace CrimsonDraft.Infrastructure.Save
             EnemyStateRegistry      enemies,
             OperatorCorpseRegistry  operatorCorpses,
             ItemSocketStateRegistry itemSockets,
-            RadioCallRegistry       radioCalls)
+            RadioCallRegistry       radioCalls,
+            PushableStateRegistry   pushables)
         {
+            Pushables       = pushables;
             RadioCalls      = radioCalls;
             Doors           = doors;
             Rooms           = rooms;

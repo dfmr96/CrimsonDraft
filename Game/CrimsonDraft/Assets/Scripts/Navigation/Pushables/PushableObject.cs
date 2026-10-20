@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 
 namespace CrimsonDraft.Navigation.Pushables
 {
@@ -14,6 +15,11 @@ namespace CrimsonDraft.Navigation.Pushables
     // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only positioning validated
     // by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the player like any
     // other static level collider -- a Collider needs no Rigidbody of its own.
+    //
+    // Position persistence: by default a pushable goes back to its home point every time its room
+    // is entered (rooms are toggled active, so OnEnable runs on every entry). Only after
+    // SavePosition() -- called by whatever puzzle logic decides the box should stay put -- does it
+    // keep its position, across room entries and in save files (PushableStateRegistry).
     [RequireComponent(typeof(BoxCollider))]
     public sealed class PushableObject : MonoBehaviour
     {
@@ -21,15 +27,78 @@ namespace CrimsonDraft.Navigation.Pushables
         [SerializeField] private float     obstructionSkin = 0.01f;      // shrink on X/Z so resting against a wall isn't a hit
         [SerializeField] private float     floorClearance  = 0.1f;       // bottom slice ignored so the floor it rests on isn't a hit
 
+        [Header("Persistence")]
+        [Tooltip("Unique, stable id. Only needed if something calls SavePosition() on this pushable.")]
+        [SerializeField] private string     pushableId = "";
+        [Tooltip("Where the pushable goes back to when its room is entered. Must NOT be a child of the pushable. Empty = its position at scene start.")]
+        [SerializeField] private Transform? homePoint;
+
         // World-space bounds of the solid collider -- what PushDetector tests contact and faces against.
         public Bounds Bounds => this.ownCollider.bounds;
 
+        public string PushableId => this.pushableId;
+
+        // Lazily captured: PushableBootstrap can reach a pushable in a not-yet-visited room before
+        // its Awake has run, and the transform is still at its authored position either way.
+        public Vector3 HomePosition
+        {
+            get
+            {
+                if (this.homePoint != null) return this.homePoint.position;
+                if (!this.hasSpawnPosition)
+                {
+                    this.spawnPosition    = transform.position;
+                    this.hasSpawnPosition = true;
+                }
+                return this.spawnPosition;
+            }
+        }
+
         private readonly Collider[] hits = new Collider[8];
         private BoxCollider ownCollider = null!;
+        private PushableStateRegistry? registry;
+        private Vector3 spawnPosition;
+        private bool    hasSpawnPosition;
 
         private void Awake()
         {
             this.ownCollider = GetComponent<BoxCollider>();
+            _ = HomePosition;
+        }
+
+        private void OnEnable() => ResetPosition();
+
+        // Called by PushableBootstrap once per scene load, after SaveGameLoader has filled the
+        // registry -- moves the pushable to its saved position, if it has one.
+        public void Construct(PushableStateRegistry registry)
+        {
+            this.registry = registry;
+            ResetPosition();
+        }
+
+        // Saved position if SavePosition() was ever called for this id, home position otherwise.
+        public void ResetPosition()
+        {
+            transform.position = this.registry != null && this.registry.TryGet(this.pushableId, out var saved)
+                ? saved
+                : HomePosition;
+        }
+
+        // Keeps the pushable where it is from now on: room re-entries and save files restore this
+        // position instead of the home point. Call again after further pushes to update it.
+        public void SavePosition()
+        {
+            if (string.IsNullOrEmpty(this.pushableId))
+            {
+                Debug.LogWarning($"{name}: SavePosition() needs a pushableId; position not saved.", this);
+                return;
+            }
+            if (this.registry == null)
+            {
+                Debug.LogWarning($"{name}: SavePosition() before PushableBootstrap ran; position not saved.", this);
+                return;
+            }
+            this.registry.Record(this.pushableId, transform.position);
         }
 
         // Moves the prop `distance` along `axis` if the moved bounds are clear, like RE2's object
@@ -69,6 +138,13 @@ namespace CrimsonDraft.Navigation.Pushables
         }
 
 #if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // A child home point moves with the box, so resetting to it would do nothing.
+            if (this.homePoint != null && this.homePoint.IsChildOf(transform))
+                Debug.LogWarning($"{name}: homePoint must not be a child of the pushable -- it moves with it.", this);
+        }
+
         // Push is always world-axis-locked (PushDetector only ever resolves +-X or +-Z, never a
         // diagonal) -- these arrows show exactly the four directions a push can resolve to.
         //
@@ -96,6 +172,15 @@ namespace CrimsonDraft.Navigation.Pushables
             GetObstructionVolume(bounds, out Vector3 volumeCenter, out Vector3 volumeHalf);
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(volumeCenter, volumeHalf * 2f);
+
+            // Ghost of the box at its home point (cyan), where a room re-entry puts it back.
+            if (this.homePoint != null)
+            {
+                Vector3 homeCenter = bounds.center + (this.homePoint.position - transform.position);
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawLine(bounds.center, homeCenter);
+                Gizmos.DrawWireCube(homeCenter, bounds.size);
+            }
 
             Vector3 extents = bounds.extents;
             float   margin  = PushDetector.DefaultCornerMargin;

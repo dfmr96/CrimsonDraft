@@ -59,6 +59,7 @@ namespace CrimsonDraft.Navigation
             ApplyDoors(data);
             ApplyRooms(data);
             ApplyItemSockets(data);
+            ApplyPushables(data);
             this.world.Pickups.LoadState(data.collectedPickupIds);
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
@@ -95,6 +96,15 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.itemSockets)
                 dict[entry.socketId] = entry.inserted;
             this.world.ItemSockets.LoadState(dict);
+        }
+
+        // Registry only -- PushableBootstrap (registered after this loader) moves the boxes.
+        private void ApplyPushables(SaveGameData data)
+        {
+            var dict = new Dictionary<string, UnityEngine.Vector3>();
+            foreach (var entry in data.pushables)
+                dict[entry.pushableId] = entry.position;
+            this.world.Pushables.LoadState(dict);
         }
 
         // Only restores the registry data — actually spawning each corpse's GameObject is

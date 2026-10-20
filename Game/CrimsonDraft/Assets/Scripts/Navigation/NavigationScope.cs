@@ -18,6 +18,7 @@ using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Navigation.Pushables;
 using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Navigation.UI;
@@ -67,6 +68,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
         [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
         [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
+        [SerializeField] private PushableObject[]         cachedPushables   = System.Array.Empty<PushableObject>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -250,6 +252,8 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterInstance(this.cachedItemSockets);
             builder.Register<ItemSocketBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterInstance(this.cachedPushables);
+            builder.Register<PushableBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
         }
 
 #if UNITY_EDITOR
@@ -309,6 +313,14 @@ namespace CrimsonDraft.Navigation
         private void CacheSceneItemSockets()
         {
             this.cachedItemSockets = FindObjectsByType<ItemSocketInteractable>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Pushables")]
+        private void CacheScenePushables()
+        {
+            this.cachedPushables = FindObjectsByType<PushableObject>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
         }
