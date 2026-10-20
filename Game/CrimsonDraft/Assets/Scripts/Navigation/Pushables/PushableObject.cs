@@ -6,16 +6,15 @@ using UnityEngine;
 namespace CrimsonDraft.Navigation.Pushables
 {
     // Contact-driven push mechanic (RE-classic style): walking into a tagged prop pushes it
-    // along a world axis. Activation is via child PushableObjectSide triggers (one per face,
-    // each with a fixed push direction resolved once at Awake via ResolveAxis below); per-stride
-    // movement is driven from PlayerController.FixedUpdate, which calls TryStep. This component
-    // owns only the prop's own logic: which axis each side pushes along, and whether a given
-    // stride is clear. See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
+    // along a world axis. Activation is geometric, from this prop's own BoxCollider bounds (see
+    // PushDetector: touch, same floor, square to a face, moving into it); per-stride movement is
+    // driven from PlayerController.FixedUpdate, which calls TryStep. This component owns only the
+    // prop's own logic: its bounds and whether a given stride is clear. Props are only ever placed
+    // at 90-degree rotations, so the collider's world bounds are exact.
+    // See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
     // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only discrete positioning
     // validated by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the
-    // player like any other static level collider -- a Collider needs no Rigidbody of its own
-    // to do that; trigger events on the child PushableObjectSide colliders still fire too, since
-    // the player's own Rigidbody satisfies Unity's "at least one side of the pair has one" rule.
+    // player like any other static level collider -- a Collider needs no Rigidbody of its own.
     [RequireComponent(typeof(BoxCollider))]
     public sealed class PushableObject : MonoBehaviour
     {
@@ -27,21 +26,14 @@ namespace CrimsonDraft.Navigation.Pushables
         // single source of truth so the two tweens can never drift out of sync with each other.
         public float StrideTweenDuration => this.strideTweenDuration;
 
+        // World-space bounds of the solid collider -- what PushDetector tests contact and faces against.
+        public Bounds Bounds => this.ownCollider.bounds;
+
         private BoxCollider ownCollider = null!;
 
         private void Awake()
         {
             this.ownCollider = GetComponent<BoxCollider>();
-        }
-
-        // Pure math -- no Unity physics/NavMesh involved. Dominant axis wins regardless of
-        // contact angle, so a corner hit snaps to one axis instead of pushing diagonally.
-        public static Vector3 ResolveAxis(Vector3 boxPosition, Vector3 playerPosition)
-        {
-            Vector3 delta = boxPosition - playerPosition;
-            return Mathf.Abs(delta.x) >= Mathf.Abs(delta.z)
-                ? new Vector3(Mathf.Sign(delta.x), 0f, 0f)
-                : new Vector3(0f, 0f, Mathf.Sign(delta.z));
         }
 
         // Validates and, if clear, performs one step. Returns false (no movement) if the next
@@ -53,11 +45,9 @@ namespace CrimsonDraft.Navigation.Pushables
         {
             Vector3 next = transform.position + axisDirection * stepDistance;
 
-            // QueryTriggerInteraction.Ignore is required here -- Physics.OverlapBox includes
-            // triggers by default, and this object's own PushableObjectSide triggers sit close
-            // enough (one per face) that the opposite side's trigger falls inside the check
-            // volume at the new position, self-blocking every single stride. Obstruction should
-            // only ever mean solid geometry anyway (walls, other pushables' solid colliders).
+            // QueryTriggerInteraction.Ignore: Physics.OverlapBox includes triggers by default, and
+            // obstruction should only ever mean solid geometry (walls, other pushables' colliders),
+            // never interaction or camera trigger volumes the prop happens to slide into.
             var hits = Physics.OverlapBox(next, this.obstructionHalfExtents, transform.rotation, this.obstructionMask, QueryTriggerInteraction.Ignore);
             foreach (var hit in hits)
             {
@@ -71,20 +61,19 @@ namespace CrimsonDraft.Navigation.Pushables
         }
 
 #if UNITY_EDITOR
-        // Push is always world-axis-locked (ResolveAxis only ever returns +-X or +-Z, never a
-        // diagonal) -- these arrows show exactly the four directions a push can resolve to from
-        // this object, regardless of which side the player approaches from.
+        // Push is always world-axis-locked (PushDetector only ever resolves +-X or +-Z, never a
+        // diagonal) -- these arrows show exactly the four directions a push can resolve to.
         //
-        // Also draws, from the parent so selecting the crate shows everything at once:
+        // Also draws:
         // - the obstruction check volume TryStep uses (yellow), to see why a stride is/isn't
         //   blocked at the current position;
-        // - each child PushableObjectSide's trigger bounds (green) and its resolved push
-        //   direction (recomputed live here via ResolveAxis, not read from the side's own Awake
-        //   -- so this is accurate even outside Play mode).
+        // - on the floor, the span of each face the player can push from (green) and the corner
+        //   zones where pushing never starts (red), using PushDetector's default corner margin.
         private void OnDrawGizmosSelected()
         {
             const float axisLength = 1.5f;
             Vector3 center = transform.position;
+            var boxCollider = GetComponent<BoxCollider>();
 
             UnityEditor.Handles.color = Color.red;
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.right), axisLength, EventType.Repaint);
@@ -99,21 +88,32 @@ namespace CrimsonDraft.Navigation.Pushables
             Gizmos.DrawWireCube(Vector3.zero, this.obstructionHalfExtents * 2f);
             Gizmos.matrix = Matrix4x4.identity;
 
-            foreach (var side in GetComponentsInChildren<PushableObjectSide>())
-            {
-                if (side.TryGetComponent(out BoxCollider sideCollider))
-                {
-                    Gizmos.color = new Color(0f, 1f, 0f, 0.35f);
-                    Gizmos.matrix = side.transform.localToWorldMatrix;
-                    Gizmos.DrawCube(sideCollider.center, sideCollider.size);
-                    Gizmos.color = Color.green;
-                    Gizmos.DrawWireCube(sideCollider.center, sideCollider.size);
-                    Gizmos.matrix = Matrix4x4.identity;
-                }
+            if (boxCollider == null) return;
 
-                Vector3 sideDirection = ResolveAxis(center, side.transform.position);
-                UnityEditor.Handles.color = Color.green;
-                UnityEditor.Handles.ArrowHandleCap(0, side.transform.position, Quaternion.LookRotation(sideDirection), 0.5f, EventType.Repaint);
+            Bounds  bounds  = boxCollider.bounds;
+            Vector3 extents = bounds.extents;
+            float   margin  = PushDetector.DefaultCornerMargin;
+            float   floorY  = bounds.min.y + 0.01f;
+            const float bandDepth = 0.3f;
+
+            // Pushable face spans (green) and dead corners (red), as thin bands just outside each face.
+            foreach (var sign in new[] { -1f, 1f })
+            {
+                var zFace = new Vector3(bounds.center.x, floorY, bounds.center.z + sign * (extents.z + bandDepth * 0.5f));
+                var xFace = new Vector3(bounds.center.x + sign * (extents.x + bandDepth * 0.5f), floorY, bounds.center.z);
+
+                Gizmos.color = new Color(0f, 1f, 0f, 0.35f);
+                Gizmos.DrawCube(zFace, new Vector3(Mathf.Max(0f, extents.x - margin) * 2f, 0.02f, bandDepth));
+                Gizmos.DrawCube(xFace, new Vector3(bandDepth, 0.02f, Mathf.Max(0f, extents.z - margin) * 2f));
+
+                Gizmos.color = new Color(1f, 0f, 0f, 0.35f);
+                foreach (var cornerSign in new[] { -1f, 1f })
+                {
+                    Gizmos.DrawCube(new Vector3(bounds.center.x + cornerSign * (extents.x - margin * 0.5f), floorY, zFace.z),
+                                    new Vector3(margin, 0.02f, bandDepth));
+                    Gizmos.DrawCube(new Vector3(xFace.x, floorY, bounds.center.z + cornerSign * (extents.z - margin * 0.5f)),
+                                    new Vector3(bandDepth, 0.02f, margin));
+                }
             }
         }
 #endif

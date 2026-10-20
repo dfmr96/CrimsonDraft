@@ -26,7 +26,13 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private float navMeshTolerance  = 0.3f; // tolerancia horizontal para considerar "en NavMesh"
 
         [Header("Pushable Objects")]
-        [SerializeField] private float pushDotThreshold   = 0.5f; // ~60 deg tolerance around the push axis
+        [SerializeField] private CapsuleCollider? bodyCollider;                 // player body; defaults to the one on this object
+        [SerializeField] private LayerMask pushableMask;                         // defaults to the "Pushable" layer
+        [SerializeField] private float pushContactSkin       = 0.05f;           // gap still counted as touching a pushable
+        [SerializeField] private float pushCornerMargin      = PushDetector.DefaultCornerMargin;      // RE2: 128 u
+        [SerializeField] private float pushProbeRadiusFactor = PushDetector.DefaultProbeRadiusFactor; // RE2: 1.2 x half-width
+        [SerializeField] private float pushProbeExtra        = PushDetector.DefaultProbeExtra;        // RE2: + 128 u
+        [SerializeField] private float pushFloorTolerance    = 0.5f;            // feet vs pushable base: same floor
         [SerializeField] private float pushStrideInterval = 0.5f; // placeholder -- tiempo entre zancadas (tambien vale como la espera inicial antes de la primera)
         [SerializeField] private float pushStrideDistance = 0.5f; // placeholder -- distancia que avanza cada zancada, pendiente de pasada de feel
 
@@ -57,8 +63,7 @@ namespace CrimsonDraft.Navigation.Player
         private IPlayerMovementStrategy classicStrategy = null!;
         private IOperatorRoster?      roster;
         private InputDevice?          lastDevice;
-        private PushableObject?       touchingPushable;
-        private Vector3               touchingPushDirection;
+        private readonly Collider[]   pushCandidates = new Collider[8];
         private float                 pushStrideTimer;
         private Transform?            grabbedBy;
         private int                   healthOverlayLayerIndex = -1;
@@ -93,6 +98,11 @@ namespace CrimsonDraft.Navigation.Player
         private void Awake()
         {
             this.healthOverlayLayerIndex = this.animator.GetLayerIndex("Health Overlay");
+
+            if (this.bodyCollider == null)
+                this.bodyCollider = GetComponent<CapsuleCollider>();
+            if (this.pushableMask == 0)
+                this.pushableMask = LayerMask.GetMask("Pushable");
         }
 
         private void OnDestroy()
@@ -143,21 +153,6 @@ namespace CrimsonDraft.Navigation.Player
         private void OnMovePerformed(InputAction.CallbackContext ctx)
         {
             this.lastDevice = ctx.control.device;
-        }
-
-        // Called by PushableObjectSide (one per face) when the player enters/exits its trigger.
-        // The push direction is fixed by the side, not recomputed here -- see
-        // PushableObjectSide.Awake.
-        internal void SetTouchingPushable(PushableObject pushable, Vector3 direction)
-        {
-            this.touchingPushable      = pushable;
-            this.touchingPushDirection = direction;
-        }
-
-        internal void ClearTouchingPushable(PushableObject pushable)
-        {
-            if (this.touchingPushable == pushable)
-                this.touchingPushable = null;
         }
 
         private void FixedUpdate()
@@ -274,18 +269,55 @@ namespace CrimsonDraft.Navigation.Player
         }
 
         // Contact-only activation: no dedicated input, no IInteractable raycast+button path.
-        // touchingPushable/touchingPushDirection come from PushableObjectSide's trigger, not a
-        // physics contact or a probe -- moveDir only gates *whether* this counts as pushing into
-        // it versus grazing past it tangentially.
+        // RE2 rule (see PushDetector): exactly one pushable touched, on the player's floor, with the
+        // player square to one of its faces and moving into it.
         private bool TryResolvePush(Vector3 moveDir, out PushableObject pushable, out Vector3 axis)
         {
-            pushable = this.touchingPushable!;
-            axis     = this.touchingPushDirection;
+            pushable = null!;
+            axis     = Vector3.zero;
 
-            if (this.touchingPushable == null)
+            if (this.bodyCollider == null)
                 return false;
 
-            return Vector3.Dot(moveDir, axis) >= this.pushDotThreshold;
+            Vector3 scale  = this.bodyCollider.transform.lossyScale;
+            float   radius = this.bodyCollider.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+            float   reach  = radius + this.pushContactSkin;
+
+            // Candidates: anything on the pushable layer within the body capsule grown by the skin.
+            Vector3 center     = this.bodyCollider.transform.TransformPoint(this.bodyCollider.center);
+            float   halfHeight = this.bodyCollider.height * 0.5f * Mathf.Abs(scale.y);
+            float   segment    = Mathf.Max(0f, halfHeight - radius);
+            int count = Physics.OverlapCapsuleNonAlloc(
+                center + Vector3.up * segment, center - Vector3.up * segment, reach,
+                this.pushCandidates, this.pushableMask, QueryTriggerInteraction.Ignore);
+
+            PushableObject? touched = null;
+            for (int i = 0; i < count; i++)
+            {
+                var candidate = this.pushCandidates[i].GetComponentInParent<PushableObject>();
+                if (candidate == null || candidate == touched) continue;
+                if (!PushDetector.IsTouching(this.rb.position, radius, candidate.Bounds, this.pushContactSkin)) continue;
+
+                // RE2 only pushes when exactly one object is touched: never two at once, and
+                // never a box wedged against another one.
+                if (touched != null)
+                    return false;
+                touched = candidate;
+            }
+
+            if (touched == null)
+                return false;
+
+            Bounds bounds = touched.Bounds;
+            if (!PushDetector.IsSameFloor(this.FootPosition.y, bounds, this.pushFloorTolerance))
+                return false;
+
+            float probe = PushDetector.ProbeDistance(radius, this.pushProbeRadiusFactor, this.pushProbeExtra);
+            if (!PushDetector.TryResolveAxis(this.rb.position, moveDir, bounds, this.pushCornerMargin, probe, out axis))
+                return false;
+
+            pushable = touched;
+            return true;
         }
 
         private Vector3 ResolveNavMeshDirection(Vector3 moveDir, float speed)
