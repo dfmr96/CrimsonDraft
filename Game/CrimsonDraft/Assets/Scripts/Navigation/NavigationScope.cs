@@ -257,6 +257,27 @@ namespace CrimsonDraft.Navigation
         }
 
 #if UNITY_EDITOR
+        // Runs every Cache Scene button below in one go -- press after adding or removing any
+        // cached kind of object, then save the scene.
+        [Button("Cache Everything")]
+        private void CacheEverything()
+        {
+            CacheSceneDoors();
+            CacheScenePickups();
+            CacheSceneDocumentPickups();
+            CacheSceneEnemies();
+            CacheSceneCameraZoneTriggers();
+            CacheSceneBeeperReceivers();
+            CacheSceneItemSockets();
+            CacheScenePushables();
+
+            Debug.Log($"{name}: cached {this.cachedRoomDoors.Length} room doors, {this.cachedSceneDoors.Length} scene doors, " +
+                      $"{this.cachedPickups.Length} pickups, {this.cachedMapPickups.Length} map pickups, " +
+                      $"{this.cachedDocumentPickups.Length} document pickups, {this.cachedEnemies.Length} enemies, " +
+                      $"{this.cachedCameraZoneTriggers.Length} camera zone triggers, {this.cachedBeeperReceivers.Length} beeper receivers, " +
+                      $"{this.cachedItemSockets.Length} item sockets, {this.cachedPushables.Length} pushables.", this);
+        }
+
         [Button("Cache Scene Doors")]
         private void CacheSceneDoors()
         {
