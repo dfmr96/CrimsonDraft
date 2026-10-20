@@ -63,6 +63,7 @@ namespace CrimsonDraft.Navigation
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
             this.world.Enemies.LoadState(data.defeatedEnemyIds);
+            this.world.RadioCalls.LoadState(data.heardRadioCallIds);
             ApplyOperatorCorpses(data);
             ApplyInventory(data);
             this.roster.RestoreHp(data.operatorHp);

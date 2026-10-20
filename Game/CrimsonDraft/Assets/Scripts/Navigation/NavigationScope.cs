@@ -18,6 +18,7 @@ using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Inventory;
@@ -46,6 +47,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
         [SerializeField] private DialogueRunner          inspectPromptRunner  = null!;
         [SerializeField] private InMemoryVariableStorage inspectPromptStorage = null!;
+
+        // Radio calls (Radio_UI). All optional: a scene without them just has no radio.
+        [SerializeField] private DialogueRunner?          radioRunner;
+        [SerializeField] private InMemoryVariableStorage? radioStorage;
+        [SerializeField] private RadioCastData?           radioCast;
 
         // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
         // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
@@ -104,6 +110,31 @@ namespace CrimsonDraft.Navigation
             builder.Register<DialogueService>(Lifetime.Scoped).AsSelf().As<IDialogueService>();
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
             builder.Register<InspectDialogueService>(Lifetime.Scoped).As<IInspectDialogueService>();
+
+            // Radio: the conversation service is always there (the inventory controller reports to
+            // it); the rest only when this scene has the Radio_UI wired up. Optional components
+            // use FindFirstObjectByType because RegisterComponentInHierarchy throws when absent.
+            builder.Register<RadioConversationService>(Lifetime.Singleton).As<IRadioConversationService>();
+            var radioView = FindFirstObjectByType<RadioView>(FindObjectsInactive.Include);
+            if (this.radioRunner != null && this.radioStorage != null && this.radioCast != null && radioView != null)
+            {
+                builder.RegisterInstance(new RadioDialogueRunnerRef(this.radioRunner, this.radioStorage));
+                builder.RegisterInstance(this.radioCast);
+                builder.Register<RadioDialogueService>(Lifetime.Singleton).AsSelf();
+                builder.RegisterComponent(radioView).AsSelf().AsImplementedInterfaces();
+            }
+            var radioIndicator = FindFirstObjectByType<RadioIndicatorView>(FindObjectsInactive.Include);
+            if (radioIndicator != null)
+                builder.RegisterComponent(radioIndicator);
+            // Several zones can share a scene; RegisterComponent per instance throws a VContainer
+            // "Conflict implementation type" for the second one, so inject them directly instead.
+            var radioZones = FindObjectsByType<RadioConversationZone>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (radioZones.Length > 0)
+                builder.RegisterBuildCallback(resolver =>
+                {
+                    foreach (var zone in radioZones)
+                        resolver.Inject(zone);
+                });
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
             // The pause menu's Settings tabs reuse the main menu's Options components; they sit

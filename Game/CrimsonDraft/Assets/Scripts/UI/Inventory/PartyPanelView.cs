@@ -23,6 +23,19 @@ namespace CrimsonDraft.UI
 
         public IOperatorRoster? Roster { get; private set; }
 
+        // Bio page: the logo toggles it on every card at once, whichever card's logo was used.
+        public bool BioMode { get; private set; }
+
+        public void SetBioMode(bool on, bool animate = true)
+        {
+            if (this.BioMode == on) return;
+            this.BioMode = on;
+            foreach (var widget in this.widgets)
+                if (widget != null) widget.SetBioMode(on, animate);
+        }
+
+        public void ToggleBio() => SetBioMode(!this.BioMode);
+
         void Start()
         {
             IOperatorRoster? source = this.roster;

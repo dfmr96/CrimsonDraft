@@ -286,6 +286,7 @@ namespace CrimsonDraft.Navigation.Interactables
             data.readNoteIds.AddRange(this.world.Notes.CollectedIds);
             data.knownMapIds.AddRange(this.world.KnownMaps.GetState());
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
+            data.heardRadioCallIds.AddRange(this.world.RadioCalls.HeardIds);
 
             foreach (var pair in this.world.ItemSockets.GetState())
                 data.itemSockets.Add(new ItemSocketStateEntry { socketId = pair.Key, inserted = pair.Value });

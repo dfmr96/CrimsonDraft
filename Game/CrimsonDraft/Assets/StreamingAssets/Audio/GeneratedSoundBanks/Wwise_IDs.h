@@ -43,6 +43,8 @@ namespace AK
         static const AkUniqueID PLAY_UI_NOTE_PAGETURN = 1208818302U;
         static const AkUniqueID PLAY_UI_NOTE_PAPEROPEN = 1569393320U;
         static const AkUniqueID PLAY_UI_NOTEOPEN = 164040611U;
+        static const AkUniqueID PLAY_UI_RADIO_CALL = 3151549007U;
+        static const AkUniqueID PLAY_UI_RADIO_CHANGE = 2709042659U;
         static const AkUniqueID PLAY_UI_VOICETAPE_INTRO = 1898610300U;
         static const AkUniqueID PLAY_UI_VOICETAPE_LOOP = 3479398728U;
         static const AkUniqueID PLAY_UI_VOICETAPE_REWIND = 77470107U;

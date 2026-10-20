@@ -99,6 +99,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<KnownMapsRegistry>(Lifetime.Singleton);
             builder.Register<PickupRegistry>(Lifetime.Singleton);
             builder.Register<NoteRegistry>(Lifetime.Singleton);
+            builder.Register<RadioCallRegistry>(Lifetime.Singleton);
             builder.Register<BeeperSignalRegistry>(Lifetime.Singleton);
             builder.Register<InventoryStateRegistry>(Lifetime.Singleton);
             builder.Register<RosterHealthRegistry>(Lifetime.Singleton);
