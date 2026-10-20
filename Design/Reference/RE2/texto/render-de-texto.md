@@ -10,15 +10,23 @@
 
 ### Índices de color dentro del glifo (`ST1_FONT.TIM`)
 
-| Índice | Uso |
-|---|---|
-| 0 | Fondo |
-| 1–3 | **Relleno** (degradado de claro a oscuro) |
-| 4–7 | **Sombra** |
-| 8 | **Borde** (contorno) |
-| 9–12 | Sin uso en los glifos |
+Los índices 1–8 forman **una sola rampa de luminosidad**, de claro (1) a oscuro (8). Medido en todos los píxeles de `ST1_FONT` y `ST2_FONT` (`font_layers.py`, `font_overlay_test.py`):
 
-El aspecto "suavizado" no es antialiasing calculado: está **pintado a mano píxel a píxel** (degradado en el relleno, sombra y contorno). Cambiar de paleta cambia el color del relleno sin tocar la textura → [colores](colores.md).
+| Índice | Uso | Regla medida |
+|---|---|---|
+| 0 | Fondo | Transparente u opaco según la paleta |
+| 1–3 | **Relleno** | Tres tonos repartidos de forma irregular: ≈28 % claro (1), 47 % medio (2) y 25 % oscuro (3). **No es un degradado**: el tono apenas depende de la fila ni de la forma del trazo. Solo hay una ligera tendencia a aclarar el píxel superior izquierdo de cada trazo |
+| 4–7 | **Suavizado** | Píxeles fuera del trazo, en esquinas interiores y junto a los escalones de las diagonales (sobre todo 6). No son una sombra desplazada |
+| 8 | **Borde** | Contorno de 1 px que rodea también en diagonal |
+| 9–12 | Sin uso en los glifos | |
+
+### ¿Textura aplicada encima? No
+
+- **No hay una textura común aplicada por posición.** El tono en la misma posición de la celda coincide entre caracteres un 46 %, lo mismo que por azar (45 %). Entre hojas distintas (`ST1` frente a `ST2`), en la misma posición de la hoja y con cualquier desplazamiento de ±16 px, la coincidencia máxima es del 41 %: el azar.
+- **El sombreado está horneado en cada glifo**: los caracteres repetidos en varias hojas son copias exactas, píxel a píxel (115 de 116 celdas).
+- Los tonos forman pequeñas manchas (un píxel coincide con su vecino un 50 % de las veces, frente a un 36 % por azar; más en vertical, 55 %). Es compatible con pintura a mano o con una herramienta propia que añadiera ruido a cada glifo. No se puede distinguir entre las dos.
+
+El aspecto "suavizado" no es antialiasing calculado: está en la textura. El color del texto **cambia la paleta entera (índices 1–8, borde incluido)** sin tocar la textura → [colores](colores.md).
 
 ## Dos paletas en `ST1_FONT.TIM`
 
