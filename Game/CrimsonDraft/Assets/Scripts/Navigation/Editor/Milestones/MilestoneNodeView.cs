@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -53,9 +54,59 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             });
             extensionContainer.Add(lane);
 
+            this.badge = new Label { style = { color = new Color(1f, 0.8f, 0.2f), unityFontStyleAndWeight = FontStyle.Bold } };
+            titleContainer.Add(this.badge);
+            extensionContainer.Add(new MilestoneTriggerField(node.trigger, () =>
+            {
+                RefreshBadge();
+                this.owner.ScheduleSave();
+            }));
+            RefreshBadge();
+
             ApplyLaneColor();
             RefreshExpandedState();
             RefreshPorts();
+        }
+
+        private readonly Label badge;
+
+        public void RefreshBadge()
+        {
+            string problem = FindProblem();
+            this.badge.text    = problem.Length > 0 ? "⚠" : "";
+            this.badge.tooltip = problem;
+        }
+
+        // First problem found, or "" when the trigger looks valid.
+        public string FindProblem()
+        {
+            var t = this.Node.trigger;
+            switch (t.kind)
+            {
+                case MilestoneTriggerKind.None:
+                    return "No trigger";
+                case MilestoneTriggerKind.ItemHeld when t.item == null:
+                case MilestoneTriggerKind.NoteRead when t.note == null:
+                    return "No asset assigned";
+                case MilestoneTriggerKind.PickupCollected:
+                case MilestoneTriggerKind.SocketCompleted:
+                case MilestoneTriggerKind.DoorUnlocked:
+                case MilestoneTriggerKind.PuzzleSolved:
+                    if (!MilestoneSceneIds.For(t.kind).Contains(t.targetId)) return "Id not found in open scenes";
+                    break;
+            }
+
+            var twin = this.owner.Graph.Nodes.FirstOrDefault(n => n != this.Node && n.trigger.kind == t.kind
+                && n.trigger.targetId == t.targetId && n.trigger.item == t.item && n.trigger.note == t.note);
+            if (twin != null) return $"Same trigger as '{twin.title}'";
+
+            foreach (var guid in AssetDatabase.FindAssets("t:MilestoneGraph"))
+            {
+                var other = AssetDatabase.LoadAssetAtPath<MilestoneGraph>(AssetDatabase.GUIDToAssetPath(guid));
+                if (other != null && other != this.owner.Graph && other.FindNode(this.Node.id) != null)
+                    return $"Duplicate id in {other.name}";
+            }
+            return "";
         }
 
         public void ApplyLaneColor() =>

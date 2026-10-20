@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.UIElements;
@@ -54,6 +55,19 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
             toolbar.Add(new ToolbarButton(() => this.view?.FrameAll()) { text = "Frame All" });
             // Lanes (name + colour) are edited in the asset's Inspector; OnFocus reloads the view.
             toolbar.Add(new ToolbarButton(() => Selection.activeObject = this.graph) { text = "Edit Lanes" });
+
+            var search = new ToolbarSearchField();
+            search.RegisterValueChangedCallback(e =>
+            {
+                if (this.view == null || string.IsNullOrWhiteSpace(e.newValue)) return;
+                var match = this.view.nodes.OfType<MilestoneNodeView>()
+                    .FirstOrDefault(n => n.Node.title.IndexOf(e.newValue, System.StringComparison.OrdinalIgnoreCase) >= 0);
+                if (match == null) return;
+                this.view.ClearSelection();
+                this.view.AddToSelection(match);
+                this.view.FrameSelection();
+            });
+            toolbar.Add(search);
             rootVisualElement.Add(toolbar);
 
             if (this.graph == null)
