@@ -114,7 +114,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");
@@ -124,6 +124,8 @@ namespace CrimsonDraft.Tests
             world.OperatorCorpses.Record(0, "room-1", new Vector3(9f, 0f, 9f), Quaternion.identity);
             world.ItemSockets.SetInserted("socket-1", new[] { true });
             world.Pushables.Record("crate-1", new Vector3(4f, 0f, 5f));
+            world.Milestones.Complete("m1");
+            world.Puzzles.SetSolved("p1");
 
             var weaponData = MakeWeaponData("weapon-1");
             var weaponItem = new WeaponItem(weaponData);
@@ -171,6 +173,8 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(1, data.pushables.Count);
                 Assert.AreEqual("crate-1", data.pushables[0].pushableId);
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), data.pushables[0].position);
+                CollectionAssert.AreEqual(new[] { "m1" }, data.completedMilestoneIds);
+                CollectionAssert.AreEqual(new[] { "p1" }, data.solvedPuzzleIds);
                 Assert.AreEqual(1, data.operatorCorpses.Count);
                 Assert.AreEqual(0, data.operatorCorpses[0].slotIndex);
                 Assert.AreEqual("room-1", data.operatorCorpses[0].roomId);

@@ -107,6 +107,8 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<OperatorCorpseRegistry>(Lifetime.Singleton);
             builder.Register<ItemSocketStateRegistry>(Lifetime.Singleton);
             builder.Register<PushableStateRegistry>(Lifetime.Singleton);
+            builder.Register<MilestoneRegistry>(Lifetime.Singleton);
+            builder.Register<PuzzleStateRegistry>(Lifetime.Singleton);
 
             builder.Register<WorldStateRegistries>(Lifetime.Singleton);
 

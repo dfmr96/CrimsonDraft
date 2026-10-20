@@ -56,6 +56,11 @@ namespace CrimsonDraft.Navigation
             var data = this.saveGameService.ConsumePendingLoad();
             if (data == null) return;
 
+            // First, so anything raised while the rest restores (e.g. inventory ContentsChanged)
+            // already sees the loaded milestones and puzzles.
+            this.world.Milestones.LoadState(data.completedMilestoneIds ?? new List<string>());
+            this.world.Puzzles.LoadState(data.solvedPuzzleIds ?? new List<string>());
+
             ApplyDoors(data);
             ApplyRooms(data);
             ApplyItemSockets(data);

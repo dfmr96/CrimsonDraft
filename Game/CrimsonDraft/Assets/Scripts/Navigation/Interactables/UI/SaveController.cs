@@ -305,6 +305,9 @@ namespace CrimsonDraft.Navigation.Interactables
             foreach (var pair in this.world.Pushables.GetState())
                 data.pushables.Add(new PushableStateEntry { pushableId = pair.Key, position = pair.Value });
 
+            data.completedMilestoneIds.AddRange(this.world.Milestones.CompletedIds);
+            data.solvedPuzzleIds.AddRange(this.world.Puzzles.SolvedIds);
+
             data.inventoryItems.AddRange(InventorySerializer.Capture(this.inventoryService));
 
             return data;
