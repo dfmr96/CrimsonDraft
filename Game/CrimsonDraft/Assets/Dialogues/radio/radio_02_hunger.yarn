@@ -1,0 +1,192 @@
+title: radio_02_hunger
+freq: 38.75
+left: vulture
+right: deer,sterna,bear
+name: Call 02 — Hunger
+---
+vulture: Vulture here. I heard gunfire.¶Report.
+<<if not $dead_sterna>>
+    sterna: Putain.¶Contact. One crew member, out of a berth on B Deck.
+<<endif>>
+<<if not $dead_bear and $dead_sterna>>
+    bear: Contact, boss. One crew member.¶Came out of a berth on B Deck.
+<<endif>>
+<<if not $dead_deer and $dead_sterna and $dead_bear>>
+    deer: Contact, sir. One crew member.¶Came out of a berth on B Deck.
+<<endif>>
+<<if not $dead_bear>>
+    bear: He saw us and came straight at us. No weapon, no warning.¶He wasn't trying to fight, boss. He was trying to bite.
+<<endif>>
+<<if not $dead_sterna and $dead_bear>>
+    sterna: He saw us and came straight at us. No weapon, niente.¶He wasn't fighting, Vulture. He was trying to bite.
+<<endif>>
+<<if not $dead_deer and $dead_bear and $dead_sterna>>
+    deer: He came straight at us, sir. No weapon.¶He wasn't fighting. He was biting.
+<<endif>>
+_beat: silence
+<<if not $dead_sterna>>
+    <<if $dead_deer>>
+        sterna: Allora.¶The kid was right. That wasn't rage, Vulture. That was hunger.
+    <<else>>
+        sterna: Allora.¶What Bambi told us was true. That wasn't rage, Vulture. That was hunger.
+    <<endif>>
+<<endif>>
+<<if not $dead_bear and $dead_sterna>>
+    <<if $dead_deer and $dead_sterna>>
+        bear: The kid was right.¶That wasn't rage, boss. That was hunger.
+    <<else>>
+        bear: What the kid told us was true.¶That wasn't rage, boss. That was hunger.
+    <<endif>>
+<<endif>>
+<<if not $dead_deer and $dead_sterna and $dead_bear>>
+    deer: It's the same thing I saw, sir.¶They're starving.
+<<endif>>
+<<if not $dead_bear>>
+    bear: Boss. If the rest of the crew is like that one...¶how many are we talking about?
+<<endif>>
+<<if not $dead_sterna and $dead_bear>>
+    sterna: Vulture. If the rest of the crew is like that one...¶quanti? How many are we talking about?
+<<endif>>
+<<if not $dead_deer and $dead_bear and $dead_sterna>>
+    deer: Sir. If the rest of the crew is like that one...¶how many?
+<<endif>>
+vulture: A hull that size runs twenty to thirty hands.
+vulture: Assume all of them.
+<<if not $dead_deer and not $dead_deer>>
+    deer: Sir.¶That's twenty to thirty people still aboard.
+<<endif>>
+<<if not $dead_deer and not $dead_deer>>
+    deer: Are we still treating them as survivors?
+<<endif>>
+<<if not $dead_deer>>
+    vulture: I'm treating them as hostile.
+<<endif>>
+<<if not $dead_sterna and not $dead_deer>>
+    sterna: Genau.¶Whatever that was, it stopped being crew a long time ago.
+<<endif>>
+_beat: silence
+vulture: Casualties?
+<<if not $dead_bear and not $dead_deer and not $dead_sterna and not $dead_bear>>
+    bear: None.
+<<endif>>
+<<if not $dead_bear and $dead_deer>>
+    <<if $dead_deer and $dead_sterna>>
+        bear: The kid didn't make it, boss.¶Sterna's gone too.
+    <<else>>
+        bear: The kid didn't make it, boss.
+    <<endif>>
+<<endif>>
+<<if not $dead_sterna and $dead_deer and $dead_bear>>
+    sterna: The kid didn't make it.¶Bear's gone too. Los dos.
+<<endif>>
+<<if not $dead_sterna and $dead_deer>>
+    sterna: Merde.¶He walked out of that first boarding alive, and he didn't last the night.
+<<endif>>
+<<if not $dead_bear and $dead_deer>>
+    bear: He told us he wouldn't be dead weight.
+<<endif>>
+<<if not $dead_bear and not $dead_bear and $dead_deer and $dead_sterna>>
+    bear: Sterna went down covering him.
+<<endif>>
+<<if not $dead_sterna and not $dead_sterna and $dead_deer and $dead_bear>>
+    sterna: Bear went down first.¶He was trying to reach the kid. Il a essayé.
+<<endif>>
+<<if not $dead_sterna and not $dead_bear and $dead_deer>>
+    vulture: That's a loss.
+<<endif>>
+<<if not $dead_sterna and not $dead_bear and $dead_deer>>
+    vulture: Stay focused. We still have a ship to clear.
+<<endif>>
+<<if not $dead_sterna and not $dead_bear and $dead_deer>>
+    _beat: silence
+<<endif>>
+<<if not $dead_bear and $dead_deer and $dead_sterna>>
+    vulture: Sterna.
+<<endif>>
+<<if not $dead_bear and $dead_deer and $dead_sterna>>
+    _beat: silence
+<<endif>>
+<<if not $dead_sterna and $dead_deer and $dead_bear>>
+    vulture: Bear.
+<<endif>>
+<<if not $dead_sterna and $dead_deer and $dead_bear>>
+    _beat: silence
+<<endif>>
+<<if not $dead_bear and not $dead_deer and not $dead_bear and $dead_sterna>>
+    bear: We lost Sterna.
+<<endif>>
+<<if not $dead_deer and not $dead_bear and $dead_sterna>>
+    vulture: One man. Unarmed.
+<<endif>>
+<<if not $dead_deer and not $dead_bear and $dead_sterna>>
+    vulture: I trained her for eleven years and she goes down to one unarmed man.
+<<endif>>
+<<if not $dead_deer and not $dead_bear and $dead_sterna>>
+    vulture: You were both busy keeping the kid breathing instead of watching your own backs.
+<<endif>>
+<<if not $dead_deer and not $dead_deer and not $dead_bear and $dead_sterna>>
+    deer: ...Understood, sir.
+<<endif>>
+<<if not $dead_bear and not $dead_deer and not $dead_bear and $dead_sterna>>
+    bear: That's enough, boss.
+<<endif>>
+<<if not $dead_bear and not $dead_deer and not $dead_bear and $dead_sterna>>
+    bear: From here on he stays with me.¶If something gets to him, it goes through me first.
+<<endif>>
+<<if not $dead_sterna and not $dead_deer and not $dead_sterna and $dead_bear>>
+    sterna: We lost Bear.
+<<endif>>
+<<if not $dead_deer and not $dead_sterna and $dead_bear>>
+    vulture: One man. Unarmed.
+<<endif>>
+<<if not $dead_deer and not $dead_sterna and $dead_bear>>
+    vulture: Bear has opened his way into forty ships and he goes down to one unarmed man.
+<<endif>>
+<<if not $dead_deer and not $dead_sterna and $dead_bear>>
+    vulture: You were both busy keeping the kid breathing instead of watching your own backs.
+<<endif>>
+<<if not $dead_deer and not $dead_deer and not $dead_sterna and $dead_bear>>
+    deer: ...Understood, sir.
+<<endif>>
+<<if not $dead_deer and not $dead_sterna and $dead_bear>>
+    _beat: silence
+<<endif>>
+<<if not $dead_sterna and not $dead_deer and not $dead_sterna and $dead_bear>>
+    sterna: Bambi.¶Écoute-moi.
+<<endif>>
+<<if not $dead_sterna and not $dead_deer and not $dead_sterna and $dead_bear>>
+    sterna: Stay close to me and keep your head up.¶Life gets very short out here. En un segundo, y ya está.
+<<endif>>
+<<if not $dead_deer and not $dead_deer and $dead_sterna and $dead_bear>>
+    deer: I'm alone, sir.¶Sterna and Bear are both gone.
+<<endif>>
+<<if not $dead_deer and $dead_sterna and $dead_bear>>
+    _beat: silence
+<<endif>>
+<<if not $dead_deer and $dead_sterna and $dead_bear>>
+    vulture: Both of them.
+<<endif>>
+<<if not $dead_deer and $dead_sterna and $dead_bear>>
+    vulture: I came aboard with three of my people, Coast Guard.¶Now I have you.
+<<endif>>
+<<if not $dead_deer and not $dead_deer and $dead_sterna and $dead_bear>>
+    deer: ...Understood, sir.
+<<endif>>
+<<if not $dead_bear and $dead_deer and $dead_sterna>>
+    vulture: You're the only one left out there, Bear.
+<<endif>>
+<<if not $dead_sterna and $dead_deer and $dead_bear>>
+    vulture: You're the only one left out there, Sterna.
+<<endif>>
+<<if not $dead_deer and not $dead_sterna and not $dead_bear>>
+    vulture: Listen to me, all three of you.
+<<else>>
+    vulture: Listen to me.
+<<endif>>
+vulture: Long range is still jammed. I cannot reach Command.
+vulture: If one of you takes a serious hit out there, I have no way to get you off this ship.
+vulture: No evac. No medevac. Nothing.
+_beat: silence
+vulture: So don't take one.
+vulture: Keep the channel open.¶Vulture out.
+===

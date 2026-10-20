@@ -147,7 +147,7 @@ namespace CrimsonDraft.Tests
                 this.LastOnSaved = onSaved;
             }
 
-            public void OpenTelegraph(CrimsonDraft.Infrastructure.Save.UI.LoadGameSaveListView view, Action? onSaved, Action? onClosed)
+            public void OpenTelegraph(CrimsonDraft.Infrastructure.Save.UI.LoadGameSaveListView view, Action? onSaved, Action? onClosed, CrimsonDraft.Navigation.Interactables.ITelegraphMorse? morse = null)
                 => Open(onSaved);
         }
 

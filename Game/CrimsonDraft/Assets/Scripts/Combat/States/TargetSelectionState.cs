@@ -59,7 +59,11 @@ namespace CrimsonDraft.Combat
             // Melee has no shot-count step to back up to -- once TargetSelectionState is
             // reached for a melee swing, the action is already committed (same invariant as
             // ShotCountSelectionState.OnCancel being a no-op once Shoot's configuration begins).
-            if (this.context.IsMeleeAttack) return;
+            if (this.context.IsMeleeAttack)
+            {
+                this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
+                return;
+            }
 
             this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
             this.battlefieldView.HideEnemyTargetIndicator();

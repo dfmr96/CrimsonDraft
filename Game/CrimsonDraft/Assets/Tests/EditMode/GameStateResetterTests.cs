@@ -19,7 +19,7 @@ namespace CrimsonDraft.Tests
             var enemies   = new EnemyStateRegistry();
             var operatorCorpses = new OperatorCorpseRegistry();
             var itemSockets = new ItemSocketStateRegistry();
-            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets);
+            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets, new RadioCallRegistry());
             var inventoryState = new InventoryStateRegistry();
             var rosterHealth   = new RosterHealthRegistry();
 

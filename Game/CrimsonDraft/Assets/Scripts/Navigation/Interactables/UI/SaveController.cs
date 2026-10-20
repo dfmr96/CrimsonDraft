@@ -2,6 +2,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
@@ -14,6 +16,7 @@ using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
+using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -28,6 +31,8 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker     playtimeTracker;
         private readonly SaveSlotNavigator   navigator;
+        // The save telegraph reuses the main menu's list sounds (same slot-list UI).
+        private readonly MainMenuSfxData?    menuSfx;
         private Action?                      pendingOnSaved;
 
         // Telegraph (save room) session -- null while the legacy overlay or nothing is open.
@@ -36,6 +41,9 @@ namespace CrimsonDraft.Navigation.Interactables
         private SaveSlotNavigator?           telegraphNavigator;
         private TelegraphPhase               telegraphPhase;
         private Action?                      telegraphOnClosed;
+        private ITelegraphMorse?             telegraphMorse;
+        private CancellationTokenSource?     morseCancellation;
+        private int                          pendingReveals;
 
         [Preserve]
         public SaveController(
@@ -47,7 +55,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
             WorldStateRegistries world,
-            PlaytimeTracker      playtimeTracker)
+            PlaytimeTracker      playtimeTracker,
+            MainMenuSfxData?     menuSfx = null)
         {
             this.inputService     = inputService;
             this.saveGameService  = saveGameService;
@@ -57,6 +66,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.player           = player;
             this.world            = world;
             this.playtimeTracker  = playtimeTracker;
+            this.menuSfx          = menuSfx;
             this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
 
@@ -84,11 +94,12 @@ namespace CrimsonDraft.Navigation.Interactables
             DeferredInputAction.Run(this.inputService.SwitchToGameplay);
         }
 
-        public void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed)
+        public void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed, ITelegraphMorse? morse = null)
         {
             if (this.telegraphNavigator != null || this.navigator.IsOpen) return;
             this.pendingOnSaved    = onSaved;
             this.telegraphOnClosed = onClosed;
+            this.telegraphMorse    = morse;
             this.telegraphView     = view;
             this.telegraphPhase    = TelegraphPhase.Browsing;
 
@@ -117,14 +128,54 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             Save(slot);
 
+            // Done once the file's text has typed out AND, if the station has a key, its Morse
+            // message ("SAVE 01") has been sent -- both start together.
             this.telegraphPhase = TelegraphPhase.Revealing;
-            this.telegraphView!.ShowSaved(VisibleSlots(this.telegraphView), slot, () => this.telegraphPhase = TelegraphPhase.Done);
+            this.pendingReveals = this.telegraphMorse != null ? 2 : 1;
+
+            // The text types out over exactly as long as the Morse message lasts, so the typing keeps
+            // the rhythm of the pulses. No input is accepted until both are done (see OnConfirm/OnBack).
+            string message       = $"SAVE {slot + 1:00}";
+            float  morseSeconds  = this.telegraphMorse?.MeasureSeconds(message) ?? 0f;
+            this.telegraphView!.ShowSaved(VisibleSlots(this.telegraphView), slot, OnRevealPartDone, morseSeconds);
+
+            if (this.telegraphMorse != null)
+                TransmitSaveMorseAsync(this.telegraphMorse, message).Forget();
+        }
+
+        private void OnRevealPartDone()
+        {
+            if (--this.pendingReveals <= 0) this.telegraphPhase = TelegraphPhase.Done;
+        }
+
+        private async UniTaskVoid TransmitSaveMorseAsync(ITelegraphMorse morse, string message)
+        {
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = new CancellationTokenSource();
+            var token = this.morseCancellation.Token;
+
+            try
+            {
+                await morse.TransmitAsync(message, token);
+                OnRevealPartDone();
+            }
+            catch (OperationCanceledException)
+            {
+                // Panel closed mid-message: the station already released the key.
+            }
         }
 
         private void OnTelegraphClosed()
         {
             this.telegraphNavigator = null;
             this.telegraphView      = null;
+
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = null;
+            this.telegraphMorse?.StopTransmission();
+            this.telegraphMorse = null;
 
             // Saved or cancelled -- either way the owner leaves the telegraph camera.
             var onClosed = this.telegraphOnClosed;
@@ -147,11 +198,13 @@ namespace CrimsonDraft.Navigation.Interactables
             // While the Yes/No prompt is up, horizontal input picks the option instead.
             if (this.telegraphNavigator.IsConfirming)
             {
-                if (direction.x > 0.5f)       this.telegraphView!.SetConfirmSelection(yesSelected: true);
-                else if (direction.x < -0.5f) this.telegraphView!.SetConfirmSelection(yesSelected: false);
+                if (direction.x > 0.5f)       { this.telegraphView!.SetConfirmSelection(yesSelected: true);  this.menuSfx?.PlayCursor(this.player.gameObject); }
+                else if (direction.x < -0.5f) { this.telegraphView!.SetConfirmSelection(yesSelected: false); this.menuSfx?.PlayCursor(this.player.gameObject); }
                 return;
             }
 
+            if (direction.y > 0.5f || direction.y < -0.5f)
+                this.menuSfx?.PlayFilesChange(this.player.gameObject);
             this.telegraphNavigator.HandleNavigate(direction);
         }
 
@@ -167,11 +220,18 @@ namespace CrimsonDraft.Navigation.Interactables
             {
                 case TelegraphPhase.Browsing:
                     if (this.telegraphNavigator.IsConfirming && !this.telegraphView!.IsYesSelected)
+                    {
+                        this.menuSfx?.PlayCancel(this.player.gameObject);
                         this.telegraphNavigator.HandleBack();
+                    }
                     else
+                    {
+                        this.menuSfx?.PlayDecide(this.player.gameObject);
                         this.telegraphNavigator.HandleConfirm();
+                    }
                     break;
                 case TelegraphPhase.Done:
+                    this.menuSfx?.PlayDecide(this.player.gameObject);
                     this.telegraphNavigator.Close();
                     break;
             }
@@ -186,7 +246,10 @@ namespace CrimsonDraft.Navigation.Interactables
             }
 
             if (this.telegraphPhase == TelegraphPhase.Browsing)
+            {
+                this.menuSfx?.PlayCancel(this.player.gameObject);
                 this.telegraphNavigator.HandleBack();
+            }
         }
 
         public void Save(int slot)
@@ -223,6 +286,7 @@ namespace CrimsonDraft.Navigation.Interactables
             data.readNoteIds.AddRange(this.world.Notes.CollectedIds);
             data.knownMapIds.AddRange(this.world.KnownMaps.GetState());
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
+            data.heardRadioCallIds.AddRange(this.world.RadioCalls.HeardIds);
 
             foreach (var pair in this.world.ItemSockets.GetState())
                 data.itemSockets.Add(new ItemSocketStateEntry { socketId = pair.Key, inserted = pair.Value });

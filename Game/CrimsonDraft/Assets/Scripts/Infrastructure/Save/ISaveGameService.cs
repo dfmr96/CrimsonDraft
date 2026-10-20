@@ -16,6 +16,10 @@ namespace CrimsonDraft.Infrastructure.Save
         /// <summary>Reads the slot, stashes it as the pending load, and loads its scene. Returns false if the slot is empty.</summary>
         bool LoadSlot(int slot);
 
+        /// <summary>Reads the slot and stashes it as the pending load WITHOUT loading its scene -- the caller
+        /// loads <paramref name="sceneName"/> itself (e.g. behind the loading screen). False if the slot is empty.</summary>
+        bool TryStashPendingLoad(int slot, out string sceneName);
+
         /// <summary>Returns and clears the payload stashed by LoadSlot, or null if nothing is pending.</summary>
         SaveGameData? ConsumePendingLoad();
     }

@@ -24,6 +24,7 @@ namespace CrimsonDraft.Combat
         private bool isPlayingBurst;
         private bool pendingStagger;
         private bool pendingDeath;
+        private bool pendingMeleeCounter;
         private ResolvedShot[] pendingShots = Array.Empty<ResolvedShot>();
 
         internal AimingState(
@@ -52,10 +53,15 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = false;
             this.isPlayingBurst  = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
+            this.aimView.OnMeleeMissRevealed += ApplyPendingMeleeCounter;
+            this.pendingMeleeCounter = false;
 
             int op = this.context.SelectedOperator;
             float hpRatio = this.roster.Count > op ? this.roster[op].HpRatio : 1f;
             this.aimView.SetOperatorHpRatio(hpRatio);
+
+            int targetSlot = this.context.CurrentTargetSlot;
+            this.aimView.SetTargetHp(targetSlot >= 0 ? this.battlefieldView.GetEnemyCurrentHp(targetSlot) : int.MaxValue);
 
             this.aimView.Show();
         }
@@ -64,6 +70,7 @@ namespace CrimsonDraft.Combat
         {
             this.context.Orchestrator.SetWaitMode(false);
             this.aimView.OnShotsResolved -= HandleShotsResolved;
+            this.aimView.OnMeleeMissRevealed -= ApplyPendingMeleeCounter;
         }
 
         public void OnConfirm()
@@ -74,6 +81,9 @@ namespace CrimsonDraft.Combat
 
             if (this.awaitingDismiss)
             {
+                if (this.aimView.TryAdvancePostShots())
+                    return;
+
                 CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }
@@ -105,15 +115,22 @@ namespace CrimsonDraft.Combat
             int headshotPellets = 0;
             int damagingPellets = 0;
             bool anyMiss = false;
+            // A melee slash is ONE cut drawn as many points: poise and decapitation count once for the
+            // whole swing (the strongest zone it touched), not once per point. Its damage is already
+            // a single fixed hit, assigned in AimViewController.
+            bool isSlash = this.context.IsMeleeAttack;
             foreach (var shot in this.pendingShots)
             {
                 totalDamage += Mathf.Max(0, shot.Damage);
                 if (shot.Zone != ShotZone.Miss)
-                    totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                {
+                    int poise = CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                    totalPoiseDamage = isSlash ? Mathf.Max(totalPoiseDamage, poise) : totalPoiseDamage + poise;
+                }
                 else
                     anyMiss = true;
                 if (shot.Zone == ShotZone.Head)
-                    headshotPellets++;
+                    headshotPellets = isSlash ? 1 : headshotPellets + 1;
                 if (shot.Damage > 0)
                     damagingPellets++;
             }
@@ -132,10 +149,10 @@ namespace CrimsonDraft.Combat
                 this.pendingDeath   = result.IsDead;
 
                 // Whiffing even one point of a melee swing leaves the operator open -- a single
-                // counter-hit regardless of how many points missed, worth half that enemy's own
-                // attack damage (CombatOrchestrator.ApplyMeleeCounterDamage).
-                if (this.context.IsMeleeAttack && anyMiss)
-                    this.context.Orchestrator.ApplyMeleeCounterDamage(op, this.context.CurrentTargetSlot);
+                // counter-hit regardless of how many points missed. It lands when the damage count
+                // reveals the first missing point (ApplyPendingMeleeCounter), or on closing the panel
+                // if the player skipped the count.
+                this.pendingMeleeCounter = this.context.IsMeleeAttack && anyMiss;
             }
 
             if (weapon != null)
@@ -144,9 +161,18 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = true;
         }
 
+        // Worth half that enemy's own attack damage (CombatOrchestrator.ApplyMeleeCounterDamage).
+        private void ApplyPendingMeleeCounter()
+        {
+            if (!this.pendingMeleeCounter || this.context.CurrentTargetSlot < 0) return;
+            this.pendingMeleeCounter = false;
+            this.context.Orchestrator.ApplyMeleeCounterDamage(this.context.SelectedOperator, this.context.CurrentTargetSlot);
+        }
+
         private async UniTaskVoid CloseAimAndReturnToOperatorSelectionAsync()
         {
             this.awaitingDismiss = false;
+            this.ApplyPendingMeleeCounter(); // count skipped before reaching the miss
             this.aimView.Hide();
             this.commandPanel.Hide();
 

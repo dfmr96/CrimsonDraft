@@ -16,19 +16,19 @@ namespace CrimsonDraft.Inventory
         // Fraction of damage that gets through a vest -- same meaning as WeaponData's.
         [SerializeField, Range(0f, 1f)] private float armorDamageMultiplier = 0.25f;
 
-        // The slash is rendered as several pellet-like points (same marker sprite/pipeline as a
-        // shotgun blast) laid out along a line through the confirmed aim point instead of
-        // scattered inside a dispersion ellipse -- see SlashStrategy. Damage/PoiseDamage above
-        // are per-point, summed across all points exactly like a shotgun's pellets.
-        [SerializeField, Min(2)] private int   slashPointCount         = 5;
+        // The slash is ONE cut: a dense row of marker-sized points that starts at the confirmed aim
+        // point and runs slashLength px at slashAngleDegrees (0 = straight right), varied by up to
+        // +/- slashAngleJitterDegrees so it can go level, a little up or a little down -- see
+        // SlashStrategy. It deals Damage above in total (flat, one hit, no zone multipliers);
+        // PoiseDamage counts once for the whole swing.
+        // Any point of the cut that lands off the body leaves the operator open to a counter-hit.
+        [SerializeField, Min(2)] private int   slashPointCount         = 5;     // legacy: point count now follows slashLength
         [SerializeField]         private float slashLength             = 40f;
-        [SerializeField]         private float slashAngleDegrees       = 45f;
-        [SerializeField]         private float slashAngleJitterDegrees = 15f;
+        [SerializeField]         private float slashAngleDegrees       = 0f;
+        [SerializeField]         private float slashAngleJitterDegrees = 20f;
 
-        // Optional hand-authored point placement (Tools > CrimsonDraft > Burst Pattern Editor --
-        // same asset type/tool guns use for their pellet spread). When assigned, point i of the
-        // slash samples entry i of the pattern (clamped) instead of the procedural length/angle
-        // line above, so each point can be placed exactly where it should land on the silhouette.
+        // Legacy hand-authored point placement (Burst Pattern Editor). No longer used by the slash,
+        // which is generated from the length/angle above; kept so existing assets don't lose data.
         [SerializeField] private BurstPatternData? slashPattern;
 
         public int               Damage                  => this.damage;

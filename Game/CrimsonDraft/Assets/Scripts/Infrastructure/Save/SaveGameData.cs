@@ -88,6 +88,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<string>             heardRadioCallIds  = new List<string>();
         public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();

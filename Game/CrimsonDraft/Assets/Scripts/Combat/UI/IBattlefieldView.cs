@@ -52,6 +52,8 @@ namespace CrimsonDraft.Combat
         bool IsEnemyDead(int slotIndex);
         bool HasAliveEnemies();
         UniTask PlayOperatorShootBurstAsync(int operatorSlotIndex, int enemySlotIndex, ResolvedShot[] shots, bool isMelee = false);
+        // int.MaxValue when the slot is unknown, so callers never treat it as lethal by accident.
+        int GetEnemyCurrentHp(int slotIndex) => int.MaxValue;
 #if UNITY_EDITOR || DEBUG_COMBAT
         (int Current, int Max, bool IsDead, int Poise, bool IsStaggered) GetEnemyHpDebug(int slotIndex);
 #endif

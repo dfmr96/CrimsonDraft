@@ -27,6 +27,7 @@ namespace CrimsonDraft.Tests
             public SaveGameData? ReadFromDisk(int slot) => null;
             public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
+            public bool TryStashPendingLoad(int slot, out string sceneName) { sceneName = string.Empty; return false; }
             public SaveGameData? ConsumePendingLoad()
             {
                 var data = this.PendingLoad;
@@ -90,7 +91,7 @@ namespace CrimsonDraft.Tests
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -150,7 +151,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 

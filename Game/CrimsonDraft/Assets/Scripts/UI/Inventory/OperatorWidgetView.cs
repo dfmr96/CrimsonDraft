@@ -40,8 +40,98 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject weaponSlot1Root = null!;
         [SerializeField] private Image      weaponSlot1Icon = null!;
 
+        [Header("Logo / Bio page")]
+        [Tooltip("Organization emblem. Navigable: confirming it flips every card between the inventory and the Bio page.")]
+        [SerializeField] private Image?          logo;
+        [Tooltip("Bio page root. Shown instead of the grid and the weapon slots while Bio mode is on.")]
+        [SerializeField] private GameObject?     bioRoot;
+        [Tooltip("Grid_container -- hidden while Bio mode is on.")]
+        [SerializeField] private GameObject?     gridRoot;
+        [SerializeField] private CardSwitchGlitch? switchGlitch;
+        [Tooltip("Bodies of the three Bio sections (the 'Text (TMP)' under Name / Group / Bio).")]
+        [SerializeField] private TMP_Text? bioNameText;
+        [SerializeField] private TMP_Text? bioGroupText;
+        [SerializeField] private TMP_Text? bioBodyText;
+
         private MeleeWeaponData? currentMeleeData;
         private OperatorRuntime? boundOperator;
+        private bool             bioMode;
+        private bool             isMissing;
+        private bool             deadLabelWanted;
+
+        public bool           BioMode  => this.bioMode;
+        public RectTransform? LogoRect => this.logo != null ? this.logo.rectTransform : null;
+        public bool           HasLogo  => this.logo != null && !this.isMissing && this.logo.gameObject.activeInHierarchy;
+
+        public void SetBioMode(bool on, bool animate = true)
+        {
+            if (this.bioMode == on) return;
+
+            if (animate && this.switchGlitch != null && !this.isMissing && isActiveAndEnabled)
+            {
+                this.switchGlitch.Play(() =>
+                {
+                    this.bioMode = on;
+                    ApplyBioVisibility();
+                });
+                return;
+            }
+
+            this.bioMode = on;
+            ApplyBioVisibility();
+        }
+
+        // Bio page: three sections, each with a fixed header authored in the prefab and a body
+        // filled here -- Name ("Unknown" until learned), Group (Yarn line 1) and Bio (Yarn line 2,
+        // specialty, then line 3, the description, once it exists).
+        private void RefreshBioText(OperatorData? data)
+        {
+            if (data == null) return;
+
+            var lines = ReadBioLines(data.Bio);
+            if (this.bioNameText  != null) this.bioNameText.text  = data.BioName;
+            if (this.bioGroupText != null) this.bioGroupText.text = lines.Count > 0 ? lines[0] : string.Empty;
+            if (this.bioBodyText  != null)
+            {
+                string specialty   = lines.Count > 1 ? lines[1] : string.Empty;
+                string description = lines.Count > 2 ? lines[2] : string.Empty;
+                this.bioBodyText.text = string.IsNullOrEmpty(description) ? specialty : specialty + "\n\n" + description;
+            }
+        }
+
+        private static System.Collections.Generic.List<string> ReadBioLines(Yarn.Unity.DialogueReference reference)
+        {
+            var result  = new System.Collections.Generic.List<string>();
+            var project = reference.project;
+            if (project == null || string.IsNullOrEmpty(reference.nodeName)) return result;
+
+            try
+            {
+                var localization = project.baseLocalization;
+                foreach (var id in project.GetLineIDsForNodes(new[] { reference.nodeName }))
+                    result.Add(localization.GetLocalizedString(id) ?? string.Empty);
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                Debug.LogWarning($"OperatorWidgetView: Yarn node '{reference.nodeName}' not found in '{project.name}'.");
+            }
+            return result;
+        }
+
+        // Bio mode swaps the whole navigable inventory (grid + both weapon slots) for the Bio page.
+        // Re-applied after every Bind/ShowMissing because those toggle the same objects.
+        private void ApplyBioVisibility()
+        {
+            bool bio = this.bioMode && !this.isMissing;
+
+            if (this.bioRoot  != null) this.bioRoot.SetActive(bio);
+            if (this.gridRoot != null) this.gridRoot.SetActive(!bio);
+            if (this.deadLabel != null) this.deadLabel.gameObject.SetActive(this.deadLabelWanted && !bio);
+
+            if (this.isMissing) return;
+            if (this.weaponSlot0Root != null) this.weaponSlot0Root.SetActive(!bio);
+            if (this.weaponSlot1Root != null) this.weaponSlot1Root.SetActive(!bio);
+        }
 
         public bool            HasMeleeWeapon => this.currentMeleeData != null;
         public MeleeWeaponData? MeleeData     => this.currentMeleeData;
@@ -64,13 +154,17 @@ namespace CrimsonDraft.UI
             }
 
             gameObject.SetActive(true);
+            this.isMissing = false;
             ClearMissing();
             if (this.headerFade != null) this.headerFade.alpha = op.IsAlive ? 1f : this.deadAlpha;
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
+            if (this.logo != null && op.Data?.Logo != null) this.logo.sprite = op.Data.Logo;
+            RefreshBioText(op.Data);
             bool showDead = !op.IsAlive && !canLoot;
             if (this.deadOverlay != null) this.deadOverlay.SetActive(showDead);
+            this.deadLabelWanted = showDead;
             if (this.deadLabel   != null)
             {
                 this.deadLabel.gameObject.SetActive(showDead);
@@ -84,6 +178,8 @@ namespace CrimsonDraft.UI
             this.currentMeleeData = op.MeleeWeapon as MeleeWeaponData;
             if (this.weaponSlot1Root != null)
                 RefreshMeleeSlot(op.MeleeWeapon, this.weaponSlot1Root, this.weaponSlot1Icon);
+
+            ApplyBioVisibility();
         }
 
         /// <summary>
@@ -94,6 +190,8 @@ namespace CrimsonDraft.UI
         public void ShowMissing()
         {
             gameObject.SetActive(true);
+            this.isMissing       = true;
+            this.deadLabelWanted = false;
 
             if (this.cardFade   != null) this.cardFade.alpha   = this.missingAlpha;
             if (this.headerFade != null) this.headerFade.alpha = 1f;
@@ -111,6 +209,11 @@ namespace CrimsonDraft.UI
             if (this.weaponSlot0Root != null) this.weaponSlot0Root.SetActive(false);
             if (this.weaponSlot1Root != null) this.weaponSlot1Root.SetActive(false);
             this.currentMeleeData = null;
+
+            // A slot with no operator has no logo and no Bio; it keeps its empty grid.
+            if (this.logo    != null) this.logo.gameObject.SetActive(false);
+            if (this.bioRoot != null) this.bioRoot.SetActive(false);
+            if (this.gridRoot != null) this.gridRoot.SetActive(true);
         }
 
         private void ClearMissing()
@@ -119,6 +222,7 @@ namespace CrimsonDraft.UI
             if (this.portrait     != null) this.portrait.enabled = true;
             if (this.ecgLine      != null) this.ecgLine.gameObject.SetActive(true);
             if (this.ecgPulse     != null) this.ecgPulse.enabled = true;
+            if (this.logo         != null) this.logo.gameObject.SetActive(true);
         }
 
         private void ApplyHealthState(float hpRatio, bool isAlive = true)

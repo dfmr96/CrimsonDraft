@@ -12,6 +12,7 @@ using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation;
+using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.UI
@@ -43,6 +44,10 @@ namespace CrimsonDraft.UI
         [Inject] private TabManager        tabManager    = null!;
         [Inject] private InventorySfxData  sfxData       = null!;
         [Inject] private IGraphicsSettingsService graphicsSettings = null!;
+        [Inject] private IObjectResolver          resolver         = null!;
+
+        // Radio calls are answered from here. Resolved optionally: not every scope has the radio.
+        private IRadioConversationService? radio;
 
         private const string MapTabName = "Map";
 
@@ -56,6 +61,7 @@ namespace CrimsonDraft.UI
             // the asset in the Editor and survives exiting Play Mode. Always start from the closed
             // state (feature on, same as Close()) so a previous session left open can't leak in.
             this.ditherFeature?.SetActive(true);
+            this.resolver.TryResolve(out this.radio);
             this.inputService.OpenInventory.performed += Open;
             this.inputService.InventoryClose.performed += OnCloseKey;
             this.inputService.OpenMap.performed        += OnToggleMap;
@@ -113,6 +119,8 @@ namespace CrimsonDraft.UI
                 .SetTarget(this)
                 .SetUpdate(true)
                 .SetEase(Ease.OutCubic);
+
+            this.radio?.NotifyInventoryOpened();
         }
 
         public void OpenStorage()
@@ -162,6 +170,7 @@ namespace CrimsonDraft.UI
             this.ditherFeature?.SetActive(true);
             this.graphicsSettings.PopGammaSuppression();
             this.isClosing = false;
+            this.radio?.NotifyInventoryClosed();
             Closed?.Invoke();
         }
 

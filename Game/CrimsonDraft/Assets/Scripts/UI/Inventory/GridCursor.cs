@@ -34,6 +34,7 @@ namespace CrimsonDraft.UI
         private bool           inputBound;
         private bool           isCombineMode;
         private bool           onMeleeSlot;
+        private bool           onLogoSlot;
         private bool           transferMode;
         private bool           holdingDirection;
         private Vector2Int     lastDir;
@@ -69,6 +70,7 @@ namespace CrimsonDraft.UI
             this.transferMode  = true;
             this.isCombineMode = false;
             this.onMeleeSlot   = false;
+            this.onLogoSlot    = false;
             this.navigator     = new GridNavigator(
                 this.inventory.GetContainer, this.presenters.BuildLinks(), ContainerId.Storage, this.presenters.BuildStorageRows());
             this.navigator.Reset(ContainerId.Storage, Vector2Int.zero);
@@ -178,6 +180,26 @@ namespace CrimsonDraft.UI
 
         private void TryMove(Vector2Int dir)
         {
+            if (this.onLogoSlot)
+            {
+                if (dir.y > 0)
+                {
+                    this.tabManager?.EnterTabBar();
+                }
+                else if (dir.y < 0)
+                {
+                    // Bio page has no grid underneath: Down only works on the inventory page.
+                    if (this.partyPanel != null && this.partyPanel.BioMode) return;
+                    ExitLogoSlot();
+                    this.sfx.PlayCursor(this.gameObject);
+                }
+                else
+                {
+                    MoveLogo(dir.x);
+                }
+                return;
+            }
+
             if (this.onMeleeSlot)
             {
                 if (dir.y < 0)
@@ -187,7 +209,8 @@ namespace CrimsonDraft.UI
                 }
                 else if (dir.y > 0)
                 {
-                    this.tabManager?.EnterTabBar();
+                    if (TryEnterLogoSlot()) this.sfx.PlayCursor(this.gameObject);
+                    else                    this.tabManager?.EnterTabBar();
                 }
                 return;
             }
@@ -195,7 +218,7 @@ namespace CrimsonDraft.UI
             if (Navigator.Move(dir, this.IsHoldingItem) == NavigationExit.Up)
             {
                 if (this.transferMode) return;
-                if (!TryEnterMeleeSlot()) this.tabManager?.EnterTabBar();
+                if (!TryEnterMeleeSlot() && !TryEnterLogoSlot()) this.tabManager?.EnterTabBar();
                 return;
             }
 
@@ -206,7 +229,7 @@ namespace CrimsonDraft.UI
         private void Refresh()
         {
             if (this.navigator == null && (this.presenters == null || this.inventory == null)) return;
-            if (this.onMeleeSlot || !this.selector.IsVisible) return;
+            if (this.onMeleeSlot || this.onLogoSlot || !this.selector.IsVisible) return;
 
             var presenter = CurrentPresenter;
             var cell      = Navigator.Cell;
@@ -264,6 +287,12 @@ namespace CrimsonDraft.UI
                 return;
             }
 
+            if (this.onLogoSlot)
+            {
+                ConfirmLogo();
+                return;
+            }
+
             if (this.onMeleeSlot)
             {
                 ConfirmMeleeSlot();
@@ -303,7 +332,7 @@ namespace CrimsonDraft.UI
 
         private void OnPickup(InputAction.CallbackContext _)
         {
-            if (this.onMeleeSlot) return;
+            if (this.onMeleeSlot || this.onLogoSlot) return;
             if (this.contextMenu != null && this.contextMenu.IsOpen)   return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
@@ -387,6 +416,15 @@ namespace CrimsonDraft.UI
                 return true;
             }
 
+            if (this.onLogoSlot)
+            {
+                // Cancel on the Bio page goes back to the inventory page first.
+                this.partyPanel?.SetBioMode(false);
+                ExitLogoSlot();
+                this.sfx.PlayCancel(this.gameObject);
+                return true;
+            }
+
             if (this.onMeleeSlot)
             {
                 ExitMeleeSlot();
@@ -433,6 +471,8 @@ namespace CrimsonDraft.UI
             if (this.contextMenu != null && this.contextMenu.IsOpen)   this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) this.inspectPanel.Close();
             if (this.onMeleeSlot) ExitMeleeSlot();
+            this.onLogoSlot = false;
+            this.partyPanel?.SetBioMode(false, animate: false);
             this.tabManager?.ResetTabBar();
             this.heldView.Hide();
             this.selector.HideTooltip();
@@ -448,6 +488,8 @@ namespace CrimsonDraft.UI
             this.holdingDirection = false;
             this.lastDir          = Vector2Int.zero;
             this.onMeleeSlot      = false;
+            this.onLogoSlot       = false;
+            this.partyPanel?.SetBioMode(false, animate: false);
             this.selector.SetVisible(true);
             Refresh();
         }
@@ -477,6 +519,8 @@ namespace CrimsonDraft.UI
                 if (placement == null) continue;
 
                 this.onMeleeSlot = false;
+                this.onLogoSlot  = false;
+                this.partyPanel?.SetBioMode(false, animate: false);
                 Navigator.Reset(container.Id, placement.Origin);
                 Refresh();
                 return true;
@@ -508,6 +552,65 @@ namespace CrimsonDraft.UI
             this.onMeleeSlot = false;
             this.selector.ClearMeleeHover();
             Refresh();
+        }
+
+        // ── Logo slot ────────────────────────────────────────────────────────
+
+        // The logo sits above the melee slot: grid -> melee -> logo -> tab bar. It is skipped
+        // while an item is held or a combine is pending, so those flows can't be interrupted.
+        private bool TryEnterLogoSlot()
+        {
+            if (this.transferMode || this.IsHoldingItem || this.isCombineMode) return false;
+            var widget = CurrentWidget();
+            if (widget == null || !widget.HasLogo) return false;
+
+            this.onMeleeSlot = false;
+            this.onLogoSlot  = true;
+            this.selector.ShowOnLogo(widget);
+            return true;
+        }
+
+        private void ExitLogoSlot()
+        {
+            this.onLogoSlot = false;
+
+            // Back down through the melee slot when this operator has one, else onto the grid.
+            var widget = CurrentWidget();
+            if (widget != null && widget.HasMeleeWeapon && this.inventory.IsCarried(Navigator.Grid))
+            {
+                this.onMeleeSlot = true;
+                this.selector.ShowOnMelee(widget);
+                return;
+            }
+            Refresh();
+        }
+
+        // Left/Right hops to the neighbouring card's logo (the only way to move sideways on the Bio page).
+        private void MoveLogo(int dx)
+        {
+            if (dx == 0 || !this.presenters.BuildLinks().TryGetValue(Navigator.Grid, out var links)) return;
+
+            var next = dx > 0 ? links.Right : links.Left;
+            if (next == null) return;
+
+            var previous = Navigator.Grid;
+            Navigator.Reset(next.Value, Navigator.Cell);
+            var widget = CurrentWidget();
+            if (widget == null || !widget.HasLogo)
+            {
+                Navigator.Reset(previous, Navigator.Cell);
+                return;
+            }
+
+            this.selector.ShowOnLogo(widget);
+            this.sfx.PlayCursor(this.gameObject);
+        }
+
+        private void ConfirmLogo()
+        {
+            if (this.partyPanel == null) return;
+            this.sfx.PlayDecide(this.gameObject);
+            this.partyPanel.ToggleBio();
         }
 
         private void ConfirmMeleeSlot()

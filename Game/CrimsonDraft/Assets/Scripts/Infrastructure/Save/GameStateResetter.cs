@@ -34,6 +34,7 @@ namespace CrimsonDraft.Infrastructure.Save
             this.world.Enemies.ClearAll();
             this.world.OperatorCorpses.ClearAll();
             this.world.ItemSockets.ClearAll();
+            this.world.RadioCalls.ClearAll();
             this.inventoryState.ClearAll();
             this.rosterHealth.ClearAll();
             this.playtimeTracker.Reset();

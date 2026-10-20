@@ -49,7 +49,8 @@ namespace CrimsonDraft.Combat
             this.shotCountView.Hide();
         }
 
-        public void OnCancel() { }
+        // Cancelling here is not allowed once the action is committed: play the denied sound.
+        public void OnCancel() => this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
 
         public void OnConfirm()
         {

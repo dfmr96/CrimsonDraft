@@ -7,6 +7,10 @@ namespace CrimsonDraft.Infrastructure.Graphics
         float Gamma { get; }
         void SetGamma(float value01);
 
+        /// <summary>Raised after every SetGamma, so every gamma control on screen (Options > Video,
+        /// New Game) can follow a change made through any other one.</summary>
+        event System.Action? GammaChanged;
+
         /// <summary>
         /// Number of discrete steps between Gamma's 0 and 1 extremes -- every gamma slider/knob
         /// in the game (New Game calibration, Pause > Options > Video, MainMenu General tab)

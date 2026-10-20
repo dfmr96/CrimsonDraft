@@ -10,6 +10,7 @@ namespace CrimsonDraft.Infrastructure.Audio
     {
         private const string MasterVolumeKey = "Audio.MasterVolume";
         private const string SfxVolumeKey    = "Audio.SfxVolume";
+        private const string UiSfxVolumeKey  = "Audio.UiSfxVolume";
         private const string MusicVolumeKey  = "Audio.MusicVolume";
         private const float  DefaultVolume   = 0.5f;
 
@@ -17,6 +18,7 @@ namespace CrimsonDraft.Infrastructure.Audio
 
         public float MasterVolume { get; private set; }
         public float SfxVolume    { get; private set; }
+        public float UiSfxVolume  { get; private set; }
         public float MusicVolume  { get; private set; }
 
         [Preserve]
@@ -29,10 +31,12 @@ namespace CrimsonDraft.Infrastructure.Audio
         {
             this.MasterVolume = PlayerPrefs.GetFloat(MasterVolumeKey, DefaultVolume);
             this.SfxVolume    = PlayerPrefs.GetFloat(SfxVolumeKey, DefaultVolume);
+            this.UiSfxVolume  = PlayerPrefs.GetFloat(UiSfxVolumeKey, DefaultVolume);
             this.MusicVolume  = PlayerPrefs.GetFloat(MusicVolumeKey, DefaultVolume);
 
             this.data.ApplyMasterVolume(this.MasterVolume);
             this.data.ApplySfxVolume(this.SfxVolume);
+            this.data.ApplyUiSfxVolume(this.UiSfxVolume);
             this.data.ApplyMusicVolume(this.MusicVolume);
         }
 
@@ -48,6 +52,13 @@ namespace CrimsonDraft.Infrastructure.Audio
             this.SfxVolume = value01;
             PlayerPrefs.SetFloat(SfxVolumeKey, value01);
             this.data.ApplySfxVolume(value01);
+        }
+
+        public void SetUiSfxVolume(float value01)
+        {
+            this.UiSfxVolume = value01;
+            PlayerPrefs.SetFloat(UiSfxVolumeKey, value01);
+            this.data.ApplyUiSfxVolume(value01);
         }
 
         public void SetMusicVolume(float value01)

@@ -89,6 +89,29 @@ namespace CrimsonDraft.Combat
                 .SetEase(Ease.InQuad));
         }
 
+        // Charge-up finale on the bar's last segment: it flashes white and stretches taller for a
+        // moment, then returns to its resting size and color; onDone fires when it has settled.
+        public void PlayLastStretch(float stretchBy, float upDuration, float downDuration, System.Action? onDone)
+        {
+            this.EnsureInitialized();
+            this.rectTransform.DOKill();
+            this.fillImage.DOKill();
+
+            this.fillImage.color = this.filledColor;
+            var seq = DOTween.Sequence().SetTarget(this.rectTransform);
+            seq.Append(this.rectTransform.DOSizeDelta(
+                    new Vector2(this.rectTransform.sizeDelta.x, this.restHeight + stretchBy), Mathf.Max(0.01f, upDuration))
+                .SetEase(Ease.OutQuad));
+            seq.Append(this.rectTransform.DOSizeDelta(
+                    new Vector2(this.rectTransform.sizeDelta.x, this.restHeight), Mathf.Max(0.01f, downDuration))
+                .SetEase(Ease.InQuad));
+            seq.OnComplete(() =>
+            {
+                if (this.fillImage != null) this.fillImage.color = this.restColor;
+                onDone?.Invoke();
+            });
+        }
+
         // Called by OperatorGaugeBar on every segment at once when the WHOLE bar hits
         // 100% — flickers and ends white (this is the only place white becomes permanent).
         public void PlayCompletionFlicker(int flickerCount, float flickerDuration)

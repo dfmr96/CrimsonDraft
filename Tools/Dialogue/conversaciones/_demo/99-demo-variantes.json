@@ -1,0 +1,52 @@
+{
+  "title": "Reporte tras el abordaje",
+  "freq": "38.75",
+  "rightIds": ["deer", "sterna", "bear"],
+  "leftId": "vulture",
+  "lines": [
+    { "speaker": "vulture", "text": "Reporte.",
+      "alt": [ { "alive": ["deer", "sterna", "bear"], "text": "Reporte. Uno por uno." } ] },
+
+    { "speaker": "sterna",  "text": "Sterna. Arriba del castillo de proa. Tengo la cubierta entera hasta la superestructura." },
+
+    { "speaker": "bear",    "text": "Bear. Entero. Estoy con Deer.",
+      "alt": [ { "dead": ["deer"], "text": "Bear. Entero.\nSolo." } ] },
+
+    { "speaker": "deer",    "text": "...Deer. En pie." },
+
+    { "speaker": "vulture", "text": "Guardia Costera.", "if": { "alive": ["deer"] } },
+    { "speaker": "deer",    "text": "No queda nadie.\nÉramos treinta y dos." },
+    { "speaker": "vulture", "text": "Copiado. Ahora sos el cuarto de este equipo.", "if": { "alive": ["deer"] } },
+    { "speaker": "deer",    "text": "Entendido. ¿Recuperamos los cuerpos?" },
+    { "speaker": "vulture", "text": "No.", "if": { "alive": ["deer"] } },
+
+    { "speaker": "vulture", "text": "Sterna. Qué ves." },
+    { "speaker": "sterna",  "text": "Attends...\nUn... deux... trois... siete. Siete en cubierta." },
+    { "speaker": "sterna",  "text": "Caminan mal. Y no se cubren." },
+    { "speaker": "vulture", "text": "Sterna.", "if": { "dead": ["sterna"] } },
+    { "speaker": "vulture", "text": "...Copiado.\nNo tenemos ojos arriba. Avancen a ciegas.", "if": { "dead": ["sterna"] } },
+
+    { "speaker": "bear",    "text": "¿Armados?", "if": { "alive": ["sterna"] } },
+    { "speaker": "deer",    "text": "¿Armados?", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "sterna",  "text": "No están armados.\nY vienen igual." },
+
+    { "speaker": "deer",    "text": "Le di a uno tres veces en el torso.\nSe levantó." },
+    { "speaker": "bear",    "text": "Le vacié medio cargador a uno.\nSe levantó.", "if": { "dead": ["deer"], "alive": ["bear"] } },
+
+    { "speaker": "vulture", "text": "Tripulación hostil bajo efecto de la carga. Nada más." },
+    { "speaker": "vulture", "text": "Al deck. Quiero saber qué lleva este barco.",
+      "alt": [ { "alive": ["deer", "sterna", "bear"], "text": "Bear, Deer, Sterna: al deck. Quiero saber qué lleva este barco." } ] },
+    { "speaker": "vulture", "text": "Yo subo al puente." },
+
+    { "speaker": "deer",    "text": "¿Solo? El procedimiento son dos hombres." },
+    { "speaker": "vulture", "text": "Desde el puente tengo las cámaras y la bitácora. Controlo el barco entero. Ustedes no.", "if": { "alive": ["deer"] } },
+    { "speaker": "deer",    "text": "...Entendido." },
+
+    { "speaker": "bear",    "text": "Vulture. Si el puente está tomado te quedás sin salida.\nDame dos minutos y te dejo una carga en la escalera de babor." },
+    { "speaker": "vulture", "text": "No hace falta.", "if": { "alive": ["bear"] } },
+    { "speaker": "bear",    "text": "Igual te la dejo." },
+
+    { "speaker": "vulture", "text": "Al deck. Ahora.",
+      "alt": [ { "dead": ["deer", "bear"], "text": "Movete, Sterna. Estás sola." } ] }
+  ]
+}

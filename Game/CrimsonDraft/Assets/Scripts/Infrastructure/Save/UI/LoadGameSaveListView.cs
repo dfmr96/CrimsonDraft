@@ -72,10 +72,12 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         /// Back to the slot list after a save, with the written slot's name typed out
         /// character by character. <paramref name="onRevealed"/> runs once it has finished.
         /// </summary>
-        public void ShowSaved(IReadOnlyList<SaveSlotSummary> slots, int savedIndex, Action onRevealed)
+        /// <param name="revealSeconds">When above zero, the typing takes exactly this long instead of following
+        /// the chars-per-second speed (the save room slows it to the pace of its Morse message).</param>
+        public void ShowSaved(IReadOnlyList<SaveSlotSummary> slots, int savedIndex, Action onRevealed, float revealSeconds = 0f)
         {
             Show(slots, savedIndex);
-            this.rows[savedIndex].Reveal(this.revealCharsPerSecond, onRevealed);
+            this.rows[savedIndex].Reveal(this.revealCharsPerSecond, onRevealed, revealSeconds);
         }
 
         public void SetConfirmSelection(bool yesSelected)

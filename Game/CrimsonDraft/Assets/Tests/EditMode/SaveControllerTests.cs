@@ -31,6 +31,7 @@ namespace CrimsonDraft.Tests
             public SaveGameData? ReadFromDisk(int slot) => null;
             public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
+            public bool TryStashPendingLoad(int slot, out string sceneName) { sceneName = string.Empty; return false; }
             public SaveGameData? ConsumePendingLoad() => null;
         }
 
@@ -113,7 +114,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");

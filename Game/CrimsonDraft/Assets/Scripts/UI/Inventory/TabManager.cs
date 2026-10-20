@@ -11,6 +11,7 @@ using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save.UI;
+using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
 {
@@ -45,19 +46,18 @@ namespace CrimsonDraft.UI
         // Inspector, so the hover/press feedback doesn't depend on scene serialization.
         private ManualSelectScale?[] tabIconScales = System.Array.Empty<ManualSelectScale?>();
 
-        // Locked out of the tab bar (button hidden, not reachable via LEFT/RIGHT) until the
-        // player picks up beeperUnlockNoteId -- the Beeper isn't something the player starts
-        // the game owning, it's found. See NoteCollectedEvent / DocumentInteractable.
+        // Locked out of the tab bar (button hidden, not reachable via LEFT/RIGHT) unless a living
+        // operator carries the beeper item. Dropping it in storage or leaving it on a dead
+        // operator locks the tab again -- IInventoryService.HasItem only looks at carried grids.
         [Header("Beeper Unlock")]
         [SerializeField] private GameObject? beeperTabButton;
-        [SerializeField] private string      beeperUnlockNoteId = "note_b01";
+        [SerializeField] private string      beeperItemId = "KI_21";
 
         [Inject] private IInputService                     inputService     = null!;
         [Inject] private InventorySfxData                  sfx              = null!;
-        [Inject] private NoteRegistry                       noteRegistry     = null!;
-        [Inject] private ISubscriber<NoteCollectedEvent>    noteCollectedSub = null!;
+        [Inject] private IInventoryService                  inventory        = null!;
         private bool inputBound;
-        private IDisposable? noteSubscription;
+        private ItemContainer[] watchedContainers = Array.Empty<ItemContainer>();
         private int  beeperTabIndex   = -1;
         private bool beeperUnlocked;
 
@@ -72,34 +72,47 @@ namespace CrimsonDraft.UI
 
         // ── DI lifecycle ─────────────────────────────────────────────────────
 
-        // Subscribed here (VContainer container build), not OnEnable -- canvasRoot gets
+        // Hooked up here (VContainer container build), not OnEnable -- canvasRoot gets
         // SetActive(false) whenever the inventory closes (InventoryOpenCloseController.Close),
-        // which would disable this component and miss NoteCollectedEvent for notes picked up
-        // out in the world while the inventory isn't open. Same reasoning as
-        // FilesTabController.OnNoteCollected.
+        // which would disable this component. Container changes (dragging the beeper into
+        // storage, picking it up in the world) re-sync the lock; deaths are caught by the
+        // re-sync on every open (see ResetForOpen).
         public void Initialize()
         {
             this.beeperTabIndex = Array.FindIndex(this.tabs, t => t.name == "Beeper");
-            this.noteSubscription = this.noteCollectedSub.Subscribe(OnNoteCollected);
+
+            var containers = new System.Collections.Generic.List<ItemContainer>(this.inventory.OperatorContainers)
+            {
+                this.inventory.GetContainer(ContainerId.Storage),
+            };
+            this.watchedContainers = containers.ToArray();
+            foreach (var container in this.watchedContainers)
+                container.Changed += RefreshBeeperLock;
+
             RefreshBeeperLock();
         }
 
-        public void Dispose() => this.noteSubscription?.Dispose();
-
-        void OnNoteCollected(NoteCollectedEvent e)
+        public void Dispose()
         {
-            if (e.NoteId == this.beeperUnlockNoteId)
-                RefreshBeeperLock();
+            foreach (var container in this.watchedContainers)
+                container.Changed -= RefreshBeeperLock;
         }
 
-        // Re-synced on every open (see ResetForOpen) as well as at Initialize(), so a save
-        // loaded with the note already collected doesn't leave the button stuck hidden just
-        // because NoteRegistry's load happened to run after this component's Initialize().
         void RefreshBeeperLock()
         {
-            this.beeperUnlocked = this.noteRegistry.IsCollected(this.beeperUnlockNoteId);
+            this.beeperUnlocked = this.inventory.HasItem(this.beeperItemId);
             if (this.beeperTabButton != null)
                 this.beeperTabButton.SetActive(this.beeperUnlocked);
+
+            // Beeper tab open (or focused in the tab bar) when the beeper just left a living
+            // operator: fall back to the starting tab.
+            if (!this.beeperUnlocked && this.started && this.currentIndex == this.beeperTabIndex)
+            {
+                this.tabs[this.currentIndex].root.SetActive(false);
+                this.currentIndex = this.startingTab;
+                this.tabs[this.currentIndex].root.SetActive(true);
+                RefreshIndicators();
+            }
         }
 
         bool IsLocked(int index) => index == this.beeperTabIndex && !this.beeperUnlocked;
