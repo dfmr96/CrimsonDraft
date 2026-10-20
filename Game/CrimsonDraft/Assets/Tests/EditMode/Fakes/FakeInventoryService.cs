@@ -88,6 +88,8 @@ namespace CrimsonDraft.Tests
         public int            HeldRotation => 0;
         public bool           HeldIsSplit  => false;
         public event Action? HeldChanged { add { } remove { } }
+        public event Action? ContentsChanged;
+        public void RaiseContentsChanged() => ContentsChanged?.Invoke();
 
         public bool       TryPickUp(InventoryItem item)                     => false;
         public bool       CanSplit(InventoryItem stack)                     => false;

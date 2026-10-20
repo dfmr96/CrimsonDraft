@@ -188,6 +188,10 @@ namespace CrimsonDraft.Inventory
             return true;
         }
 
+        public event Action? ContentsChanged;
+
+        private void RaiseContentsChanged() => ContentsChanged?.Invoke();
+
         private ItemContainer[] EnsureContainers()
         {
             if (this.operatorContainers != null) return this.operatorContainers;
@@ -198,14 +202,21 @@ namespace CrimsonDraft.Inventory
                     InventoryConstants.OperatorGridWidth,
                     InventoryConstants.OperatorGridHeight))
                 .ToArray();
+            foreach (var container in this.operatorContainers)
+                container.Changed += RaiseContentsChanged;
             return this.operatorContainers;
         }
 
-        private ItemContainer EnsureStorage() =>
-            this.storageContainer ??= new ItemContainer(
+        private ItemContainer EnsureStorage()
+        {
+            if (this.storageContainer != null) return this.storageContainer;
+            this.storageContainer = new ItemContainer(
                 ContainerId.Storage,
                 InventoryConstants.StorageGridWidth,
                 InventoryConstants.StorageGridHeight);
+            this.storageContainer.Changed += RaiseContentsChanged;
+            return this.storageContainer;
+        }
 
         private IEnumerable<ItemContainer> AllContainers() => EnsureContainers().Append(EnsureStorage());
 
