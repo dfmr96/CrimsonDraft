@@ -1,34 +1,30 @@
 #nullable enable
 
-using DG.Tweening;
 using UnityEngine;
 
 namespace CrimsonDraft.Navigation.Pushables
 {
     // Contact-driven push mechanic (RE-classic style): walking into a tagged prop pushes it
     // along a world axis. Activation is geometric, from this prop's own BoxCollider bounds (see
-    // PushDetector: touch, same floor, square to a face, moving into it); per-stride movement is
-    // driven from PlayerController.FixedUpdate, which calls TryStep. This component owns only the
-    // prop's own logic: its bounds and whether a given stride is clear. Props are only ever placed
-    // at 90-degree rotations, so the collider's world bounds are exact.
-    // See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
-    // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only discrete positioning
-    // validated by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the
-    // player like any other static level collider -- a Collider needs no Rigidbody of its own.
+    // PushDetector: touch, same floor, square to a face, moving into it); continuous movement is
+    // driven from PlayerController.FixedUpdate, which calls TryMove every physics step while the
+    // push lasts. This component owns only the prop's own logic: its bounds and whether a move
+    // is clear. Props are only ever placed at 90-degree rotations, so the collider's world bounds
+    // are exact. See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
+    // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only positioning validated
+    // by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the player like any
+    // other static level collider -- a Collider needs no Rigidbody of its own.
     [RequireComponent(typeof(BoxCollider))]
     public sealed class PushableObject : MonoBehaviour
     {
-        [SerializeField] private LayerMask obstructionMask;          // walls, other pushables
-        [SerializeField] private Vector3   obstructionHalfExtents = new Vector3(0.4f, 0.4f, 0.4f);
-        [SerializeField] private float     strideTweenDuration = 0.3f; // placeholder -- debe ser menor a PlayerController.pushStrideInterval para no solapar zancadas
-
-        // PlayerController reads this to tween its own stride the exact same duration -- a
-        // single source of truth so the two tweens can never drift out of sync with each other.
-        public float StrideTweenDuration => this.strideTweenDuration;
+        [SerializeField] private LayerMask obstructionMask;              // walls, other pushables, enemies
+        [SerializeField] private float     obstructionSkin = 0.01f;      // shrink on X/Z so resting against a wall isn't a hit
+        [SerializeField] private float     floorClearance  = 0.1f;       // bottom slice ignored so the floor it rests on isn't a hit
 
         // World-space bounds of the solid collider -- what PushDetector tests contact and faces against.
         public Bounds Bounds => this.ownCollider.bounds;
 
+        private readonly Collider[] hits = new Collider[8];
         private BoxCollider ownCollider = null!;
 
         private void Awake()
@@ -36,28 +32,40 @@ namespace CrimsonDraft.Navigation.Pushables
             this.ownCollider = GetComponent<BoxCollider>();
         }
 
-        // Validates and, if clear, performs one step. Returns false (no movement) if the next
-        // position overlaps something solid. No NavMesh check -- level geometry (walls) already
-        // bounds where a pushable puzzle can go, and sampling the NavMesh from a box turned out
-        // to be a persistent source of bugs (the obstacle's own carve hole, the pivot-vs-ground
-        // height mismatch); physics obstruction alone is simpler and sufficient here.
-        public bool TryStep(Vector3 axisDirection, float stepDistance)
+        // Moves the prop `distance` along `axis` if the moved bounds are clear, like RE2's object
+        // loop (PC 0x4CC320): the whole move is rejected on any overlap, never partially applied.
+        // `pusher` (the player's own collider) is ignored -- it is always right behind the face.
+        // No NavMesh check -- level geometry (walls) already bounds where a pushable puzzle can go,
+        // and sampling the NavMesh from a box turned out to be a persistent source of bugs (the
+        // obstacle's own carve hole, the pivot-vs-ground height mismatch).
+        public bool TryMove(Vector3 axis, float distance, Collider? pusher)
         {
-            Vector3 next = transform.position + axisDirection * stepDistance;
+            GetObstructionVolume(this.Bounds, out Vector3 center, out Vector3 halfExtents);
+            center += axis * distance;
 
             // QueryTriggerInteraction.Ignore: Physics.OverlapBox includes triggers by default, and
             // obstruction should only ever mean solid geometry (walls, other pushables' colliders),
             // never interaction or camera trigger volumes the prop happens to slide into.
-            var hits = Physics.OverlapBox(next, this.obstructionHalfExtents, transform.rotation, this.obstructionMask, QueryTriggerInteraction.Ignore);
-            foreach (var hit in hits)
+            int count = Physics.OverlapBoxNonAlloc(center, halfExtents, this.hits, Quaternion.identity,
+                this.obstructionMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
             {
-                if (hit == this.ownCollider) continue;
+                var hit = this.hits[i];
+                if (hit == this.ownCollider || hit == pusher) continue;
                 return false;
             }
 
-            transform.DOKill();
-            transform.DOMove(next, this.strideTweenDuration).SetEase(Ease.OutQuad);
+            transform.position += axis * distance;
             return true;
+        }
+
+        private void GetObstructionVolume(Bounds bounds, out Vector3 center, out Vector3 halfExtents)
+        {
+            halfExtents = new Vector3(
+                Mathf.Max(0f, bounds.extents.x - this.obstructionSkin),
+                Mathf.Max(0f, bounds.extents.y - this.floorClearance * 0.5f),
+                Mathf.Max(0f, bounds.extents.z - this.obstructionSkin));
+            center = bounds.center + Vector3.up * (this.floorClearance * 0.5f);
         }
 
 #if UNITY_EDITOR
@@ -65,8 +73,7 @@ namespace CrimsonDraft.Navigation.Pushables
         // diagonal) -- these arrows show exactly the four directions a push can resolve to.
         //
         // Also draws:
-        // - the obstruction check volume TryStep uses (yellow), to see why a stride is/isn't
-        //   blocked at the current position;
+        // - the obstruction volume TryMove tests (yellow), to see why a push is/isn't blocked;
         // - on the floor, the span of each face the player can push from (green) and the corner
         //   zones where pushing never starts (red), using PushDetector's default corner margin.
         private void OnDrawGizmosSelected()
@@ -83,14 +90,13 @@ namespace CrimsonDraft.Navigation.Pushables
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.forward), axisLength, EventType.Repaint);
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.back), axisLength, EventType.Repaint);
 
-            Gizmos.color = Color.yellow;
-            Gizmos.matrix = Matrix4x4.TRS(center, transform.rotation, Vector3.one);
-            Gizmos.DrawWireCube(Vector3.zero, this.obstructionHalfExtents * 2f);
-            Gizmos.matrix = Matrix4x4.identity;
-
             if (boxCollider == null) return;
 
-            Bounds  bounds  = boxCollider.bounds;
+            Bounds bounds = boxCollider.bounds;
+            GetObstructionVolume(bounds, out Vector3 volumeCenter, out Vector3 volumeHalf);
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(volumeCenter, volumeHalf * 2f);
+
             Vector3 extents = bounds.extents;
             float   margin  = PushDetector.DefaultCornerMargin;
             float   floorY  = bounds.min.y + 0.01f;

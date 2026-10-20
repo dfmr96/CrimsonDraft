@@ -1,6 +1,5 @@
 #nullable enable
 
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
@@ -33,8 +32,9 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private float pushProbeRadiusFactor = PushDetector.DefaultProbeRadiusFactor; // RE2: 1.2 x half-width
         [SerializeField] private float pushProbeExtra        = PushDetector.DefaultProbeExtra;        // RE2: + 128 u
         [SerializeField] private float pushFloorTolerance    = 0.5f;            // feet vs pushable base: same floor
-        [SerializeField] private float pushStrideInterval = 0.5f; // placeholder -- tiempo entre zancadas (tambien vale como la espera inicial antes de la primera)
-        [SerializeField] private float pushStrideDistance = 0.5f; // placeholder -- distancia que avanza cada zancada, pendiente de pasada de feel
+        [SerializeField] private float pushStartDelay        = 0.2f;            // RE2 (PC): 6 frames of sustained contact at 30 fps
+        [SerializeField] private float pushSpeed             = 0.9f;            // placeholder -- velocidad de empuje, pendiente de pasada de feel
+        [SerializeField] private float pushTurnSpeed         = 540f;            // deg/s while squaring up to the push axis
 
         [Header("Health Speed Steps (REmake-based)")]
         [SerializeField, Range(0f, 1f)] private float yellowCautionThreshold  = 0.75f;
@@ -64,7 +64,7 @@ namespace CrimsonDraft.Navigation.Player
         private IOperatorRoster?      roster;
         private InputDevice?          lastDevice;
         private readonly Collider[]   pushCandidates = new Collider[8];
-        private float                 pushStrideTimer;
+        private float                 pushHoldTimer;
         private Transform?            grabbedBy;
         private int                   healthOverlayLayerIndex = -1;
 
@@ -185,8 +185,7 @@ namespace CrimsonDraft.Navigation.Player
                 this.animator.ResetTrigger(RunHash);
                 this.animator.ResetTrigger(IdleHash);
                 this.animator.SetFloat(SpeedHash, 0f);
-                this.animator.SetBool(PushingHash, false);
-                this.pushStrideTimer = 0f;
+                this.ResetPush();
 
                 var toGrabber = this.grabbedBy.position - transform.position;
                 toGrabber.y = 0f;
@@ -198,7 +197,7 @@ namespace CrimsonDraft.Navigation.Player
             if (this.IsAiming)
             {
                 this.rb.linearVelocity = Vector3.zero;
-                this.pushStrideTimer = 0f;
+                this.ResetPush();
                 return;
             }
 
@@ -207,47 +206,52 @@ namespace CrimsonDraft.Navigation.Player
                 this.rb.linearVelocity = Vector3.zero;
                 this.animator.SetTrigger(IdleHash);
                 this.animator.SetFloat(SpeedHash, 0f);
-                this.animator.SetBool(PushingHash, false);
-                this.pushStrideTimer = 0f;
+                this.ResetPush();
                 return;
             }
 
             if (this.TryResolvePush(result.Direction, out var pushable, out var pushAxis))
             {
-                // Locked in push mode: normal movement (and the sprint/health-speed path below)
-                // is fully suppressed for as long as this holds -- the player can only move
-                // together with the box, in discrete strides, never independently of it.
-                this.pushStrideTimer += Time.fixedDeltaTime;
-                transform.forward = pushAxis;
-                this.animator.SetBool(PushingHash, true);
+                // Locked against the prop: normal movement (and the sprint/health-speed path below)
+                // is suppressed for as long as this holds. RE2 sequence (PC 0x4CC320 / 0x4DB810):
+                // hold contact for pushStartDelay, square up to the axis, then push continuously.
                 this.rb.linearVelocity = Vector3.zero;
+                this.pushHoldTimer += Time.fixedDeltaTime;
 
-                if (this.pushStrideTimer < this.pushStrideInterval)
+                if (this.pushHoldTimer < this.pushStartDelay)
                 {
-                    // Between strides (this also covers the initial windup before the first
-                    // stride): straining against it, box hasn't budged yet this stride.
+                    // Leaning on it: brushing past a prop never moves it, only a sustained push does.
+                    this.animator.SetBool(PushingHash, false);
                     this.animator.SetTrigger(IdleHash);
                     return;
                 }
 
-                this.pushStrideTimer = 0f;
-                bool moved = pushable.TryStep(pushAxis, this.pushStrideDistance);
-                this.animator.SetTrigger(moved ? WalkHash : IdleHash);
+                this.animator.SetBool(PushingHash, true);
 
-                // Tween the player the exact same distance and the exact same duration as the
-                // box (read from the box, not a separately-tuned value here) -- keeps them glued
-                // together with no gap a mismatch between two independently-driven bodies could
-                // open. rb.DOMove (not a plain transform tween) keeps this MovePosition-safe for
-                // the player's still-active, non-kinematic Rigidbody.
-                if (moved)
+                var squared = Quaternion.LookRotation(pushAxis);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, squared, this.pushTurnSpeed * Time.fixedDeltaTime);
+                if (Quaternion.Angle(transform.rotation, squared) > 1f)
                 {
-                    this.rb.DOKill();
-                    this.rb.DOMove(this.rb.position + pushAxis * this.pushStrideDistance, pushable.StrideTweenDuration).SetEase(Ease.OutQuad);
+                    this.animator.SetTrigger(IdleHash);
+                    return;
                 }
+
+                if (!pushable.TryMove(pushAxis, this.pushSpeed * Time.fixedDeltaTime, this.bodyCollider))
+                {
+                    // Blocked: drop out of the push state (RE2 resets its counter). Still pushing
+                    // restarts the delay, so a blocked prop is retried, not strained against forever.
+                    this.ResetPush();
+                    this.animator.SetTrigger(IdleHash);
+                    return;
+                }
+
+                // The prop already moved this step; the player follows at the same speed and its
+                // capsule stays against the face through normal physics contact.
+                this.rb.linearVelocity = pushAxis * this.pushSpeed;
+                this.animator.SetTrigger(WalkHash);
                 return;
             }
-            this.pushStrideTimer = 0f;
-            this.animator.SetBool(PushingHash, false);
+            this.ResetPush();
 
             var isSprinting     = this.inputService.Sprint.IsPressed() && result.AllowSprint;
             var speedMultiplier = this.GetSpeedMultiplier();
@@ -266,6 +270,12 @@ namespace CrimsonDraft.Navigation.Player
             }
 
             this.rb.linearVelocity = resolvedDir * speed;
+        }
+
+        private void ResetPush()
+        {
+            this.pushHoldTimer = 0f;
+            this.animator.SetBool(PushingHash, false);
         }
 
         // Contact-only activation: no dedicated input, no IInteractable raycast+button path.
