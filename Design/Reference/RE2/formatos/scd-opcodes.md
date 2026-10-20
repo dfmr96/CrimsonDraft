@@ -19,7 +19,8 @@
 |---|---|---|---|
 | `0x1C` | `break_point` | **No hace nada** en PC (mismo manejador que `nop`) | Sí |
 | `0x18` | `gosub` | Llamar a un procedimiento | |
-| `0x21` | `ck` | Comprobar un flag | |
+| `0x21` | `ck` | Comprobar un flag (grupo, bit, valor) → [hitos](../jugador/hitos.md) | Sí (`0x4E8320`) |
+| `0x22` | `set` | Cambiar un flag (0 borrar, 1 activar, 7 alternar) | Sí (`0x4E8370`) |
 | `0x23` | `cmp` | Comparar variable (`V_USED_ITEM` = variable 2) | Sí |
 | `0x29` | `cut_chg` | Cambiar de cámara y **bloquear el cambio automático** | Sí (`0x4E86C0`) |
 | `0x2A` | `cut_old` | Volver a la cámara anterior | Sí (`0x4E8720`) |

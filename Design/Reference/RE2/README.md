@@ -52,6 +52,7 @@
 - [Vida de los personajes](jugador/vida.md)
 - [Rango y desbloqueos](jugador/rango-y-desbloqueos.md)
 - [Guardado e Ink Ribbon](jugador/guardado.md)
+- [Hitos y progreso guardado (flags)](jugador/hitos.md)
 
 ### Enemigos
 - [Estructura de entidad (jugador y enemigos)](enemigos/estructura-entidad.md)

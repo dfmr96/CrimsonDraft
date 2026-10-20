@@ -20,6 +20,9 @@
 | `0x994714` | Lista de enemigos |
 | `0x992C30` | Área (cuadrilátero) de la cámara actual |
 | `0x992E50` | 32 punteros a AOT de la sala |
+| `0x998D9C` | Imagen del archivo de guardado (cabecera `0x200` + bloque) → [hitos](../jugador/hitos.md) |
+| `0x998F9C` | **Bloque de guardado** (`0x598` bytes: flags de progreso, inventario, posición) |
+| `0x99912C` | `Scenario_flg` (hitos de la historia, 256 bits) |
 | `0x998FBC` | Contador de guardados |
 | `0x998FC4` | Campo de bits de armas infinitas |
 | `0x999114` / `0x999116` / `0x999118` | Etapa / sala / cámara de entrada |
@@ -39,6 +42,7 @@
 | `0x547D60` | Listas de combinaciones de ítems |
 | `0x547EA8` | **Atributos de ítems** (8 bytes × ID) |
 | `0x544DE8` | Manejadores de opcodes SCD (143) |
+| `0x5451F0` | Punteros a los 40 grupos de flags (`ck` / `set`) |
 | `0x543C48` | Punteros a tablas de daño por tipo de enemigo |
 | `0x52EFB8` / `0x52EFD8` | Vida del zombi (normal / fácil) |
 | `0x52F188` | Estados principales del zombi |
@@ -66,6 +70,9 @@
 | `0x4B0980` | Rango final y desbloqueos |
 | `0x4B13FB` | Armas de recompensa al empezar partida |
 | `0x4C5FCE` / `0x4C6397` | Guardado: gastar tinta / restaurar al cancelar |
+| `0x4C6264` / `0x4C5DAC` | Guardado: escribir `0x800` bytes al disco / cargar |
+| `0x510300` | Escribir archivo (`CreateFileA` + `WriteFile`) |
+| `0x4E8320` / `0x4E8370` | Opcodes `ck` / `set` |
 | `0x4D7720` | **Aplicar daño** |
 | `0x4D8FA6` | Vida máxima por personaje (TOFU 400) |
 | `0x4E2171` | Cambio a la compañera |

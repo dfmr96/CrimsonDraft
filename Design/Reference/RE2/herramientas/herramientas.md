@@ -51,6 +51,7 @@
 | `tim2png.py` | TIM → PNG (todas las paletas) |
 | `psx_extract.py` | Lector ISO9660 (sectores de 2048 o raw de 2352) |
 | `psyq_sym.py` | Lector de `MAIN.SYM` (Psy-Q MND v1) |
+| `psyq_structs.py` | Estructuras de `MAIN.SYM` con sus campos y offsets (así salieron los nombres de los grupos de flags y del bloque de guardado) |
 | `mipsdis.py` | Desensamblador MIPS (Capstone con `skipdata`) con símbolos |
 | `psx_funcmatch.py` | Busca funciones de la Beta en otras versiones con inmediatos enmascarados |
 | `mipsdis2.py` | Desensambla una función de la Beta por nombre, con nombres de `MAIN.SYM` en las llamadas |
