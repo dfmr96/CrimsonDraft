@@ -67,6 +67,10 @@ namespace CrimsonDraft.Navigation.Enemy
         public EnemyGrabPhase GrabPhase => grabPhase;
         public bool IsReactingToShot { get; private set; }
         public bool IsDead { get; private set; }
+        public bool IsRising { get; private set; }
+
+        // Colliders that EnterCorpseState switched off, so a revive turns back on exactly those.
+        private readonly System.Collections.Generic.List<Collider> corpseDisabledColliders = new();
         public Vector3 HitFxPosition => hitFxPoint != null ? hitFxPoint.position : transform.position + Vector3.up;
         public float TimeScale => timeScale?.Scale ?? 1f;
 
@@ -120,7 +124,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Update()
         {
-            if (playerController == null || IsDead) return;
+            if (playerController == null || IsDead || IsRising) return;
             if (dialoguePaused || inspectionSuspended) return;
 
             // Congela por completo a cualquier enemigo que no haya sido el que disparó el
@@ -350,7 +354,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         public void ResetToSpawn(Vector3 position, Quaternion rotation)
         {
-            if (!isActiveAndEnabled || IsDead) return;
+            if (!isActiveAndEnabled || IsDead || IsRising) return;
 
             // A room activated for the first time this session cascades Awake()/OnEnable() on its
             // enemies synchronously, but Start() (where navAgent is normally assigned) is deferred
@@ -384,7 +388,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
         {
             dialoguePaused = ev.IsActive;
-            if (IsDead || !navAgent.isActiveAndEnabled) return;
+            if (IsDead || IsRising || !navAgent.isActiveAndEnabled) return;
             navAgent.isStopped = ev.IsActive || state is EnemyAlertState.Attack;
         }
 
@@ -425,10 +429,51 @@ namespace CrimsonDraft.Navigation.Enemy
             if (navAgent != null) navAgent.enabled = false;
             if (sensor != null) sensor.enabled = false;
             if (hitbox != null) hitbox.enabled = false;
+            corpseDisabledColliders.Clear();
             foreach (var col in GetComponentsInChildren<Collider>(includeInactive: true))
+            {
+                if (!col.enabled) continue;
                 col.enabled = false;
+                corpseDisabledColliders.Add(col);
+            }
 
             if (bloodBlob != null) bloodBlob.Show(grow: freshDeath);
+        }
+
+        /// <summary>Gets a corpse back up (ZombieStandUp, played by EnemyAnimationReactor). It
+        /// stops counting as defeated right away; the AI only comes back once the clip ends
+        /// (<see cref="CompleteRise"/>). The blood pool stays on the floor where it fell.
+        /// Returns false if there's nothing to revive right now.</summary>
+        public bool Revive()
+        {
+            if (!IsDead || IsRising || !gameObject.activeInHierarchy) return false;
+            if (sceneTransitionService?.IsInCombat == true) return false;
+
+            IsDead   = false;
+            IsRising = true;
+            this.enemyStateRegistry?.SetAlive(this.enemyKey);
+
+            if (bloodBlob != null && bloodBlob.gameObject.activeSelf)
+                bloodBlob.LeaveBehind(transform.parent);
+            return true;
+        }
+
+        /// <summary>Called by EnemyAnimationReactor once ZombieStandUp has finished: hands the
+        /// enemy back to the AI in Idle, so it has to detect the player again.</summary>
+        public void CompleteRise()
+        {
+            if (!IsRising) return;
+            IsRising = false;
+
+            foreach (var col in corpseDisabledColliders)
+                if (col != null) col.enabled = true;
+            corpseDisabledColliders.Clear();
+            if (sensor != null) sensor.enabled = true;
+            if (hitbox != null) hitbox.enabled = true;
+
+            navAgent.enabled = true;
+            navAgent.Warp(transform.position);
+            TransitionTo(EnemyAlertState.Idle);
         }
 
 #if UNITY_EDITOR

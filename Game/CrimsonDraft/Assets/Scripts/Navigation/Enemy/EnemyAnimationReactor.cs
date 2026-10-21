@@ -9,7 +9,7 @@ namespace CrimsonDraft.Navigation.Enemy
     /// <summary>
     /// Traduce el estado de EnemyNavAgent en los parámetros del Animator de navegación
     /// (ZombieMale_Nav): Speed (blend Idle/Walk), Grabbing (agarre en curso), Bite (mordisco) y
-    /// Hit (reacción al disparo que inicia el combate). Un enemigo muerto pasa al estado LyingUp.
+    /// Hit (reacción al disparo que inicia el combate). Un enemigo muerto pasa al estado LyingUp, y uno revivido a StandUp.
     /// Las transiciones viven en el Animator Controller; acá solo se escriben parámetros.
     /// </summary>
     public sealed class EnemyAnimationReactor : MonoBehaviour
@@ -24,12 +24,15 @@ namespace CrimsonDraft.Navigation.Enemy
         private static readonly int BiteHash     = Animator.StringToHash("Bite");
         private static readonly int HitHash      = Animator.StringToHash("Hit");
         private static readonly int LyingUpHash  = Animator.StringToHash("LyingUp");
+        private static readonly int StandUpHash  = Animator.StringToHash("StandUp");
 
         private Animator     animator = null!;
         private NavMeshAgent navAgent = null!;
         private EnemyGrabPhase previousGrabPhase;
         private bool hitTriggered;
         private bool corpsePoseApplied;
+        private bool riseStarted;
+        private bool riseObserved;
 
         private void Awake()
         {
@@ -43,7 +46,11 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             previousGrabPhase = EnemyGrabPhase.None;
             hitTriggered      = false;
-            corpsePoseApplied = false; // reactivar el GameObject (cambio de sala) reinicia el Animator
+            // Reactivar el GameObject (cambio de sala) reinicia el Animator: la pose de cadáver o el
+            // levantarse se vuelven a aplicar desde cero.
+            corpsePoseApplied = false;
+            riseStarted       = false;
+            riseObserved      = false;
         }
 
         private void Update()
@@ -55,6 +62,37 @@ namespace CrimsonDraft.Navigation.Enemy
                 animator.speed = 1f;
                 animator.Play(LyingUpHash, 0, 0f);
                 corpsePoseApplied = true;
+                return;
+            }
+
+            // Levantándose: ZombieStandUp arranca desde la pose LyingUp y sale solo a Locomotion
+            // (exit time en el controller). Recién cuando el Animator dejó StandUp se le devuelve
+            // la IA al agente.
+            if (owner.IsRising)
+            {
+                corpsePoseApplied = false; // una próxima muerte vuelve a tirarlo al piso
+                animator.speed = owner.TimeScale;
+                if (!riseStarted)
+                {
+                    animator.SetBool(GrabbingHash, false);
+                    animator.SetFloat(SpeedHash, 0f);
+                    animator.Play(StandUpHash, 0, 0f);
+                    riseStarted = true;
+                    return;
+                }
+
+                if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash == StandUpHash)
+                {
+                    riseObserved = true;
+                    return;
+                }
+
+                if (riseObserved)
+                {
+                    riseStarted  = false;
+                    riseObserved = false;
+                    owner.CompleteRise();
+                }
                 return;
             }
 
@@ -97,5 +135,10 @@ namespace CrimsonDraft.Navigation.Enemy
         // llega al jugador. El mismo clip lo usa el modelo de combate, donde lo recibe
         // EnemyAttackEventRelay.
         public void OnAttackImpact() => owner.NotifyBiteImpact();
+
+        // Animation Event que trae ZombieStandUp desde el Horror Engine (TriggerEvent("StandUp")).
+        // Acá no se usa -- el fin del levantarse se detecta por el estado del Animator -- pero
+        // sin receptor Unity loguea un error en cada levantada.
+        public void TriggerEvent(string eventId) { }
     }
 }

@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Rendering.Shadows;
 
 namespace CrimsonDraft.Rendering.Blood
 {
@@ -28,6 +29,23 @@ namespace CrimsonDraft.Rendering.Blood
             this.growing = grow;
             this.elapsed = 0f;
             ApplyScale(grow ? 0f : 1f);
+        }
+
+        /// <summary>The corpse got back up: leaves a copy of the pool on the floor (under
+        /// <paramref name="parent"/>, e.g. the room), frozen at its current world size, and hides
+        /// this one, which stays on the enemy ready to grow again on its next death. The copy
+        /// only lives for this session.</summary>
+        public CorpseBloodBlob LeaveBehind(Transform? parent)
+        {
+            // Growth state isn't serialized, so the copy starts frozen at whatever size this one had.
+            var copy = Instantiate(this, parent, true); // keep the world pose and size
+            copy.name = name + " (left behind)";
+            // Without this the copy's BlobShadow would keep tracking the enemy as it walks away.
+            foreach (var shadow in copy.GetComponentsInChildren<BlobShadow>(includeInactive: true))
+                shadow.enabled = false;
+
+            gameObject.SetActive(false);
+            return copy;
         }
 
         public static float ScaleAt(float elapsed, float delay, float duration)

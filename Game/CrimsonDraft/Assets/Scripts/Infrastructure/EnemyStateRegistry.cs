@@ -41,6 +41,13 @@ namespace CrimsonDraft.Infrastructure
             this.corpses[enemyKey] = new CorpsePose(enemyKey, position, rotation);
         }
 
+        /// <summary>A revived enemy is no longer defeated, and its old corpse pose is dropped.</summary>
+        public void SetAlive(string enemyKey)
+        {
+            this.defeated.Remove(enemyKey);
+            this.corpses.Remove(enemyKey);
+        }
+
         public bool TryGetCorpsePose(string enemyKey, out CorpsePose pose) => this.corpses.TryGetValue(enemyKey, out pose);
 
         public IReadOnlyCollection<string> GetDefeated() => this.defeated;

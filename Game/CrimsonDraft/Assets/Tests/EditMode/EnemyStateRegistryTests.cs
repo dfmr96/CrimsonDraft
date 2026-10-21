@@ -45,6 +45,18 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void SetAlive_clearsDefeatedAndCorpsePose()
+        {
+            var registry = new EnemyStateRegistry();
+            registry.SetDefeated("enemy-a", Vector3.one, Quaternion.identity);
+            registry.SetAlive("enemy-a");
+
+            Assert.IsFalse(registry.IsDefeated("enemy-a"));
+            Assert.IsFalse(registry.TryGetCorpsePose("enemy-a", out _));
+            CollectionAssert.IsEmpty(registry.GetCorpsePoses());
+        }
+
+        [Test]
         public void SetDefeated_withoutPose_hasNoCorpsePose()
         {
             var registry = new EnemyStateRegistry();
