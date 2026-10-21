@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ac3e5160befd5e45a928600a6debf98, type: 3}
+  m_Name: MilestonesDataGraph
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Milestones.MilestoneGraph
+  lanes: []
+  nodes:
+  - id: 7f509d73c35a4e2e9bdf26098aab20ec
+    title: Take Sheep Key
+    laneId: 
+    position: {x: -27.756725, y: 481.1167}
+    trigger:
+      kind: 1
+      targetId: KI_01
+      item: {fileID: 0}
+      note: {fileID: 0}
+  - id: 52bfb992a019475884c04cdd5dabb25a
+    title: Fix steam leak
+    laneId: 
+    position: {x: 326.65, y: 481.00006}
+    trigger:
+      kind: 3
+      targetId: Socket_KI_11
+      item: {fileID: 0}
+      note: {fileID: 0}
+  edges:
+  - fromNodeId: 7f509d73c35a4e2e9bdf26098aab20ec
+    toNodeId: 52bfb992a019475884c04cdd5dabb25a
+    style: 0
+    laneId: 
+    useCustomColor: 0
+    customColor: {r: 1, g: 1, b: 1, a: 1}
+  notes: []
+  frames: []
