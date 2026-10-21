@@ -30,6 +30,12 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private float pushStrideInterval = 0.5f; // placeholder -- tiempo entre zancadas (tambien vale como la espera inicial antes de la primera)
         [SerializeField] private float pushStrideDistance = 0.5f; // placeholder -- distancia que avanza cada zancada, pendiente de pasada de feel
 
+        [Header("Bite FX")]
+        [Tooltip("Efecto de sangre instanciado en cada impacto del mordisco mientras está agarrado.")]
+        [SerializeField] private GameObject? biteFxPrefab;
+        [Tooltip("Punto desde donde sale la sangre del mordisco. Si está vacío se usa el hueso del cuello del Animator.")]
+        [SerializeField] private Transform?  biteFxPoint;
+
         [Header("Health Speed Steps (REmake-based)")]
         [SerializeField, Range(0f, 1f)] private float yellowCautionThreshold  = 0.75f;
         [SerializeField, Range(0f, 1f)] private float orangeCautionThreshold  = 0.50f;
@@ -136,8 +142,27 @@ namespace CrimsonDraft.Navigation.Player
         // Impacto del mordisco mientras está agarrado: GrabbedLoop -> GrabbedHurt -> GrabbedLoop.
         public void NotifyBitten()
         {
-            if (this.grabbedBy != null)
-                this.animator.SetTrigger(GrabbedHurtHash);
+            if (this.grabbedBy == null) return;
+            this.animator.SetTrigger(GrabbedHurtHash);
+            this.SpawnBiteFx(this.grabbedBy);
+        }
+
+        private void SpawnBiteFx(Transform grabber)
+        {
+            if (this.biteFxPrefab == null) return;
+
+            var point = this.biteFxPoint != null
+                ? this.biteFxPoint
+                : this.animator.isHuman ? this.animator.GetBoneTransform(HumanBodyBones.Neck) : null;
+            var fxPos = point != null ? point.position : transform.position + Vector3.up * 0.6f;
+
+            // Corrido hacia el lado del enemigo, que es donde muerde.
+            var toward = grabber.position - transform.position;
+            toward.y   = 0f;
+            if (toward.sqrMagnitude > 0.0001f)
+                fxPos += toward.normalized * 0.1f;
+
+            Instantiate(this.biteFxPrefab, fxPos, this.biteFxPrefab.transform.rotation);
         }
 
         private void OnMovePerformed(InputAction.CallbackContext ctx)
