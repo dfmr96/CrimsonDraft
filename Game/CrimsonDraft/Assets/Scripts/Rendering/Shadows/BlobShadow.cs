@@ -60,6 +60,7 @@ namespace CrimsonDraft.Rendering.Shadows
                 var hit = this.groundHits[i];
                 if (hit.collider.transform.IsChildOf(this.followed)) continue;
                 if (found && hit.distance >= ground.distance) continue;
+                if (this.settings.IgnoreInvisibleColliders && !HasVisibleRenderer(hit.collider)) continue;
 
                 ground = hit;
                 found  = true;
@@ -67,6 +68,9 @@ namespace CrimsonDraft.Rendering.Shadows
 
             return found;
         }
+
+        private static bool HasVisibleRenderer(Collider collider)
+            => collider.TryGetComponent<Renderer>(out var renderer) && renderer.enabled;
 
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()

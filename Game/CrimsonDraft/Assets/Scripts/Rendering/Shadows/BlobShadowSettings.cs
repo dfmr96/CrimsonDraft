@@ -12,6 +12,8 @@ namespace CrimsonDraft.Rendering.Shadows
         [SerializeField, Min(0f)] private float rayStartHeight = 0.25f;
         [SerializeField, Min(0f)] private float rayDistance    = 2f;
         [SerializeField, Min(0f)] private float surfaceBias    = 0.01f;
+        [SerializeField, Tooltip("Skip colliders whose object has no enabled Renderer (e.g. the combat slots' invisible click boxes), so the blob lands on the visible floor.")]
+        private bool ignoreInvisibleColliders;
 
         [Header("Shape")]
         [SerializeField, Tooltip("x = width across the shoulders, y = depth front-to-back (meters)")]
@@ -26,6 +28,7 @@ namespace CrimsonDraft.Rendering.Shadows
         public float     RayStartHeight => this.rayStartHeight;
         public float     RayDistance    => this.rayDistance;
         public float     SurfaceBias    => this.surfaceBias;
+        public bool      IgnoreInvisibleColliders => this.ignoreInvisibleColliders;
         public Vector2   Size           => this.size;
         public float     PulseDuration  => this.pulseDuration;
 

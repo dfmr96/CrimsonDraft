@@ -1,14 +1,15 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Rendering.Blood;
 
 namespace CrimsonDraft.Combat
 {
     /// <summary>
-    /// Attached to an enemy's battlefield prefab. Exposes the blood-pool object that
-    /// BattlefieldView reveals once the enemy is finished off, marking it as
-    /// definitively dead (RE-style feedback). The pool itself starts inactive and is
-    /// expected to handle its own grow-in effect once activated. Also exposes the point
+    /// Attached to an enemy's battlefield prefab. Exposes the blood blob that
+    /// BattlefieldView grows once the enemy is finished off, marking it as
+    /// definitively dead (RE-style feedback). The blob starts inactive and grows itself
+    /// in once shown (the same CorpseBloodBlob navigation corpses use). Also exposes the point
     /// BattlefieldView spawns hit VFX from on a landed shot, the head renderer hidden on a
     /// headshot kill, and the actual "head" skeleton bone used to place that explosion FX.
     /// The bone -- not the renderer -- is what tracks the animated head: SkinnedMeshRenderer.
@@ -17,12 +18,12 @@ namespace CrimsonDraft.Combat
     /// </summary>
     public sealed class EnemyDeathMarker : MonoBehaviour
     {
-        [SerializeField] private GameObject bloodPool = null!;
+        [SerializeField] private CorpseBloodBlob? bloodBlob;
         [SerializeField] private Transform? hitFxPoint;
         [SerializeField] private SkinnedMeshRenderer? headRenderer;
         [SerializeField] private Transform? headBone;
 
-        public GameObject BloodPool => this.bloodPool;
+        public CorpseBloodBlob? BloodBlob => this.bloodBlob;
         public Transform? HitFxPoint => this.hitFxPoint;
         public SkinnedMeshRenderer? HeadRenderer => this.headRenderer;
         public Transform? HeadBone => this.headBone;
