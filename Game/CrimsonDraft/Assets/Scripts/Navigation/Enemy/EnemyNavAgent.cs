@@ -485,42 +485,20 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (data == null) return;
 
+            // Discos en el piso, cada uno con su etiqueta en el borde (en direcciones distintas
+            // para que no se pisen). La visión sale desde el ojo, proyectada a la altura del piso.
             var pos       = transform.position;
             var eyeOrigin = eyePoint != null ? eyePoint.position : pos;
+            eyeOrigin.y   = pos.y;
 
-            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-            Gizmos.DrawWireSphere(pos, data.attackRange);
-
-            Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
-            Gizmos.DrawWireSphere(pos, data.walkSoundRadius);
-
-            Gizmos.color = new Color(0f, 0.5f, 1f, 0.25f);
-            Gizmos.DrawWireSphere(pos, data.runSoundRadius);
-
-            DrawVisualFovGizmo(eyeOrigin, data.visualRange, data.visualFov);
-        }
-
-        private void DrawVisualFovGizmo(Vector3 origin, float range, float fov)
-        {
-            const int arcSegments = 24;
-
-            Gizmos.color = new Color(0f, 1f, 0f, 0.5f);
-            var halfFov   = fov * 0.5f;
-            var leftEdge  = Quaternion.Euler(0f, -halfFov, 0f) * transform.forward;
-            var rightEdge = Quaternion.Euler(0f,  halfFov, 0f) * transform.forward;
-
-            Gizmos.DrawLine(origin, origin + leftEdge  * range);
-            Gizmos.DrawLine(origin, origin + rightEdge * range);
-
-            var previous = origin + leftEdge * range;
-            for (var i = 1; i <= arcSegments; i++)
-            {
-                var angle   = -halfFov + fov * (i / (float)arcSegments);
-                var dir     = Quaternion.Euler(0f, angle, 0f) * transform.forward;
-                var next    = origin + dir * range;
-                Gizmos.DrawLine(previous, next);
-                previous = next;
-            }
+            EnemyGizmos.LabeledDisc(pos, data.attackRange, new Color(1f, 0.2f, 0.2f, 0.8f), transform.right,
+                $"Grab {data.attackRange:0.#}m");
+            EnemyGizmos.LabeledDisc(pos, data.walkSoundRadius, new Color(0f, 1f, 1f, 0.6f), -transform.right,
+                $"Hears walk {data.walkSoundRadius:0.#}m");
+            EnemyGizmos.LabeledDisc(pos, data.runSoundRadius, new Color(0.2f, 0.5f, 1f, 0.6f), -transform.forward,
+                $"Hears run {data.runSoundRadius:0.#}m");
+            EnemyGizmos.LabeledArc(eyeOrigin, transform.forward, data.visualRange, data.visualFov, new Color(0.2f, 1f, 0.2f, 0.7f),
+                $"Sight {data.visualRange:0.#}m {data.visualFov:0}°");
         }
 #endif
     }
