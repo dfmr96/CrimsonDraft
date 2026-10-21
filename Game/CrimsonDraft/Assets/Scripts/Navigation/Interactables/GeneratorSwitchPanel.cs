@@ -148,6 +148,10 @@ namespace CrimsonDraft.Navigation.Interactables
         // with the scope's entry points, which have finished by the time Start is called.
         void Start()
         {
+            // The fuse socket's restore doesn't replay onActivated, so re-power the top row here.
+            if (this.fuseSocket != null && this.fuseSocket.IsActivated)
+                PowerTopRow();
+
             if (this.registry == null) return;
 
             var flag = this.registry.GetInserted(SolvedKey);
