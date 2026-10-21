@@ -38,6 +38,8 @@ namespace CrimsonDraft.Navigation.Enemy
         [SerializeField] private Transform?           eyePoint;
         [Tooltip("Charco de sangre que aparece bajo el cadáver (inactivo mientras el enemigo vive).")]
         [SerializeField] private CorpseBloodBlob?     bloodBlob;
+        [Tooltip("Arranca tirado en el piso, como cadáver sin sangre, hasta que algo lo levante (Revive). Para zombies 'muertos' puestos en la escena.")]
+        [SerializeField] private bool                 startsAsCorpse;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -66,6 +68,7 @@ namespace CrimsonDraft.Navigation.Enemy
         public EnemyAlertState State => state;
         public EnemyGrabPhase GrabPhase => grabPhase;
         public bool IsReactingToShot { get; private set; }
+        public bool StartsAsCorpse => this.startsAsCorpse;
         public bool IsDead { get; private set; }
         public bool IsRising { get; private set; }
 
@@ -405,10 +408,11 @@ namespace CrimsonDraft.Navigation.Enemy
         }
 
         /// <summary>Lays a defeated enemy down at its saved pose (or wherever it stands, for saves
-        /// that predate corpse poses).</summary>
-        public void RestoreAsCorpse(Vector3? position, Quaternion? rotation)
+        /// that predate corpse poses, and for enemies placed as corpses). An enemy placed as a
+        /// corpse never died, so it lies there without blood.</summary>
+        public void RestoreAsCorpse(Vector3? position, Quaternion? rotation, bool showBlood = true)
         {
-            EnterCorpseState(freshDeath: false);
+            EnterCorpseState(freshDeath: false, showBlood);
             if (position.HasValue) transform.position = position.Value;
             if (rotation.HasValue) transform.rotation = rotation.Value;
         }
@@ -416,7 +420,7 @@ namespace CrimsonDraft.Navigation.Enemy
         // Cadáver: sin IA, sin agente (lo saca también de la lista de objetivos del apuntado) y
         // sin colliders, así el jugador lo atraviesa. Queda solo la pose ZombieLyingUp, que
         // aplica EnemyAnimationReactor, y el charco de sangre (que solo crece en una muerte nueva).
-        private void EnterCorpseState(bool freshDeath)
+        private void EnterCorpseState(bool freshDeath, bool showBlood = true)
         {
             ReleasePlayer();
             SetGrabPhase(EnemyGrabPhase.None);
@@ -437,7 +441,7 @@ namespace CrimsonDraft.Navigation.Enemy
                 corpseDisabledColliders.Add(col);
             }
 
-            if (bloodBlob != null) bloodBlob.Show(grow: freshDeath);
+            if (bloodBlob != null && showBlood) bloodBlob.Show(grow: freshDeath);
         }
 
         /// <summary>Gets a corpse back up (ZombieStandUp, played by EnemyAnimationReactor). It

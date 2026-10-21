@@ -167,6 +167,7 @@ namespace CrimsonDraft.Tests
                     {
                         new EnemyCorpseEntry { enemyId = "enemy-2", position = new Vector3(3f, 0f, 7f), rotation = Quaternion.identity },
                     },
+                    revivedEnemyIds    = new List<string> { "enemy-3" },
                     itemSockets        = new List<ItemSocketStateEntry>
                     {
                         new ItemSocketStateEntry { socketId = "socket-1", inserted = new[] { true, false } },
@@ -212,6 +213,7 @@ namespace CrimsonDraft.Tests
                 Assert.IsFalse(world.Enemies.TryGetCorpsePose("enemy-1", out _));
                 Assert.IsTrue(world.Enemies.TryGetCorpsePose("enemy-2", out var corpse));
                 Assert.AreEqual(new Vector3(3f, 0f, 7f), corpse.Position);
+                Assert.IsTrue(world.Enemies.IsRevived("enemy-3"));
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
                 CollectionAssert.AreEqual(new[] { true, false }, world.ItemSockets.GetInserted("socket-1"));
                 Assert.IsTrue(world.Pushables.TryGet("crate-1", out var cratePosition));

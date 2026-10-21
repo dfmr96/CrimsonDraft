@@ -288,6 +288,7 @@ namespace CrimsonDraft.Navigation.Interactables
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
             foreach (var pose in this.world.Enemies.GetCorpsePoses())
                 data.enemyCorpses.Add(new EnemyCorpseEntry { enemyId = pose.EnemyKey, position = pose.Position, rotation = pose.Rotation });
+            data.revivedEnemyIds.AddRange(this.world.Enemies.GetRevived());
             data.heardRadioCallIds.AddRange(this.world.RadioCalls.HeardIds);
 
             foreach (var pair in this.world.ItemSockets.GetState())

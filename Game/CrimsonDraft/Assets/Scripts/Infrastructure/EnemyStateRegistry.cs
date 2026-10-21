@@ -28,6 +28,10 @@ namespace CrimsonDraft.Infrastructure
         // written before corpses existed) -- that body then lies at its scene spawn point.
         private readonly Dictionary<string, CorpsePose> corpses = new();
 
+        // Enemies that have been revived at least once. Only matters for enemies placed as
+        // corpses (EnemyNavAgent.startsAsCorpse): once up, they must not lie down again on load.
+        private readonly HashSet<string> revived = new();
+
         [Preserve]
         public EnemyStateRegistry() { }
 
@@ -41,12 +45,18 @@ namespace CrimsonDraft.Infrastructure
             this.corpses[enemyKey] = new CorpsePose(enemyKey, position, rotation);
         }
 
-        /// <summary>A revived enemy is no longer defeated, and its old corpse pose is dropped.</summary>
+        /// <summary>A revived enemy is no longer defeated, its old corpse pose is dropped and it
+        /// is remembered as revived.</summary>
         public void SetAlive(string enemyKey)
         {
             this.defeated.Remove(enemyKey);
             this.corpses.Remove(enemyKey);
+            this.revived.Add(enemyKey);
         }
+
+        public bool IsRevived(string enemyKey) => this.revived.Contains(enemyKey);
+
+        public IReadOnlyCollection<string> GetRevived() => this.revived;
 
         public bool TryGetCorpsePose(string enemyKey, out CorpsePose pose) => this.corpses.TryGetValue(enemyKey, out pose);
 
@@ -57,9 +67,11 @@ namespace CrimsonDraft.Infrastructure
         public void LoadState(IEnumerable<string> saved) => LoadState(saved, System.Array.Empty<CorpsePose>());
 
         public void LoadState(IEnumerable<string> saved, IEnumerable<CorpsePose> poses)
+            => LoadState(saved, poses, System.Array.Empty<string>());
+
+        public void LoadState(IEnumerable<string> saved, IEnumerable<CorpsePose> poses, IEnumerable<string> revivedKeys)
         {
-            this.defeated.Clear();
-            this.corpses.Clear();
+            ClearAll();
             foreach (var key in saved)
                 this.defeated.Add(key);
             foreach (var pose in poses)
@@ -67,12 +79,15 @@ namespace CrimsonDraft.Infrastructure
                 this.defeated.Add(pose.EnemyKey);
                 this.corpses[pose.EnemyKey] = pose;
             }
+            foreach (var key in revivedKeys)
+                this.revived.Add(key);
         }
 
         public void ClearAll()
         {
             this.defeated.Clear();
             this.corpses.Clear();
+            this.revived.Clear();
         }
     }
 }

@@ -57,6 +57,40 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void SetAlive_marksRevived_untilClearAll()
+        {
+            var registry = new EnemyStateRegistry();
+            registry.SetAlive("enemy-a");
+            Assert.IsTrue(registry.IsRevived("enemy-a"));
+
+            registry.ClearAll();
+            Assert.IsFalse(registry.IsRevived("enemy-a"));
+        }
+
+        [Test]
+        public void SetDefeated_afterRevive_keepsRevived()
+        {
+            // A placed corpse that got up and was killed again: defeated wins on load, but it
+            // must never fall back to the "placed corpse, no blood" state.
+            var registry = new EnemyStateRegistry();
+            registry.SetAlive("enemy-a");
+            registry.SetDefeated("enemy-a", Vector3.zero, Quaternion.identity);
+
+            Assert.IsTrue(registry.IsDefeated("enemy-a"));
+            Assert.IsTrue(registry.IsRevived("enemy-a"));
+        }
+
+        [Test]
+        public void LoadState_withRevived_restoresRevived()
+        {
+            var registry = new EnemyStateRegistry();
+            registry.LoadState(new List<string>(), new EnemyStateRegistry.CorpsePose[0], new[] { "enemy-a" });
+
+            Assert.IsTrue(registry.IsRevived("enemy-a"));
+            Assert.IsFalse(registry.IsDefeated("enemy-a"));
+        }
+
+        [Test]
         public void SetDefeated_withoutPose_hasNoCorpsePose()
         {
             var registry = new EnemyStateRegistry();

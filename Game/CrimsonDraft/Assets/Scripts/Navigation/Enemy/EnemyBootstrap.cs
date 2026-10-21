@@ -62,7 +62,13 @@ namespace CrimsonDraft.Navigation.Enemy
                     this.timeScale,
                     key);
 
-                if (!this.registry.IsDefeated(key)) continue;
+                if (!this.registry.IsDefeated(key))
+                {
+                    // Placed as a corpse and never got up yet: lies where it was put, no blood.
+                    if (agent.StartsAsCorpse && !this.registry.IsRevived(key))
+                        agent.RestoreAsCorpse(null, null, showBlood: false);
+                    continue;
+                }
 
                 if (this.registry.TryGetCorpsePose(key, out var pose))
                     agent.RestoreAsCorpse(pose.Position, pose.Rotation);

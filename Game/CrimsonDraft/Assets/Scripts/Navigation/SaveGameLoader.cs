@@ -118,7 +118,7 @@ namespace CrimsonDraft.Navigation
             var poses = new List<EnemyStateRegistry.CorpsePose>();
             foreach (var e in data.enemyCorpses ?? new List<EnemyCorpseEntry>())
                 poses.Add(new EnemyStateRegistry.CorpsePose(e.enemyId, e.position, e.rotation));
-            this.world.Enemies.LoadState(data.defeatedEnemyIds, poses);
+            this.world.Enemies.LoadState(data.defeatedEnemyIds, poses, data.revivedEnemyIds ?? new List<string>());
         }
 
         // Only restores the registry data — actually spawning each corpse's GameObject is
