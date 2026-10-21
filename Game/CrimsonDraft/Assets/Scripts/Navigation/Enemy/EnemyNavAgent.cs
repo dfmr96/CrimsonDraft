@@ -71,6 +71,9 @@ namespace CrimsonDraft.Navigation.Enemy
         public bool StartsAsCorpse => this.startsAsCorpse;
         public bool HasBeenRevived => this.enemyStateRegistry?.IsRevived(this.enemyKey) == true;
         public bool IsDead { get; private set; }
+        /// <summary>Placed as a corpse (startsAsCorpse) and not woken up yet: dead to the AI, but
+        /// not actually killed — e.g. EnemyHeadLook still lets it follow the player with its head.</summary>
+        public bool IsFeigningDeath { get; private set; }
         public bool IsRising { get; private set; }
 
         // Colliders that EnterCorpseState switched off, so a revive turns back on exactly those.
@@ -414,6 +417,7 @@ namespace CrimsonDraft.Navigation.Enemy
         public void RestoreAsCorpse(Vector3? position, Quaternion? rotation, bool showBlood = true)
         {
             EnterCorpseState(freshDeath: false, showBlood);
+            IsFeigningDeath = !showBlood; // sin sangre = colocado como cadáver, nunca murió
             if (position.HasValue) transform.position = position.Value;
             if (rotation.HasValue) transform.rotation = rotation.Value;
         }
@@ -426,6 +430,7 @@ namespace CrimsonDraft.Navigation.Enemy
             ReleasePlayer();
             SetGrabPhase(EnemyGrabPhase.None);
             IsDead           = true;
+            IsFeigningDeath  = false;
             IsReactingToShot = false;
             combatTriggered  = false;
             state            = EnemyAlertState.Idle;
@@ -454,8 +459,9 @@ namespace CrimsonDraft.Navigation.Enemy
             if (!IsDead || IsRising || !gameObject.activeInHierarchy) return false;
             if (sceneTransitionService?.IsInCombat == true) return false;
 
-            IsDead   = false;
-            IsRising = true;
+            IsDead          = false;
+            IsFeigningDeath = false;
+            IsRising        = true;
             this.enemyStateRegistry?.SetAlive(this.enemyKey);
 
             if (bloodBlob != null && bloodBlob.gameObject.activeSelf)

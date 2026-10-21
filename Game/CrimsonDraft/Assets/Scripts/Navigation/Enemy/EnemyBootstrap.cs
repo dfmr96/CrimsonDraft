@@ -68,6 +68,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
                 if (agent.TryGetComponent<EnemyReviveOnMilestone>(out var reviveTrigger))
                     reviveTrigger.Construct(this.milestones, this.playerController);
+                if (agent.TryGetComponent<EnemyHeadLook>(out var headLook))
+                    headLook.Construct(this.playerController);
 
                 if (!this.registry.IsDefeated(key))
                 {
