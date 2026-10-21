@@ -74,7 +74,6 @@ namespace CrimsonDraft.UI
                 CanCombine = data.Combinable,
                 CanEquip   = data.ItemType == ItemType.Weapon,
                 CanUse     = (data is ConsumableData consumable && consumable.HealAmount > 0)
-                          || data.ItemType == ItemType.KeyItem
                           || data.ItemType == ItemType.SocketItem,
                 CanSplit   = data.ItemType == ItemType.AmmoBox && this.inventory.CanSplit(view.BoundItem),
                 CanInspect = true,

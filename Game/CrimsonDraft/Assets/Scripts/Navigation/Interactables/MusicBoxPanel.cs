@@ -131,6 +131,15 @@ namespace CrimsonDraft.Navigation.Interactables
             this.itemSocket.SlotFilled += OnSlotFilled;
         }
 
+        // A room under an inactive parent runs Awake only when first switched on, i.e. after the
+        // socket's registry restore already fired SlotFilled -- that event would be missed, so
+        // pick the restored state up from the socket itself (same as SocketSlotReveal).
+        void OnEnable()
+        {
+            if (this.itemSocket.IsSlotFilled(this.keySlotIndex))  OnSlotFilled(this.keySlotIndex, false);
+            if (this.itemSocket.IsSlotFilled(this.dollSlotIndex)) OnSlotFilled(this.dollSlotIndex, false);
+        }
+
         void OnDestroy()
         {
             if (this.itemSocket != null) this.itemSocket.SlotFilled -= OnSlotFilled;

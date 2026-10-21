@@ -65,6 +65,13 @@ namespace CrimsonDraft.Navigation.Interactables
             this.socket.SlotFilled += OnSlotFilled;
         }
 
+        // Catches slots restored before this Awake ran (room that was inactive at scene load).
+        void OnEnable()
+        {
+            for (int i = 0; i < this.slots.Length; i++)
+                if (!this.filled[i] && this.socket.IsSlotFilled(i)) OnSlotFilled(i, false);
+        }
+
         void OnDestroy()
         {
             if (this.socket != null) this.socket.SlotFilled -= OnSlotFilled;
