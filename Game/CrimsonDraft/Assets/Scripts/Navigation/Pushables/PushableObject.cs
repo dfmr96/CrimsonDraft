@@ -1,90 +1,162 @@
 #nullable enable
 
-using DG.Tweening;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 
 namespace CrimsonDraft.Navigation.Pushables
 {
     // Contact-driven push mechanic (RE-classic style): walking into a tagged prop pushes it
-    // along a world axis. Activation is via child PushableObjectSide triggers (one per face,
-    // each with a fixed push direction resolved once at Awake via ResolveAxis below); per-stride
-    // movement is driven from PlayerController.FixedUpdate, which calls TryStep. This component
-    // owns only the prop's own logic: which axis each side pushes along, and whether a given
-    // stride is clear. See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
-    // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only discrete positioning
-    // validated by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the
-    // player like any other static level collider -- a Collider needs no Rigidbody of its own
-    // to do that; trigger events on the child PushableObjectSide colliders still fire too, since
-    // the player's own Rigidbody satisfies Unity's "at least one side of the pair has one" rule.
+    // along a world axis. Activation is geometric, from this prop's own BoxCollider bounds (see
+    // PushDetector: touch, same floor, square to a face, moving into it); continuous movement is
+    // driven from PlayerController.FixedUpdate, which calls TryMove every physics step while the
+    // push lasts. This component owns only the prop's own logic: its bounds and whether a move
+    // is clear. Props are only ever placed at 90-degree rotations, so the collider's world bounds
+    // are exact. See docs/superpowers/specs/2026-09-15-pushable-objects-design.md.
+    // No Rigidbody: a pushable prop doesn't need gravity or dynamics, only positioning validated
+    // by hand via Physics.OverlapBox below. Its solid BoxCollider still blocks the player like any
+    // other static level collider -- a Collider needs no Rigidbody of its own.
+    //
+    // Position persistence: by default a pushable goes back to its home point every time its room
+    // is entered (rooms are toggled active, so OnEnable runs on every entry). Only after
+    // SavePosition() -- called by whatever puzzle logic decides the box should stay put -- does it
+    // keep its position, across room entries and in save files (PushableStateRegistry).
     [RequireComponent(typeof(BoxCollider))]
     public sealed class PushableObject : MonoBehaviour
     {
-        [SerializeField] private LayerMask obstructionMask;          // walls, other pushables
-        [SerializeField] private Vector3   obstructionHalfExtents = new Vector3(0.4f, 0.4f, 0.4f);
-        [SerializeField] private float     strideTweenDuration = 0.3f; // placeholder -- debe ser menor a PlayerController.pushStrideInterval para no solapar zancadas
+        [SerializeField] private LayerMask obstructionMask;              // walls, other pushables, enemies
+        [SerializeField] private float     obstructionSkin = 0.01f;      // shrink on X/Z so resting against a wall isn't a hit
+        [SerializeField] private float     floorClearance  = 0.1f;       // bottom slice ignored so the floor it rests on isn't a hit
 
-        // PlayerController reads this to tween its own stride the exact same duration -- a
-        // single source of truth so the two tweens can never drift out of sync with each other.
-        public float StrideTweenDuration => this.strideTweenDuration;
+        [Header("Persistence")]
+        [Tooltip("Unique, stable id. Only needed if something calls SavePosition() on this pushable.")]
+        [SerializeField] private string     pushableId = "";
+        [Tooltip("Where the pushable goes back to when its room is entered. Must NOT be a child of the pushable. Empty = its position at scene start.")]
+        [SerializeField] private Transform? homePoint;
 
+        // World-space bounds of the solid collider -- what PushDetector tests contact and faces against.
+        public Bounds Bounds => this.ownCollider.bounds;
+
+        public string PushableId => this.pushableId;
+
+        // Lazily captured: PushableBootstrap can reach a pushable in a not-yet-visited room before
+        // its Awake has run, and the transform is still at its authored position either way.
+        public Vector3 HomePosition
+        {
+            get
+            {
+                if (this.homePoint != null) return this.homePoint.position;
+                if (!this.hasSpawnPosition)
+                {
+                    this.spawnPosition    = transform.position;
+                    this.hasSpawnPosition = true;
+                }
+                return this.spawnPosition;
+            }
+        }
+
+        private readonly Collider[] hits = new Collider[8];
         private BoxCollider ownCollider = null!;
+        private PushableStateRegistry? registry;
+        private Vector3 spawnPosition;
+        private bool    hasSpawnPosition;
 
         private void Awake()
         {
             this.ownCollider = GetComponent<BoxCollider>();
+            _ = HomePosition;
         }
 
-        // Pure math -- no Unity physics/NavMesh involved. Dominant axis wins regardless of
-        // contact angle, so a corner hit snaps to one axis instead of pushing diagonally.
-        public static Vector3 ResolveAxis(Vector3 boxPosition, Vector3 playerPosition)
+        private void OnEnable() => ResetPosition();
+
+        // Called by PushableBootstrap once per scene load, after SaveGameLoader has filled the
+        // registry -- moves the pushable to its saved position, if it has one.
+        public void Construct(PushableStateRegistry registry)
         {
-            Vector3 delta = boxPosition - playerPosition;
-            return Mathf.Abs(delta.x) >= Mathf.Abs(delta.z)
-                ? new Vector3(Mathf.Sign(delta.x), 0f, 0f)
-                : new Vector3(0f, 0f, Mathf.Sign(delta.z));
+            this.registry = registry;
+            ResetPosition();
         }
 
-        // Validates and, if clear, performs one step. Returns false (no movement) if the next
-        // position overlaps something solid. No NavMesh check -- level geometry (walls) already
-        // bounds where a pushable puzzle can go, and sampling the NavMesh from a box turned out
-        // to be a persistent source of bugs (the obstacle's own carve hole, the pivot-vs-ground
-        // height mismatch); physics obstruction alone is simpler and sufficient here.
-        public bool TryStep(Vector3 axisDirection, float stepDistance)
+        // Saved position if SavePosition() was ever called for this id, home position otherwise.
+        public void ResetPosition()
         {
-            Vector3 next = transform.position + axisDirection * stepDistance;
+            transform.position = this.registry != null && this.registry.TryGet(this.pushableId, out var saved)
+                ? saved
+                : HomePosition;
+        }
 
-            // QueryTriggerInteraction.Ignore is required here -- Physics.OverlapBox includes
-            // triggers by default, and this object's own PushableObjectSide triggers sit close
-            // enough (one per face) that the opposite side's trigger falls inside the check
-            // volume at the new position, self-blocking every single stride. Obstruction should
-            // only ever mean solid geometry anyway (walls, other pushables' solid colliders).
-            var hits = Physics.OverlapBox(next, this.obstructionHalfExtents, transform.rotation, this.obstructionMask, QueryTriggerInteraction.Ignore);
-            foreach (var hit in hits)
+        // Keeps the pushable where it is from now on: room re-entries and save files restore this
+        // position instead of the home point. Call again after further pushes to update it.
+        public void SavePosition()
+        {
+            if (string.IsNullOrEmpty(this.pushableId))
             {
-                if (hit == this.ownCollider) continue;
+                Debug.LogWarning($"{name}: SavePosition() needs a pushableId; position not saved.", this);
+                return;
+            }
+            if (this.registry == null)
+            {
+                Debug.LogWarning($"{name}: SavePosition() before PushableBootstrap ran; position not saved.", this);
+                return;
+            }
+            this.registry.Record(this.pushableId, transform.position);
+        }
+
+        // Moves the prop `distance` along `axis` if the moved bounds are clear, like RE2's object
+        // loop (PC 0x4CC320): the whole move is rejected on any overlap, never partially applied.
+        // `pusher` (the player's own collider) is ignored -- it is always right behind the face.
+        // No NavMesh check -- level geometry (walls) already bounds where a pushable puzzle can go,
+        // and sampling the NavMesh from a box turned out to be a persistent source of bugs (the
+        // obstacle's own carve hole, the pivot-vs-ground height mismatch).
+        public bool TryMove(Vector3 axis, float distance, Collider? pusher)
+        {
+            GetObstructionVolume(this.Bounds, out Vector3 center, out Vector3 halfExtents);
+            center += axis * distance;
+
+            // QueryTriggerInteraction.Ignore: Physics.OverlapBox includes triggers by default, and
+            // obstruction should only ever mean solid geometry (walls, other pushables' colliders),
+            // never interaction or camera trigger volumes the prop happens to slide into.
+            int count = Physics.OverlapBoxNonAlloc(center, halfExtents, this.hits, Quaternion.identity,
+                this.obstructionMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                var hit = this.hits[i];
+                if (hit == this.ownCollider || hit == pusher) continue;
                 return false;
             }
 
-            transform.DOKill();
-            transform.DOMove(next, this.strideTweenDuration).SetEase(Ease.OutQuad);
+            transform.position += axis * distance;
             return true;
         }
 
+        private void GetObstructionVolume(Bounds bounds, out Vector3 center, out Vector3 halfExtents)
+        {
+            halfExtents = new Vector3(
+                Mathf.Max(0f, bounds.extents.x - this.obstructionSkin),
+                Mathf.Max(0f, bounds.extents.y - this.floorClearance * 0.5f),
+                Mathf.Max(0f, bounds.extents.z - this.obstructionSkin));
+            center = bounds.center + Vector3.up * (this.floorClearance * 0.5f);
+        }
+
 #if UNITY_EDITOR
-        // Push is always world-axis-locked (ResolveAxis only ever returns +-X or +-Z, never a
-        // diagonal) -- these arrows show exactly the four directions a push can resolve to from
-        // this object, regardless of which side the player approaches from.
+        private void OnValidate()
+        {
+            // A child home point moves with the box, so resetting to it would do nothing.
+            if (this.homePoint != null && this.homePoint.IsChildOf(transform))
+                Debug.LogWarning($"{name}: homePoint must not be a child of the pushable -- it moves with it.", this);
+        }
+
+        // Push is always world-axis-locked (PushDetector only ever resolves +-X or +-Z, never a
+        // diagonal) -- these arrows show exactly the four directions a push can resolve to.
         //
-        // Also draws, from the parent so selecting the crate shows everything at once:
-        // - the obstruction check volume TryStep uses (yellow), to see why a stride is/isn't
-        //   blocked at the current position;
-        // - each child PushableObjectSide's trigger bounds (green) and its resolved push
-        //   direction (recomputed live here via ResolveAxis, not read from the side's own Awake
-        //   -- so this is accurate even outside Play mode).
+        // Also draws:
+        // - the obstruction volume TryMove tests (yellow), to see why a push is/isn't blocked;
+        // - on the floor, the span of each face the player can push from (green) and the corner
+        //   zones where pushing never starts (red), using PushDetector's default corner margin.
         private void OnDrawGizmosSelected()
         {
             const float axisLength = 1.5f;
             Vector3 center = transform.position;
+            var boxCollider = GetComponent<BoxCollider>();
 
             UnityEditor.Handles.color = Color.red;
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.right), axisLength, EventType.Repaint);
@@ -94,26 +166,45 @@ namespace CrimsonDraft.Navigation.Pushables
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.forward), axisLength, EventType.Repaint);
             UnityEditor.Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(Vector3.back), axisLength, EventType.Repaint);
 
+            if (boxCollider == null) return;
+
+            Bounds bounds = boxCollider.bounds;
+            GetObstructionVolume(bounds, out Vector3 volumeCenter, out Vector3 volumeHalf);
             Gizmos.color = Color.yellow;
-            Gizmos.matrix = Matrix4x4.TRS(center, transform.rotation, Vector3.one);
-            Gizmos.DrawWireCube(Vector3.zero, this.obstructionHalfExtents * 2f);
-            Gizmos.matrix = Matrix4x4.identity;
+            Gizmos.DrawWireCube(volumeCenter, volumeHalf * 2f);
 
-            foreach (var side in GetComponentsInChildren<PushableObjectSide>())
+            // Ghost of the box at its home point (cyan), where a room re-entry puts it back.
+            if (this.homePoint != null)
             {
-                if (side.TryGetComponent(out BoxCollider sideCollider))
-                {
-                    Gizmos.color = new Color(0f, 1f, 0f, 0.35f);
-                    Gizmos.matrix = side.transform.localToWorldMatrix;
-                    Gizmos.DrawCube(sideCollider.center, sideCollider.size);
-                    Gizmos.color = Color.green;
-                    Gizmos.DrawWireCube(sideCollider.center, sideCollider.size);
-                    Gizmos.matrix = Matrix4x4.identity;
-                }
+                Vector3 homeCenter = bounds.center + (this.homePoint.position - transform.position);
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawLine(bounds.center, homeCenter);
+                Gizmos.DrawWireCube(homeCenter, bounds.size);
+            }
 
-                Vector3 sideDirection = ResolveAxis(center, side.transform.position);
-                UnityEditor.Handles.color = Color.green;
-                UnityEditor.Handles.ArrowHandleCap(0, side.transform.position, Quaternion.LookRotation(sideDirection), 0.5f, EventType.Repaint);
+            Vector3 extents = bounds.extents;
+            float   margin  = PushDetector.DefaultCornerMargin;
+            float   floorY  = bounds.min.y + 0.01f;
+            const float bandDepth = 0.3f;
+
+            // Pushable face spans (green) and dead corners (red), as thin bands just outside each face.
+            foreach (var sign in new[] { -1f, 1f })
+            {
+                var zFace = new Vector3(bounds.center.x, floorY, bounds.center.z + sign * (extents.z + bandDepth * 0.5f));
+                var xFace = new Vector3(bounds.center.x + sign * (extents.x + bandDepth * 0.5f), floorY, bounds.center.z);
+
+                Gizmos.color = new Color(0f, 1f, 0f, 0.35f);
+                Gizmos.DrawCube(zFace, new Vector3(Mathf.Max(0f, extents.x - margin) * 2f, 0.02f, bandDepth));
+                Gizmos.DrawCube(xFace, new Vector3(bandDepth, 0.02f, Mathf.Max(0f, extents.z - margin) * 2f));
+
+                Gizmos.color = new Color(1f, 0f, 0f, 0.35f);
+                foreach (var cornerSign in new[] { -1f, 1f })
+                {
+                    Gizmos.DrawCube(new Vector3(bounds.center.x + cornerSign * (extents.x - margin * 0.5f), floorY, zFace.z),
+                                    new Vector3(margin, 0.02f, bandDepth));
+                    Gizmos.DrawCube(new Vector3(xFace.x, floorY, bounds.center.z + cornerSign * (extents.z - margin * 0.5f)),
+                                    new Vector3(bandDepth, 0.02f, margin));
+                }
             }
         }
 #endif

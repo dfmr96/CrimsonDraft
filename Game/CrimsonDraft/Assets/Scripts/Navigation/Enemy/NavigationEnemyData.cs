@@ -20,6 +20,8 @@ namespace CrimsonDraft.Navigation.Enemy
         public float attackRange = 1.3f;
         [Tooltip("Margen extra sobre attackRange antes de volver a Alerted (evita flickering en el borde).")]
         public float attackRangeBuffer = 0.3f;
+        [Tooltip("Solo enemigos stationary (trampa): ángulo total del cono frontal, dentro de attackRange, en el que intenta agarrar. Fuera del cono no agarra (no gira el cuerpo).")]
+        public float trapGrabCone = 70f;
 
         [Header("Attack - Agarre y mordisco")]
         [Tooltip("Segundos desde que arranca el agarre hasta que la hitbox empieza a chequear si el jugador está adentro.")]

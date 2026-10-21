@@ -56,13 +56,19 @@ namespace CrimsonDraft.Navigation
             var data = this.saveGameService.ConsumePendingLoad();
             if (data == null) return;
 
+            // First, so anything raised while the rest restores (e.g. inventory ContentsChanged)
+            // already sees the loaded milestones and puzzles.
+            this.world.Milestones.LoadState(data.completedMilestoneIds ?? new List<string>());
+            this.world.Puzzles.LoadState(data.solvedPuzzleIds ?? new List<string>());
+
             ApplyDoors(data);
             ApplyRooms(data);
             ApplyItemSockets(data);
+            ApplyPushables(data);
             this.world.Pickups.LoadState(data.collectedPickupIds);
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
-            this.world.Enemies.LoadState(data.defeatedEnemyIds);
+            ApplyEnemies(data);
             this.world.RadioCalls.LoadState(data.heardRadioCallIds);
             ApplyOperatorCorpses(data);
             ApplyInventory(data);
@@ -95,6 +101,24 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.itemSockets)
                 dict[entry.socketId] = entry.inserted;
             this.world.ItemSockets.LoadState(dict);
+        }
+
+        // Registry only -- PushableBootstrap (registered after this loader) moves the boxes.
+        private void ApplyPushables(SaveGameData data)
+        {
+            var dict = new Dictionary<string, UnityEngine.Vector3>();
+            foreach (var entry in data.pushables)
+                dict[entry.pushableId] = entry.position;
+            this.world.Pushables.LoadState(dict);
+        }
+
+        // Registry only -- EnemyBootstrap (registered after this loader) lays the bodies down.
+        private void ApplyEnemies(SaveGameData data)
+        {
+            var poses = new List<EnemyStateRegistry.CorpsePose>();
+            foreach (var e in data.enemyCorpses ?? new List<EnemyCorpseEntry>())
+                poses.Add(new EnemyStateRegistry.CorpsePose(e.enemyId, e.position, e.rotation));
+            this.world.Enemies.LoadState(data.defeatedEnemyIds, poses, data.revivedEnemyIds ?? new List<string>());
         }
 
         // Only restores the registry data — actually spawning each corpse's GameObject is

@@ -35,6 +35,9 @@ namespace CrimsonDraft.Infrastructure.Save
             this.world.OperatorCorpses.ClearAll();
             this.world.ItemSockets.ClearAll();
             this.world.RadioCalls.ClearAll();
+            this.world.Pushables.ClearAll();
+            this.world.Milestones.ClearAll();
+            this.world.Puzzles.ClearAll();
             this.inventoryState.ClearAll();
             this.rosterHealth.ClearAll();
             this.playtimeTracker.Reset();

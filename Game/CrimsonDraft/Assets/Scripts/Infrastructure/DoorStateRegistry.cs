@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine.Scripting;
 
@@ -24,16 +25,24 @@ namespace CrimsonDraft.Infrastructure
 
         public void SetUnlocked(string doorId) => MarkUnlocked(doorId);
 
+        public event Action? Changed;
+
         public void MarkLocked(string doorId)
         {
-            if (GetMapState(doorId) == DoorMapState.Unlocked)
+            var current = GetMapState(doorId);
+            if (current == DoorMapState.Unlocked || current == DoorMapState.Locked)
                 return;
 
             this.state[doorId] = DoorMapState.Locked;
+            Changed?.Invoke();
         }
 
         public void MarkUnlocked(string doorId)
-            => this.state[doorId] = DoorMapState.Unlocked;
+        {
+            if (GetMapState(doorId) == DoorMapState.Unlocked) return;
+            this.state[doorId] = DoorMapState.Unlocked;
+            Changed?.Invoke();
+        }
 
         public DoorMapState GetMapState(string doorId)
             => this.state.TryGetValue(doorId, out var value) ? value : DoorMapState.Unknown;

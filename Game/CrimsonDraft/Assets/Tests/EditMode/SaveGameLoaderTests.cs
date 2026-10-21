@@ -91,7 +91,7 @@ namespace CrimsonDraft.Tests
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -102,6 +102,39 @@ namespace CrimsonDraft.Tests
 
                 Assert.IsNull(inventory.RestoredEntries);
                 Assert.IsNull(roomOrch.ActivatedRoomId);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(playerGo);
+                UnityEngine.Object.DestroyImmediate(itemDb);
+            }
+        }
+
+        // A save written before milestones existed has neither list: both load empty.
+        [Test]
+        public void Initialize_withSaveFromBeforeMilestones_loadsEmptyLists()
+        {
+            var saveService = new FakeSaveGameService
+            {
+                PendingLoad = JsonUtility.FromJson<SaveGameData>("{\"sceneName\":\"Deck_B\",\"roomId\":\"room-1\"}"),
+            };
+            var itemDb = MakeDatabase();
+            var world  = new WorldStateRegistries(
+                new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(),
+                new MilestoneRegistry(), new PuzzleStateRegistry());
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var loader = new SaveGameLoader(saveService, new FakeInventoryService(), new FakeRoster(),
+                    new FakeRoomOrchestrator(), player, itemDb, world, new PlaytimeTracker());
+
+                Assert.DoesNotThrow(() => ((IInitializable)loader).Initialize());
+                Assert.AreEqual(0, world.Milestones.CompletedIds.Count);
+                Assert.AreEqual(0, world.Puzzles.SolvedIds.Count);
             }
             finally
             {
@@ -129,7 +162,12 @@ namespace CrimsonDraft.Tests
                     collectedPickupIds = new List<string> { "pickup-1" },
                     readNoteIds        = new List<string> { "note-1" },
                     knownMapIds        = new List<string> { "map-1" },
-                    defeatedEnemyIds   = new List<string> { "enemy-1" },
+                    defeatedEnemyIds   = new List<string> { "enemy-1", "enemy-2" },
+                    enemyCorpses       = new List<EnemyCorpseEntry>
+                    {
+                        new EnemyCorpseEntry { enemyId = "enemy-2", position = new Vector3(3f, 0f, 7f), rotation = Quaternion.identity },
+                    },
+                    revivedEnemyIds    = new List<string> { "enemy-3" },
                     itemSockets        = new List<ItemSocketStateEntry>
                     {
                         new ItemSocketStateEntry { socketId = "socket-1", inserted = new[] { true, false } },
@@ -138,6 +176,12 @@ namespace CrimsonDraft.Tests
                     {
                         new OperatorCorpseEntry { slotIndex = 0, roomId = "room-2", position = new Vector3(1f, 0f, 1f), rotation = Quaternion.identity },
                     },
+                    pushables          = new List<PushableStateEntry>
+                    {
+                        new PushableStateEntry { pushableId = "crate-1", position = new Vector3(4f, 0f, 5f) },
+                    },
+                    completedMilestoneIds = new List<string> { "m1" },
+                    solvedPuzzleIds       = new List<string> { "p1" },
                     operatorHp         = new[] { 80 },
                     inventorySlots     = new List<InventorySlotEntry>
                     {
@@ -151,7 +195,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -166,8 +210,16 @@ namespace CrimsonDraft.Tests
                 Assert.IsTrue(world.Notes.IsCollected("note-1"));
                 Assert.IsTrue(world.KnownMaps.IsKnown("map-1"));
                 Assert.IsTrue(world.Enemies.IsDefeated("enemy-1"));
+                Assert.IsFalse(world.Enemies.TryGetCorpsePose("enemy-1", out _));
+                Assert.IsTrue(world.Enemies.TryGetCorpsePose("enemy-2", out var corpse));
+                Assert.AreEqual(new Vector3(3f, 0f, 7f), corpse.Position);
+                Assert.IsTrue(world.Enemies.IsRevived("enemy-3"));
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
                 CollectionAssert.AreEqual(new[] { true, false }, world.ItemSockets.GetInserted("socket-1"));
+                Assert.IsTrue(world.Pushables.TryGet("crate-1", out var cratePosition));
+                Assert.AreEqual(new Vector3(4f, 0f, 5f), cratePosition);
+                Assert.IsTrue(world.Milestones.IsCompleted("m1"));
+                Assert.IsTrue(world.Puzzles.IsSolved("p1"));
                 CollectionAssert.AreEqual(new[] { 80 }, roster.RestoredHp);
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);

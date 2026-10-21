@@ -30,10 +30,25 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class EnemyCorpseEntry
+    {
+        public string     enemyId = "";
+        public Vector3    position;
+        public Quaternion rotation = Quaternion.identity;
+    }
+
+    [Serializable]
     public sealed class ItemSocketStateEntry
     {
         public string  socketId = "";
         public bool[]  inserted = Array.Empty<bool>();
+    }
+
+    [Serializable]
+    public sealed class PushableStateEntry
+    {
+        public string  pushableId = "";
+        public Vector3 position;
     }
 
     [Serializable]
@@ -88,9 +103,14 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<EnemyCorpseEntry>   enemyCorpses       = new List<EnemyCorpseEntry>();
+        public List<string>             revivedEnemyIds    = new List<string>();
         public List<string>             heardRadioCallIds  = new List<string>();
         public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
+        public List<PushableStateEntry> pushables          = new List<PushableStateEntry>();
+        public List<string>             completedMilestoneIds = new List<string>();
+        public List<string>             solvedPuzzleIds       = new List<string>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
         public List<InventoryItemEntry> inventoryItems     = new List<InventoryItemEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();

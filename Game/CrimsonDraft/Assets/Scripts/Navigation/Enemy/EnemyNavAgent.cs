@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Rendering.Blood;
 
 namespace CrimsonDraft.Navigation.Enemy
 {
@@ -35,6 +36,17 @@ namespace CrimsonDraft.Navigation.Enemy
         [Tooltip("Punto (colgado de un hueso del torso) desde donde sale la sangre al recibir un disparo.")]
         [SerializeField] private Transform?           hitFxPoint;
         [SerializeField] private Transform?           eyePoint;
+        [Tooltip("Charco de sangre que aparece bajo el cadáver (inactivo mientras el enemigo vive).")]
+        [SerializeField] private CorpseBloodBlob?     bloodBlob;
+        [Tooltip("Arranca tirado en el piso, como cadáver sin sangre, hasta que algo lo levante (Revive). Para zombies 'muertos' puestos en la escena.")]
+        [SerializeField] private bool                 startsAsCorpse;
+        [Tooltip("Trampa: no se mueve ni gira el cuerpo; agarra si el jugador le pasa por delante (attackRange + trapGrabCone). Si falla el agarre, sale a perseguir.")]
+        [SerializeField] private bool                 stationary;
+
+        // Una trampa que falló el agarre deja de esperar y persigue como cualquier crawler, hasta
+        // que la sala la vuelve a poner en su spawn.
+        private bool trapSprung;
+        private bool IsTrap => stationary && !trapSprung;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -63,6 +75,16 @@ namespace CrimsonDraft.Navigation.Enemy
         public EnemyAlertState State => state;
         public EnemyGrabPhase GrabPhase => grabPhase;
         public bool IsReactingToShot { get; private set; }
+        public bool StartsAsCorpse => this.startsAsCorpse;
+        public bool HasBeenRevived => this.enemyStateRegistry?.IsRevived(this.enemyKey) == true;
+        public bool IsDead { get; private set; }
+        /// <summary>Placed as a corpse (startsAsCorpse) and not woken up yet: dead to the AI, but
+        /// not actually killed — e.g. EnemyHeadLook still lets it follow the player with its head.</summary>
+        public bool IsFeigningDeath { get; private set; }
+        public bool IsRising { get; private set; }
+
+        // Colliders that EnterCorpseState switched off, so a revive turns back on exactly those.
+        private readonly System.Collections.Generic.List<Collider> corpseDisabledColliders = new();
         public Vector3 HitFxPosition => hitFxPoint != null ? hitFxPoint.position : transform.position + Vector3.up;
         public float TimeScale => timeScale?.Scale ?? 1f;
 
@@ -90,7 +112,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Start()
         {
-            navAgent = GetComponent<NavMeshAgent>();
+            if (navAgent == null) navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
             if (playerRb == null)
             {
@@ -116,7 +138,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Update()
         {
-            if (playerController == null) return;
+            if (playerController == null || IsDead || IsRising) return;
             if (dialoguePaused || inspectionSuspended) return;
 
             // Congela por completo a cualquier enemigo que no haya sido el que disparó el
@@ -141,6 +163,16 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void UpdateIdle()
         {
+            if (IsTrap)
+            {
+                // La trampa no persigue ni gira: espera a que el jugador le pase por delante.
+                var toPlayer = playerController!.transform.position - transform.position;
+                if (IsInTrapGrabZone(transform.forward, toPlayer, data.attackRange, data.trapGrabCone)
+                    && Time.time >= nextGrabAllowedTime)
+                    TransitionTo(EnemyAlertState.Attack);
+                return;
+            }
+
             if (Detect())
                 TransitionTo(EnemyAlertState.Alerted);
         }
@@ -192,12 +224,12 @@ namespace CrimsonDraft.Navigation.Enemy
 
             var toPlayer = playerController!.transform.position - transform.position;
             toPlayer.y = 0f;
-            FacePlayer(toPlayer);
+            if (!IsTrap) FacePlayer(toPlayer);
 
             switch (grabPhase)
             {
                 case EnemyGrabPhase.Reaching:
-                    navAgent.SetDestination(playerController.transform.position);
+                    if (!IsTrap) navAgent.SetDestination(playerController.transform.position);
                     if (grabPhaseTimer < data.grabDelay) return;
 
                     if (hitbox.OverlapsPlayer() && playerController.TryBeginGrab(transform))
@@ -215,25 +247,43 @@ namespace CrimsonDraft.Navigation.Enemy
                     if (grabPhaseTimer >= data.grabDelay + data.grabWindow)
                     {
                         nextGrabAllowedTime = Time.time + data.grabCooldown;
-                        TransitionTo(EnemyAlertState.Alerted);
+                        OnGrabFailed();
                     }
                     return;
 
                 case EnemyGrabPhase.Holding:
-                    KeepGrabDistance(toPlayer, dt);
+                    if (!IsTrap) KeepGrabDistance(toPlayer, dt);
                     if (grabPhaseTimer >= grabHoldDuration)
                         SetGrabPhase(EnemyGrabPhase.Biting);
                     return;
 
                 case EnemyGrabPhase.Biting:
-                    KeepGrabDistance(toPlayer, dt);
+                    if (!IsTrap) KeepGrabDistance(toPlayer, dt);
                     if (grabPhaseTimer >= BiteGiveUpSeconds)
                     {
                         nextGrabAllowedTime = Time.time + data.grabCooldown;
-                        TransitionTo(EnemyAlertState.Alerted);
+                        OnGrabFailed();
                     }
                     return;
             }
+        }
+
+        /// <summary>Trap trigger: the player is within <paramref name="range"/> (horizontal) and
+        /// inside the frontal cone of <paramref name="coneAngle"/> degrees in total.</summary>
+        public static bool IsInTrapGrabZone(Vector3 forward, Vector3 toPlayer, float range, float coneAngle)
+        {
+            forward.y  = 0f;
+            toPlayer.y = 0f;
+            if (toPlayer.magnitude >= range) return false;
+            if (toPlayer.sqrMagnitude < 0.0001f) return true; // encima: alcanzable
+            return Vector3.Angle(forward, toPlayer) <= coneAngle * 0.5f;
+        }
+
+        // Tras un agarre fallido sigue persiguiendo; una trampa queda "disparada" y sale a perseguir.
+        private void OnGrabFailed()
+        {
+            if (stationary) trapSprung = true;
+            TransitionTo(EnemyAlertState.Alerted);
         }
 
         // MoveGrabberToGrabbed del template: el enemigo se acomoda a grabDistance del jugador.
@@ -303,8 +353,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
                 case EnemyAlertState.Attack:
                     // Sigue avanzando hasta agarrar algo (igual que el template); la rotación
-                    // la maneja UpdateAttack para no perder de vista al jugador.
-                    navAgent.isStopped = false;
+                    // la maneja UpdateAttack para no perder de vista al jugador. La trampa no avanza.
+                    navAgent.isStopped = IsTrap;
                     navAgent.updateRotation = false;
                     SetGrabPhase(EnemyGrabPhase.Reaching);
                     break;
@@ -346,7 +396,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         public void ResetToSpawn(Vector3 position, Quaternion rotation)
         {
-            if (!isActiveAndEnabled) return;
+            if (!isActiveAndEnabled || IsDead || IsRising) return;
 
             // A room activated for the first time this session cascades Awake()/OnEnable() on its
             // enemies synchronously, but Start() (where navAgent is normally assigned) is deferred
@@ -358,6 +408,7 @@ namespace CrimsonDraft.Navigation.Enemy
             transform.rotation = rotation;
 
             combatTriggered     = false;
+            trapSprung          = false; // volver a la sala rearma la trampa
             dialoguePaused      = false;
             nextGrabAllowedTime = 0f;
             IsReactingToShot    = false;
@@ -380,15 +431,104 @@ namespace CrimsonDraft.Navigation.Enemy
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
         {
             dialoguePaused = ev.IsActive;
+            if (IsDead || IsRising || !navAgent.isActiveAndEnabled) return;
             navAgent.isStopped = ev.IsActive || state is EnemyAlertState.Attack;
         }
 
+        // El enemigo que disparó el combate queda tirado donde estaba (no se destruye), así
+        // puede reactivarse más adelante. El fade todavía tapa la pantalla cuando llega el
+        // evento, así que el jugador lo encuentra ya en el piso.
         private void OnCombatEnded(CombatEndedEvent ev)
         {
             if (!combatTriggered) return;
             if (!ev.Victory) return;
-            gameObject.SetActive(false);
-            this.enemyStateRegistry?.SetDefeated(this.enemyKey);
+            gameObject.SetActive(true);
+            EnterCorpseState(freshDeath: true);
+            this.enemyStateRegistry?.SetDefeated(this.enemyKey, transform.position, transform.rotation);
+        }
+
+        /// <summary>Lays a defeated enemy down at its saved pose (or wherever it stands, for saves
+        /// that predate corpse poses, and for enemies placed as corpses). An enemy placed as a
+        /// corpse never died, so it lies there without blood.</summary>
+        public void RestoreAsCorpse(Vector3? position, Quaternion? rotation, bool showBlood = true)
+        {
+            EnterCorpseState(freshDeath: false, showBlood);
+            IsFeigningDeath = !showBlood; // sin sangre = colocado como cadáver, nunca murió
+            if (position.HasValue) transform.position = position.Value;
+            if (rotation.HasValue) transform.rotation = rotation.Value;
+        }
+
+        // Cadáver: sin IA, sin agente (lo saca también de la lista de objetivos del apuntado) y
+        // sin colliders, así el jugador lo atraviesa. Queda solo la pose ZombieLyingUp, que
+        // aplica EnemyAnimationReactor, y el charco de sangre (que solo crece en una muerte nueva).
+        private void EnterCorpseState(bool freshDeath, bool showBlood = true)
+        {
+            ReleasePlayer();
+            SetGrabPhase(EnemyGrabPhase.None);
+            IsDead           = true;
+            IsFeigningDeath  = false;
+            IsReactingToShot = false;
+            combatTriggered  = false;
+            state            = EnemyAlertState.Idle;
+
+            if (navAgent == null) navAgent = GetComponent<NavMeshAgent>();
+            if (navAgent != null) navAgent.enabled = false;
+            if (sensor != null) sensor.enabled = false;
+            if (hitbox != null) hitbox.enabled = false;
+            corpseDisabledColliders.Clear();
+            foreach (var col in GetComponentsInChildren<Collider>(includeInactive: true))
+            {
+                if (!col.enabled) continue;
+                col.enabled = false;
+                corpseDisabledColliders.Add(col);
+            }
+
+            if (bloodBlob != null && showBlood) bloodBlob.Show(grow: freshDeath);
+        }
+
+        /// <summary>Gets a corpse back up (ZombieStandUp, played by EnemyAnimationReactor). It
+        /// stops counting as defeated right away; the AI only comes back once the clip ends
+        /// (<see cref="CompleteRise"/>). The blood pool stays on the floor where it fell.
+        /// Returns false if there's nothing to revive right now.</summary>
+        public bool Revive()
+        {
+            if (!IsDead || IsRising || !gameObject.activeInHierarchy) return false;
+            if (sceneTransitionService?.IsInCombat == true) return false;
+
+            IsDead          = false;
+            IsFeigningDeath = false;
+            IsRising        = true;
+            this.enemyStateRegistry?.SetAlive(this.enemyKey);
+
+            if (bloodBlob != null && bloodBlob.gameObject.activeSelf)
+                bloodBlob.LeaveBehind(transform.parent);
+            return true;
+        }
+
+        /// <summary>Uses up this enemy's one revive without getting it up (e.g. its revive trigger
+        /// fired while it was still alive), so it stays down for good once killed. Persisted.</summary>
+        public void SpendRevive()
+        {
+            if (IsDead) return;
+            this.enemyStateRegistry?.SetAlive(this.enemyKey);
+        }
+
+        /// <summary>Called by EnemyAnimationReactor once ZombieStandUp has finished: hands the
+        /// enemy back to the AI in Idle, so it has to detect the player again.</summary>
+        public void CompleteRise()
+        {
+            if (!IsRising) return;
+            IsRising = false;
+
+            foreach (var col in corpseDisabledColliders)
+                if (col != null) col.enabled = true;
+            corpseDisabledColliders.Clear();
+            if (sensor != null) sensor.enabled = true;
+            if (hitbox != null) hitbox.enabled = true;
+
+            navAgent.enabled = true;
+            navAgent.Warp(transform.position);
+            TransitionTo(EnemyAlertState.Idle);
         }
 
 #if UNITY_EDITOR
@@ -396,42 +536,28 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             if (data == null) return;
 
+            // Discos en el piso, cada uno con su etiqueta en el borde (en direcciones distintas
+            // para que no se pisen). La visión sale desde el ojo, proyectada a la altura del piso.
             var pos       = transform.position;
             var eyeOrigin = eyePoint != null ? eyePoint.position : pos;
+            eyeOrigin.y   = pos.y;
 
-            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-            Gizmos.DrawWireSphere(pos, data.attackRange);
-
-            Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
-            Gizmos.DrawWireSphere(pos, data.walkSoundRadius);
-
-            Gizmos.color = new Color(0f, 0.5f, 1f, 0.25f);
-            Gizmos.DrawWireSphere(pos, data.runSoundRadius);
-
-            DrawVisualFovGizmo(eyeOrigin, data.visualRange, data.visualFov);
-        }
-
-        private void DrawVisualFovGizmo(Vector3 origin, float range, float fov)
-        {
-            const int arcSegments = 24;
-
-            Gizmos.color = new Color(0f, 1f, 0f, 0.5f);
-            var halfFov   = fov * 0.5f;
-            var leftEdge  = Quaternion.Euler(0f, -halfFov, 0f) * transform.forward;
-            var rightEdge = Quaternion.Euler(0f,  halfFov, 0f) * transform.forward;
-
-            Gizmos.DrawLine(origin, origin + leftEdge  * range);
-            Gizmos.DrawLine(origin, origin + rightEdge * range);
-
-            var previous = origin + leftEdge * range;
-            for (var i = 1; i <= arcSegments; i++)
+            if (stationary)
             {
-                var angle   = -halfFov + fov * (i / (float)arcSegments);
-                var dir     = Quaternion.Euler(0f, angle, 0f) * transform.forward;
-                var next    = origin + dir * range;
-                Gizmos.DrawLine(previous, next);
-                previous = next;
+                // La trampa no oye ni ve: solo agarra dentro de su cono frontal.
+                EnemyGizmos.LabeledArc(pos, transform.forward, data.attackRange, data.trapGrabCone, new Color(1f, 0.2f, 0.2f, 0.9f),
+                    $"Trap grab {data.attackRange:0.#}m {data.trapGrabCone:0}°");
+                return;
             }
+
+            EnemyGizmos.LabeledDisc(pos, data.attackRange, new Color(1f, 0.2f, 0.2f, 0.8f), transform.right,
+                $"Grab {data.attackRange:0.#}m");
+            EnemyGizmos.LabeledDisc(pos, data.walkSoundRadius, new Color(0f, 1f, 1f, 0.6f), -transform.right,
+                $"Hears walk {data.walkSoundRadius:0.#}m");
+            EnemyGizmos.LabeledDisc(pos, data.runSoundRadius, new Color(0.2f, 0.5f, 1f, 0.6f), -transform.forward,
+                $"Hears run {data.runSoundRadius:0.#}m");
+            EnemyGizmos.LabeledArc(eyeOrigin, transform.forward, data.visualRange, data.visualFov, new Color(0.2f, 1f, 0.2f, 0.7f),
+                $"Sight {data.visualRange:0.#}m {data.visualFov:0}°");
         }
 #endif
     }

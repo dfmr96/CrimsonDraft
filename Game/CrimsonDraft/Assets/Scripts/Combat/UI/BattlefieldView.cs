@@ -472,8 +472,8 @@ public void Populate(EncounterData encounter)
             StartCoroutine(this.PlayDeathSequenceThenFinalize(slotIndex));
         }
 
-        // RE-style "definitely dead" marker: a blood pool (a child object referenced via
-        // EnemyDeathMarker) reveals under the corpse so the player can tell it won't get
+        // RE-style "definitely dead" marker: a blood blob (a child object referenced via
+        // EnemyDeathMarker) grows under the corpse so the player can tell it won't get
         // back up. The Death trigger alone decides the clip on Enemy_Combat_Controller v3:
         // AnyState + IsStaggered==false -> Death (standing corpse), AnyState +
         // IsStaggered==true -> StaggerFloorDeath (dies face-down where it was staggered,
@@ -492,9 +492,9 @@ public void Populate(EncounterData encounter)
                 yield return this.WaitForAnimatorStateChange(anim);
             }
 
-            if (this.enemyDeathMarkerBySlot.TryGetValue(slotIndex, out var marker) && marker != null && marker.BloodPool != null)
+            if (this.enemyDeathMarkerBySlot.TryGetValue(slotIndex, out var marker) && marker != null && marker.BloodBlob != null)
             {
-                marker.BloodPool.SetActive(true);
+                marker.BloodBlob.Show(grow: true);
                 yield return new WaitForSeconds(this.bloodPoolRevealDurationSec);
             }
 
@@ -943,7 +943,7 @@ public void PlayOperatorReload(int operatorSlotIndex)
         }
 
         // Reuses the same generic state-change wait as the enemy death sequence, then
-        // reveals the pre-placed blood-pool decal exactly like EnemyDeathMarker.BloodPool.
+        // reveals the operator's pre-placed blood-pool decal (enemies grow EnemyDeathMarker.BloodBlob instead).
         // Only once this settles does the slot count toward CombatOrchestrator's operator-wipe
         // check, so a defeat can never be declared mid-death-animation.
         private IEnumerator PlayOperatorDeathSequence(int operatorSlotIndex, Animator anim)

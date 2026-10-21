@@ -2,17 +2,29 @@
 
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class PuzzleInteractable : MonoBehaviour, IInteractable
+    public sealed class PuzzleInteractable : MonoBehaviour, IInteractable, IPuzzle
     {
+        [SerializeField] private string                  puzzleId = "";
         [SerializeField] private GameObject              canvasPrefab = null!;
         [SerializeField] private ItemSocketInteractable? requiredSocket;
         [SerializeField] private bool                    triggersDemoEnd;
         [SerializeField, TextArea] private string         demoEndMessage = "This is the end of the demo.\nThanks for playing.";
 
         private bool isSolved;
+        private PuzzleStateRegistry? puzzleStates;
+
+        public string PuzzleId => this.puzzleId;
+        public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
+
+        public void MarkSolved()
+        {
+            this.isSolved = true;
+            this.puzzleStates?.SetSolved(this.puzzleId);
+        }
 
         public void Interact(InteractionContext context)
         {
@@ -26,7 +38,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             context.PuzzleViewController.Open(this.canvasPrefab, onSolved: () =>
             {
-                this.isSolved = true;
+                MarkSolved();
                 if (this.triggersDemoEnd)
                     context.ScreenFader.ShowEndScreenAsync(this.demoEndMessage).Forget();
             });

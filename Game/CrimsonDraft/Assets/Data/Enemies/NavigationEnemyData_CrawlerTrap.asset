@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d9416cc6c67d2d449e059030a6ab1d6, type: 3}
+  m_Name: NavigationEnemyData_CrawlerTrap
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Enemy.NavigationEnemyData
+  chaseSpeed: 0.5
+  turnSpeed: 60
+  turnInPlaceThreshold: 35
+  attackRange: 1.2
+  attackRangeBuffer: 0.3
+  grabDelay: 0.4
+  grabWindow: 0.6
+  grabCooldown: 3
+  grabHoldDuration: 1
+  grabHoldRandomOffset: 0.25
+  grabDistance: 0.8
+  grabMoveSpeed: 1
+  playerDeadzone: 0.1
+  playerRunThreshold: 5.5
+  walkSoundRadius: 3
+  runSoundRadius: 4
+  visualRange: 3
+  visualFov: 110
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 1911
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 8

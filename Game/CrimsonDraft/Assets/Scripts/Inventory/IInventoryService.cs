@@ -29,6 +29,9 @@ namespace CrimsonDraft.Inventory
         bool HeldIsSplit { get; }
         event Action? HeldChanged;
 
+        // Raised whenever any operator or storage container's contents change.
+        event Action? ContentsChanged;
+
         bool TryPickUp(InventoryItem item);
         bool CanSplit(InventoryItem stack);
         bool TrySplit(InventoryItem stack);

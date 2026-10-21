@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Rendering.Outline;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -27,7 +28,7 @@ namespace CrimsonDraft.Navigation.Interactables
     // box's ItemSocketInteractable (requiredItems[keySlotIndex] / [dollSlotIndex]). Both start
     // hidden and appear when their slot is filled. Confirm on the key socket, once the key is
     // in, offers to turn the crank, which checks the melody (onSolved / onWrong).
-    public sealed class MusicBoxPanel : MonoBehaviour
+    public sealed class MusicBoxPanel : MonoBehaviour, IPuzzle
     {
         private const float NavCooldown = 0.2f;
         private const string TurnCrankCommand = "turn_music_box_crank";
@@ -87,6 +88,7 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField, Min(0.01f)] private float rewardRiseDuration = 1.2f;
 
         [SerializeField] private UnityEvent onSolved = new();
+        [SerializeField] private string puzzleId = "music_box";
         [SerializeField] private UnityEvent onWrong  = new();
 
         private readonly SelectionOutlineHighlight highlight = new();
@@ -105,6 +107,11 @@ namespace CrimsonDraft.Navigation.Interactables
         private float  lastNavTime = float.MinValue;
 
         public bool IsSolved { get; private set; }
+
+        private PuzzleStateRegistry? puzzleStates;
+
+        public string PuzzleId => this.puzzleId;
+        public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
 
         private int DollStop => this.socketCount;
         private int KeyStop  => this.socketCount + 1;
@@ -385,6 +392,7 @@ namespace CrimsonDraft.Navigation.Interactables
             // Hand control back: leave the inspection view; the box can't be used again, the
             // player only has the new pickup left to grab.
             this.IsSolved = true;
+            this.puzzleStates?.SetSolved(this.puzzleId);
             ctx.InspectionController.ExitLocked = false;
             ctx.InspectionController.ExitNow();
             this.onSolved.Invoke();

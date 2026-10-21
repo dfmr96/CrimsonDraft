@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using MessagePipe;
 using Unity.Cinemachine;
 using VContainer;
@@ -14,10 +15,12 @@ using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
+using CrimsonDraft.Navigation.Milestones;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Navigation.Pushables;
 using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Navigation.UI;
@@ -67,6 +70,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private FixedCameraZoneTrigger[] cachedCameraZoneTriggers = System.Array.Empty<FixedCameraZoneTrigger>();
         [SerializeField] private BeeperReceiverInteractable[] cachedBeeperReceivers = System.Array.Empty<BeeperReceiverInteractable>();
         [SerializeField] private ItemSocketInteractable[] cachedItemSockets = System.Array.Empty<ItemSocketInteractable>();
+        [SerializeField] private PushableObject[]         cachedPushables   = System.Array.Empty<PushableObject>();
+        // MonoBehaviour[] because Unity can't serialize interface arrays; holds only IPuzzle components.
+        [SerializeField] private MonoBehaviour[]          cachedPuzzles     = System.Array.Empty<MonoBehaviour>();
+        // Assets, not scene objects: filled from the project by the cache button below.
+        [SerializeField] private MilestoneGraph[]         cachedMilestoneGraphs = System.Array.Empty<MilestoneGraph>();
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -250,9 +258,46 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterInstance(this.cachedItemSockets);
             builder.Register<ItemSocketBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.RegisterInstance(this.cachedPushables);
+            builder.Register<PushableBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            builder.RegisterInstance(this.cachedPuzzles.OfType<IPuzzle>().ToArray());
+            builder.Register<PuzzleBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            // After SaveGameLoader, so the tracker's first pass sees the loaded state.
+            builder.RegisterInstance(this.cachedMilestoneGraphs);
+            builder.Register<MilestoneWorldState>(Lifetime.Singleton).As<IMilestoneWorldState>();
+            builder.Register<MilestoneTracker>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<MilestoneService>(Lifetime.Singleton).AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            builder.Register<MilestoneDebugOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
+#endif
         }
 
 #if UNITY_EDITOR
+        // Runs every Cache Scene button below in one go -- press after adding or removing any
+        // cached kind of object, then save the scene.
+        [Button("Cache Everything")]
+        private void CacheEverything()
+        {
+            CacheSceneDoors();
+            CacheScenePickups();
+            CacheSceneDocumentPickups();
+            CacheSceneEnemies();
+            CacheSceneCameraZoneTriggers();
+            CacheSceneBeeperReceivers();
+            CacheSceneItemSockets();
+            CacheScenePushables();
+            CacheScenePuzzles();
+            CacheMilestoneGraphs();
+
+            Debug.Log($"{name}: cached {this.cachedRoomDoors.Length} room doors, {this.cachedSceneDoors.Length} scene doors, " +
+                      $"{this.cachedPickups.Length} pickups, {this.cachedMapPickups.Length} map pickups, " +
+                      $"{this.cachedDocumentPickups.Length} document pickups, {this.cachedEnemies.Length} enemies, " +
+                      $"{this.cachedCameraZoneTriggers.Length} camera zone triggers, {this.cachedBeeperReceivers.Length} beeper receivers, " +
+                      $"{this.cachedItemSockets.Length} item sockets, {this.cachedPushables.Length} pushables, {this.cachedPuzzles.Length} puzzles, {this.cachedMilestoneGraphs.Length} milestone graphs.", this);
+        }
+
         [Button("Cache Scene Doors")]
         private void CacheSceneDoors()
         {
@@ -310,6 +355,34 @@ namespace CrimsonDraft.Navigation
         {
             this.cachedItemSockets = FindObjectsByType<ItemSocketInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Pushables")]
+        private void CacheScenePushables()
+        {
+            this.cachedPushables = FindObjectsByType<PushableObject>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Milestone Graphs")]
+        private void CacheMilestoneGraphs()
+        {
+            this.cachedMilestoneGraphs = UnityEditor.AssetDatabase.FindAssets("t:MilestoneGraph")
+                .Select(UnityEditor.AssetDatabase.GUIDToAssetPath)
+                .Select(UnityEditor.AssetDatabase.LoadAssetAtPath<MilestoneGraph>)
+                .Where(g => g != null)
+                .ToArray();
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        [Button("Cache Scene Puzzles")]
+        private void CacheScenePuzzles()
+        {
+            this.cachedPuzzles = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(b => b is IPuzzle)
+                .ToArray();
             UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif
