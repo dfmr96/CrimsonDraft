@@ -1,5 +1,7 @@
 #nullable enable
 
+using UnityEngine;
+
 namespace CrimsonDraft.Inventory
 {
     public class InventoryItem
@@ -25,7 +27,12 @@ namespace CrimsonDraft.Inventory
             this.EquippedWeaponSlot = -1;
         }
 
-        public virtual int  Quantity    => 1;
-        public virtual void AddQuantity(int amount) { }
+        public int Quantity { get; internal set; } = 1;
+
+        public void AddQuantity(int amount)
+        {
+            if (!this.Data.Stackable) return;
+            this.Quantity = Mathf.Clamp(this.Quantity + amount, 0, this.Data.MaxStack);
+        }
     }
 }

@@ -50,11 +50,17 @@ namespace CrimsonDraft.UI
 
         [Header("Voice Note Playback")]
         [SerializeField] private float voiceCharsPerSecond  = 18f;
+        [Tooltip("Segundos que suena la cinta al reves cuando se vuelve a un parrafo anterior, antes de retomar normal.")]
+        [SerializeField] private float voiceRewindSeconds   = 0.8f;
         [SerializeField] private float voiceScrubMultiplier = 4f;
-        [Tooltip("Minimum real-time gap between typewriter ticks -- caps the tick rate independently of reveal speed, so holding right to scrub (voiceScrubMultiplier) never turns it into a machine-gun.")]
+        [Tooltip("Minimum real-time gap between typewriter ticks -- caps the tick rate independently of reveal speed, so holding Confirm to fast-forward (voiceScrubMultiplier) never turns it into a machine-gun.")]
         [SerializeField] private float voiceTypewriterMinInterval = 0.35f;
 
         [SerializeField] private YarnProject yarnProject = null!;
+
+        [Header("Note Layout")]
+        [Tooltip("Page-split limits plus spacing/alignment for note text. Empty = old behavior (no auto-split, TMP defaults).")]
+        [SerializeField] private NoteLayoutSettings? layoutSettings;
 
         [Inject] private IInputService                    inputService         = null!;
         [Inject] private TabManager                       tabManager           = null!;
@@ -90,8 +96,19 @@ namespace CrimsonDraft.UI
         static string ApplyItalicMarkup(string text) =>
             ItalicTextPattern.Replace(text, "<i>$1</i>");
 
+        // Notes are read straight from the localization table, so Yarn's own [important]...[/important]
+        // markup (never parsed here) would show up literally. Same green as the DialogueMarkupPalette.
+        private static readonly System.Text.RegularExpressions.Regex ImportantTextPattern =
+            new(@"\[important\](.+?)\[/important\]",
+                System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        const string ImportantTextColor = "#4E8A62";
+
+        static string ApplyImportantMarkup(string text) =>
+            ImportantTextPattern.Replace(text, $"<color={ImportantTextColor}>$1</color>");
+
         static string ApplyTextMarkup(string text) =>
-            ApplyItalicMarkup(ApplyDamagedTextMarkup(text));
+            ApplyImportantMarkup(ApplyItalicMarkup(ApplyDamagedTextMarkup(text)));
 
         private int categoryIndex;
         private int selectedIndex;
@@ -111,12 +128,17 @@ namespace CrimsonDraft.UI
 
         private bool    isVoiceNote;
         private bool    inVoiceBody;
+
+        // Cassette audio of the voice note being read (see InventorySfxData.StartVoiceTape).
+        private bool       tapePlaying;
+        private bool       tapeFast;
+        private Coroutine? rewindRoutine;
         private int     voiceParagraphIndex;
         private float   voiceCharsShown;
         private float   voiceTotalDuration;
         private float[] voiceParagraphDurations = Array.Empty<float>();
-        private int     voiceScrubDirection;
-        private bool    voicePaused;
+        private bool    voiceAccelerating;
+        private bool    voiceAccelArmed;  // Confirm must be released once after entering the body before it can fast-forward
         private int     voiceLastDirX;
         private int     voiceLastTypedChars; // last "shown" count a typewriter tick was played for
         private float   voiceLastTypewriterTime = -999f; // Time.unscaledTime of the last tick
@@ -135,8 +157,8 @@ namespace CrimsonDraft.UI
             return $"{s / 60:00}:{s % 60:00}";
         }
 
-        // direction: -1 while rewinding, +1 while fast-forwarding, 0 otherwise -- the held arrow
-        // is drawn larger so it reads as a pressed button.
+        // direction: +1 while fast-forwarding (Confirm held), 0 otherwise -- the arrow is drawn
+        // larger so it reads as a pressed button. Rewinding no longer exists.
         static string FormatVoiceTimer(float remainingSeconds, float totalSeconds, int direction)
         {
             string time = $"{FormatVoiceClock(remainingSeconds)}/{FormatVoiceClock(totalSeconds)}";
@@ -156,6 +178,8 @@ namespace CrimsonDraft.UI
             this.isVoiceNote
                 ? this.NonBodyPageCount + 1
                 : this.currentPages.Length + (this.currentImage != null ? 2 : 0);
+
+        public NoteDatabase Database => this.database;
 
         private enum Focus { Carousel, Grid }
         private Focus focus;
@@ -310,12 +334,18 @@ namespace CrimsonDraft.UI
 
         void OnDisable()
         {
+            StopVoiceTape();
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
         }
 
         void Update()
         {
+            // The tape belongs to the open voice transcript: whatever closes it (Cancel, the last
+            // paragraph, stepping back to the title page) also silences it.
+            if (this.tapePlaying && (!this.detailView.IsOpen || !this.inVoiceBody))
+                StopVoiceTape();
+
             if (this.tabManager == null) return;
             bool tabBarNow = this.tabManager.IsTabBarActive;
             if (tabBarNow != this.wasTabBarActive)
@@ -393,88 +423,133 @@ namespace CrimsonDraft.UI
             this.inVoiceBody         = true;
             this.voiceParagraphIndex = 0;
             this.voiceCharsShown     = 0f;
-            this.voiceScrubDirection = 0;
-            this.voicePaused         = false;
-            this.voiceLastDirX       = 0;
+            this.voiceAccelerating   = false;
+            // Whatever press brought us here is probably still down -- don't let it count as a
+            // fast-forward until it has been released.
+            this.voiceAccelArmed     = !this.inputService.InventoryConfirm.IsPressed();
+            this.voiceLastDirX       = ReadDirection().x;
             this.voiceLastTypedChars = 0;
             this.voiceLastTypewriterTime = -999f;
-            this.sfx?.PlayVoiceStart(gameObject);
+            StartVoiceTape();
             ShowVoiceParagraph();
         }
 
+        void StartVoiceTape()
+        {
+            StopVoiceTape();
+            this.tapePlaying = true;
+            this.tapeFast    = false;
+            this.sfx?.StartVoiceTape(gameObject);
+        }
+
+        void StopVoiceTape()
+        {
+            if (this.rewindRoutine != null)
+            {
+                StopCoroutine(this.rewindRoutine);
+                this.rewindRoutine = null;
+            }
+            if (!this.tapePlaying) return;
+
+            this.tapePlaying = false;
+            this.tapeFast    = false;
+            this.sfx?.StopVoiceTape(gameObject);
+        }
+
+        // Going back a paragraph: the tape runs backwards for a moment, then carries on normally.
+        void BeginVoiceRewind()
+        {
+            if (!this.tapePlaying) return;
+
+            if (this.rewindRoutine != null) StopCoroutine(this.rewindRoutine);
+            else this.sfx?.BeginVoiceTapeRewind(gameObject);
+
+            this.rewindRoutine = StartCoroutine(VoiceRewindRoutine());
+        }
+
+        IEnumerator VoiceRewindRoutine()
+        {
+            yield return new WaitForSecondsRealtime(this.voiceRewindSeconds);
+            this.rewindRoutine = null;
+            this.sfx?.EndVoiceTapeRewind(gameObject);
+        }
+
         // Runs every frame while a voice note's transcript is on screen. Each paragraph is its
-        // own page: crossing into the next (or previous) one always starts it from a blank body
-        // label, so the outgoing paragraph's text never lingers on screen. Playback advances on
-        // its own within a paragraph -- simulating the recording running -- and holding
-        // right/left scrubs the reveal forward/backward. Moving into the NEXT paragraph always
-        // needs its own fresh press of right -- holding it through the boundary just parks at the
-        // end of the current one instead of sweeping through several paragraphs unattended.
-        // Rewinding back into a previous paragraph stays continuous, since that one's meant to
-        // feel like rewinding a tape rather than turning a page.
+        // own page: moving to another one always starts from a blank body label (or, going back,
+        // shows the already-read paragraph in full), so the outgoing text never lingers.
+        // Controls mirror a normal note:
+        //   Left/Right  -- previous/next paragraph, one press = one paragraph (no repeat).
+        //   Confirm     -- HOLD to fast-forward the typing; releasing returns to normal speed.
+        //   Confirm     -- once the paragraph has finished typing, one fresh press moves to the
+        //                  next paragraph (or closes the note after the last). Holding it through
+        //                  the end never advances by itself: it has to be released and pressed
+        //                  again (see OnConfirm, which only fires on the press edge).
         void UpdateVoicePlayback()
         {
-            if (this.voicePaused) return;
-
             Vector2Int dir = ReadDirection();
 
-            bool freshRight = dir.x > 0 && this.voiceLastDirX <= 0;
+            bool fresh = dir.x != 0 && dir.x != this.voiceLastDirX;
             this.voiceLastDirX = dir.x;
 
-            float rate = 1f;
-            this.voiceScrubDirection = 0;
-            if (dir.x > 0) { rate = this.voiceScrubMultiplier;  this.voiceScrubDirection = 1; }
-            else if (dir.x < 0) { rate = -this.voiceScrubMultiplier; this.voiceScrubDirection = -1; }
-
-            this.voiceCharsShown += rate * this.voiceCharsPerSecond * Time.unscaledDeltaTime;
-
-            int totalVisible = CountVisibleChars(this.currentPages[this.voiceParagraphIndex]);
-
-            if (this.voiceCharsShown > totalVisible)
+            if (fresh)
             {
-                bool hasNext = this.voiceParagraphIndex < this.currentPages.Length - 1;
+                StepVoiceParagraph(dir.x > 0 ? 1 : -1);
+                if (!this.inVoiceBody) return; // stepped back out to the title/image page
+            }
 
-                if (hasNext && freshRight)
-                {
-                    // Carry the overshoot into the next paragraph instead of snapping to 0, so a
-                    // fast scrub doesn't lose momentum at the boundary.
-                    float overflow = this.voiceCharsShown - totalVisible;
-                    this.voiceParagraphIndex++;
-                    this.voiceCharsShown = overflow;
-                    this.voiceLastTypedChars = Mathf.FloorToInt(overflow);
-                }
-                else
-                {
-                    // Paragraph finished -- hold here until a fresh right press moves us on.
-                    this.voiceCharsShown = totalVisible;
-                }
-            }
-            else if (this.voiceCharsShown < 0f)
+            int  totalVisible = CountVisibleChars(this.currentPages[this.voiceParagraphIndex]);
+            bool pressed      = this.inputService.InventoryConfirm.IsPressed();
+            if (!pressed) this.voiceAccelArmed = true;
+
+            bool atEnd = this.voiceCharsShown >= totalVisible;
+            this.voiceAccelerating = pressed && this.voiceAccelArmed && !atEnd;
+
+            // Fast-forwarding the text speeds the tape up too (and slows it back down on release).
+            if (this.voiceAccelerating != this.tapeFast)
             {
-                if (this.voiceParagraphIndex > 0)
-                {
-                    float overflow = this.voiceCharsShown;
-                    this.voiceParagraphIndex--;
-                    this.voiceCharsShown = CountVisibleChars(this.currentPages[this.voiceParagraphIndex]) + overflow;
-                    this.voiceLastTypedChars = Mathf.FloorToInt(this.voiceCharsShown);
-                }
-                else
-                {
-                    // Rewound past the start of the transcript -- fall back into the previous
-                    // discrete page (the title screen, or close the note if there wasn't one).
-                    this.voiceCharsShown = 0f;
-                    this.inVoiceBody     = false;
-                    this.pageIndex--;
-                    if (this.pageIndex < 0)
-                    {
-                        this.detailView.Hide();
-                        return;
-                    }
-                    ShowCurrentPage();
-                    return;
-                }
+                this.tapeFast = this.voiceAccelerating;
+                this.sfx?.SetVoiceTapeFast(this.tapeFast);
             }
+
+            float rate = this.voiceAccelerating ? this.voiceScrubMultiplier : 1f;
+            this.voiceCharsShown = Mathf.Min(
+                totalVisible,
+                this.voiceCharsShown + rate * this.voiceCharsPerSecond * Time.unscaledDeltaTime);
 
             ShowVoiceParagraph();
+        }
+
+        // delta: +1 next paragraph, -1 previous; either way the target starts blank and types
+        // itself out again. Before the first paragraph, -1 falls back to the title page (the
+        // page right before the body) if there is one, else does nothing.
+        void StepVoiceParagraph(int delta)
+        {
+            int target = this.voiceParagraphIndex + delta;
+
+            if (target >= this.currentPages.Length) return;
+
+            if (target < 0)
+            {
+                if (this.pageIndex <= 0) return;
+                this.inVoiceBody = false;
+                this.pageIndex--;
+
+                // Hand the still-held Left over to UpdateDetailPaging as already consumed --
+                // otherwise it sees a "new" press on its first frame and pages straight on
+                // from the title to the image. Needs a release + new press to go further.
+                this.lastDir      = ReadDirection();
+                this.holding      = false;
+                this.nextMoveTime = Time.unscaledTime + this.initialRepeatDelay;
+
+                ShowCurrentPage();
+                return;
+            }
+
+            this.voiceParagraphIndex = target;
+            this.voiceCharsShown     = 0f;
+            this.voiceLastTypedChars = 0;
+
+            if (delta < 0) BeginVoiceRewind();
         }
 
         void ShowVoiceParagraph()
@@ -483,20 +558,7 @@ namespace CrimsonDraft.UI
             int    totalVisible = CountVisibleChars(paragraph);
             int    shown        = Mathf.Clamp(Mathf.FloorToInt(this.voiceCharsShown), 0, totalVisible);
 
-            // Typewriter tick: only past the furthest point ever revealed in this paragraph
-            // (voiceLastTypedChars only ever grows here, via Mathf.Max) -- otherwise rewinding
-            // and then scrubbing forward again over text that's already fully on screen would
-            // replay ticks for characters that aren't actually being "typed" anymore. Also
-            // gated by a minimum real-time interval rather than a character count -- a
-            // character-count gate still machine-guns while scrubbing (voiceScrubMultiplier
-            // reveals characters up to 4x faster), since more real ticks fit in the same
-            // second. A wall-clock cooldown keeps the tick rate constant regardless of speed.
-            if (shown > this.voiceLastTypedChars &&
-                Time.unscaledTime - this.voiceLastTypewriterTime >= this.voiceTypewriterMinInterval)
-            {
-                this.sfx?.PlayVoiceTypewriter(gameObject);
-                this.voiceLastTypewriterTime = Time.unscaledTime;
-            }
+            // No typewriter tick here: a voice note's only sound is the cassette (see StartVoiceTape).
             this.voiceLastTypedChars = Mathf.Max(this.voiceLastTypedChars, shown);
 
             float elapsedBefore = 0f;
@@ -506,7 +568,7 @@ namespace CrimsonDraft.UI
             float remaining = this.voiceTotalDuration - elapsedBefore - (this.voiceCharsShown / this.voiceCharsPerSecond);
             remaining = Mathf.Clamp(remaining, 0f, this.voiceTotalDuration);
 
-            string timerText       = FormatVoiceTimer(remaining, this.voiceTotalDuration, this.voiceScrubDirection);
+            string timerText       = FormatVoiceTimer(remaining, this.voiceTotalDuration, this.voiceAccelerating ? 1 : 0);
             bool   showTitleInline = this.currentImage == null;
 
             this.detailView.ShowVoiceBody(this.currentTitle, paragraph, shown, timerText, showTitleInline, this.currentImage);
@@ -615,9 +677,21 @@ namespace CrimsonDraft.UI
             {
                 if (this.inVoiceBody)
                 {
-                    // Confirm (A / its keyboard equivalent) toggles pause on the recording
-                    // instead of turning a page -- press again to resume where it left off.
-                    this.voicePaused = !this.voicePaused;
+                    // 'performed' fires on the press only, so holding Confirm to fast-forward
+                    // (see UpdateVoicePlayback) can't also page: advancing needs a fresh press
+                    // after the paragraph has finished typing.
+                    int total = CountVisibleChars(this.currentPages[this.voiceParagraphIndex]);
+                    if (this.voiceCharsShown < total) return;
+
+                    if (this.voiceParagraphIndex < this.currentPages.Length - 1)
+                    {
+                        StepVoiceParagraph(1);
+                        ShowVoiceParagraph();
+                    }
+                    else
+                    {
+                        this.detailView.Hide();
+                    }
                     return;
                 }
 
@@ -631,7 +705,10 @@ namespace CrimsonDraft.UI
             var doc = this.filteredNotes[this.selectedIndex];
             if (!string.IsNullOrEmpty(doc.NoteId))
             {
-                this.sfx?.PlayFileOpen(gameObject);
+                // Paper rustle for a note; a voice note is a cassette, its own tape sound starts
+                // once the transcript opens.
+                if (doc.Category != DocumentCategory.VoiceNotes)
+                    this.sfx?.PlayFileOpen(gameObject);
                 OpenNote(doc);
             }
         }
@@ -658,6 +735,21 @@ namespace CrimsonDraft.UI
             var localization = this.yarnProject.baseLocalization;
             var pages        = new List<string>();
             var current      = new System.Text.StringBuilder();
+            int currentLines = 0;
+
+            // Voice notes split too: each page there is one transcript paragraph, and playback
+            // time is derived from character counts, so more/shorter paragraphs keep the same
+            // total duration.
+            int maxLines = this.layoutSettings == null
+                ? int.MaxValue
+                : this.layoutSettings.ResolveMaxYarnLines(doc);
+            int maxVisualLines = this.layoutSettings == null
+                ? int.MaxValue
+                : this.layoutSettings.ResolveMaxRows(doc);
+
+            // The label must already carry this note's font/alignment, or the row measurement
+            // below would wrap with the previous note's settings.
+            this.detailView.SetLayout(this.layoutSettings, doc);
 
             foreach (var id in lineIds)
             {
@@ -670,17 +762,38 @@ namespace CrimsonDraft.UI
                     {
                         pages.Add(current.ToString());
                         current.Clear();
+                        currentLines = 0;
                     }
                 }
                 else
                 {
+                    var marked = ApplyTextMarkup(text);
+
+                    // Page is full -- continue on a new one instead of cramming more lines in.
+                    // Full means too many yarn lines, or (measured with the real label, since a
+                    // yarn line wraps into several rows) too many rendered rows once this line
+                    // is added. A page's first line is always accepted, however long.
+                    if (currentLines > 0 &&
+                        (currentLines >= maxLines ||
+                         (maxVisualLines != int.MaxValue &&
+                          this.detailView.MeasureLineCount(current + "\n" + marked) > maxVisualLines)))
+                    {
+                        pages.Add(current.ToString());
+                        current.Clear();
+                        currentLines = 0;
+                    }
+
                     if (current.Length > 0) current.Append('\n');
-                    current.Append(ApplyTextMarkup(text));
+                    current.Append(marked);
+                    currentLines++;
                 }
             }
 
             if (current.Length > 0)
                 pages.Add(current.ToString());
+
+            if (this.layoutSettings != null && this.layoutSettings.MaxPages > 0 && pages.Count > this.layoutSettings.MaxPages)
+                Debug.LogWarning($"[Notes] '{doc.NoteId}' has {pages.Count} pages (max {this.layoutSettings.MaxPages}). Consider trimming it.", doc);
 
             this.currentImage = doc.PageImage;
             if (pages.Count == 0 && this.currentImage == null) return;
@@ -753,6 +866,7 @@ namespace CrimsonDraft.UI
                 this.detailView.Hide();
                 return;
             }
+            PlayPageTurnSound();
             ShowCurrentPage();
         }
 
@@ -760,7 +874,16 @@ namespace CrimsonDraft.UI
         {
             if (this.pageIndex <= 0) return;
             this.pageIndex--;
+            PlayPageTurnSound();
             ShowCurrentPage();
+        }
+
+        // Paper rustle for turning the page of a normal note. Voice notes never play it: their
+        // title/image pages and transcript paragraphs aren't sheets of paper.
+        void PlayPageTurnSound()
+        {
+            if (this.isVoiceNote) return;
+            this.sfx?.PlayPageTurn(gameObject);
         }
 
         // ── Focus / Highlights ────────────────────────────────────────────────

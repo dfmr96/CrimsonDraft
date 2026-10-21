@@ -79,7 +79,7 @@ namespace CrimsonDraft.UI
 
         public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
         {
-            string text = ApplyMarkupColor(line.Text, "item", "orange");
+            string text = ApplyMarkupColors(line.Text, ("item", "#4E8A62"), ("important", "#4E8A62"));
 
             if (!useTypewriterForLine)
             {
@@ -126,13 +126,20 @@ namespace CrimsonDraft.UI
             if (onSkip != null) inputService!.PickupConfirm.performed -= onSkip;
         }
 
-        private static string ApplyMarkupColor(MarkupParseResult markup, string markerName, string color)
+        // "important" is the green of the DialogueMarkupPalette (4E8A62); this presenter doesn't
+        // read the palette, so each marker it colors is listed by hand. Attributes are walked
+        // back to front so inserting tags doesn't shift the positions still to be processed.
+        private static string ApplyMarkupColors(MarkupParseResult markup, params (string marker, string color)[] colors)
         {
             var text = markup.Text;
             for (int i = markup.Attributes.Count - 1; i >= 0; i--)
             {
                 var attr = markup.Attributes[i];
-                if (attr.Name != markerName) continue;
+                string? color = null;
+                foreach (var entry in colors)
+                    if (attr.Name == entry.marker) { color = entry.color; break; }
+                if (color == null) continue;
+
                 text = text.Substring(0, attr.Position)
                      + $"<color={color}>"
                      + text.Substring(attr.Position, attr.Length)
@@ -164,17 +171,33 @@ namespace CrimsonDraft.UI
             for (int i = options.Length; i < pool.Count; i++)
                 pool[i].gameObject.SetActive(false);
 
-            pool[0].SetHighlight(true);
+            // Reset every highlight, not just pool[0] -- pooled items keep the highlight they
+            // had when the previous prompt closed, which could leave "No" lit next to "Yes".
+            HighlightOnly(pool[0]);
             isSelectingOption = true;
 
             // Wire PickupPrompt action callbacks when IInputService is available
             Action<InputAction.CallbackContext>? onNavigate = null;
             Action<InputAction.CallbackContext>? onConfirm  = null;
+            Action<InputAction.CallbackContext>? onNeutral  = null;
 
             if (inputService != null)
             {
+                // A stick/dpad still held from walking when the prompt opens would otherwise
+                // register as a selection shift and start the prompt on "No". Ignore navigation
+                // until the input has been seen back at neutral.
+                bool navigateArmed = Mathf.Abs(inputService.PickupNavigate.ReadValue<Vector2>().x) < 0.5f;
+                // Releasing the stick fires 'canceled', not 'performed', so arm from there too.
+                onNeutral = _ => navigateArmed = true;
+
                 onNavigate = ctx =>
                 {
+                    var held = ctx.ReadValue<Vector2>();
+                    if (!navigateArmed)
+                    {
+                        if (Mathf.Abs(held.x) < 0.5f) navigateArmed = true;
+                        return;
+                    }
                     if (Time.unscaledTime - lastNavigateTime < NavigateCooldown) return;
                     lastNavigateTime = Time.unscaledTime;
                     var v = ctx.ReadValue<Vector2>();
@@ -188,6 +211,7 @@ namespace CrimsonDraft.UI
                 };
 
                 inputService.PickupNavigate.performed += onNavigate;
+                inputService.PickupNavigate.canceled  += onNeutral;
                 inputService.PickupConfirm.performed  += onConfirm;
             }
 
@@ -196,6 +220,7 @@ namespace CrimsonDraft.UI
             isSelectingOption = false;
 
             if (onNavigate != null) inputService!.PickupNavigate.performed -= onNavigate;
+            if (onNeutral  != null) inputService!.PickupNavigate.canceled  -= onNeutral;
             if (onConfirm  != null) inputService!.PickupConfirm.performed  -= onConfirm;
 
             foreach (var item in pool)

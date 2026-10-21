@@ -31,39 +31,8 @@ namespace CrimsonDraft.Tests
             public SaveGameData? ReadFromDisk(int slot) => null;
             public bool DeleteSlot(int slot) => false;
             public bool LoadSlot(int slot) => false;
+            public bool TryStashPendingLoad(int slot, out string sceneName) { sceneName = string.Empty; return false; }
             public SaveGameData? ConsumePendingLoad() => null;
-        }
-
-        private sealed class FakeInventoryService : IInventoryService
-        {
-            public bool HasItem(string itemId) => false;
-            public bool TryRemoveItem(string itemId) => false;
-
-            public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-            {
-                combinedItem = null;
-                return false;
-            }
-
-            public InventorySlot[] RawSlots = Array.Empty<InventorySlot>();
-            public int SlotCount => this.RawSlots.Length;
-            public IReadOnlyList<InventorySlot> Slots => this.RawSlots;
-            public bool AddItem(ItemData data, int operatorSlot, int quantity = 0) => false;
-            public bool AddExistingItem(InventoryItem item, int operatorSlot) => false;
-            public bool AddItemAuto(ItemData data, int quantity = 0) => false;
-            public void RemoveItem(int slotIndex) { }
-            public void PruneEmptyStacks() { }
-            public void MoveItem(int fromSlot, int toSlot) { }
-            public void EquipWeapon(int slotIndex, int operatorSlot) { }
-            public void UnequipWeapon(int slotIndex) { }
-            public int GetEquippedWeaponIndex(int operatorSlot) => -1;
-            public bool CanReload(int slotIndex, int operatorSlot) => false;
-            public void ReloadOperator(int slotIndex, int operatorSlot) { }
-            public bool TryCombine(int slotA, int slotB) => false;
-            public KeyUseOutcome TryUseKey(string keyItemId) => new KeyUseOutcome(KeyUseResult.NotFound, -1);
-            public void LoadState(InventorySlot[] slots) { }
-            public void SetSlotPosition(int slotIndex, int col, int row, int rotation) { }
-            public InventorySlot[] GetRawSlots() => this.RawSlots;
         }
 
         private sealed class FakeRoster : IOperatorRoster
@@ -145,7 +114,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");
@@ -158,10 +127,8 @@ namespace CrimsonDraft.Tests
             var weaponData = MakeWeaponData("weapon-1");
             var weaponItem = new WeaponItem(weaponData);
             weaponItem.SetAmmo(7);
-            var inventory = new FakeInventoryService
-            {
-                RawSlots = new[] { new InventorySlot { Item = weaponItem, Quantity = 1 } },
-            };
+            var inventory = new FakeInventoryService();
+            inventory.Operator0.Place(weaponItem, Vector2Int.zero, 0);
 
             var roster    = new FakeRoster { Hp = new[] { 42 } };
             var roomGo    = new GameObject("Room");
@@ -205,9 +172,9 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual("room-1", data.operatorCorpses[0].roomId);
                 Assert.AreEqual(new Vector3(9f, 0f, 9f), data.operatorCorpses[0].position);
                 CollectionAssert.AreEqual(new[] { 42 }, data.operatorHp);
-                Assert.AreEqual(1, data.inventorySlots.Count);
-                Assert.AreEqual("weapon-1", data.inventorySlots[0].itemId);
-                Assert.AreEqual(7, data.inventorySlots[0].weaponAmmo);
+                Assert.AreEqual(1, data.inventoryItems.Count);
+                Assert.AreEqual("weapon-1", data.inventoryItems[0].itemId);
+                Assert.AreEqual(7, data.inventoryItems[0].weaponAmmo);
             }
             finally
             {

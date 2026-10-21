@@ -2,9 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using MessagePipe;
 using UnityEngine;
+using UnityEngine.Events;
 using VContainer;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.Navigation.Interactables
@@ -16,19 +19,48 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string   pickupId = null!;
         [SerializeField] private ItemData item     = null!;
 
-        private PickupRegistry pickupRegistry = null!;
+        // When set, confirming the pickup prompt doesn't add anything to the inventory -- it
+        // just marks this note collected and publishes NoteCollectedEvent instead, same as
+        // DocumentInteractable. Lets a note use the normal "Pick up X?" prompt/preview instead
+        // of the silent instant-collect a DocumentInteractable note gets.
+        [SerializeField] private DocumentData? openNoteInstead;
+
+        // With openNoteInstead set, also puts the item in the inventory (the pickup needs room)
+        // -- for a pickup that is both a real inventory item and the source of a note, e.g. the
+        // beeper.
+        [SerializeField] private bool alsoAddItem;
+
+        // Fires once the pickup actually resolves (item added, or note opened via
+        // openNoteInstead) -- empty by default, so most pickups pay nothing for it. Used e.g. by
+        // BeeperDoorMechanism to react to the room's beeper being collected without
+        // PickupInteractable knowing anything about doors.
+        [SerializeField] private UnityEvent onPickedUp = new();
+
+        private PickupRegistry                  pickupRegistry = null!;
+        private IPublisher<NoteCollectedEvent>? notePublisher;
+        private NoteRegistry?                   noteRegistry;
 
         [Inject]
-        public void Construct(PickupRegistry registry)
+        public void Construct(PickupRegistry registry, IPublisher<NoteCollectedEvent> notePublisher, NoteRegistry noteRegistry)
         {
             this.pickupRegistry = registry;
+            this.notePublisher  = notePublisher;
+            this.noteRegistry   = noteRegistry;
+
             if (registry.IsCollected(this.pickupId))
                 gameObject.SetActive(false);
         }
 
-        public string PickupId => this.pickupId;
+        public string     PickupId   => this.pickupId;
+        public bool       IsCollected => this.pickupRegistry != null && this.pickupRegistry.IsCollected(this.pickupId);
+        public UnityEvent OnPickedUp => this.onPickedUp;
 
-        public void Interact(InteractionContext context)
+        public void Interact(InteractionContext context) => Interact(context, null);
+
+        // onClosed runs after the prompt closes whether or not the item was taken (and after
+        // the dialogue service has already handed input back to Gameplay), so callers that
+        // run this from a UI-mode view (e.g. an inspection camera) can switch input back.
+        public void Interact(InteractionContext context, Action? onClosed)
         {
             bool pickupSucceeded = false;
             string itemName = !string.IsNullOrEmpty(this.item.SecondaryName)
@@ -47,15 +79,30 @@ namespace CrimsonDraft.Navigation.Interactables
                 onComplete: () =>
                 {
                     context.PickupPreviewController.Hide();
-                    if (!pickupSucceeded) return;
+                    if (!pickupSucceeded)
+                    {
+                        onClosed?.Invoke();
+                        return;
+                    }
+
                     this.pickupRegistry.SetCollected(this.pickupId);
                     gameObject.SetActive(false);
+
+                    if (this.openNoteInstead != null)
+                    {
+                        this.noteRegistry?.SetCollected(this.openNoteInstead.NoteId);
+                        this.notePublisher?.Publish(new NoteCollectedEvent { NoteId = this.openNoteInstead.NoteId });
+                    }
+
+                    this.onPickedUp.Invoke();
+                    onClosed?.Invoke();
                 },
                 commands: new Dictionary<string, Action>
                 {
                     ["try_pickup"] = () =>
                     {
-                        pickupSucceeded = context.InventoryService.AddItemAuto(this.item);
+                        pickupSucceeded = (this.openNoteInstead != null && !this.alsoAddItem)
+                            || context.InventoryService.TryAdd(this.item);
                         context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
                     }
                 });

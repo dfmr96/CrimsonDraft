@@ -106,6 +106,43 @@ namespace CrimsonDraft.Tests
             UnityEngine.Object.DestroyImmediate(tex);
         }
 
+        // Values measured on QTE_Vest.png's mask cell once its black became transparent: the
+        // importer trims a Tight sprite's textureRect to the opaque area (the vest), while
+        // sprite.rect stays the full 96x128 cell the silhouette UVs are expressed in.
+        private static readonly Rect    TrimmedCellRect    = new Rect(0f, 0f, 96f, 128f);
+        private static readonly Rect    TrimmedTextureRect = new Rect(30.05f, 59.08f, 36.89f, 40.86f);
+        private static readonly Vector2 TrimmedOffset      = new Vector2(30.05f, 59.08f);
+
+        [Test]
+        public void TryMapUvToSpritePixel_trimmedSprite_insideOpaqueArea_mapsThroughFullCell()
+        {
+            bool inside = AimViewController.TryMapUvToSpritePixel(
+                TrimmedCellRect, TrimmedTextureRect, TrimmedOffset, 192, 256, 0.5f, 0.62f, out var pixel);
+
+            Assert.IsTrue(inside);
+            Assert.AreEqual(new Vector2Int(48, 79), pixel);
+        }
+
+        [Test]
+        public void TryMapUvToSpritePixel_trimmedSprite_outsideOpaqueArea_returnsFalse()
+        {
+            Assert.IsFalse(AimViewController.TryMapUvToSpritePixel(
+                TrimmedCellRect, TrimmedTextureRect, TrimmedOffset, 192, 256, 0.5f, 0.9f, out _));
+            Assert.IsFalse(AimViewController.TryMapUvToSpritePixel(
+                TrimmedCellRect, TrimmedTextureRect, TrimmedOffset, 192, 256, 0.5f, 0.2f, out _));
+        }
+
+        [Test]
+        public void TryMapUvToSpritePixel_untrimmedSprite_matchesTextureRectMapping()
+        {
+            var rect = new Rect(1f, 1f, 2f, 2f);
+
+            Assert.IsTrue(AimViewController.TryMapUvToSpritePixel(rect, rect, Vector2.zero, 4, 4, 0f, 0f, out var min));
+            Assert.IsTrue(AimViewController.TryMapUvToSpritePixel(rect, rect, Vector2.zero, 4, 4, 1f, 1f, out var max));
+            Assert.AreEqual(new Vector2Int(1, 1), min);
+            Assert.AreEqual(new Vector2Int(2, 2), max);
+        }
+
         [Test]
         public void AimHitMaskProfile_defaults_areSafe()
         {

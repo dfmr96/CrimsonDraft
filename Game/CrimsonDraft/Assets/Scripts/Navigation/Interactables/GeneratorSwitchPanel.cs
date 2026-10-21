@@ -7,8 +7,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Input;
-using CrimsonDraft.Infrastructure.UI;
+using CrimsonDraft.UI;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Rendering.Outline;
 
@@ -89,10 +90,13 @@ namespace CrimsonDraft.Navigation.Interactables
         // the top row just stays disabled forever (fine before the socket exists in-scene).
         [SerializeField] private ItemSocketInteractable? fuseSocket;
 
-        // Shown full-screen (via ScreenFader) once all three rows check out -- same demo-end
-        // beat PuzzleInteractable uses elsewhere, restored here since this panel replaced the
-        // older electric-box puzzle that used to trigger it.
-        [SerializeField, TextArea] private string demoEndMessage = "Hasta aquí llega la demo.\nGracias por jugar.";
+        // Switched on once all three rows check out (e.g. the KI_20 pickup); keep it inactive
+        // in the scene. Skipped when that pickup was already collected.
+        [SerializeField] private GameObject? revealOnSolved;
+
+        // Key under which "solved" is kept in ItemSocketStateRegistry, so it survives scene
+        // changes and saves (same trick RoomVisitMutation uses). Unique per generator.
+        [SerializeField] private string solvedId = "generator_switch_panel";
 
         private Transform[][]     rows        = Array.Empty<Transform[]>();
         private TextMeshProUGUI[] rowDisplays = Array.Empty<TextMeshProUGUI>();
@@ -103,7 +107,8 @@ namespace CrimsonDraft.Navigation.Interactables
         private IInputService       inputService        = null!;
         private IDialogueService    dialogueService      = null!;
         private InspectionController inspectionController = null!;
-        private ScreenFader          screenFader          = null!;
+        private ItemSocketStateRegistry registry          = null!;
+        private InventorySfxData?    sfx;
 
         private readonly SelectionOutlineHighlight highlight = new();
 
@@ -122,12 +127,50 @@ namespace CrimsonDraft.Navigation.Interactables
         public bool IsSolved => this.isSolved;
 
         [Inject]
-        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ScreenFader screenFader)
+        public void Construct(IInputService inputService, IDialogueService dialogueService, InspectionController inspectionController, ItemSocketStateRegistry registry, InventorySfxData sfx)
         {
             this.inputService         = inputService;
             this.dialogueService      = dialogueService;
             this.inspectionController = inspectionController;
-            this.screenFader          = screenFader;
+            this.registry             = registry;
+            this.sfx                  = sfx;
+        }
+
+        private string SolvedKey => this.solvedId + "#solved";
+
+        // Start, not Awake: the pickup's own Construct (hides it when already collected) runs
+        // with the scope's entry points, which have finished by the time Start is called.
+        void Start()
+        {
+            // The fuse socket's restore doesn't replay onActivated, so re-power the top row here.
+            if (this.fuseSocket != null && this.fuseSocket.IsActivated)
+                PowerTopRow();
+
+            if (this.registry == null) return;
+
+            var flag = this.registry.GetInserted(SolvedKey);
+            if (flag.Length == 0 || !flag[0]) return;
+
+            this.isSolved    = true;
+            this.isVerifying = true;
+            if (this.leverHandle != null)
+            {
+                this.leverHandle.localPosition = LeverPulledLocalPosition;
+                this.leverHandle.localRotation = LeverPulledLocalRotation;
+            }
+            ApplySolvedState();
+        }
+
+        // Solved: reveal the reward and take the generator out of the interaction raycast
+        // (Default layer instead of Interactable) -- its collider stays, so it is still solid.
+        private void ApplySolvedState()
+        {
+            gameObject.layer = 0;
+
+            if (this.revealOnSolved == null) return;
+            var pickup = this.revealOnSolved.GetComponent<PickupInteractable>();
+            if (pickup == null || !pickup.IsCollected)
+                this.revealOnSolved.SetActive(true);
         }
 
         void Awake()
@@ -147,6 +190,9 @@ namespace CrimsonDraft.Navigation.Interactables
                 }
                 UpdateRowDisplay(r);
             }
+
+            if (this.revealOnSolved != null)
+                this.revealOnSolved.SetActive(false);
 
             if (this.fuseSocket != null)
                 this.fuseSocket.OnActivated.AddListener(PowerTopRow);
@@ -216,6 +262,7 @@ namespace CrimsonDraft.Navigation.Interactables
             else if (dir.y < -0.5f) MoveDown();
             else return;
 
+            this.sfx?.PlayCursor(gameObject);
             this.lastNavTime = Time.unscaledTime;
         }
 
@@ -225,24 +272,28 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (this.onLever)
             {
+                this.sfx?.PlayDecide(gameObject);
                 PullLever();
                 return;
             }
 
             if (this.currentRow == 0 && !this.topRowPowered)
             {
+                this.sfx?.PlayInvalidAction(gameObject);
                 ShowMissingPowerPrompt();
                 return;
             }
 
             if (IsRusted(this.currentRow, this.currentCol))
             {
+                this.sfx?.PlayInvalidAction(gameObject);
                 ShowRustedFusePrompt();
                 return;
             }
 
             bool newState = !this.switchOn[this.currentRow][this.currentCol];
             this.switchOn[this.currentRow][this.currentCol] = newState;
+            this.sfx?.PlayDecide(gameObject);
             ApplySwitchVisual(this.rows[this.currentRow][this.currentCol], newState);
             UpdateRowDisplay(this.currentRow);
 
@@ -274,15 +325,18 @@ namespace CrimsonDraft.Navigation.Interactables
 
             if (topOk && bottomOk)
             {
+                this.sfx?.PlayDecide(gameObject);
                 await UniTask.Delay(TimeSpan.FromSeconds(SuccessHoldSeconds), ignoreTimeScale: true);
                 this.isSolved = true;
+                this.registry.SetInserted(SolvedKey, new[] { true });
                 this.inspectionController.ExitNow();
                 // Left verifying + the green flash on -- the panel is locked (Activate() now
                 // refuses) and the handle stays pulled down as a visible "already solved" cue.
-                this.screenFader.ShowEndScreenAsync(this.demoEndMessage).Forget();
+                ApplySolvedState();
                 return;
             }
 
+            this.sfx?.PlayInvalidAction(gameObject);
             await UniTask.Delay(TimeSpan.FromSeconds(FailureHoldSeconds), ignoreTimeScale: true);
             ResetAllSwitches();
             await AnimateLeverAsync(down: false);

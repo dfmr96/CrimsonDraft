@@ -30,11 +30,19 @@ namespace CrimsonDraft.Navigation.Rooms
 
         void IInitializable.Initialize()
         {
+            // A stale cache entry (door deleted/script missing since "Cache Scene Doors" was last
+            // pressed) must not abort Initialize -- it would skip every initializer after this one.
             foreach (var door in this.cache.RoomDoors)
+            {
+                if (door == null) continue;
                 door.Construct(this.roomOrchestrator, this.registry);
+            }
 
             foreach (var door in this.cache.SceneDoors)
+            {
+                if (door == null) continue;
                 door.Construct(this.floorService, this.registry);
+            }
         }
     }
 }

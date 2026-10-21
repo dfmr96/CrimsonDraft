@@ -24,8 +24,8 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private GameObject optionsCanvas   = null!;
         [SerializeField] private GameObject loadGameCanvas  = null!;
         [SerializeField] private OptionsTabController optionsController = null!;
-        [Tooltip("Selectable enfocado al llegar al canvas de New Game -- sin esto el EventSystem se queda sin selección y Navigate/Submit/Cancel no tienen nada sobre lo que actuar.")]
-        [SerializeField] private Selectable newGameFirstSelected = null!;
+        [Tooltip("Navegación del canvas de New Game (filas de controles + botón de inicio).")]
+        [SerializeField] private NewGameNavigator newGameNavigator = null!;
         [Tooltip("Con esto se abre la lista de saves al llegar a LoadGame_canva. El Load Game de LoadGame_canva maneja su propio Confirm/Cancel (navegación anidada lista/confirmar), así que OnCancel lo ignora por completo -- ver TravelBackFromLoadGame.")]
         [SerializeField] private MainMenuController mainMenuController = null!;
 
@@ -34,17 +34,19 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Ease  travelEase      = Ease.InOutSine;
 
         private IInputService inputService = null!;
-        private MainMenuSfxData sfx        = null!;
+        private MainMenuSfxData sfx        = null!; // panel travel whoosh
+        private InventorySfxData uiSfx     = null!; // shared UI decide / cancel
         private Vector3       homePosition;
         private Quaternion    homeRotation;
         private Destination   currentDestination;
         private bool          isTravelling;
 
         [Inject]
-        public void Construct(IInputService inputService, MainMenuSfxData sfx)
+        public void Construct(IInputService inputService, MainMenuSfxData sfx, InventorySfxData uiSfx)
         {
             this.inputService = inputService;
             this.sfx          = sfx;
+            this.uiSfx        = uiSfx;
             this.inputService.UICancel.performed += OnCancel;
         }
 
@@ -68,7 +70,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.NewGame;
             this.isTravelling       = true;
 
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
@@ -81,7 +83,7 @@ namespace CrimsonDraft.UI.MainMenu
                 {
                     this.isTravelling = false;
                     this.newGameCanvas.SetActive(true);
-                    EventSystem.current?.SetSelectedGameObject(this.newGameFirstSelected.gameObject);
+                    this.newGameNavigator.Open();
                 });
         }
 
@@ -91,7 +93,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.Options;
             this.isTravelling       = true;
 
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
@@ -114,7 +116,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.LoadGame;
             this.isTravelling       = true;
 
-            this.sfx.PlayDecide(gameObject);
+            this.uiSfx.PlayDecide(gameObject);
             this.sfx.PlayPanelTravel(gameObject);
             this.titleCanvas.SetActive(false);
             EventSystem.current?.SetSelectedGameObject(null);
@@ -148,6 +150,9 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.currentDestination == Destination.None
                 || this.currentDestination == Destination.LoadGame
                 || this.isTravelling) return;
+
+            // New Game has two steps (controls, gamma): cancel first steps back inside it.
+            if (this.currentDestination == Destination.NewGame && this.newGameNavigator.TryGoBack()) return;
             TravelBack();
         }
 
@@ -157,12 +162,13 @@ namespace CrimsonDraft.UI.MainMenu
             this.currentDestination = Destination.None;
             this.isTravelling       = true;
 
-            this.sfx.PlayCancel(gameObject);
+            this.uiSfx.PlayCancel(gameObject);
             this.sfx.PlayPanelTravel(gameObject);
 
             switch (from)
             {
                 case Destination.NewGame:
+                    this.newGameNavigator.Close();
                     this.newGameCanvas.SetActive(false);
                     break;
                 case Destination.Options:

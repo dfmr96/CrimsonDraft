@@ -17,6 +17,8 @@ namespace CrimsonDraft.Combat
         #region Events
 
         public event Action<ResolvedShot[]>? OnShotsResolved;
+        // Melee count: raised when the first missing point of the cut vanishes (once per swing).
+        public event Action? OnMeleeMissRevealed;
 
         #endregion
 
@@ -30,6 +32,10 @@ namespace CrimsonDraft.Combat
         [SerializeField] private Image         horizontalSelector     = null!;
         [SerializeField] private RectTransform aimSpace               = null!;
         [SerializeField] private Image         silhouetteImage        = null!;
+        // Child of silhouetteImage with the same rect -- draws the active overlay (vest) on top
+        // of the silhouette so it shakes with it. Optional: without it overlays still apply,
+        // they just aren't drawn.
+        [SerializeField] private Image?        overlayImage;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
         [SerializeField] private RectTransform feedbackRoot           = null!;
@@ -44,6 +50,28 @@ namespace CrimsonDraft.Combat
         [SerializeField] private int           maxConcurrentFeedback  = 3;
         [SerializeField] private Color         hitFeedbackColor       = Color.white;
         [SerializeField] private Color         missFeedbackColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
+        [SerializeField] private Color         armorBlockedFeedbackColor = new Color(0.2f, 0.88f, 1f, 1f); // #33E0FF
+        // Where the end-of-QTE total popup appears (above the silhouette, outside aimSpace so
+        // Hide()'s aimSpace sweep never touches it). Optional: without it the total is skipped.
+        [SerializeField] private RectTransform? totalFeedbackAnchor;
+        [SerializeField] private float          totalFeedbackScale = 1.6f;
+
+        // Running damage total. When assigned, per-shot numbers stay on screen until they are
+        // "absorbed" into this counter one by one (each absorb pops both the counter and the
+        // number, which then disappears) and the end-of-QTE total popup above is skipped.
+        [Header("Damage Counter")]
+        [SerializeField] private TMP_Text? damageCounterText;
+        // Parent object holding the counter's frame + text; inactive until the first absorb.
+        // Falls back to the text's own object when not assigned.
+        [SerializeField] private GameObject? damageCounterRoot;
+        [SerializeField] private Color    damageCounterColor        = Color.white;
+        [SerializeField] private Color     damageCounterLethalColor  = new Color(1f, 0.15f, 0.15f, 1f);
+        [SerializeField] private float     slashPointVanishInterval  = 0.02f;  // melee: seconds between cut points vanishing (faster than absorbInterval)
+        [SerializeField] private float     absorbInterval            = 0.3f;   // seconds between absorbed shots
+        [SerializeField] private float     absorbPunchScale          = 1.35f;
+        [SerializeField] private float     absorbPunchDuration       = 0.1f; // per half of the pop; keep it snappy
+        // After the second axis is locked in the shots fire on their own after this short beat.
+        [SerializeField] private float     resolveDelayAfterConfirm  = 0.1f;
 
         // Each full "there and back" loop of a bar nudges its speed up by this much (1 + stage *
         // speedRampStep), capped at maxSpeedRampStages loops -- e.g. default 0.1/4 ramps
@@ -66,6 +94,22 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0f, 1f)] private float dubStrength       = 0.55f; // "dub" vs "lub" strength
         [SerializeField, Range(0f, 1f)] private float dubOffsetFraction = 0.16f; // "dub" timing within the beat
 
+        // Randomizes where each selector's first leg starts along its rail instead of always the
+        // near edge, scaling with HP. Null config keeps the original fixed-start behavior.
+        [Header("Spawn Variability")]
+        [SerializeField] private AimSpawnConfig? spawnConfig;
+
+        // Shared Full/Yellow/Orange/Danger breakpoints -- also drives AimDebuffController so both
+        // systems agree on what counts as "low HP" instead of each having its own thresholds.
+        [Header("HP Tier")]
+        [SerializeField] private HpTierConfig? hpTierConfig;
+        [SerializeField] private AimDebuffController? debuffController;
+
+        private IRandomSource random = new UnityRandomSource();
+        private float? previousVerticalOffset;
+        private float? previousHorizontalOffset;
+        private float  spawnDanger01; // 0..1, stepped by HpTier -- see SetOperatorHpRatio
+
         private AimPhase phase;
         private Vector2  confirmedLocalPos;
         private int               shotCount              = 1;
@@ -75,10 +119,33 @@ namespace CrimsonDraft.Combat
         private BurstPatternData? activeBurstPattern;
         private int               activePelletCount = 1;
         private IShotResolutionStrategy activeShotStrategy = new SingleShotStrategy();
+        // A melee slash is ONE cut drawn as a dense row of points: it deals the weapon's Damage in total
+        // (carried by its first point that touches the body), not damage per point.
+        private bool activeMeleeSlash;
+        private int  activeSlashDamage = 1;
+        // Markers of the current slash's points, in order, so the count can make them vanish one by one.
+        // Shot numbers under aimSpace; re-raised above every marker/circle spawned later so a hit
+        // never covers a number.
+        private readonly List<Transform> feedbackTexts = new();
+        private List<(GameObject Go, bool IsMiss)> pendingSlashPoints = new List<(GameObject, bool)>();
         private ResolvedShot[] pendingResolvedShots = Array.Empty<ResolvedShot>();
         private bool isResolvingSequence;
 
         private Sprite?              activeZoneMaskSprite;
+        private Sprite?              activeOverlayMaskSprite;
+        private OverlayKind?         activeOverlayKind;
+        private float                activeArmorDamageMultiplier = 1f;
+        private bool                 warnedUnreadableOverlayMask;
+        private GameObject?          totalFeedbackInstance;
+        private bool                 warnedMissingTotalAnchor;
+        private enum CountPhase { NotStarted, Counting, Done }
+
+        private CountPhase           countPhase = CountPhase.Done;
+        private List<AbsorbableShot> pendingAbsorbables = new List<AbsorbableShot>();
+        private int                  targetCurrentHp = int.MaxValue;
+        private int                  sequenceVersion; // bumped by Show/Hide so a stale resolve sequence stops touching the UI
+        private Vector3              damageCounterBaseScale = Vector3.one;
+        private bool                 damageCounterScaleCaptured;
         private ShotZoneDefinition[] activeZoneDefinitions = Array.Empty<ShotZoneDefinition>();
         private float                activeColorTolerance  = 0.1f;
         private bool                 warnedMissingMaskConfig;
@@ -93,6 +160,9 @@ namespace CrimsonDraft.Combat
         private float  shakeIntensity01; // 0 = full HP, 1 = 0 HP
         private float  shakeSeedV; // per-QTE seed for the heartbeat's per-beat punch direction
         private Vector3 basePanelLocalPos;
+        private Vector3 panelBaseScale = Vector3.one;
+        private bool   panelScaleCaptured;
+        [SerializeField] private float panelScaleDuration = 0.2f; // open/close Y-scale animation
 #if UNITY_EDITOR
         private bool       hasLastSample;
         private Vector3    lastSampleWorldPos;
@@ -130,13 +200,26 @@ namespace CrimsonDraft.Combat
                 this.silhouetteImage.sprite = profile.SilhouetteSprite;
         }
 
+        public void ConfigureOverlay(ActiveOverlay? overlay)
+        {
+            this.activeOverlayMaskSprite     = overlay?.MaskSprite;
+            this.activeOverlayKind           = overlay?.Kind;
+            this.warnedUnreadableOverlayMask = false;
+
+            if (this.overlayImage == null) return;
+            this.overlayImage.sprite  = overlay?.VisibleSprite;
+            this.overlayImage.enabled = overlay.HasValue;
+        }
+
         public void ConfigureWeapon(WeaponData? weaponData)
         {
+            this.activeArmorDamageMultiplier = weaponData?.ArmorDamageMultiplier ?? 1f;
             this.activeDispersionRadius = weaponData?.DispersionRadius ?? 10;
             this.activeBaseDamage       = weaponData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = weaponData?.DispersionCircleSprite;
             this.activeBurstPattern     = weaponData?.BurstPattern;
             this.activePelletCount      = Mathf.Max(1, weaponData?.PelletCount ?? 1);
+            this.activeMeleeSlash       = false;
             this.activeShotStrategy     = weaponData?.GunType is GunType.Shotgun or GunType.REShotgun
                 ? new PelletSpreadStrategy()
                 : new SingleShotStrategy();
@@ -144,16 +227,19 @@ namespace CrimsonDraft.Combat
 
         public void ConfigureMeleeWeapon(MeleeWeaponData? meleeData)
         {
+            this.activeArmorDamageMultiplier = meleeData?.ArmorDamageMultiplier ?? 1f;
             this.activeBaseDamage       = meleeData?.Damage ?? CombatMenuController.BaseDamage;
             this.activeDispersionSprite = null;
             this.activeBurstPattern     = meleeData?.SlashPattern;
             this.activePelletCount      = Mathf.Max(2, meleeData?.SlashPointCount ?? 5);
             float slashLength           = meleeData?.SlashLength ?? 40f;
             this.activeDispersionRadius = Mathf.Max(1, Mathf.RoundToInt(slashLength * 0.5f));
+            this.activeMeleeSlash       = true;
+            this.activeSlashDamage      = Mathf.Max(1, meleeData?.Damage ?? 1);
             this.activeShotStrategy     = new SlashStrategy(
                 slashLength,
-                meleeData?.SlashAngleDegrees ?? 45f,
-                meleeData?.SlashAngleJitterDegrees ?? 15f);
+                meleeData?.SlashAngleDegrees ?? 0f,
+                meleeData?.SlashAngleJitterDegrees ?? 20f);
         }
 
         public void SetShotCount(int shotCount)
@@ -163,18 +249,42 @@ namespace CrimsonDraft.Combat
 
         public void SetOperatorHpRatio(float hpRatio)
         {
+            // Heartbeat shake stays continuous with raw HP% -- untouched by the tier system below.
             this.shakeIntensity01 = 1f - Mathf.Clamp01(hpRatio);
+
+            HpTier tier = this.hpTierConfig != null
+                ? HpTierCalculator.ComputeTier(hpRatio, this.hpTierConfig)
+                : HpTier.Full;
+
+            // Spawn radius now steps with the same tier the debuffs use, instead of following raw
+            // HP% -- falls back to the old continuous behavior if no tier config is assigned.
+            this.spawnDanger01 = this.hpTierConfig != null
+                ? HpTierCalculator.TierToDanger01(tier)
+                : this.shakeIntensity01;
+
+            this.debuffController?.SetTier(tier);
         }
+
+        public void SetTargetHp(int currentHp) =>
+            this.targetCurrentHp = currentHp;
 
         public void Show()
         {
+            this.ClearTotalFeedback();
+            this.sequenceVersion++;
             this.gameObject.SetActive(true);
+            this.PlayPanelScaleIn();
+            this.ResetDamageCounter();
+            this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
+            this.countPhase = CountPhase.Done;
             this.basePanelLocalPos = this.transform.localPosition;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
             this.StartVerticalOscillation();
             this.phase = AimPhase.VerticalAiming;
             this.pendingResolvedShots = Array.Empty<ResolvedShot>();
             this.isResolvingSequence = false;
+            this.debuffController?.BeginForShot();
         }
 
         public void ShowShotFeedback(Vector2 normalizedPos, int damage, bool isMiss) =>
@@ -215,39 +325,53 @@ namespace CrimsonDraft.Combat
                 var firstShotLocal = this.ComputeRandomShotLocal();
                 this.pendingResolvedShots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
                 this.phase = AimPhase.WaitingResolve;
-                return;
-            }
 
-            if (this.phase == AimPhase.WaitingResolve && !this.isResolvingSequence)
-                this.ResolvePendingShotsAsync().Forget();
+                // Both axes are locked in -- the debuffs have done their job, let them fade out
+                // instead of holding through the resolve/dismiss phases.
+                this.debuffController?.EndForShot();
+
+                // No extra input needed: the shots fire on their own after a short beat.
+                this.AutoResolveAsync(this.sequenceVersion).Forget();
+            }
         }
 
-        // Reuses the aim position already locked by the real interactive QTE (confirmedLocalPos)
-        // without re-running the vertical/horizontal oscillation — used for Focus Fire's marked
-        // participants, who share the trigger's aim point but apply their own weapon's burst
-        // pattern and dispersion.
-        public ResolvedShot[] ResolveShotsForWeapon(WeaponData? weaponData, int shotCount)
+        // Called by the aiming state on an input after the shots are on screen. The first one
+        // starts the damage count (returns true = consumed); once it is running or finished the
+        // next one is not consumed and the caller closes the panel, which also skips whatever is
+        // left of the count.
+        public bool TryAdvancePostShots()
         {
-            this.ConfigureWeapon(weaponData);
-            this.shotCount = Mathf.Max(1, shotCount);
-            var firstShotLocal = this.ComputeRandomShotLocal();
-            var shots = this.BuildResolvedShots(firstShotLocal, this.shotCount);
+            if (this.phase != AimPhase.WaitingDismiss || this.countPhase != CountPhase.NotStarted)
+                return false;
 
-            // The interactive QTE spawns its markers/feedback from ResolvePendingShotsAsync,
-            // which this path bypasses — do it here so every participant's bullets show up
-            // positioned on the reticle, not just the trigger's.
-            foreach (var shot in shots)
-            {
-                Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
-                this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
-            }
+            this.StartCountingAsync(this.sequenceVersion).Forget();
+            return true;
+        }
 
-            return shots;
+        private async UniTaskVoid AutoResolveAsync(int version)
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.resolveDelayAfterConfirm)));
+            if (this == null || version != this.sequenceVersion) return;
+            if (this.phase != AimPhase.WaitingResolve || this.isResolvingSequence) return;
+            this.ResolvePendingShotsAsync().Forget();
+        }
+
+        private async UniTaskVoid StartCountingAsync(int version)
+        {
+            this.countPhase = CountPhase.Counting;
+            await this.VanishSlashPointsAsync(version);
+            if (this == null || version != this.sequenceVersion) return;
+            await this.AbsorbIntoCounterAsync(this.pendingAbsorbables, version);
+            if (this == null || version != this.sequenceVersion) return;
+            this.countPhase = CountPhase.Done;
         }
 
         public void Hide()
         {
+            // Guaranteed shutdown: whatever debuff effects are mid-fade get force-stopped here,
+            // regardless of why the aim view is closing (normal dismiss, cancel, or death).
+            this.debuffController?.EndAll();
+
             this.verticalSelector.DOKill();
             this.verticalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOKill();
@@ -255,6 +379,12 @@ namespace CrimsonDraft.Combat
             this.verticalTween   = null;
             this.horizontalTween = null;
             this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
+            this.ClearTotalFeedback();
+            this.sequenceVersion++;
+            this.ResetDamageCounter();
+            this.pendingAbsorbables = new List<AbsorbableShot>();
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
+            this.countPhase = CountPhase.Done;
             this.DetachFeedbackFromAimView();
 
             foreach (Transform child in this.aimSpace)
@@ -262,7 +392,42 @@ namespace CrimsonDraft.Combat
 
             this.pendingResolvedShots = Array.Empty<ResolvedShot>();
             this.isResolvingSequence = false;
-            this.gameObject.SetActive(false);
+            this.PlayPanelScaleOut();
+        }
+
+        // The panel grows from Y scale 0 on open and collapses back to 0 on close.
+        private void CapturePanelBaseScale()
+        {
+            if (this.panelScaleCaptured) return;
+            this.panelBaseScale     = this.transform.localScale;
+            this.panelScaleCaptured = true;
+        }
+
+        private void PlayPanelScaleIn()
+        {
+            this.CapturePanelBaseScale();
+            this.transform.DOKill();
+            var s = this.panelBaseScale;
+            this.transform.localScale = new Vector3(s.x, 0f, s.z);
+            this.transform.DOScaleY(s.y, Mathf.Max(0.01f, this.panelScaleDuration)).SetEase(Ease.OutBack);
+        }
+
+        private void PlayPanelScaleOut()
+        {
+            this.CapturePanelBaseScale();
+            this.transform.DOKill();
+            if (!this.gameObject.activeInHierarchy)
+            {
+                this.transform.localScale = this.panelBaseScale;
+                this.gameObject.SetActive(false);
+                return;
+            }
+
+            this.transform.DOScaleY(0f, Mathf.Max(0.01f, this.panelScaleDuration)).SetEase(Ease.InBack).OnComplete(() =>
+            {
+                this.transform.localScale = this.panelBaseScale;
+                this.gameObject.SetActive(false);
+            });
         }
 
         #endregion
@@ -275,11 +440,32 @@ namespace CrimsonDraft.Combat
             this.verticalSelector.DOKill();
             this.verticalSelector.rectTransform.DOKill();
             this.verticalSelector.DOFade(1f, 0f);
-            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, -halfH, 0f);
+
+            float startY = this.spawnConfig != null
+                ? AimSpawnPlanner.ComputeSignedOffset(halfH, this.spawnDanger01, this.previousVerticalOffset, this.spawnConfig, this.random)
+                : -halfH;
+            this.previousVerticalOffset = startY;
+            this.verticalSelector.rectTransform.localPosition = new Vector3(0f, startY, 0f);
+
             this.verticalLoopLegs  = 0;
             this.verticalRampStage = 0;
+
+            // First leg heads to the top at the same px/sec rate as every normal leg (full range
+            // 2*halfH covered in `speed` seconds) -- so a spawn closer to the top just takes
+            // proportionally less time, exactly as if the oscillation had been running the whole
+            // time and we started watching it partway through.
+            float firstLegDuration = this.ComputeFirstLegDuration(halfH, startY);
             this.verticalTween = this.verticalSelector.rectTransform
-                .DOLocalMoveY(halfH, this.speed, snapping: true)
+                .DOLocalMoveY(halfH, firstLegDuration, snapping: true)
+                .SetEase(Ease.InOutSine)
+                .OnComplete(() => this.BeginVerticalSteadyLoop(halfH));
+        }
+
+        private void BeginVerticalSteadyLoop(float halfH)
+        {
+            this.verticalLoopLegs = 1; // the randomized first leg (spawn -> top) already counts as leg 1
+            this.verticalTween = this.verticalSelector.rectTransform
+                .DOLocalMoveY(-halfH, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .OnStepComplete(HandleVerticalLoopLeg);
@@ -291,11 +477,41 @@ namespace CrimsonDraft.Combat
             this.horizontalSelector.DOKill();
             this.horizontalSelector.rectTransform.DOKill();
             this.horizontalSelector.DOFade(1f, 0f);
-            this.horizontalSelector.rectTransform.localPosition = new Vector3(-halfW, 0f, 0f);
+
+            float startX = this.spawnConfig != null
+                ? AimSpawnPlanner.ComputeSignedOffset(halfW, this.spawnDanger01, this.previousHorizontalOffset, this.spawnConfig, this.random)
+                : -halfW;
+            this.previousHorizontalOffset = startX;
+            this.horizontalSelector.rectTransform.localPosition = new Vector3(startX, 0f, 0f);
+
             this.horizontalLoopLegs  = 0;
             this.horizontalRampStage = 0;
+
+            // Same rate-matched first leg as the vertical bar -- see StartVerticalOscillation.
+            float firstLegDuration = this.ComputeFirstLegDuration(halfW, startX);
             this.horizontalTween = this.horizontalSelector.rectTransform
-                .DOLocalMoveX(halfW, this.speed, snapping: true)
+                .DOLocalMoveX(halfW, firstLegDuration, snapping: true)
+                .SetEase(Ease.InOutSine)
+                .OnComplete(() => this.BeginHorizontalSteadyLoop(halfW));
+        }
+
+        // Same px/sec rate as a normal full-range leg (2*halfExtent covered in `speed` seconds),
+        // applied to the shorter/longer distance from a randomized spawn point to the extreme.
+        private float ComputeFirstLegDuration(float halfExtent, float startOffset)
+        {
+            float fullRange = 2f * halfExtent;
+            if (fullRange <= 0f)
+                return this.speed;
+
+            float distanceToExtreme = halfExtent - startOffset;
+            return this.speed * (distanceToExtreme / fullRange);
+        }
+
+        private void BeginHorizontalSteadyLoop(float halfW)
+        {
+            this.horizontalLoopLegs = 1; // the randomized first leg (spawn -> right) already counts as leg 1
+            this.horizontalTween = this.horizontalSelector.rectTransform
+                .DOLocalMoveX(-halfW, this.speed, snapping: true)
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .OnStepComplete(HandleHorizontalLoopLeg);
@@ -380,12 +596,50 @@ namespace CrimsonDraft.Combat
                     ShotZone            zone       = def?.zone ?? ShotZone.Miss;
                     ShotPrecision       precision  = def?.precisionEntry.precision ?? ShotPrecision.Normal;
                     float               precMult   = def.HasValue ? (def.Value.precisionEntry.multiplier <= 0f ? 1f : def.Value.precisionEntry.multiplier) : 0f;
-                    int                 damage     = CombatMenuController.ComputeShotDamage(zone, precMult, this.activeBaseDamage);
-                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage));
+                    bool                armorBlocked = ArmorRules.IsBlocked(
+                        zone, this.IsOverlayCovered(shotLocal), this.activeOverlayKind, this.activeArmorDamageMultiplier);
+                    int                 damage     = CombatMenuController.ComputeShotDamage(
+                        zone, precMult, this.activeBaseDamage, armorBlocked ? this.activeArmorDamageMultiplier : 1f);
+                    resolved.Add(new ResolvedShot(flatIndex, bulletIndex, normalized, zone, precision, damage, armorBlocked));
                     flatIndex++;
                 }
             }
+
+            if (this.activeMeleeSlash)
+                ApplyFixedSlashDamage(resolved, this.activeSlashDamage);
+
             return resolved.ToArray();
+        }
+
+        // The cut counts as a single hit: only the first point that touches the body keeps damage
+        // (slashDamage); the rest keep their zone -- misses still mark the cut as having left the
+        // body -- but deal nothing, so summing the points can never turn one slash into many hits.
+        // If no point touches the body there is no damage at all.
+        internal static void ApplyFixedSlashDamage(List<ResolvedShot> shots, int slashDamage)
+        {
+            bool damageGiven = false;
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var s = shots[i];
+                int damage = 0;
+                if (!damageGiven && s.Zone != ShotZone.Miss)
+                {
+                    damage = slashDamage;
+                    damageGiven = true;
+                }
+                shots[i] = new ResolvedShot(s.Index, s.BulletIndex, s.NormalizedPos, s.Zone, s.Precision, damage, s.ArmorBlocked);
+            }
+        }
+
+        // Index of the point that carries a slash's single number popup: the one dealing the damage,
+        // or the first point when the whole cut missed (it then shows one MISS).
+        private static int FindSlashPopupIndex(ResolvedShot[] shots)
+        {
+            for (int i = 0; i < shots.Length; i++)
+            {
+                if (shots[i].Zone != ShotZone.Miss) return i;
+            }
+            return 0;
         }
 
         private async UniTaskVoid ResolvePendingShotsAsync()
@@ -401,33 +655,79 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
+            int version     = this.sequenceVersion;
+            bool useCounter = this.damageCounterText != null;
+            var absorbables = new List<AbsorbableShot>(this.pendingResolvedShots.Length);
+
+            // A slash is one cut: every point still gets its marker (all appear together, drawing the
+            // trail at once), but there's a single number for the whole thing.
+            bool melee      = this.activeMeleeSlash;
+            int  popupIndex = melee ? FindSlashPopupIndex(this.pendingResolvedShots) : -1;
+
             for (int i = 0; i < this.pendingResolvedShots.Length; i++)
             {
                 var shot = this.pendingResolvedShots[i];
+                bool isMiss = shot.Zone == ShotZone.Miss;
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
-                this.SpawnMarker(local);
-                this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, shot.Zone == ShotZone.Miss);
+                var marker = this.SpawnMarker(local);
+                if (melee)
+                    this.pendingSlashPoints.Add((marker, isMiss));
+
+                if (!melee || i == popupIndex)
+                {
+                    if (useCounter)
+                    {
+                        var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                        if (popup != null)
+                            absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss, melee ? null : marker));
+                    }
+                    else
+                    {
+                        this.SpawnShotFeedbackVisual(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
+                    }
+                }
+
 
                 // Only pause between distinct bullets, not between pellets of the same shell -
                 // a shotgun blast should read as one simultaneous spread, not a slow trickle.
                 bool isLastShot     = i == this.pendingResolvedShots.Length - 1;
                 bool advancesBullet = !isLastShot && this.pendingResolvedShots[i + 1].BulletIndex != shot.BulletIndex;
                 if (advancesBullet && this.bulletSequenceDelay > 0f)
+                {
                     await UniTask.Delay(TimeSpan.FromSeconds(this.bulletSequenceDelay));
+                    if (this == null || version != this.sequenceVersion) return;
+                }
             }
+
+            // With a counter the numbers stay up and the count starts on the player's next input
+            // (TryAdvancePostShots); without one, fall back to the old end-of-QTE total popup.
+            this.pendingAbsorbables = absorbables;
+            this.countPhase = useCounter ? CountPhase.NotStarted : CountPhase.Done;
+            if (!useCounter)
+                this.SpawnTotalFeedback(this.pendingResolvedShots);
 
             this.OnShotsResolved?.Invoke(this.pendingResolvedShots);
             this.isResolvingSequence = false;
             this.phase = AimPhase.WaitingDismiss;
         }
 
-        private void SpawnMarker(Vector2 localPos)
+        private GameObject SpawnMarker(Vector2 localPos)
         {
             var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
             ((RectTransform)marker.transform).localPosition = new Vector3(
                 Mathf.Round(localPos.x),
                 Mathf.Round(localPos.y),
                 0f);
+            this.RaiseFeedbackTexts();
+            return marker;
+        }
+
+        private void RaiseFeedbackTexts()
+        {
+            this.feedbackTexts.RemoveAll(t => t == null);
+            foreach (var t in this.feedbackTexts)
+                t.SetAsLastSibling();
         }
 
         private void SpawnDispersionCircle(Vector2 localPos)
@@ -435,13 +735,226 @@ namespace CrimsonDraft.Combat
             var circle = Instantiate(this.dispersionCirclePrefab, this.aimSpace);
             var rt     = (RectTransform)circle.transform;
             rt.localPosition = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
+            this.RaiseFeedbackTexts();
             var img = circle.GetComponent<Image>();
             if (this.activeDispersionSprite != null)
                 img.sprite = this.activeDispersionSprite;
             img.SetNativeSize();
         }
 
-        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss)
+        // Unlike per-shot popups this one never fades and isn't tracked in activeFeedback, so it
+        // can't be pruned by maxConcurrentFeedback -- it stays until the QTE is dismissed.
+        private void SpawnTotalFeedback(ResolvedShot[] shots)
+        {
+            string? label = TotalFeedback.Format(shots);
+            if (label == null || this.feedbackTextPrefab == null) return;
+
+            if (this.totalFeedbackAnchor == null)
+            {
+                if (!this.warnedMissingTotalAnchor)
+                {
+                    Debug.LogWarning("[AimView] Total feedback anchor is not assigned -- skipping the total popup.");
+                    this.warnedMissingTotalAnchor = true;
+                }
+                return;
+            }
+
+            this.ClearTotalFeedback();
+            var go = Instantiate(this.feedbackTextPrefab, this.totalFeedbackAnchor);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localScale    = Vector3.one * this.totalFeedbackScale;
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text != null)
+            {
+                text.text = label;
+                var color = label == TotalFeedback.MissText ? this.missFeedbackColor : this.hitFeedbackColor;
+                color.a    = 1f;
+                text.color = color;
+            }
+
+            this.totalFeedbackInstance = go;
+        }
+
+        private void ClearTotalFeedback()
+        {
+            if (this.totalFeedbackInstance != null)
+                Destroy(this.totalFeedbackInstance);
+            this.totalFeedbackInstance = null;
+        }
+
+        private readonly struct AbsorbableShot
+        {
+            public readonly GameObject Go;
+            public readonly TMP_Text   Text;
+            public readonly int        Damage;
+            public readonly bool       IsMiss;
+            public readonly GameObject? Marker; // impact point that vanishes together with the number
+
+            public AbsorbableShot(GameObject go, TMP_Text text, int damage, bool isMiss, GameObject? marker = null)
+            {
+                this.Go = go; this.Text = text; this.Damage = damage; this.IsMiss = isMiss; this.Marker = marker;
+            }
+        }
+
+        // Instantiates the shot's number under aimSpace at the impact point and returns it, or
+        // null when the prefab is missing. Doesn't schedule any fade -- callers own its lifetime.
+        private (GameObject Go, TMP_Text Text)? CreateFeedbackText(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked)
+        {
+            if (this.feedbackTextPrefab == null)
+            {
+                Debug.LogWarning("[AimView] Feedback text prefab is not assigned.");
+                return null;
+            }
+
+            var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+            go.transform.SetAsLastSibling();
+            this.feedbackTexts.Add(go.transform);
+
+            var rt = go.transform as RectTransform;
+            if (rt != null)
+            {
+                Vector2 localShot = this.DenormalizeShotLocal(normalizedPos);
+                rt.localPosition = new Vector3(
+                    Mathf.Round(localShot.x + this.feedbackOffset.x),
+                    Mathf.Round(localShot.y + this.feedbackOffset.y),
+                    0f);
+            }
+
+            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
+            if (text == null)
+            {
+                Debug.LogWarning("[AimView] Feedback prefab must include TMP_Text.");
+                Destroy(go);
+                return null;
+            }
+
+            text.text = isMiss ? "MISS" : $"-{damage}";
+            var baseColor = isMiss ? this.missFeedbackColor
+                : armorBlocked ? this.armorBlockedFeedbackColor
+                : this.hitFeedbackColor;
+            baseColor.a = 1f;
+            text.color = baseColor;
+            return (go, text);
+        }
+
+        // Feeds the shots' numbers into the counter in order, one every absorbInterval: the counter
+        // shows the running sum and pops, and the shot's own number pops while fading away. The
+        // hit markers are untouched. Turns the counter red when the final sum would kill the target.
+        private async UniTask AbsorbIntoCounterAsync(List<AbsorbableShot> shots, int version)
+        {
+            var counter = this.damageCounterText;
+            if (counter == null) return;
+
+            int running = 0;
+            bool anyDamage = false;
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var shot = shots[i];
+                if (shot.Go != null)
+                    this.AbsorbPopup(shot.Go, shot.Text);
+                if (shot.Marker != null)
+                    this.VanishMarker(shot.Marker);
+
+                if (!shot.IsMiss)
+                {
+                    running += shot.Damage;
+                    anyDamage = true;
+                    this.GetDamageCounterRoot()?.SetActive(true);
+                    counter.color   = this.damageCounterColor;
+                    counter.text    = running.ToString();
+                    this.PunchDamageCounter();
+                }
+
+                await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.absorbInterval)));
+                if (this == null || version != this.sequenceVersion) return;
+            }
+
+            if (anyDamage && running >= this.targetCurrentHp)
+            {
+                counter.color = this.damageCounterLethalColor;
+                this.PunchDamageCounter();
+            }
+        }
+
+        // The impact point shrinks to nothing and is destroyed.
+        private void VanishMarker(GameObject marker)
+        {
+            marker.transform.DOKill();
+            marker.transform.DOScale(0f, Mathf.Max(0.01f, this.absorbPunchDuration))
+                .SetEase(Ease.InBack)
+                .OnComplete(() => { if (marker != null) Destroy(marker); });
+        }
+
+        // Melee: the points of the cut vanish in order, fast. The first one that missed is the moment
+        // the operator gets hit back (OnMeleeMissRevealed), so the failure reads at the point it happened.
+        private async UniTask VanishSlashPointsAsync(int version)
+        {
+            var points = this.pendingSlashPoints;
+            this.pendingSlashPoints = new List<(GameObject, bool)>();
+            bool missRaised = false;
+            foreach (var (go, isMiss) in points)
+            {
+                if (go != null)
+                    this.VanishMarker(go);
+                if (isMiss && !missRaised)
+                {
+                    missRaised = true;
+                    this.OnMeleeMissRevealed?.Invoke();
+                }
+                await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.slashPointVanishInterval)));
+                if (this == null || version != this.sequenceVersion) return;
+            }
+        }
+
+        // A quick "pop": the number bursts up in size and vanishes at the peak, then is destroyed.
+        private void AbsorbPopup(GameObject go, TMP_Text text)
+        {
+            go.transform.DOKill();
+            text.DOKill();
+            float duration = Mathf.Max(0.01f, this.absorbPunchDuration * 1.5f);
+            go.transform.DOScale(go.transform.localScale * this.absorbPunchScale, duration).SetEase(Ease.OutBack);
+            text.DOFade(0f, duration).SetDelay(duration * 0.35f).SetEase(Ease.InQuad).OnComplete(() =>
+            {
+                if (go != null) Destroy(go);
+            });
+        }
+
+        // Visual only: swell and settle back to the resting scale.
+        private void PunchDamageCounter()
+        {
+            if (this.damageCounterText == null) return;
+            var rt = this.damageCounterText.rectTransform;
+            rt.DOKill();
+            rt.localScale = this.damageCounterBaseScale;
+            rt.DOScale(this.damageCounterBaseScale * this.absorbPunchScale, Mathf.Max(0.01f, this.absorbPunchDuration))
+                .SetLoops(2, LoopType.Yoyo)
+                .SetEase(Ease.OutQuad);
+        }
+
+        private void ResetDamageCounter()
+        {
+            if (this.damageCounterText == null) return;
+            var rt = this.damageCounterText.rectTransform;
+            if (!this.damageCounterScaleCaptured)
+            {
+                this.damageCounterBaseScale    = rt.localScale;
+                this.damageCounterScaleCaptured = true;
+            }
+
+            rt.DOKill();
+            rt.localScale = this.damageCounterBaseScale;
+            this.damageCounterText.color   = this.damageCounterColor;
+            this.damageCounterText.text    = string.Empty;
+            this.GetDamageCounterRoot()?.SetActive(false);
+        }
+
+        private GameObject? GetDamageCounterRoot() =>
+            this.damageCounterRoot != null
+                ? this.damageCounterRoot
+                : this.damageCounterText != null ? this.damageCounterText.gameObject : null;
+
+        private void SpawnShotFeedbackVisual(Vector2 normalizedPos, int damage, bool isMiss, bool armorBlocked = false)
         {
             if (this.feedbackTextPrefab == null)
             {
@@ -461,32 +974,12 @@ namespace CrimsonDraft.Combat
                 }
             }
 
-            var go = Instantiate(this.feedbackTextPrefab, this.aimSpace);
+            var created = this.CreateFeedbackText(normalizedPos, damage, isMiss, armorBlocked);
+            if (created == null) return;
+
+            var go   = created.Value.Go;
+            var text = created.Value.Text;
             this.activeFeedback.Add(go);
-
-            var rt = go.transform as RectTransform;
-            if (rt != null)
-            {
-                Vector2 localShot = this.DenormalizeShotLocal(normalizedPos);
-                rt.localPosition = new Vector3(
-                    Mathf.Round(localShot.x + this.feedbackOffset.x),
-                    Mathf.Round(localShot.y + this.feedbackOffset.y),
-                    0f);
-            }
-
-            var text = go.GetComponent<TMP_Text>() ?? go.GetComponentInChildren<TMP_Text>();
-            if (text == null)
-            {
-                Debug.LogWarning("[AimView] Feedback prefab must include TMP_Text.");
-                this.activeFeedback.Remove(go);
-                Destroy(go);
-                return;
-            }
-
-            text.text = isMiss ? "MISS" : $"-{damage}";
-            var baseColor = isMiss ? this.missFeedbackColor : this.hitFeedbackColor;
-            baseColor.a = 1f;
-            text.color = baseColor;
 
             float hold = Mathf.Max(0f, this.feedbackHoldDuration);
             float fade = Mathf.Max(0f, this.feedbackDuration);
@@ -572,6 +1065,25 @@ namespace CrimsonDraft.Combat
         internal static int CountBullets(ResolvedShot[] shots) =>
             shots.Length == 0 ? 1 : shots[shots.Length - 1].BulletIndex + 1;
 
+        // Shot position (aimSpace local) -> normalized UV inside the silhouette's rect. Shared by
+        // the zone mask and the overlay mask, which are both laid out in that same rect.
+        private bool TryGetSilhouetteUv(Vector2 shotLocal, out float u, out float v)
+        {
+            u = 0f;
+            v = 0f;
+            if (this.silhouetteImage == null) return false;
+
+            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
+            var silRt      = this.silhouetteImage.rectTransform;
+            var localInSil = silRt.InverseTransformPoint(worldPos);
+            var rect       = silRt.rect;
+            if (rect.width <= 0f || rect.height <= 0f) return false;
+
+            u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
+            v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            return true;
+        }
+
         private ShotZoneDefinition? SampleSilhouette(Vector2 shotLocal)
         {
             if (this.silhouetteImage == null)
@@ -586,15 +1098,10 @@ namespace CrimsonDraft.Combat
                 return null;
             }
 
-            var worldPos   = this.aimSpace.TransformPoint(new Vector3(shotLocal.x, shotLocal.y, 0f));
-            var silRt      = this.silhouetteImage.rectTransform;
-            var localInSil = silRt.InverseTransformPoint(worldPos);
-            var rect       = silRt.rect;
-            if (rect.width <= 0f || rect.height <= 0f)
+            if (!this.TryGetSilhouetteUv(shotLocal, out float u, out float v))
                 return null;
-
-            float u = Mathf.Clamp01((localInSil.x - rect.xMin) / rect.width);
-            float v = Mathf.Clamp01((localInSil.y - rect.yMin) / rect.height);
+            var silRt = this.silhouetteImage.rectTransform;
+            var rect  = silRt.rect;
 
             var sprite     = this.activeZoneMaskSprite;
             var tex        = sprite.texture;
@@ -623,19 +1130,60 @@ namespace CrimsonDraft.Combat
             return def;
         }
 
+        private bool IsOverlayCovered(Vector2 shotLocal)
+        {
+            Sprite? mask = this.activeOverlayMaskSprite;
+            if (mask == null) return false;
+
+            if (!mask.texture.isReadable)
+            {
+                if (!this.warnedUnreadableOverlayMask)
+                {
+                    Debug.LogWarning($"[AimView] Overlay mask '{mask.name}' is not Read/Write enabled -- every shot is treated as uncovered.");
+                    this.warnedUnreadableOverlayMask = true;
+                }
+                return false;
+            }
+
+            return this.TryGetSilhouetteUv(shotLocal, out float u, out float v)
+                && OverlayCoverage.IsCovered(mask, u, v);
+        }
+
         internal static Vector2Int MapUvToTexturePixel(Sprite sprite, float u, float v)
         {
             var tex     = sprite.texture;
             var texRect = sprite.textureRect;
-            int px = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)),
-                0,
-                tex.width - 1);
-            int py = Mathf.Clamp(
-                Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)),
-                0,
-                tex.height - 1);
-            return new Vector2Int(px, py);
+            if (TryMapUvToSpritePixel(sprite.rect, texRect, sprite.textureRectOffset, tex.width, tex.height, u, v, out var pixel))
+                return pixel;
+
+            // Outside a trimmed sprite's opaque area -- clamp onto its edge, matching the old
+            // behavior for callers that always want a pixel.
+            return new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(texRect.xMin + Mathf.Clamp01(u) * (texRect.width - 1f)), 0, tex.width - 1),
+                Mathf.Clamp(Mathf.RoundToInt(texRect.yMin + Mathf.Clamp01(v) * (texRect.height - 1f)), 0, tex.height - 1));
+        }
+
+        // UV (0..1 across the sprite's full rect -- the silhouette's own layout) -> texture pixel.
+        // A Tight sprite with transparent margins is trimmed on import: textureRect then covers only
+        // the opaque area and textureRectOffset says where it sits inside the full rect, so the UV is
+        // mapped through the full rect first. False when the UV lands in the trimmed-away margin.
+        internal static bool TryMapUvToSpritePixel(
+            Rect spriteRect, Rect textureRect, Vector2 textureRectOffset, int texWidth, int texHeight,
+            float u, float v, out Vector2Int pixel)
+        {
+            float x = Mathf.Clamp01(u) * (spriteRect.width  - 1f) - textureRectOffset.x;
+            float y = Mathf.Clamp01(v) * (spriteRect.height - 1f) - textureRectOffset.y;
+
+            if (x < -0.5f || y < -0.5f || x > textureRect.width - 0.5f || y > textureRect.height - 0.5f)
+            {
+                pixel = default;
+                return false;
+            }
+
+            pixel = new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.xMin + x), 0, texWidth - 1),
+                Mathf.Clamp(Mathf.RoundToInt(textureRect.yMin + y), 0, texHeight - 1));
+            return true;
         }
 
         internal static ShotZoneDefinition? ResolveZone(Color pixel, ShotZoneDefinition[] definitions, float tolerance)

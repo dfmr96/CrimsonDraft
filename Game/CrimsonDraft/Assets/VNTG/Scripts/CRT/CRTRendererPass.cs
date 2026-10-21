@@ -42,6 +42,8 @@ namespace ColbyO.VNTG.CRT
 
         private void UpdateMaterialWithSettings(Material mat, CRTSettings settings)
         {
+            mat.SetFloat("_CRTTime", Time.unscaledTime);
+            mat.SetFloat("_CRTDeltaTime", Time.unscaledDeltaTime);
             mat.SetFloat("_RefreshRate", settings.RefreshRate.value);
             mat.SetFloat("_DecayRate", settings.DecayRate.value);
             mat.SetVector("_ScreenResolution", settings.ScreenResolution.value);
@@ -120,7 +122,7 @@ namespace ColbyO.VNTG.CRT
             float refreshRate = settings.RefreshRate.value;
             float targetInterval = refreshRate > 0f ? (1.0f / refreshRate) : 0.016f;
 
-            state.accumulatedTime += Time.deltaTime;
+            state.accumulatedTime += Time.unscaledDeltaTime;
 
             bool shouldRefresh = false;
 

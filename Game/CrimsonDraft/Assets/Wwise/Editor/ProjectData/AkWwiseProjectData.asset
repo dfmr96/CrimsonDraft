@@ -38,7 +38,7 @@ MonoBehaviour:
     ParentPath: Master-Mixer Hierarchy\Default Work Unit
     guid: 0441fc173f15db4283e63e8eddc8f12b
     GuidInternal: 
-    m_lastTime: -8584129874022295510
+    m_lastTime: -8584091828831113163
     List:
     - name: AUX_REVERB
       guid: 60e4841e9b1e2343ab53efb2809deec9
@@ -161,13 +161,10 @@ MonoBehaviour:
       - ElementName: Master Audio Bus
         ObjectType: 2
         guid: d8a41415a61d2a41a17e75ca0c2149f3
-      - ElementName: SFX
-        ObjectType: 2
-        guid: 6789015438b4cf4f80865d0ebc0aa202
       - ElementName: UI
         ObjectType: 2
         guid: 1629e02acccb5d4dbc6345ecef6cec60
-      Path: Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\SFX\UI
+      Path: Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\UI
     - name: WORLD
       guid: f2094ae0d465d041802f109c11604a3a
       id: 2609808943
@@ -200,7 +197,7 @@ MonoBehaviour:
     ParentPath: SoundBanks\Default Work Unit
     guid: e2c118c47f91594c9422990ad41562eb
     GuidInternal: 
-    m_lastTime: -8584133205252320969
+    m_lastTime: -8584091828826680543
     List:
     - name: Main
       guid: 45449900ea4461418fb952f0a73ea835
@@ -228,8 +225,25 @@ MonoBehaviour:
     ParentPath: Events\Default Work Unit
     guid: 651088eb46ad714382b74d1a4a2d27b3
     GuidInternal: 
-    m_lastTime: -8584133205252771080
+    m_lastTime: -8584091798025572155
     List:
+    - name: Pause_UI_VoiceTape
+      guid: 6dcfa2f381baa442b75d56b045a387c1
+      id: 1072364249
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Pause_UI_VoiceTape
+        ObjectType: 3
+        guid: 6dcfa2f381baa442b75d56b045a387c1
+      Path: Events\Default Work Unit\Pause_UI_VoiceTape
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
     - name: Play_AmbienceSC
       guid: 510175b70e81e140998b42d2fb4c5799
       id: 433061256
@@ -347,8 +361,8 @@ MonoBehaviour:
         guid: 208b47f76ddd904d8015a5be21841e0e
       Path: Events\Default Work Unit\Play_Inventory_Cancel
       maxAttenuation: 0
-      maxDuration: 0.259297
-      minDuration: 0.259297
+      maxDuration: 0.240159
+      minDuration: 0.240159
     - name: Play_Inventory_Cursor
       guid: 5ddfd1024ce18b479ea6c2c60a303388
       id: 918818359
@@ -364,8 +378,8 @@ MonoBehaviour:
         guid: 5ddfd1024ce18b479ea6c2c60a303388
       Path: Events\Default Work Unit\Play_Inventory_Cursor
       maxAttenuation: 0
-      maxDuration: 0.211769
-      minDuration: 0.211769
+      maxDuration: 0.107528
+      minDuration: 0.107528
     - name: Play_Inventory_Decide
       guid: 3004031c894d1d47910f5e6df21c2b8b
       id: 553967029
@@ -381,8 +395,8 @@ MonoBehaviour:
         guid: 3004031c894d1d47910f5e6df21c2b8b
       Path: Events\Default Work Unit\Play_Inventory_Decide
       maxAttenuation: 0
-      maxDuration: 0.254104
-      minDuration: 0.254104
+      maxDuration: 0.18898
+      minDuration: 0.18898
     - name: Play_MSC_Manager
       guid: fee1ce3cfa815a41bc3dbe6ed8314c79
       id: 3143732789
@@ -400,6 +414,23 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
+    - name: Play_MusicBox_Melody
+      guid: d0528a7052889f4f8ffac434ba5f7cc4
+      id: 4139498805
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_MusicBox_Melody
+        ObjectType: 3
+        guid: d0528a7052889f4f8ffac434ba5f7cc4
+      Path: Events\Default Work Unit\Play_MusicBox_Melody
+      maxAttenuation: 0
+      maxDuration: 15.833334
+      minDuration: 15.833334
     - name: Play_RadioSC
       guid: 71b8bd6b00284c448d72d24d514a7124
       id: 3489459273
@@ -434,6 +465,57 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0.286531
       minDuration: 0.286531
+    - name: Play_UI_Beeper_MorseBeep
+      guid: d1ec542fc87bb54581f438564a3a577c
+      id: 1804929125
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Beeper_MorseBeep
+        ObjectType: 3
+        guid: d1ec542fc87bb54581f438564a3a577c
+      Path: Events\Default Work Unit\Play_UI_Beeper_MorseBeep
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
+    - name: Play_UI_Files_VoiceStart
+      guid: c81e3fae0003b240b02aa00a4bcd07a4
+      id: 2769983225
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Files_VoiceStart
+        ObjectType: 3
+        guid: c81e3fae0003b240b02aa00a4bcd07a4
+      Path: Events\Default Work Unit\Play_UI_Files_VoiceStart
+      maxAttenuation: 0
+      maxDuration: 0.5
+      minDuration: 0.5
+    - name: Play_UI_Files_VoiceTypewriter
+      guid: 8c319f91c2d5924f819531c5b65e6c64
+      id: 3881013322
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Files_VoiceTypewriter
+        ObjectType: 3
+        guid: 8c319f91c2d5924f819531c5b65e6c64
+      Path: Events\Default Work Unit\Play_UI_Files_VoiceTypewriter
+      maxAttenuation: 0
+      maxDuration: 0.182698
+      minDuration: 0.182698
     - name: Play_UI_InvalidAction
       guid: 648fdff493199c4094af723ba779e87b
       id: 367771734
@@ -449,8 +531,144 @@ MonoBehaviour:
         guid: 648fdff493199c4094af723ba779e87b
       Path: Events\Default Work Unit\Play_UI_InvalidAction
       maxAttenuation: 0
-      maxDuration: 0.091791
-      minDuration: 0.091791
+      maxDuration: 0.240159
+      minDuration: 0.240159
+    - name: Play_UI_MainMenu_Cancel
+      guid: c35247ecef9eff439527d73d5b5112d0
+      id: 1453023494
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_Cancel
+        ObjectType: 3
+        guid: c35247ecef9eff439527d73d5b5112d0
+      Path: Events\Default Work Unit\Play_UI_MainMenu_Cancel
+      maxAttenuation: 0
+      maxDuration: 0.13932
+      minDuration: 0.13932
+    - name: Play_UI_MainMenu_Cursor
+      guid: 746714ac5bda7a41b570ecce63b94382
+      id: 1187859758
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_Cursor
+        ObjectType: 3
+        guid: 746714ac5bda7a41b570ecce63b94382
+      Path: Events\Default Work Unit\Play_UI_MainMenu_Cursor
+      maxAttenuation: 0
+      maxDuration: 0.13932
+      minDuration: 0.13932
+    - name: Play_UI_MainMenu_Decide
+      guid: 636f226201215540bcecbbeaf700d6a2
+      id: 1053706072
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_Decide
+        ObjectType: 3
+        guid: 636f226201215540bcecbbeaf700d6a2
+      Path: Events\Default Work Unit\Play_UI_MainMenu_Decide
+      maxAttenuation: 0
+      maxDuration: 0.13932
+      minDuration: 0.13932
+    - name: Play_UI_MainMenu_FilesChange
+      guid: 757b9d55be3fd74383a9f38eb5f005c8
+      id: 4143229233
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_FilesChange
+        ObjectType: 3
+        guid: 757b9d55be3fd74383a9f38eb5f005c8
+      Path: Events\Default Work Unit\Play_UI_MainMenu_FilesChange
+      maxAttenuation: 0
+      maxDuration: 0.227271
+      minDuration: 0.227271
+    - name: Play_UI_MainMenu_KnobLimit
+      guid: 4f39c065341f01499db317ab026edf7a
+      id: 1350620445
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_KnobLimit
+        ObjectType: 3
+        guid: 4f39c065341f01499db317ab026edf7a
+      Path: Events\Default Work Unit\Play_UI_MainMenu_KnobLimit
+      maxAttenuation: 0
+      maxDuration: 0.257052
+      minDuration: 0.257052
+    - name: Play_UI_MainMenu_KnobTick
+      guid: a99b17d3116c7d49aef8e2741470dce3
+      id: 1794575571
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_KnobTick
+        ObjectType: 3
+        guid: a99b17d3116c7d49aef8e2741470dce3
+      Path: Events\Default Work Unit\Play_UI_MainMenu_KnobTick
+      maxAttenuation: 0
+      maxDuration: 0.420604
+      minDuration: 0.420604
+    - name: Play_UI_MainMenu_PanelTravel
+      guid: eb623fcb5ba5064bbc3a881677a7cff8
+      id: 2987736382
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_PanelTravel
+        ObjectType: 3
+        guid: eb623fcb5ba5064bbc3a881677a7cff8
+      Path: Events\Default Work Unit\Play_UI_MainMenu_PanelTravel
+      maxAttenuation: 0
+      maxDuration: 3.312086
+      minDuration: 3.312086
+    - name: Play_UI_MainMenu_Start
+      guid: b6cfe26ec5f75b4883551c6ddef91f3e
+      id: 907179948
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_MainMenu_Start
+        ObjectType: 3
+        guid: b6cfe26ec5f75b4883551c6ddef91f3e
+      Path: Events\Default Work Unit\Play_UI_MainMenu_Start
+      maxAttenuation: 0
+      maxDuration: 1.916644
+      minDuration: 1.916644
     - name: Play_UI_MapOpen
       guid: e79bb47031fc1a429b6ad6bf48721f5b
       id: 2183478263
@@ -468,6 +686,40 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0.137687
       minDuration: 0.137687
+    - name: Play_UI_Note_PageTurn
+      guid: af4995691380d14485bc77661ed8155b
+      id: 1208818302
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Note_PageTurn
+        ObjectType: 3
+        guid: af4995691380d14485bc77661ed8155b
+      Path: Events\Default Work Unit\Play_UI_Note_PageTurn
+      maxAttenuation: 0
+      maxDuration: 0.951723
+      minDuration: 0.951723
+    - name: Play_UI_Note_PaperOpen
+      guid: c1574161246cac4d84f27161ce55243a
+      id: 1569393320
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Note_PaperOpen
+        ObjectType: 3
+        guid: c1574161246cac4d84f27161ce55243a
+      Path: Events\Default Work Unit\Play_UI_Note_PaperOpen
+      maxAttenuation: 0
+      maxDuration: 1.043605
+      minDuration: 1.043605
     - name: Play_UI_NoteOpen
       guid: 32e3b8c0fbfd58469504c53897604d9b
       id: 164040611
@@ -485,6 +737,91 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: 0.596644
       minDuration: 0.596644
+    - name: Play_UI_Radio_Call
+      guid: 0ced96e7977f1d4c8b58805c2054a8fa
+      id: 3151549007
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Radio_Call
+        ObjectType: 3
+        guid: 0ced96e7977f1d4c8b58805c2054a8fa
+      Path: Events\Default Work Unit\Play_UI_Radio_Call
+      maxAttenuation: 0
+      maxDuration: 0.283424
+      minDuration: 0.283424
+    - name: Play_UI_Radio_Change
+      guid: cd130c03ed5b384cad7850736c05dd92
+      id: 2709042659
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_Radio_Change
+        ObjectType: 3
+        guid: cd130c03ed5b384cad7850736c05dd92
+      Path: Events\Default Work Unit\Play_UI_Radio_Change
+      maxAttenuation: 0
+      maxDuration: 1.045333
+      minDuration: 1.045333
+    - name: Play_UI_VoiceTape_Intro
+      guid: c6c398ea31834348806beb1f7c7736da
+      id: 1898610300
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_VoiceTape_Intro
+        ObjectType: 3
+        guid: c6c398ea31834348806beb1f7c7736da
+      Path: Events\Default Work Unit\Play_UI_VoiceTape_Intro
+      maxAttenuation: 0
+      maxDuration: 4.740979
+      minDuration: 4.740979
+    - name: Play_UI_VoiceTape_Loop
+      guid: c60ae293923e074ea7cc6b5607c73a79
+      id: 3479398728
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_VoiceTape_Loop
+        ObjectType: 3
+        guid: c60ae293923e074ea7cc6b5607c73a79
+      Path: Events\Default Work Unit\Play_UI_VoiceTape_Loop
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
+    - name: Play_UI_VoiceTape_Rewind
+      guid: 7a638d7ea3b4ba45b56f0db1325d376e
+      id: 77470107
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Play_UI_VoiceTape_Rewind
+        ObjectType: 3
+        guid: 7a638d7ea3b4ba45b56f0db1325d376e
+      Path: Events\Default Work Unit\Play_UI_VoiceTape_Rewind
+      maxAttenuation: 0
+      maxDuration: -1
+      minDuration: -1
     - name: Play_WeatherBC
       guid: 011eab92d8de9749b21433b812606b43
       id: 384760087
@@ -536,6 +873,23 @@ MonoBehaviour:
       maxAttenuation: 0
       maxDuration: -1
       minDuration: -1
+    - name: Resume_UI_VoiceTape
+      guid: fa02ecfc514b2d4396b8b469f10bad97
+      id: 2869346406
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Resume_UI_VoiceTape
+        ObjectType: 3
+        guid: fa02ecfc514b2d4396b8b469f10bad97
+      Path: Events\Default Work Unit\Resume_UI_VoiceTape
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
     - name: Stop_Radio
       guid: 44eedf3eef4fe44890509de90c0f56bf
       id: 151474297
@@ -550,6 +904,40 @@ MonoBehaviour:
         ObjectType: 3
         guid: 44eedf3eef4fe44890509de90c0f56bf
       Path: Events\Default Work Unit\Stop_Radio
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
+    - name: Stop_UI_VoiceTape
+      guid: f76ef54b4765f744992c2a296784b921
+      id: 1970835057
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Stop_UI_VoiceTape
+        ObjectType: 3
+        guid: f76ef54b4765f744992c2a296784b921
+      Path: Events\Default Work Unit\Stop_UI_VoiceTape
+      maxAttenuation: 0
+      maxDuration: 0
+      minDuration: 0
+    - name: Stop_UI_VoiceTape_Rewind
+      guid: ca247eba0ce4494eab95329f5d414eab
+      id: 269829613
+      PathAndIcons:
+      - ElementName: Events
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 651088eb46ad714382b74d1a4a2d27b3
+      - ElementName: Stop_UI_VoiceTape_Rewind
+        ObjectType: 3
+        guid: ca247eba0ce4494eab95329f5d414eab
+      Path: Events\Default Work Unit\Stop_UI_VoiceTape_Rewind
       maxAttenuation: 0
       maxDuration: 0
       minDuration: 0
@@ -646,7 +1034,7 @@ MonoBehaviour:
     ParentPath: Game Parameters\VolumeSettings
     guid: 848c70b336086e4886b9dce55db8464b
     GuidInternal: 
-    m_lastTime: -8584132255522740465
+    m_lastTime: -8584091828832450946
     List:
     - name: MasterVolume
       guid: b06b4d49be9f2b43a3c58088f471bad3
@@ -690,6 +1078,34 @@ MonoBehaviour:
         ObjectType: 13
         guid: 94dd04f3db10774e8f39cdeed0e3933a
       Path: Game Parameters\VolumeSettings\SfxVolume
+    - name: UiSfxVolume
+      guid: 2b8cc0b8d2a35a458842813da5927e4a
+      id: 293774682
+      PathAndIcons:
+      - ElementName: Game Parameters
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: VolumeSettings
+        ObjectType: 12
+        guid: 848c70b336086e4886b9dce55db8464b
+      - ElementName: UiSfxVolume
+        ObjectType: 13
+        guid: 2b8cc0b8d2a35a458842813da5927e4a
+      Path: Game Parameters\VolumeSettings\UiSfxVolume
+    - name: VoiceTapeSpeed
+      guid: bcf83827c4aba040ae2120cc4f544d44
+      id: 243934298
+      PathAndIcons:
+      - ElementName: Game Parameters
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: VolumeSettings
+        ObjectType: 12
+        guid: 848c70b336086e4886b9dce55db8464b
+      - ElementName: VoiceTapeSpeed
+        ObjectType: 13
+        guid: bcf83827c4aba040ae2120cc4f544d44
+      Path: Game Parameters\VolumeSettings\VoiceTapeSpeed
   - PhysicalPath: Game Parameters\WeatherParameters.wwu
     PathAndIcons:
     - ElementName: Game Parameters
@@ -1001,7 +1417,7 @@ MonoBehaviour:
     ParentPath: Switches\Default Work Unit
     guid: 337abf2623332e4b9f098f12077fcc35
     GuidInternal: 
-    m_lastTime: -8584142346091440763
+    m_lastTime: -8584091828826670539
     List:
     - name: DoorType
       guid: d580be5e1bb21e45932079e3c1fc0fe5
@@ -1265,6 +1681,270 @@ MonoBehaviour:
       ValueGuids: []
       ValueIcons: []
       valuesInternal: []
+    - name: MB_Slot1
+      guid: 8f6fbbf667399248894027518217d62d
+      id: 2133727884
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot1
+        ObjectType: 11
+        guid: 8f6fbbf667399248894027518217d62d
+      Path: Switches\Default Work Unit\MB_Slot1
+      values:
+      - name: Option1
+        guid: 5a539c593b6ebf42ac61c526607974da
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option1
+          ObjectType: 10
+          guid: 5a539c593b6ebf42ac61c526607974da
+      - name: Option2
+        guid: a74401cbf7f808498a68348e98318dc8
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option2
+          ObjectType: 10
+          guid: a74401cbf7f808498a68348e98318dc8
+      - name: Option3
+        guid: 69b097274954b24784054ffa81364f47
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot1
+          ObjectType: 11
+          guid: 8f6fbbf667399248894027518217d62d
+        - ElementName: Option3
+          ObjectType: 10
+          guid: 69b097274954b24784054ffa81364f47
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot2
+      guid: f1b7e6b0c9456545a0c476d4c82cade1
+      id: 2133727887
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot2
+        ObjectType: 11
+        guid: f1b7e6b0c9456545a0c476d4c82cade1
+      Path: Switches\Default Work Unit\MB_Slot2
+      values:
+      - name: Option1
+        guid: b7b2dca5c2f3da44bb947b3f3f5cd13e
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option1
+          ObjectType: 10
+          guid: b7b2dca5c2f3da44bb947b3f3f5cd13e
+      - name: Option2
+        guid: 6a6e3685a68ea6498621342dd3fb8018
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option2
+          ObjectType: 10
+          guid: 6a6e3685a68ea6498621342dd3fb8018
+      - name: Option3
+        guid: de60591b7edf5e49afdbe347caeb5187
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot2
+          ObjectType: 11
+          guid: f1b7e6b0c9456545a0c476d4c82cade1
+        - ElementName: Option3
+          ObjectType: 10
+          guid: de60591b7edf5e49afdbe347caeb5187
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot3
+      guid: 45bd6a08bee20e40b97a0c71c28f612e
+      id: 2133727886
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot3
+        ObjectType: 11
+        guid: 45bd6a08bee20e40b97a0c71c28f612e
+      Path: Switches\Default Work Unit\MB_Slot3
+      values:
+      - name: Option1
+        guid: 8d8301dc89b45648b3d0c26e22e0f5ed
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option1
+          ObjectType: 10
+          guid: 8d8301dc89b45648b3d0c26e22e0f5ed
+      - name: Option2
+        guid: 60b78663d14f8d40be7bb59f402d1680
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option2
+          ObjectType: 10
+          guid: 60b78663d14f8d40be7bb59f402d1680
+      - name: Option3
+        guid: ed4a34429bfa9144bc1ed7cc2745f03e
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot3
+          ObjectType: 11
+          guid: 45bd6a08bee20e40b97a0c71c28f612e
+        - ElementName: Option3
+          ObjectType: 10
+          guid: ed4a34429bfa9144bc1ed7cc2745f03e
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
+    - name: MB_Slot4
+      guid: ce95cf0322ba7a458ceb7368025dba12
+      id: 2133727881
+      PathAndIcons:
+      - ElementName: Switches
+        ObjectType: 5
+        guid: 00000000000000000000000000000000
+      - ElementName: Default Work Unit
+        ObjectType: 12
+        guid: 337abf2623332e4b9f098f12077fcc35
+      - ElementName: MB_Slot4
+        ObjectType: 11
+        guid: ce95cf0322ba7a458ceb7368025dba12
+      Path: Switches\Default Work Unit\MB_Slot4
+      values:
+      - name: Option1
+        guid: ee09d6dbced2344a8b6e9e99feba6345
+        id: 4141131003
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option1
+          ObjectType: 10
+          guid: ee09d6dbced2344a8b6e9e99feba6345
+      - name: Option2
+        guid: df0b38aa2975874b983379781cddce48
+        id: 4141131000
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option2
+          ObjectType: 10
+          guid: df0b38aa2975874b983379781cddce48
+      - name: Option3
+        guid: 756929293f7c8547b1f8dbae1da99039
+        id: 4141131001
+        PathAndIcons:
+        - ElementName: Switches
+          ObjectType: 5
+          guid: 00000000000000000000000000000000
+        - ElementName: Default Work Unit
+          ObjectType: 12
+          guid: 337abf2623332e4b9f098f12077fcc35
+        - ElementName: MB_Slot4
+          ObjectType: 11
+          guid: ce95cf0322ba7a458ceb7368025dba12
+        - ElementName: Option3
+          ObjectType: 10
+          guid: 756929293f7c8547b1f8dbae1da99039
+      ValueGuids: []
+      ValueIcons: []
+      valuesInternal: []
     - name: RadioType
       guid: 4ce11ede70712540afe7181c36161a16
       id: 1568172590
@@ -1494,7 +2174,7 @@ MonoBehaviour:
     m_lastTime: -8584142346091240720
     List: []
   ExpandedFileSystemItemIds: 
-  ExpandedWaapiItemIds: 210000002200000025000000
+  ExpandedWaapiItemIds: 050000000600000007000000210000002200000025000000
   AutoSyncSelection: 0
   autoPopulateEnabled: 1
   currentDataSource: 0

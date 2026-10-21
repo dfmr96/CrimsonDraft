@@ -18,8 +18,6 @@ namespace CrimsonDraft.UI
 
             builder.RegisterInstance(this.inventorySfxData);
 
-            builder.RegisterComponentInHierarchy<InventoryPopulator>().AsImplementedInterfaces().AsSelf();
-
             builder.RegisterComponentInHierarchy<GridCursor>();
             builder.RegisterComponentInHierarchy<ItemContextMenu>();
             builder.RegisterComponentInHierarchy<PartyPanelView>();
@@ -30,7 +28,12 @@ namespace CrimsonDraft.UI
             builder.RegisterComponentInHierarchy<CanvasCameraBinder>().AsImplementedInterfaces();
 
             if (FindFirstObjectByType<FilesTabController>(FindObjectsInactive.Include) != null)
+            {
                 builder.RegisterComponentInHierarchy<FilesTabController>().AsSelf().AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                builder.RegisterEntryPoint<DebugNoteUnlocker>();
+#endif
+            }
 
             if (FindFirstObjectByType<MapTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<MapTabController>();
@@ -38,8 +41,8 @@ namespace CrimsonDraft.UI
             if (FindFirstObjectByType<BeeperTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<BeeperTabController>();
 
+            builder.Register<InventoryPresenters>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
-            builder.Register<InventorySceneInit>(Lifetime.Singleton);
         }
     }
 }

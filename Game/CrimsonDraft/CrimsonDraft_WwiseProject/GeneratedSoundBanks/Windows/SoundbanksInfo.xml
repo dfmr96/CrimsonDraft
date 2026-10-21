@@ -11,7 +11,7 @@
 	<StreamedFiles/>
 	<MediaFilesNotInAnyBank/>
 	<SoundBanks>
-		<SoundBank Id="1355168291" Language="SFX" Hash="1155544449">
+		<SoundBank Id="1355168291" Language="SFX" Hash="3728272217">
 			<ObjectPath>Init</ObjectPath>
 			<ShortName>Init</ShortName>
 			<Path>Init.bnk</Path>
@@ -19,6 +19,7 @@
 				<AuxBus Id="425396316" Name="AUX_REVERB" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\SFX\AUX_REVERB"/>
 			</IncludedAuxBusses>
 			<GameParameters>
+				<GameParameter Id="293774682" Name="UiSfxVolume" ObjectPath="\Game Parameters\VolumeSettings\UiSfxVolume"/>
 				<GameParameter Id="988953028" Name="SfxVolume" ObjectPath="\Game Parameters\VolumeSettings\SfxVolume"/>
 				<GameParameter Id="2346531308" Name="MusicVolume" ObjectPath="\Game Parameters\VolumeSettings\MusicVolume"/>
 				<GameParameter Id="2918011349" Name="MasterVolume" ObjectPath="\Game Parameters\VolumeSettings\MasterVolume"/>
@@ -37,11 +38,12 @@
 				</StateGroup>
 			</StateGroups>
 		</SoundBank>
-		<SoundBank Id="3161908922" Language="SFX" Hash="4193270598">
+		<SoundBank Id="3161908922" Language="SFX" Hash="1443214572">
 			<ObjectPath>\SoundBanks\Default Work Unit\Main</ObjectPath>
 			<ShortName>Main</ShortName>
 			<Path>Main.bnk</Path>
 			<IncludedEvents>
+				<Event Id="1072364249" Name="Pause_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Pause_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 				<Event Id="433061256" Name="Play_AmbienceSC" ObjectPath="\Events\Default Work Unit\Play_AmbienceSC" DurationType="Infinite">
 					<IncludedMemoryFiles>
 						<File Id="180281241" Language="SFX">
@@ -284,27 +286,27 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="3424589339" Name="Play_Inventory_Cancel" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cancel" DurationType="OneShot" DurationMin="0.259297" DurationMax="0.259297">
+				<Event Id="3424589339" Name="Play_Inventory_Cancel" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cancel" DurationType="OneShot" DurationMin="0.240159" DurationMax="0.240159">
 					<IncludedMemoryFiles>
-						<File Id="716525506" Language="SFX">
-							<ShortName>Cancel (2).wav</ShortName>
-							<Path>SFX\Cancel (2)_6186DEDE.wem</Path>
+						<File Id="52425477" Language="SFX">
+							<ShortName>denied.wav</ShortName>
+							<Path>SFX\denied_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="918818359" Name="Play_Inventory_Cursor" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cursor" DurationType="OneShot" DurationMin="0.211769" DurationMax="0.211769">
+				<Event Id="918818359" Name="Play_Inventory_Cursor" ObjectPath="\Events\Default Work Unit\Play_Inventory_Cursor" DurationType="OneShot" DurationMin="0.107528" DurationMax="0.107528">
 					<IncludedMemoryFiles>
-						<File Id="1001515774" Language="SFX">
-							<ShortName>CURSOR (2).wav</ShortName>
-							<Path>SFX\CURSOR (2)_6186DEDE.wem</Path>
+						<File Id="570950330" Language="SFX">
+							<ShortName>Cursor_Move.wav</ShortName>
+							<Path>SFX\Cursor_Move_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="553967029" Name="Play_Inventory_Decide" ObjectPath="\Events\Default Work Unit\Play_Inventory_Decide" DurationType="OneShot" DurationMin="0.254104" DurationMax="0.254104">
+				<Event Id="553967029" Name="Play_Inventory_Decide" ObjectPath="\Events\Default Work Unit\Play_Inventory_Decide" DurationType="OneShot" DurationMin="0.18898" DurationMax="0.18898">
 					<IncludedMemoryFiles>
 						<File Id="752742090" Language="SFX">
-							<ShortName>DECIDE.wav</ShortName>
-							<Path>SFX\DECIDE_6186DEDE.wem</Path>
+							<ShortName>decide.wav</ShortName>
+							<Path>SFX\decide_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -458,6 +460,121 @@
 						</SwitchContainer>
 					</SwitchContainers>
 				</Event>
+				<Event Id="4139498805" Name="Play_MusicBox_Melody" ObjectPath="\Events\Default Work Unit\Play_MusicBox_Melody" DurationType="OneShot" DurationMin="15.833334" DurationMax="15.833334">
+					<IncludedMemoryFiles>
+						<File Id="128885530" Language="SFX">
+							<ShortName>SFX\slot1_opcion2.wav</ShortName>
+							<Path>SFX\SFX\slot1_opcion2_A2CC5F81.wem</Path>
+						</File>
+						<File Id="198482215" Language="SFX">
+							<ShortName>SFX\slot4_opcion1.wav</ShortName>
+							<Path>SFX\SFX\slot4_opcion1_A2CC5F81.wem</Path>
+						</File>
+						<File Id="198994397" Language="SFX">
+							<ShortName>SFX\slot1_opcion3.wav</ShortName>
+							<Path>SFX\SFX\slot1_opcion3_A2CC5F81.wem</Path>
+						</File>
+						<File Id="232707118" Language="SFX">
+							<ShortName>SFX\slot3_opcion1.wav</ShortName>
+							<Path>SFX\SFX\slot3_opcion1_A2CC5F81.wem</Path>
+						</File>
+						<File Id="323828224" Language="SFX">
+							<ShortName>SFX\slot4_opcion3.wav</ShortName>
+							<Path>SFX\SFX\slot4_opcion3_A2CC5F81.wem</Path>
+						</File>
+						<File Id="393249911" Language="SFX">
+							<ShortName>SFX\slot2_opcion3.wav</ShortName>
+							<Path>SFX\SFX\slot2_opcion3_A2CC5F81.wem</Path>
+						</File>
+						<File Id="573105739" Language="SFX">
+							<ShortName>SFX\slot3_opcion2.wav</ShortName>
+							<Path>SFX\SFX\slot3_opcion2_A2CC5F81.wem</Path>
+						</File>
+						<File Id="602716907" Language="SFX">
+							<ShortName>SFX\slot2_opcion1.wav</ShortName>
+							<Path>SFX\SFX\slot2_opcion1_A2CC5F81.wem</Path>
+						</File>
+						<File Id="661189471" Language="SFX">
+							<ShortName>SFX\slot4_opcion2.wav</ShortName>
+							<Path>SFX\SFX\slot4_opcion2_A2CC5F81.wem</Path>
+						</File>
+						<File Id="710504916" Language="SFX">
+							<ShortName>SFX\slot3_opcion3.wav</ShortName>
+							<Path>SFX\SFX\slot3_opcion3_A2CC5F81.wem</Path>
+						</File>
+						<File Id="906359948" Language="SFX">
+							<ShortName>SFX\slot2_opcion2.wav</ShortName>
+							<Path>SFX\SFX\slot2_opcion2_A2CC5F81.wem</Path>
+						</File>
+						<File Id="918281204" Language="SFX">
+							<ShortName>SFX\slot1_opcion1.wav</ShortName>
+							<Path>SFX\SFX\slot1_opcion1_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+					<DefaultSwitchValue>{DBD609EE-D2CE-4A34-8B6E-9E99FEBA6345}</DefaultSwitchValue>
+					<SwitchContainers>
+						<SwitchContainer SwitchValue="{599C535A-6E3B-42BF-AC61-C526607974DA}">
+							<Media>
+								<File Id="918281204"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{2797B069-5449-47B2-8405-4FFA81364F47}">
+							<Media>
+								<File Id="198994397"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{CB0144A7-F8F7-4908-8A68-348E98318DC8}">
+							<Media>
+								<File Id="128885530"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{85366E6A-8EA6-49A6-8621-342DD3FB8018}">
+							<Media>
+								<File Id="906359948"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{A5DCB2B7-F3C2-44DA-BB94-7B3F3F5CD13E}">
+							<Media>
+								<File Id="602716907"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{1B5960DE-DF7E-495E-AFDB-E347CAEB5187}">
+							<Media>
+								<File Id="393249911"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{6386B760-4FD1-408D-BE7B-B59F402D1680}">
+							<Media>
+								<File Id="573105739"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{DC01838D-B489-4856-B3D0-C26E22E0F5ED}">
+							<Media>
+								<File Id="232707118"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{42344AED-FA9B-4491-BC1E-D7CC2745F03E}">
+							<Media>
+								<File Id="710504916"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{29296975-7C3F-4785-B1F8-DBAE1DA99039}">
+							<Media>
+								<File Id="323828224"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{AA380BDF-7529-4B87-9833-79781CDDCE48}">
+							<Media>
+								<File Id="661189471"/>
+							</Media>
+						</SwitchContainer>
+						<SwitchContainer SwitchValue="{DBD609EE-D2CE-4A34-8B6E-9E99FEBA6345}">
+							<Media>
+								<File Id="198482215"/>
+							</Media>
+						</SwitchContainer>
+					</SwitchContainers>
+				</Event>
 				<Event Id="3489459273" Name="Play_RadioSC" ObjectPath="\Events\Default Work Unit\Play_RadioSC" DurationType="Infinite">
 					<IncludedMemoryFiles>
 						<File Id="427723046" Language="SFX">
@@ -513,97 +630,97 @@
 				</Event>
 				<Event Id="1804929125" Name="Play_UI_Beeper_MorseBeep" ObjectPath="\Events\Default Work Unit\Play_UI_Beeper_MorseBeep" DurationType="Infinite">
 					<IncludedMemoryFiles>
-						<File Id="1018833832" Language="SFX">
+						<File Id="708273550" Language="SFX">
 							<ShortName>SFX\morse_beep.wav</ShortName>
-							<Path>SFX\SFX\morse_beep_4F957668.wem</Path>
+							<Path>SFX\SFX\morse_beep_5F2FFB8F.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="2769983225" Name="Play_UI_Files_VoiceStart" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceStart" DurationType="OneShot" DurationMin="0.5" DurationMax="0.5">
 					<IncludedMemoryFiles>
-						<File Id="780520815" Language="SFX">
+						<File Id="1046219614" Language="SFX">
 							<ShortName>SFX\start_recording.wav</ShortName>
-							<Path>SFX\SFX\start_recording_6186DEDE.wem</Path>
+							<Path>SFX\SFX\start_recording_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="3881013322" Name="Play_UI_Files_VoiceTypewriter" ObjectPath="\Events\Default Work Unit\Play_UI_Files_VoiceTypewriter" DurationType="OneShot" DurationMin="0.182698" DurationMax="0.182698">
 					<IncludedMemoryFiles>
-						<File Id="535843037" Language="SFX">
+						<File Id="187550915" Language="SFX">
 							<ShortName>SFX\write.wav</ShortName>
-							<Path>SFX\SFX\write_6186DEDE.wem</Path>
+							<Path>SFX\SFX\write_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="367771734" Name="Play_UI_InvalidAction" ObjectPath="\Events\Default Work Unit\Play_UI_InvalidAction" DurationType="OneShot" DurationMin="0.091791" DurationMax="0.091791">
+				<Event Id="367771734" Name="Play_UI_InvalidAction" ObjectPath="\Events\Default Work Unit\Play_UI_InvalidAction" DurationType="OneShot" DurationMin="0.240159" DurationMax="0.240159">
 					<IncludedMemoryFiles>
-						<File Id="642066005" Language="SFX">
-							<ShortName>CORE22.SAP 00004.wav</ShortName>
-							<Path>SFX\CORE22.SAP 00004_6186DEDE.wem</Path>
+						<File Id="52425477" Language="SFX">
+							<ShortName>denied.wav</ShortName>
+							<Path>SFX\denied_6186DEDE.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="1453023494" Name="Play_UI_MainMenu_Cancel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cancel" DurationType="OneShot" DurationMin="0.16568" DurationMax="0.16568">
+				<Event Id="1453023494" Name="Play_UI_MainMenu_Cancel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cancel" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
 					<IncludedMemoryFiles>
-						<File Id="605324455" Language="SFX">
+						<File Id="886094603" Language="SFX">
 							<ShortName>SFX\cursor.wav</ShortName>
-							<Path>SFX\SFX\cursor_6186DEDE.wem</Path>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="1187859758" Name="Play_UI_MainMenu_Cursor" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Cursor" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
 					<IncludedMemoryFiles>
-						<File Id="605324455" Language="SFX">
+						<File Id="886094603" Language="SFX">
 							<ShortName>SFX\cursor.wav</ShortName>
-							<Path>SFX\SFX\cursor_6186DEDE.wem</Path>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
-				<Event Id="1053706072" Name="Play_UI_MainMenu_Decide" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Decide" DurationType="OneShot" DurationMin="0.117153" DurationMax="0.117153">
+				<Event Id="1053706072" Name="Play_UI_MainMenu_Decide" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Decide" DurationType="OneShot" DurationMin="0.13932" DurationMax="0.13932">
 					<IncludedMemoryFiles>
-						<File Id="605324455" Language="SFX">
+						<File Id="886094603" Language="SFX">
 							<ShortName>SFX\cursor.wav</ShortName>
-							<Path>SFX\SFX\cursor_6186DEDE.wem</Path>
+							<Path>SFX\SFX\cursor_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="4143229233" Name="Play_UI_MainMenu_FilesChange" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_FilesChange" DurationType="OneShot" DurationMin="0.227271" DurationMax="0.227271">
 					<IncludedMemoryFiles>
-						<File Id="686701654" Language="SFX">
+						<File Id="330754536" Language="SFX">
 							<ShortName>SFX\change_files.wav</ShortName>
-							<Path>SFX\SFX\change_files_6186DEDE.wem</Path>
+							<Path>SFX\SFX\change_files_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="1350620445" Name="Play_UI_MainMenu_KnobLimit" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobLimit" DurationType="OneShot" DurationMin="0.257052" DurationMax="0.257052">
 					<IncludedMemoryFiles>
-						<File Id="528318225" Language="SFX">
+						<File Id="338764166" Language="SFX">
 							<ShortName>SFX\KnobTick.wav</ShortName>
-							<Path>SFX\SFX\KnobTick_6186DEDE.wem</Path>
+							<Path>SFX\SFX\KnobTick_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="1794575571" Name="Play_UI_MainMenu_KnobTick" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_KnobTick" DurationType="OneShot" DurationMin="0.420604" DurationMax="0.420604">
 					<IncludedMemoryFiles>
-						<File Id="24939565" Language="SFX">
+						<File Id="682514390" Language="SFX">
 							<ShortName>SFX\knobnew.wav</ShortName>
-							<Path>SFX\SFX\knobnew_6186DEDE.wem</Path>
+							<Path>SFX\SFX\knobnew_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="2987736382" Name="Play_UI_MainMenu_PanelTravel" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_PanelTravel" DurationType="OneShot" DurationMin="3.312086" DurationMax="3.312086">
 					<IncludedMemoryFiles>
-						<File Id="400687807" Language="SFX">
+						<File Id="453653971" Language="SFX">
 							<ShortName>SFX\Start.wav</ShortName>
-							<Path>SFX\SFX\Start_6186DEDE.wem</Path>
+							<Path>SFX\SFX\Start_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
 				<Event Id="907179948" Name="Play_UI_MainMenu_Start" ObjectPath="\Events\Default Work Unit\Play_UI_MainMenu_Start" DurationType="OneShot" DurationMin="1.916644" DurationMax="1.916644">
 					<IncludedMemoryFiles>
-						<File Id="199826358" Language="SFX">
+						<File Id="226753358" Language="SFX">
 							<ShortName>SFX\enter.wav</ShortName>
-							<Path>SFX\SFX\enter_6186DEDE.wem</Path>
+							<Path>SFX\SFX\enter_A2CC5F81.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -615,11 +732,67 @@
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
+				<Event Id="1208818302" Name="Play_UI_Note_PageTurn" ObjectPath="\Events\Default Work Unit\Play_UI_Note_PageTurn" DurationType="OneShot" DurationMin="0.951723" DurationMax="0.951723">
+					<IncludedMemoryFiles>
+						<File Id="367374793" Language="SFX">
+							<ShortName>page_turn.wav</ShortName>
+							<Path>SFX\page_turn_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1569393320" Name="Play_UI_Note_PaperOpen" ObjectPath="\Events\Default Work Unit\Play_UI_Note_PaperOpen" DurationType="OneShot" DurationMin="1.043605" DurationMax="1.043605">
+					<IncludedMemoryFiles>
+						<File Id="562646807" Language="SFX">
+							<ShortName>paper_open.wav</ShortName>
+							<Path>SFX\paper_open_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
 				<Event Id="164040611" Name="Play_UI_NoteOpen" ObjectPath="\Events\Default Work Unit\Play_UI_NoteOpen" DurationType="OneShot" DurationMin="0.596644" DurationMax="0.596644">
 					<IncludedMemoryFiles>
 						<File Id="997707427" Language="SFX">
 							<ShortName>CORE22.SAP 00005.wav</ShortName>
 							<Path>SFX\CORE22.SAP 00005_6186DEDE.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="3151549007" Name="Play_UI_Radio_Call" ObjectPath="\Events\Default Work Unit\Play_UI_Radio_Call" DurationType="OneShot" DurationMin="0.283424" DurationMax="0.283424">
+					<IncludedMemoryFiles>
+						<File Id="509138379" Language="SFX">
+							<ShortName>Radio_call.wav</ShortName>
+							<Path>SFX\Radio_call_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="2709042659" Name="Play_UI_Radio_Change" ObjectPath="\Events\Default Work Unit\Play_UI_Radio_Change" DurationType="OneShot" DurationMin="1.045333" DurationMax="1.045333">
+					<IncludedMemoryFiles>
+						<File Id="99212916" Language="SFX">
+							<ShortName>Change.wav</ShortName>
+							<Path>SFX\Change_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="1898610300" Name="Play_UI_VoiceTape_Intro" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Intro" DurationType="OneShot" DurationMin="4.740979" DurationMax="4.740979">
+					<IncludedMemoryFiles>
+						<File Id="473799161" Language="SFX">
+							<ShortName>record_tape_intro.wav</ShortName>
+							<Path>SFX\record_tape_intro_A2CC5F81.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="3479398728" Name="Play_UI_VoiceTape_Loop" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Loop" DurationType="Infinite">
+					<IncludedMemoryFiles>
+						<File Id="608327744" Language="SFX">
+							<ShortName>record_tape_loop.wav</ShortName>
+							<Path>SFX\record_tape_loop_5F2FFB8F.wem</Path>
+						</File>
+					</IncludedMemoryFiles>
+				</Event>
+				<Event Id="77470107" Name="Play_UI_VoiceTape_Rewind" ObjectPath="\Events\Default Work Unit\Play_UI_VoiceTape_Rewind" DurationType="Infinite">
+					<IncludedMemoryFiles>
+						<File Id="528999157" Language="SFX">
+							<ShortName>record_tape_loop_rev.wav</ShortName>
+							<Path>SFX\record_tape_loop_rev_5F2FFB8F.wem</Path>
 						</File>
 					</IncludedMemoryFiles>
 				</Event>
@@ -741,9 +914,13 @@
 						</SwitchContainer>
 					</SwitchContainers>
 				</Event>
+				<Event Id="2869346406" Name="Resume_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Resume_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 				<Event Id="151474297" Name="Stop_Radio" ObjectPath="\Events\Default Work Unit\Stop_Radio" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
+				<Event Id="1970835057" Name="Stop_UI_VoiceTape" ObjectPath="\Events\Default Work Unit\Stop_UI_VoiceTape" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
+				<Event Id="269829613" Name="Stop_UI_VoiceTape_Rewind" ObjectPath="\Events\Default Work Unit\Stop_UI_VoiceTape_Rewind" MaxAttenuation="0." DurationType="OneShot" DurationMin="0." DurationMax="0."/>
 			</IncludedEvents>
 			<GameParameters>
+				<GameParameter Id="243934298" Name="VoiceTapeSpeed" ObjectPath="\Game Parameters\VolumeSettings\VoiceTapeSpeed"/>
 				<GameParameter Id="444815956" Name="PlayerLife" ObjectPath="\Game Parameters\PlayerParameters\PlayerLife"/>
 				<GameParameter Id="1297380730" Name="OutsideStormForce" ObjectPath="\Game Parameters\WeatherParameters\OutsideStormForce"/>
 				<GameParameter Id="3108935281" Name="InsideStormForce" ObjectPath="\Game Parameters\WeatherParameters\InsideStormForce"/>
@@ -807,6 +984,34 @@
 						<Switch Id="841620460" Name="Concrete" ObjectPath="\Switches\Default Work Unit\Surface\Concrete" GUID="{E8C64EE1-0DC5-4FCA-A4C2-3CA2212DFF99}"/>
 						<Switch Id="2412606308" Name="Carpet" ObjectPath="\Switches\Default Work Unit\Surface\Carpet" GUID="{0E8F0E08-E25A-466E-87BF-C390C79F3C11}"/>
 						<Switch Id="2473969246" Name="Metal" ObjectPath="\Switches\Default Work Unit\Surface\Metal" GUID="{79E2654C-67E5-4B91-9AE2-248F2B99A0DA}"/>
+					</Switches>
+				</SwitchGroup>
+				<SwitchGroup Id="2133727881" Name="MB_Slot4" ObjectPath="\Switches\Default Work Unit\MB_Slot4" GUID="{03CF95CE-BA22-457A-8CEB-7368025DBA12}">
+					<Switches>
+						<Switch Id="4141131003" Name="Option1" ObjectPath="\Switches\Default Work Unit\MB_Slot4\Option1" GUID="{DBD609EE-D2CE-4A34-8B6E-9E99FEBA6345}"/>
+						<Switch Id="4141131000" Name="Option2" ObjectPath="\Switches\Default Work Unit\MB_Slot4\Option2" GUID="{AA380BDF-7529-4B87-9833-79781CDDCE48}"/>
+						<Switch Id="4141131001" Name="Option3" ObjectPath="\Switches\Default Work Unit\MB_Slot4\Option3" GUID="{29296975-7C3F-4785-B1F8-DBAE1DA99039}"/>
+					</Switches>
+				</SwitchGroup>
+				<SwitchGroup Id="2133727884" Name="MB_Slot1" ObjectPath="\Switches\Default Work Unit\MB_Slot1" GUID="{F6BB6F8F-3967-4892-8940-27518217D62D}">
+					<Switches>
+						<Switch Id="4141131003" Name="Option1" ObjectPath="\Switches\Default Work Unit\MB_Slot1\Option1" GUID="{599C535A-6E3B-42BF-AC61-C526607974DA}"/>
+						<Switch Id="4141131000" Name="Option2" ObjectPath="\Switches\Default Work Unit\MB_Slot1\Option2" GUID="{CB0144A7-F8F7-4908-8A68-348E98318DC8}"/>
+						<Switch Id="4141131001" Name="Option3" ObjectPath="\Switches\Default Work Unit\MB_Slot1\Option3" GUID="{2797B069-5449-47B2-8405-4FFA81364F47}"/>
+					</Switches>
+				</SwitchGroup>
+				<SwitchGroup Id="2133727886" Name="MB_Slot3" ObjectPath="\Switches\Default Work Unit\MB_Slot3" GUID="{086ABD45-E2BE-400E-B97A-0C71C28F612E}">
+					<Switches>
+						<Switch Id="4141131003" Name="Option1" ObjectPath="\Switches\Default Work Unit\MB_Slot3\Option1" GUID="{DC01838D-B489-4856-B3D0-C26E22E0F5ED}"/>
+						<Switch Id="4141131000" Name="Option2" ObjectPath="\Switches\Default Work Unit\MB_Slot3\Option2" GUID="{6386B760-4FD1-408D-BE7B-B59F402D1680}"/>
+						<Switch Id="4141131001" Name="Option3" ObjectPath="\Switches\Default Work Unit\MB_Slot3\Option3" GUID="{42344AED-FA9B-4491-BC1E-D7CC2745F03E}"/>
+					</Switches>
+				</SwitchGroup>
+				<SwitchGroup Id="2133727887" Name="MB_Slot2" ObjectPath="\Switches\Default Work Unit\MB_Slot2" GUID="{B0E6B7F1-45C9-4565-A0C4-76D4C82CADE1}">
+					<Switches>
+						<Switch Id="4141131003" Name="Option1" ObjectPath="\Switches\Default Work Unit\MB_Slot2\Option1" GUID="{A5DCB2B7-F3C2-44DA-BB94-7B3F3F5CD13E}"/>
+						<Switch Id="4141131000" Name="Option2" ObjectPath="\Switches\Default Work Unit\MB_Slot2\Option2" GUID="{85366E6A-8EA6-49A6-8621-342DD3FB8018}"/>
+						<Switch Id="4141131001" Name="Option3" ObjectPath="\Switches\Default Work Unit\MB_Slot2\Option3" GUID="{1B5960DE-DF7E-495E-AFDB-E347CAEB5187}"/>
 					</Switches>
 				</SwitchGroup>
 			</SwitchGroups>

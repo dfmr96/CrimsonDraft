@@ -20,7 +20,7 @@ namespace CrimsonDraft.Navigation.Interactables
         public override string Grant(HotspotRewardContext context)
         {
             if (context.ConsumedItem != null)
-                context.InventoryService.TryRemoveItem(context.ConsumedItem.ItemId);
+                context.InventoryService.TryRemove(context.ConsumedItem.ItemId);
             context.NoteRegistry.SetCollected(this.note.NoteId);
             return this.note.Title;
         }

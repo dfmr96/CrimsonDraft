@@ -28,7 +28,6 @@ namespace CrimsonDraft.Combat
         [SerializeField] private TMP_Text[]          operatorAmmoLabels = Array.Empty<TMP_Text>();
         [SerializeField] private ECGSweepAnimator[]  operatorEcgAnimators = Array.Empty<ECGSweepAnimator>();
         [SerializeField] private Image[]          operatorWeaponIcons = Array.Empty<Image>();
-        [SerializeField] private Image[]          operatorFocusFireMarkers = Array.Empty<Image>();
         [SerializeField] private Image[]          operatorActionPendingIcons = Array.Empty<Image>();
         [SerializeField] private TMP_Text[]       operatorTurnOrderLabels = Array.Empty<TMP_Text>();
         [SerializeField] private RectTransform    selectorMark   = null!;
@@ -444,7 +443,7 @@ namespace CrimsonDraft.Combat
 
         // Drops the card's focus-lift without waiting for roster navigation to land on a
         // different operator — used once a command has actually been given (Shoot/Items/
-        // FocusFire), since the card shouldn't stay raised for the rest of its turn while
+        // Melee), since the card shouldn't stay raised for the rest of its turn while
         // it's no longer the one being browsed/decided on.
         public void ReleaseOperatorFocus(int index)
         {
@@ -566,13 +565,6 @@ namespace CrimsonDraft.Combat
 
             return EventSystem.current != null
                 && EventSystem.current.currentSelectedGameObject == this.operators[index].gameObject;
-        }
-
-        public void SetOperatorFocusFireMarked(int index, bool marked)
-        {
-            if (index < 0 || index >= this.operatorFocusFireMarkers.Length) return;
-            var marker = this.operatorFocusFireMarkers[index];
-            if (marker != null) marker.gameObject.SetActive(marked);
         }
 
         public void SetOperatorName(int index, string name)
@@ -731,7 +723,7 @@ namespace CrimsonDraft.Combat
         }
 
         // Shown while the operator has an action sitting in CombatActionQueue waiting its
-        // turn (submitted Shoot/Item/FocusFire, not yet resolved) — hidden again once that
+        // turn (submitted Shoot/Item/Melee, not yet resolved) — hidden again once that
         // action actually leaves the queue. Starts off in the prefab: nobody has a queued
         // action until they act.
         public void SetOperatorActionPending(int index, bool pending)

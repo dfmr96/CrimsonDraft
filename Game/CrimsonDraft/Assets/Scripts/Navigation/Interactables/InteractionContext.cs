@@ -1,9 +1,11 @@
 #nullable enable
 
+using MessagePipe;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -13,38 +15,41 @@ namespace CrimsonDraft.Navigation.Interactables
         public readonly IInputService          InputService;
         public readonly IDialogueService       DialogueService;
         public readonly DocumentController     DocumentController;
-        public readonly ContainerController    ContainerController;
         public readonly IPickupDialogueService PickupDialogueService;
         public readonly PuzzleViewController    PuzzleViewController;
         public readonly ScreenFader            ScreenFader;
         public readonly PickupPreviewController PickupPreviewController;
-        public readonly SaveController         SaveController;
+        public readonly ISaveController        SaveController;
         public readonly InspectionController   InspectionController;
+        public readonly IPublisher<StorageOpenRequestedEvent> StorageOpenPublisher;
+        public readonly InventorySfxData?      Sfx;
 
         public InteractionContext(
             IInventoryService      inventoryService,
             IInputService          inputService,
             IDialogueService       dialogueService,
             DocumentController     documentController,
-            ContainerController    containerController,
             IPickupDialogueService pickupDialogueService,
             PuzzleViewController    puzzleViewController,
             ScreenFader             screenFader,
             PickupPreviewController pickupPreviewController,
-            SaveController          saveController,
-            InspectionController    inspectionController)
+            ISaveController         saveController,
+            InspectionController    inspectionController,
+            IPublisher<StorageOpenRequestedEvent> storageOpenPublisher,
+            InventorySfxData?       sfx = null)
         {
             InventoryService      = inventoryService;
             InputService          = inputService;
             DialogueService       = dialogueService;
             DocumentController    = documentController;
-            ContainerController   = containerController;
             PickupDialogueService = pickupDialogueService;
             PuzzleViewController   = puzzleViewController;
             ScreenFader            = screenFader;
             PickupPreviewController = pickupPreviewController;
             SaveController          = saveController;
             InspectionController    = inspectionController;
+            StorageOpenPublisher    = storageOpenPublisher;
+            Sfx                     = sfx;
         }
     }
 }

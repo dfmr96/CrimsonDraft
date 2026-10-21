@@ -82,7 +82,7 @@ namespace CrimsonDraft.Combat
         // screen). Removed: it fired on any accidental Cancel press during real gameplay,
         // ending combat as a loss with no confirmation. There's nothing to cancel out of at
         // this top-level screen, so this is intentionally a no-op.
-        public void OnCancel() { }
+        public void OnCancel() => this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
 
         public void OnOperatorFocused(int index)
         {
@@ -96,13 +96,15 @@ namespace CrimsonDraft.Combat
         public void OnOperatorSelected(int index)
         {
             if (UnityEngine.Time.unscaledTime < this.canAcceptSubmitAt) return;
-            if (!this.context.Orchestrator.IsOperatorReady(index)) return;
+            if (!this.context.Orchestrator.IsOperatorReady(index))
+            {
+                this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
+                return;
+            }
             this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
             this.context.SelectedOperator = index;
             bool hasAmmo = this.roster.Count > index && (this.roster[index].ActiveWeapon?.CurrentAmmo ?? 0) > 0;
             this.commandPanel.SetCommandEnabled(CombatCommand.Shoot, hasAmmo);
-            bool wouldExhaustFocusFireGroup = this.context.FocusFireMarked.Count >= this.roster.GetAliveSlots().Count - 1;
-            this.commandPanel.SetCommandEnabled(CombatCommand.FocusFire, hasAmmo && !wouldExhaustFocusFireGroup);
             this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(index));
             this.menuView.SetDimmed(true);
             this.battlefieldView.DimOperatorIndicator();

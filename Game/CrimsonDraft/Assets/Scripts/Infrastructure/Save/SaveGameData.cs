@@ -54,6 +54,23 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class InventoryItemEntry
+    {
+        public int    containerKind;
+        public int    containerIndex;
+        public string itemId = "";
+        public int    quantity;
+        public int    col = -1;
+        public int    row = -1;
+        public int    rotation;
+        public int    weaponAmmo           = -1;
+        public int    keyUsesRemaining     = -1;
+        public bool   isExamined;
+        public int    equippedOperatorSlot = -1;
+        public int    equippedWeaponSlot   = -1;
+    }
+
+    [Serializable]
     public sealed class SaveGameData
     {
         public string sceneName    = "";
@@ -71,9 +88,11 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<string>             heardRadioCallIds  = new List<string>();
         public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
+        public List<InventoryItemEntry> inventoryItems     = new List<InventoryItemEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();
     }
 }

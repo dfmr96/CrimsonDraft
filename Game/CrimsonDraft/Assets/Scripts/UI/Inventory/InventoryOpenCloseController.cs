@@ -1,5 +1,8 @@
 #nullable enable
 
+using System;
+using DG.Tweening;
+using MessagePipe;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -8,6 +11,8 @@ using VContainer;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Navigation;
+using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.UI;
 
 namespace CrimsonDraft.UI
@@ -17,25 +22,52 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject canvasRoot      = null!;
         [SerializeField] private Volume?    inventoryVolume;
         [SerializeField] private float      volumeFadeDuration = 0.3f;
+        [Tooltip("Seconds for the inventory to scale vertically (Y: 0 -> its scene scale) on open and back on close.")]
+        [SerializeField] private float      scaleDuration      = 0.25f;
         [SerializeField] private ScriptableRendererFeature? ditherFeature;
+        [SerializeField] private GameObject?    tabBarRoot;
+        [SerializeField] private StorageWindow? storageWindow;
+
+        [Inject] private ISubscriber<StorageOpenRequestedEvent> storageOpenSubscriber = null!;
+
+        private IDisposable? storageSubscription;
+        private bool         storageMode;
+        private bool         isClosing;
+
+        // Raised once the close animation has finished and input is back on Gameplay.
+        public event Action? Closed;
+        private Vector3      openScale;
 
         [Inject] private IInputService     inputService  = null!;
         [Inject] private GridCursor        cursor        = null!;
         [Inject] private PartyPanelView    partyPanel    = null!;
-        [Inject] private InventorySceneInit sceneInit    = null!;
         [Inject] private TabManager        tabManager    = null!;
         [Inject] private InventorySfxData  sfxData       = null!;
         [Inject] private IGraphicsSettingsService graphicsSettings = null!;
+        [Inject] private IObjectResolver          resolver         = null!;
+
+        // Radio calls are answered from here. Resolved optionally: not every scope has the radio.
+        private IRadioConversationService? radio;
 
         private const string MapTabName = "Map";
 
+        // The scale authored in the scene (e.g. 0.33) is the 'open' scale; Open/Close animate to and
+        // from zero, so remember it before anything touches the transform.
+        private void Awake() => this.openScale = this.transform.localScale;
+
         public void Initialize()
         {
+            // The renderer feature is a ScriptableObject asset: toggling it at runtime also changes
+            // the asset in the Editor and survives exiting Play Mode. Always start from the closed
+            // state (feature on, same as Close()) so a previous session left open can't leak in.
+            this.ditherFeature?.SetActive(true);
+            this.resolver.TryResolve(out this.radio);
             this.inputService.OpenInventory.performed += Open;
             this.inputService.InventoryClose.performed += OnCloseKey;
             this.inputService.OpenMap.performed        += OnToggleMap;
             this.inputService.InventoryCloseMap.performed += OnToggleMap;
             this.cursor.OnCloseRequested                += Close;
+            this.storageSubscription = this.storageOpenSubscriber.Subscribe(_ => OpenStorage());
         }
 
         private void Open(InputAction.CallbackContext _) => Open();
@@ -50,6 +82,8 @@ namespace CrimsonDraft.UI
         // depending on current mode, so both route to the same toggle.
         private void OnToggleMap(InputAction.CallbackContext _)
         {
+            if (this.isClosing) return;
+
             if (this.canvasRoot.activeSelf)
             {
                 Close();
@@ -63,41 +97,97 @@ namespace CrimsonDraft.UI
 
         public void Open()
         {
+            DOTween.Kill(this);
+            this.isClosing = false;
             Time.timeScale = 0f;
             this.inputService.SwitchToInventory();
+            this.transform.localScale = new Vector3(this.openScale.x, 0f, this.openScale.z);
             this.canvasRoot.SetActive(true);
 
-            // Must run before EnsureSynced(): it activates the starting tab's root, which is
-            // what makes GridCursor's Awake() fire (its GameObject can still be inactive right
-            // after canvasRoot.SetActive() if the starting tab isn't a direct always-active
-            // child). Without this, EnsureSynced()'s FindView() calls NRE on GridCursor's
-            // not-yet-initialized gridGroup reference the first time Open() ever runs.
+            // Activates the starting tab's root so GridCursor's lifecycle runs before it is used
+            // the first time Open() runs.
             this.tabManager.EnsureInitialized();
 
-            this.sceneInit.EnsureSynced();
             this.partyPanel.Refresh();
             this.sfxData.PlayDecide(this.gameObject);
             FadeVolume(1f);
             this.ditherFeature?.SetActive(false);
             this.graphicsSettings.PushGammaSuppression();
+
+            // Unscaled: the inventory pauses the game (timeScale 0).
+            this.transform.DOScaleY(this.openScale.y, this.scaleDuration)
+                .SetTarget(this)
+                .SetUpdate(true)
+                .SetEase(Ease.OutCubic);
+
+            this.radio?.NotifyInventoryOpened();
+        }
+
+        public void OpenStorage()
+        {
+            if (this.canvasRoot.activeSelf || this.storageWindow == null || !this.cursor.CanEnterTransferMode) return;
+
+            Open();
+            this.tabManager.ActivateTab(0);
+            if (this.tabBarRoot != null) this.tabBarRoot.SetActive(false);
+            this.storageWindow.Show();
+            this.cursor.EnterTransferMode();
+            this.storageMode = true;
         }
 
         public void Close()
         {
+            if (this.isClosing) return;
+            this.isClosing = true;
+
             this.cursor.CancelAll();
-            this.canvasRoot.SetActive(false);
-            Time.timeScale = 1f;
-            this.inputService.SwitchToGameplay();
+            if (this.storageMode)
+            {
+                this.storageMode = false;
+                this.cursor.ExitTransferMode();
+                if (this.storageWindow != null) this.storageWindow.Hide();
+                if (this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
+            }
             this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
+
+            // Scale back out first; the game stays paused (enemies can't move under the closing
+            // UI) and everything else switches back once it has finished.
+            DOTween.Kill(this);
+            this.transform.DOScaleY(0f, this.scaleDuration)
+                .SetTarget(this)
+                .SetUpdate(true)
+                .SetEase(Ease.InCubic)
+                .OnComplete(FinishClose);
+        }
+
+        private void FinishClose()
+        {
+            this.canvasRoot.SetActive(false);
+            this.transform.localScale = this.openScale;
+            Time.timeScale = 1f;
+            this.inputService.SwitchToGameplay();
             this.ditherFeature?.SetActive(true);
             this.graphicsSettings.PopGammaSuppression();
+            this.isClosing = false;
+            this.radio?.NotifyInventoryClosed();
+            Closed?.Invoke();
         }
 
         private void FadeVolume(float target) => VolumeFader.Fade(this.inventoryVolume, target > 0f, this.volumeFadeDuration);
 
+        // Exiting Play Mode with the inventory still open never reaches Close(), so restore the
+        // shared renderer feature here instead of leaving the asset modified.
+        private void OnDestroy()
+        {
+            DOTween.Kill(this);
+            if (this.isClosing) Time.timeScale = 1f;
+            this.ditherFeature?.SetActive(true);
+        }
+
         public void Dispose()
         {
+            this.storageSubscription?.Dispose();
             this.inputService.OpenInventory.performed -= Open;
             this.inputService.InventoryClose.performed -= OnCloseKey;
             this.inputService.OpenMap.performed        -= OnToggleMap;

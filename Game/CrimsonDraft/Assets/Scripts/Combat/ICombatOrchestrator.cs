@@ -11,7 +11,5 @@ namespace CrimsonDraft.Combat
         void NotifyMeleeCompleted();
         void ApplyMeleeCounterDamage(int operatorSlot, int enemySlot);
         void NotifyEnemyStaggered(int enemySlot);
-        void MarkOperatorForFocusFire(int operatorSlot);
-        void NotifyFocusFireCompleted();
     }
 }

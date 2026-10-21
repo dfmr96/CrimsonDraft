@@ -1,7 +1,7 @@
 title: pickup_prompt
 ---
 <<declare $pickup_success = true as bool>>
-Pick up [item]{$item_name}[/item]?
+Pick up [important]{$item_name}[/important]?
 -> Yes
     <<try_pickup>>
     <<jump pickup_result>>
@@ -11,10 +11,10 @@ Pick up [item]{$item_name}[/item]?
 title: pickup_result
 ---
 <<if $pickup_success>>
-[item]{$item_name}[/item] recogido.
+[important]{$item_name}[/important] picked up.
 -> Ok
 <<else>>
-No hay espacio para [item]{$item_name}[/item].
+There's no room for [important]{$item_name}[/important].
 -> Ok
 <<endif>>
 ===

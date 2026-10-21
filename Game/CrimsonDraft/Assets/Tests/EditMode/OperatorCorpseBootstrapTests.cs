@@ -69,10 +69,12 @@ namespace CrimsonDraft.Tests
             public int SpawnCallCount;
             public RoomController? LastRoom;
             public Vector3 LastPosition;
+            public int LastSlot = -1;
 
-            public void Spawn(RoomController room, Vector3 position, Quaternion rotation)
+            public void Spawn(int slot, RoomController room, Vector3 position, Quaternion rotation)
             {
                 this.SpawnCallCount++;
+                this.LastSlot     = slot;
                 this.LastRoom     = room;
                 this.LastPosition = position;
             }
@@ -132,6 +134,7 @@ namespace CrimsonDraft.Tests
                 Assert.IsFalse(registry.IsRecorded(0));
                 Assert.AreEqual(1, spawner.SpawnCallCount);
                 Assert.AreEqual(room, spawner.LastRoom);
+                Assert.AreEqual(1, spawner.LastSlot);
                 // Must be the player's *foot* position (transform.position minus footOffset on Y),
                 // not the raw Rigidbody-pivot transform.position — otherwise the corpse floats.
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), spawner.LastPosition);
@@ -291,6 +294,37 @@ namespace CrimsonDraft.Tests
             {
                 UnityEngine.Object.DestroyImmediate(otherRoomGo);
                 UnityEngine.Object.DestroyImmediate(targetRoomGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+    
+        [Test]
+        public void RecordNewDeaths_spawnsCorpseForDeadOperatorWithoutCombatEnd()
+        {
+            var roomGo   = new GameObject("Room");
+            var room     = roomGo.AddComponent<RoomController>();
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            var registry = new OperatorCorpseRegistry();
+            var spawner  = new FakeSpawner();
+
+            try
+            {
+                var bootstrap = new OperatorCorpseBootstrap(new FakeRoster(count: 3, deadSlots: 2), new FakeRoomOrchestrator(room), player,
+                    new FakeSubscriber<CombatEndedEvent>(), new FakeSubscriber<RoomTransitionedEvent>(), registry, spawner);
+                ((IInitializable)bootstrap).Initialize();
+
+                bootstrap.RecordNewDeaths();
+                bootstrap.RecordNewDeaths();
+
+                Assert.IsTrue(registry.IsRecorded(2));
+                Assert.AreEqual(1, spawner.SpawnCallCount);
+                Assert.AreEqual(2, spawner.LastSlot);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(roomGo);
                 UnityEngine.Object.DestroyImmediate(playerGo);
             }
         }

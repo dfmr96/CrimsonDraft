@@ -2,373 +2,249 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Inventory
 {
-    public sealed class InventoryService : IInventoryService
+    public sealed partial class InventoryService : IInventoryService
     {
         private readonly IOperatorRoster roster;
         private readonly ICombineService combineService;
-        private InventorySlot[]?         slots;
+        private readonly ICorpseAccess   corpseAccess;
+        private ItemContainer[]? operatorContainers;
+        private ItemContainer?   storageContainer;
 
         [Preserve]
-        public InventoryService(IOperatorRoster roster, ICombineService combineService)
+        public InventoryService(IOperatorRoster roster, ICombineService combineService, ICorpseAccess corpseAccess)
         {
             this.roster         = roster;
             this.combineService = combineService;
+            this.corpseAccess   = corpseAccess;
         }
 
-        // Lazy-init: roster may not be initialized at construction time.
-        private InventorySlot[] EnsureSlots()
+        public IReadOnlyList<ItemContainer> OperatorContainers => EnsureContainers();
+
+        public ItemContainer GetContainer(ContainerId id)
         {
-            if (this.slots != null) return this.slots;
-            this.roster.EnsureInitialized();
-            this.slots = new InventorySlot[this.roster.Count * InventoryConstants.SlotsPerOperator];
-            for (int i = 0; i < this.slots.Length; i++)
-                this.slots[i] = new InventorySlot();
-            return this.slots;
+            if (id == ContainerId.Storage) return EnsureStorage();
+            var containers = EnsureContainers();
+            if (id.Kind == ContainerKind.Operator && id.Index >= 0 && id.Index < containers.Length)
+                return containers[id.Index];
+            throw new ArgumentOutOfRangeException(nameof(id), id, "No inventory container with this id.");
         }
 
-        public IReadOnlyList<InventorySlot> Slots    => EnsureSlots();
-        public int                          SlotCount => EnsureSlots().Length;
+        public ContainerId? FindContainerOf(InventoryItem item) => FindContainerObjectOf(item)?.Id;
 
-        public bool AddItem(ItemData data, int operatorSlot, int quantity = 0)
+        public bool TryAdd(ItemData data, int quantity = 0) =>
+            (data is AmmoBoxData ammo && TryAddToArmedOperators(ammo, quantity))
+            || TryAddTo(CarriedContainers().ToArray(), data, quantity);
+
+        public bool TryAdd(ItemData data, ContainerId target, int quantity = 0) =>
+            TryAddTo(new[] { GetContainer(target) }, data, quantity);
+
+        public void Remove(InventoryItem item)
         {
-            var s     = EnsureSlots();
-            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
-            int end   = start + InventoryConstants.SlotsPerOperator;
-
-            // Try to stack into existing slot with same item
-            if (data.Stackable)
-            {
-                for (int i = start; i < end; i++)
-                {
-                    if (s[i].IsEmpty || s[i].Item!.Data.ItemId != data.ItemId) continue;
-
-                    if (s[i].Item is AmmoBoxItem box)
-                    {
-                        int add = quantity > 0 ? quantity : ((AmmoBoxData)data).DefaultQuantity;
-                        box.Quantity += add;
-                    }
-                    else
-                    {
-                        s[i].Quantity += quantity > 0 ? quantity : 1;
-                    }
-                    return true;
-                }
-            }
-
-            // Real footprint fit — mirrors InventoryPopulator.TryFindSlot so "no space" reflects
-            // actual grid occupancy (multi-cell items), not just a raw count of item entries.
-            if (!TryFindFreeCell(BuildOccupancy(operatorSlot), data.GridSize, out var origin))
-                return false;
-
-            for (int i = start; i < end; i++)
-            {
-                if (!s[i].IsEmpty) continue;
-
-                InventoryItem item = data switch
-                {
-                    WeaponData     wd => new WeaponItem(wd),
-                    AmmoBoxData    ad => new AmmoBoxItem(ad, quantity),
-                    ConsumableData cd => new ConsumableItem(cd),
-                    KeyItemData    kd => new KeyItem(kd),
-                    SocketItemData sd => new SocketItem(sd),
-                    _ => throw new ArgumentException($"Unknown ItemData subtype: {data.GetType().Name}")
-                };
-                s[i].Item         = item;
-                s[i].Quantity     = 1;
-                s[i].GridCol      = origin.x;
-                s[i].GridRow      = origin.y;
-                s[i].GridRotation = 0;
-                return true;
-            }
-
-            return false; // occupancy had room but no free entry — array/occupancy invariant broken
+            var container = FindContainerObjectOf(item)
+                ?? throw new ArgumentException($"Item '{item.Data.ItemId}' is not in the inventory.", nameof(item));
+            if (item is WeaponItem weapon && weapon.IsEquipped)
+                UnequipInternal(weapon);
+            container.Remove(item);
+            container.NotifyChanged();
         }
 
-        public bool AddExistingItem(InventoryItem item, int operatorSlot)
+        public bool TryRemove(string itemId)
         {
-            var s     = EnsureSlots();
-            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
-            int end   = start + InventoryConstants.SlotsPerOperator;
-
-            for (int i = start; i < end; i++)
-            {
-                if (!s[i].IsEmpty) continue;
-                s[i].Item     = item;
-                s[i].Quantity = 1;
-                return true;
-            }
-
-            return false;
-        }
-
-        // Builds a 4×4-style occupancy matrix for one operator's block from the footprint
-        // (GridCol/GridRow/GridRotation + Data.GridSize) of its currently-positioned items —
-        // the same shape InventoryGrid.itemGrid tracks visually, so capacity here matches what
-        // the player actually sees. Excludes entries with no assigned position (-1,-1): those
-        // are momentarily "held"/in-transit and get placed by the UI once dropped.
-        private bool[,] BuildOccupancy(int operatorSlot, int excludeSlotIndex = -1)
-        {
-            var occupancy = new bool[InventoryConstants.OperatorGridWidth, InventoryConstants.OperatorGridHeight];
-            var s     = EnsureSlots();
-            int start = operatorSlot * InventoryConstants.SlotsPerOperator;
-            int end   = start + InventoryConstants.SlotsPerOperator;
-
-            for (int i = start; i < end; i++)
-            {
-                if (i == excludeSlotIndex) continue;
-                var slot = s[i];
-                if (slot.IsEmpty || slot.GridCol < 0 || slot.GridRow < 0) continue;
-
-                var size = slot.GridRotation == 1
-                    ? new Vector2Int(slot.Item!.Data.GridSize.y, slot.Item!.Data.GridSize.x)
-                    : slot.Item!.Data.GridSize;
-
-                for (int c = slot.GridCol; c < slot.GridCol + size.x; c++)
-                    for (int r = slot.GridRow; r < slot.GridRow + size.y; r++)
-                        if (c >= 0 && c < InventoryConstants.OperatorGridWidth
-                            && r >= 0 && r < InventoryConstants.OperatorGridHeight)
-                            occupancy[c, r] = true;
-            }
-
-            return occupancy;
-        }
-
-        private static bool TryFindFreeCell(bool[,] occupancy, Vector2Int size, out Vector2Int origin)
-        {
-            int maxCol = InventoryConstants.OperatorGridWidth  - size.x;
-            int maxRow = InventoryConstants.OperatorGridHeight - size.y;
-            if (maxCol < 0 || maxRow < 0) { origin = default; return false; }
-
-            for (int row = 0; row <= maxRow; row++)
-                for (int col = 0; col <= maxCol; col++)
-                {
-                    bool free = true;
-                    for (int c = col; c < col + size.x && free; c++)
-                        for (int r = row; r < row + size.y && free; r++)
-                            if (occupancy[c, r]) free = false;
-
-                    if (free) { origin = new Vector2Int(col, row); return true; }
-                }
-
-            origin = default;
-            return false;
-        }
-
-        public bool AddItemAuto(ItemData data, int quantity = 0)
-        {
-            int operatorCount = EnsureSlots().Length / InventoryConstants.SlotsPerOperator;
-            for (int op = 0; op < operatorCount; op++)
-            {
-                if (AddItem(data, op, quantity))
-                    return true;
-            }
-            return false;
-        }
-
-        public void RemoveItem(int slotIndex)
-        {
-            var s             = EnsureSlots();
-            s[slotIndex].Item     = null;
-            s[slotIndex].Quantity = 0;
-        }
-
-        public void PruneEmptyStacks()
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (s[i].Item is AmmoBoxItem box && box.Quantity <= 0)
-                    RemoveItem(i);
-            }
-        }
-
-        public void MoveItem(int fromSlot, int toSlot)
-        {
-            var s    = EnsureSlots();
-            var item = s[fromSlot].Item;
-            var qty  = s[fromSlot].Quantity;
-            s[fromSlot].Item     = s[toSlot].Item;
-            s[fromSlot].Quantity = s[toSlot].Quantity;
-            s[toSlot].Item       = item;
-            s[toSlot].Quantity   = qty;
-        }
-
-        public void EquipWeapon(int slotIndex, int operatorSlot)
-        {
-            var s      = EnsureSlots();
-            var weapon = s[slotIndex].Item as WeaponItem;
-            if (weapon == null) return;
-
-            int targetWeaponSlot = (int)weapon.Data.WeaponSlot;
-
-            // Unequip only the weapon currently occupying that specific weapon slot
-            for (int i = 0; i < s.Length; i++)
-            {
-                var item = s[i].Item;
-                if (item == null) continue;
-                if (item.EquippedBySlot == operatorSlot && item.EquippedWeaponSlot == targetWeaponSlot)
-                {
-                    item.EquippedBySlot     = -1;
-                    item.EquippedWeaponSlot = -1;
-                    this.roster[operatorSlot].SetEquippedWeapon(null, targetWeaponSlot);
-                    break;
-                }
-            }
-
-            weapon.EquippedBySlot     = operatorSlot;
-            weapon.EquippedWeaponSlot = targetWeaponSlot;
-            this.roster[operatorSlot].SetEquippedWeapon(weapon, targetWeaponSlot);
-        }
-
-        public void UnequipWeapon(int slotIndex)
-        {
-            var s    = EnsureSlots();
-            var item = s[slotIndex].Item;
-            if (item == null) return;
-            int opSlot     = item.EquippedBySlot;
-            int weaponSlot = item.EquippedWeaponSlot;
-            item.EquippedBySlot     = -1;
-            item.EquippedWeaponSlot = -1;
-            if (opSlot >= 0)
-                this.roster[opSlot].SetEquippedWeapon(null, weaponSlot);
-        }
-
-        public int GetEquippedWeaponIndex(int operatorSlot)
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-                if (s[i].Item?.EquippedBySlot == operatorSlot)
-                    return i;
-            return -1;
-        }
-
-        public bool CanReload(int slotIndex, int operatorSlot)
-        {
-            var s = EnsureSlots();
-            if (s[slotIndex].Item is not AmmoBoxItem box) return false;
-            if (box.Quantity <= 0) return false;
-            var weapon = this.roster[operatorSlot].ActiveWeapon;
-            if (weapon == null) return false;
-            if (weapon.Caliber != box.Data.Caliber) return false;
-            return this.roster[operatorSlot].IsAlive && weapon.CurrentAmmo < weapon.MaxAmmo;
-        }
-
-        public void ReloadOperator(int slotIndex, int operatorSlot)
-        {
-            if (!CanReload(slotIndex, operatorSlot)) return;
-            var s      = EnsureSlots();
-            var box    = (AmmoBoxItem)s[slotIndex].Item!;
-            var weapon = this.roster[operatorSlot].ActiveWeapon!;
-            int needed = weapon.MaxAmmo - weapon.CurrentAmmo;
-            int rounds = needed < box.Quantity ? needed : box.Quantity;
-            weapon.SetAmmo(weapon.CurrentAmmo + rounds);
-            box.Quantity -= rounds;
-            if (box.Quantity <= 0)
-                RemoveItem(slotIndex);
-        }
-
-        public KeyUseOutcome TryUseKey(string keyItemId)
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (s[i].Item is not KeyItem key) continue;
-                if (key.Data.ItemId != keyItemId) continue;
-
-                if (key.UsesRemaining == 0)
-                    return new KeyUseOutcome(KeyUseResult.AlreadyDepleted, i);
-
-                bool depleted = key.Consume();
-                return new KeyUseOutcome(
-                    depleted ? KeyUseResult.DepletedAfterUse : KeyUseResult.Success,
-                    i);
-            }
-            return new KeyUseOutcome(KeyUseResult.NotFound, -1);
-        }
-
-        public bool HasItem(string itemId)
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-                if (!s[i].IsEmpty && s[i].Item!.Data.ItemId == itemId) return true;
-            return false;
-        }
-
-        public bool TryRemoveItem(string itemId)
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (s[i].IsEmpty || s[i].Item!.Data.ItemId != itemId) continue;
-                RemoveItem(i);
-                return true;
-            }
-            return false;
-        }
-
-        public bool TryCombine(int slotA, int slotB)
-        {
-            var s = EnsureSlots();
-            for (int i = 0; i < s.Length; i++)
-                if (s[i].IsEmpty || i == slotA || i == slotB)
-                    return TryCombine(slotA, slotB, i, out _);
-            return false;
-        }
-
-        public bool TryCombine(int slotA, int slotB, int resultSlot, out InventoryItem? combinedItem)
-        {
-            combinedItem = null;
-            var s = EnsureSlots();
-            if (slotA < 0 || slotA >= s.Length || slotB < 0 || slotB >= s.Length
-                || slotA == slotB || resultSlot < 0 || resultSlot >= s.Length) return false;
-            if (s[slotA].IsEmpty || s[slotB].IsEmpty) return false;
-            if (resultSlot != slotA && resultSlot != slotB && !s[resultSlot].IsEmpty) return false;
-            if (s[slotA].Item!.IsEquipped || s[slotB].Item!.IsEquipped) return false;
-            var result = this.combineService.TryGetResult(s[slotA].Item!.Data, s[slotB].Item!.Data);
-            if (result == null) return false;
-            // Construct before consuming inputs so unsupported recipe outputs cannot lose items.
-            combinedItem = result switch
-            {
-                WeaponData wd => new WeaponItem(wd),
-                AmmoBoxData ad => new AmmoBoxItem(ad, 0),
-                ConsumableData cd => new ConsumableItem(cd),
-                KeyItemData kd => new KeyItem(kd),
-                SocketItemData sd => new SocketItem(sd),
-                _ => null
-            };
-            if (combinedItem == null) return false;
-            RemoveItem(slotA);
-            RemoveItem(slotB);
-            s[resultSlot].Item = combinedItem;
-            s[resultSlot].Quantity = 1;
-            SetSlotPosition(resultSlot, -1, -1, 0);
+            var placement = AllPlacements().FirstOrDefault(p => p.Item.Data.ItemId == itemId);
+            if (placement == null) return false;
+            Remove(placement.Item);
             return true;
         }
 
-        public void SetSlotPosition(int slotIndex, int col, int row, int rotation)
+        // Swaps a carried item for another (empty flask -> filled flask). The replacement takes the
+        // original's spot and rotation when it fits there -- TryAdd only tries the unrotated
+        // footprint, so a flask laid flat in an otherwise full grid would find no room -- else any
+        // free cell. With no room at all the original goes back untouched and nothing is lost.
+        public bool TryReplace(string itemId, ItemData replacement)
         {
-            var s = EnsureSlots();
-            s[slotIndex].GridCol      = col;
-            s[slotIndex].GridRow      = row;
-            s[slotIndex].GridRotation = rotation;
-        }
+            var placement = AllPlacements().FirstOrDefault(p => p.Item.Data.ItemId == itemId);
+            if (placement == null || placement.Item.IsEquipped) return false;
 
-        public void LoadState(InventorySlot[] slots)
-        {
-            this.slots = slots;
-            for (int i = 0; i < slots.Length; i++)
+            var original  = placement.Item;
+            var container = FindContainerObjectOf(original)!;
+            container.Remove(original);
+
+            var footprint = ItemPlacement.FootprintOf(replacement.GridSize, placement.Rotation);
+            if (container.CanPlace(footprint, placement.Origin))
             {
-                if (slots[i].Item is WeaponItem weapon && weapon.IsEquipped)
-                    this.roster[weapon.EquippedBySlot].SetEquippedWeapon(weapon, weapon.EquippedWeaponSlot);
+                container.Place(InventoryItemFactory.Create(replacement), placement.Origin, placement.Rotation);
+                container.NotifyChanged();
+                return true;
             }
+
+            if (TryFindFreeCell(CarriedContainers(), replacement.GridSize, out var target, out var origin))
+            {
+                target!.Place(InventoryItemFactory.Create(replacement), origin, 0);
+                NotifyChanged(container, target);
+                return true;
+            }
+
+            container.Place(original, placement.Origin, placement.Rotation);
+            return false;
         }
 
-        public InventorySlot[] GetRawSlots() => EnsureSlots();
+        public bool HasItem(string itemId) => AllPlacements().Any(p => p.Item.Data.ItemId == itemId);
+
+        // Spends a single unit of a carried stack (TryRemove drops the whole item) -- e.g. one
+        // Ticker Tape per save. Storage and dead operators' containers don't count.
+        public bool TryConsumeOne(ItemData data)
+        {
+            var placement = AllPlacements().FirstOrDefault(p => p.Item.Data.ItemId == data.ItemId);
+            if (placement == null) return false;
+
+            var item      = placement.Item;
+            var container = FindContainerObjectOf(item);
+            item.Quantity -= 1;
+            if (item.Quantity <= 0) container?.Remove(item);
+            container?.NotifyChanged();
+            return true;
+        }
+
+        public bool IsCarried(ContainerId id) =>
+            id.Kind == ContainerKind.Operator && id.Index >= 0 && id.Index < this.roster.Count && this.roster[id.Index].IsAlive;
+
+        public bool IsAccessible(ContainerId id) =>
+            id == ContainerId.Storage
+            || IsCarried(id)
+            || (id.Kind == ContainerKind.Operator && this.corpseAccess.CanAccess(id.Index));
+
+        // Picked-up ammo goes, whole, to a living operator with a weapon of that calibre equipped,
+        // fewest rounds of that calibre first (loaded + boxed), roster order on ties. Returns false
+        // when nobody armed can take the whole box, so the caller falls back to any carried grid.
+        private bool TryAddToArmedOperators(AmmoBoxData ammo, int quantity)
+        {
+            var containers = EnsureContainers();
+
+            IEnumerable<WeaponItem> ArmedWith(int slot) => containers[slot].Placements
+                .Select(p => p.Item).OfType<WeaponItem>()
+                .Where(w => w.EquippedBySlot == slot && w.Caliber == ammo.Caliber);
+
+            int RoundsHeld(int slot) =>
+                ArmedWith(slot).Sum(w => w.CurrentAmmo)
+                + containers[slot].Placements.Select(p => p.Item).OfType<AmmoBoxItem>()
+                    .Where(b => b.Data.Caliber == ammo.Caliber).Sum(b => b.Quantity);
+
+            var candidates = Enumerable.Range(0, containers.Length)
+                .Where(slot => IsCarried(ContainerId.Operator(slot)) && ArmedWith(slot).Any())
+                .OrderBy(RoundsHeld)
+                .ThenBy(slot => slot);
+
+            foreach (int slot in candidates)
+                if (TryAddTo(new[] { containers[slot] }, ammo, quantity)) return true;
+            return false;
+        }
+
+        private bool TryAddTo(IReadOnlyList<ItemContainer> candidates, ItemData data, int quantity)
+        {
+            if (!data.Stackable)
+            {
+                if (!TryFindFreeCell(candidates, data.GridSize, out var target, out var origin)) return false;
+                target!.Place(InventoryItemFactory.Create(data), origin, 0);
+                target.NotifyChanged();
+                return true;
+            }
+
+            int remaining = quantity > 0 ? quantity : data is AmmoBoxData ammo ? ammo.DefaultQuantity : 1;
+            var stacks = candidates
+                .SelectMany(c => c.Placements.Select(p => (container: c, item: p.Item)))
+                .Where(s => s.item.Data.ItemId == data.ItemId && s.item.Quantity < data.MaxStack)
+                .ToList();
+
+            int stackSpace = stacks.Sum(s => data.MaxStack - s.item.Quantity);
+            ItemContainer? overflowTarget = null;
+            var overflowOrigin = Vector2Int.zero;
+            if (remaining > stackSpace && !TryFindFreeCell(candidates, data.GridSize, out overflowTarget, out overflowOrigin))
+                return false;
+
+            var touched = new List<ItemContainer>();
+            foreach (var (container, item) in stacks)
+            {
+                if (remaining == 0) break;
+                int added = Math.Min(remaining, data.MaxStack - item.Quantity);
+                item.Quantity += added;
+                remaining     -= added;
+                touched.Add(container);
+            }
+
+            if (remaining > 0)
+            {
+                overflowTarget!.Place(InventoryItemFactory.Create(data, remaining), overflowOrigin, 0);
+                touched.Add(overflowTarget);
+            }
+
+            NotifyChanged(touched.ToArray());
+            return true;
+        }
+
+        private ItemContainer[] EnsureContainers()
+        {
+            if (this.operatorContainers != null) return this.operatorContainers;
+            this.roster.EnsureInitialized();
+            this.operatorContainers = Enumerable.Range(0, this.roster.Count)
+                .Select(i => new ItemContainer(
+                    ContainerId.Operator(i),
+                    InventoryConstants.OperatorGridWidth,
+                    InventoryConstants.OperatorGridHeight))
+                .ToArray();
+            return this.operatorContainers;
+        }
+
+        private ItemContainer EnsureStorage() =>
+            this.storageContainer ??= new ItemContainer(
+                ContainerId.Storage,
+                InventoryConstants.StorageGridWidth,
+                InventoryConstants.StorageGridHeight);
+
+        private IEnumerable<ItemContainer> AllContainers() => EnsureContainers().Append(EnsureStorage());
+
+        private ItemContainer? FindContainerObjectOf(InventoryItem item) =>
+            AllContainers().FirstOrDefault(c => c.Contains(item));
+
+        private IEnumerable<ItemContainer> CarriedContainers() => EnsureContainers().Where(c => IsCarried(c.Id));
+
+        private ItemContainer? FindCarriedContainerOf(InventoryItem item) =>
+            CarriedContainers().FirstOrDefault(c => c.Contains(item));
+
+        private IEnumerable<ItemPlacement> AllPlacements() => CarriedContainers().SelectMany(c => c.Placements);
+
+        private void UnequipInternal(WeaponItem weapon)
+        {
+            this.roster[weapon.EquippedBySlot].SetEquippedWeapon(null, weapon.EquippedWeaponSlot);
+            weapon.ClearEquipped();
+        }
+
+        private static bool TryFindFreeCell(
+            IEnumerable<ItemContainer> candidates, Vector2Int footprint,
+            out ItemContainer? container, out Vector2Int origin)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (!candidate.TryFindFreeCell(footprint, out origin)) continue;
+                container = candidate;
+                return true;
+            }
+
+            container = null;
+            origin    = Vector2Int.zero;
+            return false;
+        }
+
+        private static void NotifyChanged(params ItemContainer?[] containers)
+        {
+            foreach (var container in containers.Where(c => c != null).Distinct())
+                container!.NotifyChanged();
+        }
     }
 }

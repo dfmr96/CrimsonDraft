@@ -1,9 +1,9 @@
 title: socket_test
 ---
 <<if $insert_result == "success">>
-{$item_name} inserted. {$slots_filled} of {$slots_total} filled.
+You placed [important]{$item_name}[/important]. {$slots_filled} of {$slots_total} filled.
 <<elseif $insert_result == "wrong_item">>
-{$item_name} does not fit here.
+[important]{$item_name}[/important] doesn't fit here.
 <<elseif $activated>>
 Already activated.
 <<else>>

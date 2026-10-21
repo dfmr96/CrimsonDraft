@@ -2,6 +2,8 @@
 
 using UnityEngine;
 using VContainer;
+using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Inventory;
 using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
@@ -15,9 +17,24 @@ namespace CrimsonDraft.UI
         [SerializeField] private PartyTestHarness? testHarness;
 #endif
 
-        [Inject] private IOperatorRoster? roster;
+        [Inject] private IOperatorRoster?   roster;
+        [Inject] private IInventoryService? inventory;
+        [Inject] private OperatorCorpseRegistry? corpseRegistry;
 
         public IOperatorRoster? Roster { get; private set; }
+
+        // Bio page: the logo toggles it on every card at once, whichever card's logo was used.
+        public bool BioMode { get; private set; }
+
+        public void SetBioMode(bool on, bool animate = true)
+        {
+            if (this.BioMode == on) return;
+            this.BioMode = on;
+            foreach (var widget in this.widgets)
+                if (widget != null) widget.SetBioMode(on, animate);
+        }
+
+        public void ToggleBio() => SetBioMode(!this.BioMode);
 
         void Start()
         {
@@ -46,11 +63,16 @@ namespace CrimsonDraft.UI
             for (int i = 0; i < this.widgets.Length; i++)
             {
                 if (i < source.Count)
-                    this.widgets[i].Bind(source[i]);
+                    this.widgets[i].Bind(source[i], CanLoot(i), CorpseRoomId(i));
                 else
-                    this.widgets[i].gameObject.SetActive(false);
+                    this.widgets[i].ShowMissing();
             }
         }
+
+        private bool CanLoot(int slot) => this.inventory != null && this.inventory.IsAccessible(ContainerId.Operator(slot));
+
+        private string? CorpseRoomId(int slot) =>
+            this.corpseRegistry != null && this.corpseRegistry.TryGet(slot, out var entry) ? entry.RoomId : null;
 
         public OperatorWidgetView? GetWidget(int index) =>
             index >= 0 && index < this.widgets.Length ? this.widgets[index] : null;
@@ -60,7 +82,7 @@ namespace CrimsonDraft.UI
             if (this.roster == null || !this.roster.IsInitialized) return;
             for (int i = 0; i < this.widgets.Length; i++)
                 if (i < this.roster.Count)
-                    this.widgets[i].Bind(this.roster[i]);
+                    this.widgets[i].Bind(this.roster[i], CanLoot(i), CorpseRoomId(i));
         }
     }
 }

@@ -15,16 +15,22 @@ namespace CrimsonDraft.Infrastructure.UI
     public sealed class ScreenFader : IInitializable
     {
         private const float FadeDuration        = 0.4f;
-        private const float MinLoadingDuration  = 0.6f; // Floor so the "Cargando..." screen never just flashes on a fast/cached load.
-        private const float LoadingDotInterval  = 0.35f;
+        private const float LoadFadeDuration    = 1f;   // Slow fade to/from black around a scene load, so it actually reads.
+        private const float LoadingViewFade     = 0.7f; // Loading screen fading in over the black / out into it.
+        private const float MinLoadingDuration  = 3f; // Floor so the loading screen never just flashes on a fast/cached load.
+        private const string LoadingSceneName   = "Loading"; // Near-empty scene swapped in while the real one loads.
         private const string MainMenuSceneName = "MainMenu";
 
         private CanvasGroup? canvasGroup;
         private TMP_Text?    endMessageText;
-        private TMP_Text?    loadingText;
+        private readonly LoadingScreenView loadingScreen;
+        private bool         isLoadingScene;
 
         [Preserve]
-        public ScreenFader() { }
+        public ScreenFader(LoadingScreenView loadingScreen)
+        {
+            this.loadingScreen = loadingScreen;
+        }
 
         void IInitializable.Initialize()
         {
@@ -72,76 +78,76 @@ namespace CrimsonDraft.Infrastructure.UI
 
             textGo.SetActive(false);
 
-            var loadingGo = new GameObject("LoadingText");
-            loadingGo.transform.SetParent(overlay.transform, false);
-
-            this.loadingText = loadingGo.AddComponent<TextMeshProUGUI>();
-            this.loadingText.alignment     = TextAlignmentOptions.Center;
-            this.loadingText.fontSize      = 36f;
-            this.loadingText.color         = Color.white;
-            this.loadingText.raycastTarget = false;
-
-            var loadingRect = loadingGo.GetComponent<RectTransform>();
-            loadingRect.anchorMin = Vector2.zero;
-            loadingRect.anchorMax = Vector2.one;
-            loadingRect.offsetMin = Vector2.zero;
-            loadingRect.offsetMax = Vector2.zero;
-
-            loadingGo.SetActive(false);
+            this.loadingScreen.Hide();
         }
 
         /// <summary>
         /// Fades to black, loads <paramref name="sceneName"/> as the only scene while showing an
-        /// animated "Cargando..." label, then fades back in. The fade-out hides the load's
+        /// random quote and an animated loading label, then fades back in. The fade-out hides the load's
         /// GC/shader-warmup hitch behind a solid color instead of letting it read as a freeze,
         /// and the dot animation plus MinLoadingDuration floor keep the screen visibly alive
         /// even when the load itself is nearly instant.
         /// </summary>
         public async UniTask LoadSceneAsync(string sceneName)
         {
-            await FadeOutAsync();
+            if (this.isLoadingScene) return;
+            this.isLoadingScene = true;
 
-            if (this.loadingText != null)
-                this.loadingText.gameObject.SetActive(true);
-
-            var operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
-            operation.allowSceneActivation = false;
-
-            float elapsed = 0f;
-            while (operation.progress < 0.9f || elapsed < MinLoadingDuration)
+            try
             {
-                elapsed += Time.unscaledDeltaTime;
-                UpdateLoadingText(elapsed);
-                await UniTask.Yield(PlayerLoopTiming.Update);
+                await FadeOutAsync(LoadFadeDuration);
+                float elapsed = 0f;
+                var showTask = this.loadingScreen.ShowAsync(LoadingViewFade);
+
+                // Swap to a near-empty scene first so the outgoing (heavy) scene is released
+                // before the destination starts loading, instead of both sitting in memory at
+                // once. The loading view itself is a persistent prefab, so the scene is empty.
+                if (Application.CanStreamedLevelBeLoaded(LoadingSceneName))
+                {
+                    var swap = SceneManager.LoadSceneAsync(LoadingSceneName, LoadSceneMode.Single);
+                    while (swap != null && !swap.isDone)
+                    {
+                        elapsed += Time.unscaledDeltaTime;
+                        this.loadingScreen.UpdateLabel(elapsed);
+                        await UniTask.Yield(PlayerLoopTiming.Update);
+                    }
+                }
+
+                var operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+                operation.allowSceneActivation = false;
+
+                while (operation.progress < 0.9f || elapsed < MinLoadingDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    this.loadingScreen.UpdateLabel(elapsed);
+                    await UniTask.Yield(PlayerLoopTiming.Update);
+                }
+
+                await showTask;
+                await this.loadingScreen.HideAsync(LoadingViewFade);
+
+                operation.allowSceneActivation = true;
+                await operation.ToUniTask();
+
+                await FadeInAsync(LoadFadeDuration);
             }
-
-            operation.allowSceneActivation = true;
-            await operation.ToUniTask();
-
-            if (this.loadingText != null)
-                this.loadingText.gameObject.SetActive(false);
-
-            await FadeInAsync();
+            finally
+            {
+                this.isLoadingScene = false;
+            }
         }
 
-        private void UpdateLoadingText(float elapsed)
-        {
-            if (this.loadingText == null) return;
-            int dotCount = Mathf.FloorToInt(elapsed / LoadingDotInterval) % 4;
-            this.loadingText.text = "Cargando" + new string('.', dotCount);
-        }
-
-        public async UniTask FadeOutAsync()
+        public async UniTask FadeOutAsync(float duration = FadeDuration)
         {
             if (this.canvasGroup == null) return;
             this.canvasGroup.blocksRaycasts = true;
-            await AnimateAlpha(0f, 1f);
+            await AnimateAlpha(0f, 1f, duration);
         }
 
-        public async UniTask FadeInAsync()
+        public async UniTask FadeInAsync(float duration = FadeDuration)
         {
             if (this.canvasGroup == null) return;
-            await AnimateAlpha(1f, 0f);
+            await AnimateAlpha(1f, 0f, duration);
             this.canvasGroup.blocksRaycasts = false;
         }
 
@@ -178,14 +184,14 @@ namespace CrimsonDraft.Infrastructure.UI
             await FadeInAsync();
         }
 
-        private async UniTask AnimateAlpha(float from, float to)
+        private async UniTask AnimateAlpha(float from, float to, float duration)
         {
             if (this.canvasGroup == null) return;
             float elapsed = 0f;
-            while (elapsed < FadeDuration)
+            while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
-                this.canvasGroup.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / FadeDuration));
+                this.canvasGroup.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
             this.canvasGroup.alpha = to;

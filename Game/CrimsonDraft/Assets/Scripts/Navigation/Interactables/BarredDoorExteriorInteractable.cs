@@ -17,7 +17,10 @@ namespace CrimsonDraft.Navigation.Interactables
             if (this.interior.IsUnbarred)
                 this.onOpen.Invoke();
             else
+            {
+                context.Sfx?.PlayInvalidAction(gameObject);
                 context.DialogueService.StartDialogue(this.lockedDialogue.nodeName ?? "");
+            }
         }
     }
 }

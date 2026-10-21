@@ -18,6 +18,7 @@ using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Navigation.Radio;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Inventory;
@@ -46,6 +47,11 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private InMemoryVariableStorage pickupStorage    = null!;
         [SerializeField] private DialogueRunner          inspectPromptRunner  = null!;
         [SerializeField] private InMemoryVariableStorage inspectPromptStorage = null!;
+
+        // Radio calls (Radio_UI). All optional: a scene without them just has no radio.
+        [SerializeField] private DialogueRunner?          radioRunner;
+        [SerializeField] private InMemoryVariableStorage? radioStorage;
+        [SerializeField] private RadioCastData?           radioCast;
 
         // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
         // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
@@ -81,14 +87,16 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterComponentInHierarchy<NavigationCameraRegistrar>().AsImplementedInterfaces();
 
-            builder.RegisterInstance(this.cachedCameraZoneTriggers);
+            // Discover zones at startup so newly placed triggers receive their service
+            // even when the editor cache has not been refreshed.
+            builder.RegisterInstance(FindObjectsByType<FixedCameraZoneTrigger>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None));
             builder.Register<FixedCameraZoneService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<FixedCameraZoneBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<CinemachineBrain>();
             builder.Register<CameraRelativeMovementService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<MapSceneConfig>();
-            builder.RegisterComponentInHierarchy<MapRenderer>();
             builder.Register<StartingLoadoutRosterSeedProvider>(Lifetime.Singleton).As<IOperatorRosterSeedProvider>();
             builder.Register<OperatorRoster>(Lifetime.Singleton).AsSelf().As<IOperatorRoster>();
             builder.Register<OperatorRosterBootstrap>(Lifetime.Scoped).AsImplementedInterfaces();
@@ -96,13 +104,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<PlayerInteractionCaster>().AsSelf().As<IInteractionCaster>();
             builder.RegisterComponentInHierarchy<PickupRegistryDebugView>();
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Optional debug overlay — only registered if present in the scene, so it
-            // never breaks scope build when the GameObject isn't added.
-            var inventoryDebug = FindObjectOfType<InventoryDebugPrinter>(true);
-            if (inventoryDebug != null)
-                builder.RegisterComponent(inventoryDebug);
-#endif
             builder.RegisterInstance(new GeneralDialogueRunnerRef(this.generalRunner, this.generalStorage));
             builder.RegisterInstance(new PickupDialogueRunnerRef(this.pickupRunner, this.pickupStorage));
             builder.RegisterInstance(new InspectDialogueRunnerRef(this.inspectPromptRunner, this.inspectPromptStorage));
@@ -110,13 +111,45 @@ namespace CrimsonDraft.Navigation
             builder.Register<PickupDialogueService>(Lifetime.Scoped).As<IPickupDialogueService>();
             builder.Register<InspectDialogueService>(Lifetime.Scoped).As<IInspectDialogueService>();
 
+            // Radio: the conversation service is always there (the inventory controller reports to
+            // it); the rest only when this scene has the Radio_UI wired up. Optional components
+            // use FindFirstObjectByType because RegisterComponentInHierarchy throws when absent.
+            builder.Register<RadioConversationService>(Lifetime.Singleton).As<IRadioConversationService>();
+            var radioView = FindFirstObjectByType<RadioView>(FindObjectsInactive.Include);
+            if (this.radioRunner != null && this.radioStorage != null && this.radioCast != null && radioView != null)
+            {
+                builder.RegisterInstance(new RadioDialogueRunnerRef(this.radioRunner, this.radioStorage));
+                builder.RegisterInstance(this.radioCast);
+                builder.Register<RadioDialogueService>(Lifetime.Singleton).AsSelf();
+                builder.RegisterComponent(radioView).AsSelf().AsImplementedInterfaces();
+            }
+            var radioIndicator = FindFirstObjectByType<RadioIndicatorView>(FindObjectsInactive.Include);
+            if (radioIndicator != null)
+                builder.RegisterComponent(radioIndicator);
+            // Several zones can share a scene; RegisterComponent per instance throws a VContainer
+            // "Conflict implementation type" for the second one, so inject them directly instead.
+            var radioZones = FindObjectsByType<RadioConversationZone>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (radioZones.Length > 0)
+                builder.RegisterBuildCallback(resolver =>
+                {
+                    foreach (var zone in radioZones)
+                        resolver.Inject(zone);
+                });
+
             builder.RegisterComponentInHierarchy<PauseMenuView>();
+            // The pause menu's Settings tabs reuse the main menu's Options components; they sit
+            // under PauseMenuView rather than being registered themselves, so inject them here.
+            builder.RegisterBuildCallback(resolver =>
+            {
+                var pauseView = resolver.Resolve<PauseMenuView>();
+                resolver.Inject(pauseView.OptionsTabs);
+                resolver.Inject(pauseView.GammaPanel);
+                resolver.Inject(pauseView.SoundPanel);
+            });
             builder.Register<PauseMenuController>(Lifetime.Scoped).AsImplementedInterfaces();
 
             builder.RegisterComponentInHierarchy<InteractionReaderView>();
             builder.Register<DocumentController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-            builder.RegisterComponentInHierarchy<ContainerView>();
-            builder.Register<ContainerController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<PuzzleViewController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InspectionController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
@@ -128,7 +161,7 @@ namespace CrimsonDraft.Navigation
             // build time if the type isn't in the scene (unlike a plain FindObjectOfType
             // null-check), which took down the whole container -- and everything after it in
             // this method -- in every other scene sharing NavigationScope (e.g. Deck B on new
-            // game). Same optional-registration pattern as InventoryDebugPrinter/RadioInteractable
+            // game). Same optional-registration pattern as RadioInteractable
             // below: only register it if this scene actually has one.
             var generatorSwitchPanel = FindObjectOfType<GeneratorSwitchPanel>(true);
             if (generatorSwitchPanel != null)
@@ -156,6 +189,7 @@ namespace CrimsonDraft.Navigation
             builder.RegisterMessageBroker<EnemyAlertChangedEvent>(msgOptions);
             builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
             builder.RegisterMessageBroker<DialogueActiveChangedEvent>(msgOptions);
+            builder.RegisterMessageBroker<StorageOpenRequestedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()
@@ -166,17 +200,41 @@ namespace CrimsonDraft.Navigation
             builder.RegisterComponentInHierarchy<MusicManagerController>().AsImplementedInterfaces();
 
             // Optional room prop — not every scene has a physical radio placed yet,
-            // so only register it if present, same as InventoryDebugPrinter above.
+            // so only register it if present, same as GeneratorSwitchPanel above.
             var radio = FindObjectOfType<RadioInteractable>(true);
             if (radio != null)
                 builder.RegisterComponent(radio);
+
+            // Optional — only rooms gated by a remote ItemSocketInteractable (e.g. the
+            // Lavatory's steam, cleared once Deck C's handle socket is filled) have one.
+            foreach (var gate in FindObjectsByType<RemoteSocketGate>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(gate);
+
+            // Optional — only the save room has a telegraph station (needs the world registries
+            // for its one-time intro flag).
+            foreach (var station in FindObjectsByType<TelegraphSaveStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(station);
+
+            // Optional — only the pipe-valve socket (Deck C) has one.
+            foreach (var tighten in FindObjectsByType<SocketValveTighten>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(tighten);
+
+            // Optional — sockets whose item mutates after a later room visit (e.g. Morph).
+            builder.RegisterInstance(FindObjectsByType<RoomVisitMutation>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+            builder.Register<RoomVisitMutationTracker>(Lifetime.Singleton).AsImplementedInterfaces();
+
             builder.RegisterInstance(this.cachedEnemies);
             builder.Register<NavigationTimeScale>(Lifetime.Singleton).AsSelf().AsImplementedInterfaces();
             builder.Register<EnemyBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
 
             builder.RegisterInstance(this.corpseSettings);
+            builder.Register<CorpseProximityTracker>(Lifetime.Singleton).AsSelf().As<ICorpseAccess>();
             builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
-            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces().AsSelf();
+            builder.Register<DeadOperatorGearReleaser>(Lifetime.Singleton).AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
+#endif
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
             builder.Register<DoorBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();

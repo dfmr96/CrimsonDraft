@@ -3,6 +3,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.UI
 {
@@ -24,12 +25,100 @@ namespace CrimsonDraft.UI
 
         public bool IsOpen { get; private set; }
 
+        private NoteLayoutSettings? layout;
+        private DocumentData?       doc;
+        private bool                defaultsCaptured;
+        private TMP_FontAsset?      defaultBodyFont;
+        private TMP_FontAsset?      defaultTitleFont;
+        private TMP_FontAsset?      defaultBigFont;
+        private float               defaultBodySize;
+        private float               defaultTitleSize;
+        private float               defaultBigSize;
+
+        /// <summary>Spacing, alignment and font for the note shown from now on; applied on every Show*.</summary>
+        public void SetLayout(NoteLayoutSettings? settings, DocumentData document)
+        {
+            if (!this.defaultsCaptured)
+            {
+                this.defaultsCaptured  = true;
+                this.defaultBodyFont   = this.bodyLabel.font;
+                this.defaultTitleFont  = this.titleLabel.font;
+                this.defaultBigFont    = this.bigTitleLabel != null ? this.bigTitleLabel.font : null;
+                this.defaultBodySize   = this.bodyLabel.fontSize;
+                this.defaultTitleSize  = this.titleLabel.fontSize;
+                this.defaultBigSize    = this.bigTitleLabel != null ? this.bigTitleLabel.fontSize : 0f;
+            }
+
+            this.layout = settings;
+            this.doc    = document;
+
+            // Fall back to the prefab's fonts/sizes so one note's override doesn't leak into the next.
+            var font = settings != null ? settings.ResolveFont(document) : null;
+            float bodySize  = settings != null && settings.BodyFontSize  > 0f ? settings.BodyFontSize  : this.defaultBodySize;
+            float titleSize = settings != null && settings.TitleFontSize > 0f ? settings.TitleFontSize : 0f;
+
+            this.bodyLabel.font     = font != null ? font : this.defaultBodyFont;
+            this.bodyLabel.fontSize = bodySize;
+
+            this.titleLabel.font     = font != null ? font : this.defaultTitleFont;
+            this.titleLabel.fontSize = titleSize > 0f ? titleSize : this.defaultTitleSize;
+
+            if (this.bigTitleLabel != null)
+            {
+                this.bigTitleLabel.font     = font != null ? font : this.defaultBigFont;
+                this.bigTitleLabel.fontSize = titleSize > 0f ? titleSize : this.defaultBigSize;
+            }
+        }
+
+        /// <summary>Rows the body label would render for <paramref name="text"/> at its current width and font (wrapping included).</summary>
+        public int MeasureLineCount(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return 0;
+
+            // TMP's textInfo/GetTextInfo stay empty or throw while the label is inactive (the
+            // panel is hidden until a note is shown), but preferred height works either way.
+            // A text's height is a fixed base plus one row-step per extra row, so the row count
+            // is read off two reference texts (one and two rows) measured with the spacing
+            // zeroed, so the configured line/paragraph spacing doesn't inflate it. Passing the
+            // label's own width is what makes the measurement wrap; without it TMP measures on a
+            // single unbounded row.
+            float line = this.bodyLabel.lineSpacing;
+            float para = this.bodyLabel.paragraphSpacing;
+            this.bodyLabel.lineSpacing      = 0f;
+            this.bodyLabel.paragraphSpacing = 0f;
+
+            float width  = this.bodyLabel.rectTransform.rect.width;
+            float oneRow = this.bodyLabel.GetPreferredValues("A", width, 0f).y;
+            float step   = this.bodyLabel.GetPreferredValues("A\nA", width, 0f).y - oneRow;
+            float total  = this.bodyLabel.GetPreferredValues(text, width, 0f).y;
+
+            this.bodyLabel.lineSpacing      = line;
+            this.bodyLabel.paragraphSpacing = para;
+
+            return step <= 0f ? 1 : 1 + Mathf.Max(0, Mathf.RoundToInt((total - oneRow) / step));
+        }
+
+        void ApplyBodyLayout()
+        {
+            if (this.layout == null || this.doc == null) return;
+
+            this.bodyLabel.lineSpacing      = this.layout.LineSpacing;
+            this.bodyLabel.paragraphSpacing = this.layout.ParagraphSpacing;
+            this.bodyLabel.horizontalAlignment = this.layout.ResolveAlignment(this.doc) switch
+            {
+                NoteAlignment.Centered  => HorizontalAlignmentOptions.Center,
+                NoteAlignment.Justified => HorizontalAlignmentOptions.Justified,
+                _                       => HorizontalAlignmentOptions.Left,
+            };
+        }
+
         public void Show(string title, string body, int page, int total)
         {
             this.titleLabel.text = title;
             this.titleLabel.gameObject.SetActive(true);
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = int.MaxValue;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)
@@ -48,6 +137,7 @@ namespace CrimsonDraft.UI
             this.titleLabel.gameObject.SetActive(false);
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = int.MaxValue;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)
@@ -111,6 +201,7 @@ namespace CrimsonDraft.UI
 
             this.bodyLabel.text                 = body;
             this.bodyLabel.maxVisibleCharacters = visibleChars;
+            ApplyBodyLayout();
             this.bodyLabel.gameObject.SetActive(true);
 
             if (this.bigTitleLabel != null)

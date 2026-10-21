@@ -1,6 +1,9 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
@@ -13,10 +16,11 @@ using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
+using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class SaveController : IInitializable, IDisposable
+    public sealed class SaveController : ISaveController, IInitializable, IDisposable
     {
         private readonly IInputService       inputService;
         private readonly ISaveGameService    saveGameService;
@@ -27,6 +31,19 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker     playtimeTracker;
         private readonly SaveSlotNavigator   navigator;
+        // The save telegraph reuses the main menu's list sounds (same slot-list UI).
+        private readonly MainMenuSfxData?    menuSfx;
+        private Action?                      pendingOnSaved;
+
+        // Telegraph (save room) session -- null while the legacy overlay or nothing is open.
+        private enum TelegraphPhase { Browsing, Revealing, Done }
+        private LoadGameSaveListView?        telegraphView;
+        private SaveSlotNavigator?           telegraphNavigator;
+        private TelegraphPhase               telegraphPhase;
+        private Action?                      telegraphOnClosed;
+        private ITelegraphMorse?             telegraphMorse;
+        private CancellationTokenSource?     morseCancellation;
+        private int                          pendingReveals;
 
         [Preserve]
         public SaveController(
@@ -38,7 +55,8 @@ namespace CrimsonDraft.Navigation.Interactables
             IRoomOrchestrator    roomOrchestrator,
             PlayerController     player,
             WorldStateRegistries world,
-            PlaytimeTracker      playtimeTracker)
+            PlaytimeTracker      playtimeTracker,
+            MainMenuSfxData?     menuSfx = null)
         {
             this.inputService     = inputService;
             this.saveGameService  = saveGameService;
@@ -48,6 +66,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.player           = player;
             this.world            = world;
             this.playtimeTracker  = playtimeTracker;
+            this.menuSfx          = menuSfx;
             this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
 
@@ -58,28 +77,189 @@ namespace CrimsonDraft.Navigation.Interactables
             this.inputService.UICancel.performed   += OnBack;
         }
 
-        public void Open()
+        public void Open(Action? onSaved = null)
         {
             if (this.navigator.IsOpen) return;
+            this.pendingOnSaved = onSaved;
             Time.timeScale = 0f;
             this.inputService.SwitchToUI();
             this.navigator.Open(this.saveGameService.ListSlotSummaries());
         }
 
+        // SaveSlotNavigator closes before it calls Save, so pendingOnSaved is NOT cleared here --
+        // it is replaced on every Open and cleared once Save has used it.
         private void OnNavigatorClosed()
         {
             Time.timeScale = 1f;
             DeferredInputAction.Run(this.inputService.SwitchToGameplay);
         }
 
-        private void OnNavigate(InputAction.CallbackContext ctx) => this.navigator.HandleNavigate(ctx.ReadValue<Vector2>());
-        private void OnConfirm(InputAction.CallbackContext _)    => this.navigator.HandleConfirm();
-        private void OnBack(InputAction.CallbackContext _)       => this.navigator.HandleBack();
+        public void OpenTelegraph(LoadGameSaveListView view, Action? onSaved, Action? onClosed, ITelegraphMorse? morse = null)
+        {
+            if (this.telegraphNavigator != null || this.navigator.IsOpen) return;
+            this.pendingOnSaved    = onSaved;
+            this.telegraphOnClosed = onClosed;
+            this.telegraphMorse    = morse;
+            this.telegraphView     = view;
+            this.telegraphPhase    = TelegraphPhase.Browsing;
+
+            // Stays open after a confirmed save (closeOnConfirm: false) so the list can come back
+            // with the written file typing itself out; the cursor stops at the last row.
+            this.telegraphNavigator = new SaveSlotNavigator(
+                view, "Save", SaveTelegraph, onClosed: OnTelegraphClosed, wrapCursor: false, closeOnConfirm: false);
+
+            this.inputService.SwitchToUI();
+            this.telegraphNavigator.Open(VisibleSlots(view));
+        }
+
+        // The panel only has rows for view.SlotCapacity slots; the rest of the save files exist
+        // on disk but can't be reached from here.
+        private IReadOnlyList<SaveSlotSummary> VisibleSlots(LoadGameSaveListView view)
+        {
+            var all = this.saveGameService.ListSlotSummaries();
+            if (all.Count <= view.SlotCapacity) return all;
+
+            var visible = new List<SaveSlotSummary>(view.SlotCapacity);
+            for (int i = 0; i < view.SlotCapacity; i++) visible.Add(all[i]);
+            return visible;
+        }
+
+        private void SaveTelegraph(int slot)
+        {
+            Save(slot);
+
+            // Done once the file's text has typed out AND, if the station has a key, its Morse
+            // message ("SAVE 01") has been sent -- both start together.
+            this.telegraphPhase = TelegraphPhase.Revealing;
+            this.pendingReveals = this.telegraphMorse != null ? 2 : 1;
+
+            // The text types out over exactly as long as the Morse message lasts, so the typing keeps
+            // the rhythm of the pulses. No input is accepted until both are done (see OnConfirm/OnBack).
+            string message       = $"SAVE {slot + 1:00}";
+            float  morseSeconds  = this.telegraphMorse?.MeasureSeconds(message) ?? 0f;
+            this.telegraphView!.ShowSaved(VisibleSlots(this.telegraphView), slot, OnRevealPartDone, morseSeconds);
+
+            if (this.telegraphMorse != null)
+                TransmitSaveMorseAsync(this.telegraphMorse, message).Forget();
+        }
+
+        private void OnRevealPartDone()
+        {
+            if (--this.pendingReveals <= 0) this.telegraphPhase = TelegraphPhase.Done;
+        }
+
+        private async UniTaskVoid TransmitSaveMorseAsync(ITelegraphMorse morse, string message)
+        {
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = new CancellationTokenSource();
+            var token = this.morseCancellation.Token;
+
+            try
+            {
+                await morse.TransmitAsync(message, token);
+                OnRevealPartDone();
+            }
+            catch (OperationCanceledException)
+            {
+                // Panel closed mid-message: the station already released the key.
+            }
+        }
+
+        private void OnTelegraphClosed()
+        {
+            this.telegraphNavigator = null;
+            this.telegraphView      = null;
+
+            this.morseCancellation?.Cancel();
+            this.morseCancellation?.Dispose();
+            this.morseCancellation = null;
+            this.telegraphMorse?.StopTransmission();
+            this.telegraphMorse = null;
+
+            // Saved or cancelled -- either way the owner leaves the telegraph camera.
+            var onClosed = this.telegraphOnClosed;
+            this.telegraphOnClosed = null;
+            this.pendingOnSaved    = null;
+            onClosed?.Invoke();
+        }
+
+        private void OnNavigate(InputAction.CallbackContext ctx)
+        {
+            var direction = ctx.ReadValue<Vector2>();
+            if (this.telegraphNavigator == null)
+            {
+                this.navigator.HandleNavigate(direction);
+                return;
+            }
+
+            if (this.telegraphPhase != TelegraphPhase.Browsing) return;
+
+            // While the Yes/No prompt is up, horizontal input picks the option instead.
+            if (this.telegraphNavigator.IsConfirming)
+            {
+                if (direction.x > 0.5f)       { this.telegraphView!.SetConfirmSelection(yesSelected: true);  this.menuSfx?.PlayCursor(this.player.gameObject); }
+                else if (direction.x < -0.5f) { this.telegraphView!.SetConfirmSelection(yesSelected: false); this.menuSfx?.PlayCursor(this.player.gameObject); }
+                return;
+            }
+
+            if (direction.y > 0.5f || direction.y < -0.5f)
+                this.menuSfx?.PlayFilesChange(this.player.gameObject);
+            this.telegraphNavigator.HandleNavigate(direction);
+        }
+
+        private void OnConfirm(InputAction.CallbackContext _)
+        {
+            if (this.telegraphNavigator == null)
+            {
+                this.navigator.HandleConfirm();
+                return;
+            }
+
+            switch (this.telegraphPhase)
+            {
+                case TelegraphPhase.Browsing:
+                    if (this.telegraphNavigator.IsConfirming && !this.telegraphView!.IsYesSelected)
+                    {
+                        this.menuSfx?.PlayCancel(this.player.gameObject);
+                        this.telegraphNavigator.HandleBack();
+                    }
+                    else
+                    {
+                        this.menuSfx?.PlayDecide(this.player.gameObject);
+                        this.telegraphNavigator.HandleConfirm();
+                    }
+                    break;
+                case TelegraphPhase.Done:
+                    this.menuSfx?.PlayDecide(this.player.gameObject);
+                    this.telegraphNavigator.Close();
+                    break;
+            }
+        }
+
+        private void OnBack(InputAction.CallbackContext _)
+        {
+            if (this.telegraphNavigator == null)
+            {
+                this.navigator.HandleBack();
+                return;
+            }
+
+            if (this.telegraphPhase == TelegraphPhase.Browsing)
+            {
+                this.menuSfx?.PlayCancel(this.player.gameObject);
+                this.telegraphNavigator.HandleBack();
+            }
+        }
 
         public void Save(int slot)
         {
             int previousSaveCount = this.saveGameService.ReadFromDisk(slot)?.saveCount ?? 0;
             this.saveGameService.WriteToDisk(slot, BuildSaveData(previousSaveCount + 1));
+
+            var onSaved = this.pendingOnSaved;
+            this.pendingOnSaved = null;
+            onSaved?.Invoke();
         }
 
         private SaveGameData BuildSaveData(int saveCount)
@@ -106,6 +286,7 @@ namespace CrimsonDraft.Navigation.Interactables
             data.readNoteIds.AddRange(this.world.Notes.CollectedIds);
             data.knownMapIds.AddRange(this.world.KnownMaps.GetState());
             data.defeatedEnemyIds.AddRange(this.world.Enemies.GetDefeated());
+            data.heardRadioCallIds.AddRange(this.world.RadioCalls.HeardIds);
 
             foreach (var pair in this.world.ItemSockets.GetState())
                 data.itemSockets.Add(new ItemSocketStateEntry { socketId = pair.Key, inserted = pair.Value });
@@ -121,27 +302,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 });
             }
 
-            var slots = this.inventoryService.GetRawSlots();
-            for (int i = 0; i < slots.Length; i++)
-            {
-                if (slots[i].IsEmpty) continue;
-                var item = slots[i].Item!;
-                data.inventorySlots.Add(new InventorySlotEntry
-                {
-                    slotIndex            = i,
-                    itemId               = item.Data.ItemId,
-                    slotQuantity         = slots[i].Quantity,
-                    ammoBoxQuantity      = item is AmmoBoxItem box ? box.Quantity : -1,
-                    weaponAmmo           = item is WeaponItem weapon ? weapon.CurrentAmmo : -1,
-                    keyUsesRemaining     = item is KeyItem key ? key.UsesRemaining : -1,
-                    isExamined           = item.IsExamined,
-                    gridCol              = slots[i].GridCol,
-                    gridRow              = slots[i].GridRow,
-                    gridRotation         = slots[i].GridRotation,
-                    equippedOperatorSlot = item.EquippedBySlot,
-                    equippedWeaponSlot   = item.EquippedWeaponSlot,
-                });
-            }
+            data.inventoryItems.AddRange(InventorySerializer.Capture(this.inventoryService));
 
             return data;
         }

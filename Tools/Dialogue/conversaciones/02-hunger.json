@@ -1,0 +1,98 @@
+{
+  "title": "Call 02 — Hunger",
+  "freq": "38.75",
+  "rightIds": ["deer", "sterna", "bear"],
+  "leftId": "vulture",
+  "lines": [
+    { "speaker": "vulture", "text": "Vulture here. I heard gunfire.\nReport." },
+
+    { "speaker": "sterna",  "text": "Putain.\nContact. One crew member, out of a berth on B Deck." },
+    { "speaker": "bear",    "text": "Contact, boss. One crew member.\nCame out of a berth on B Deck.", "if": { "dead": ["sterna"] } },
+    { "speaker": "deer",    "text": "Contact, sir. One crew member.\nCame out of a berth on B Deck.", "if": { "dead": ["sterna", "bear"] } },
+
+    { "speaker": "bear",    "text": "He saw us and came straight at us. No weapon, no warning.\nHe wasn't trying to fight, boss. He was trying to bite." },
+    { "speaker": "sterna",  "text": "He saw us and came straight at us. No weapon, niente.\nHe wasn't fighting, Vulture. He was trying to bite.", "if": { "dead": ["bear"] } },
+    { "speaker": "deer",    "text": "He came straight at us, sir. No weapon.\nHe wasn't fighting. He was biting.", "if": { "dead": ["bear", "sterna"] } },
+
+    { "beat": "silence" },
+
+    { "speaker": "sterna",  "text": "Allora.\nWhat Bambi told us was true. That wasn't rage, Vulture. That was hunger.",
+      "alt": [ { "dead": ["deer"], "text": "Allora.\nThe kid was right. That wasn't rage, Vulture. That was hunger." } ] },
+    { "speaker": "bear",    "text": "What the kid told us was true.\nThat wasn't rage, boss. That was hunger.", "if": { "dead": ["sterna"] },
+      "alt": [ { "dead": ["deer", "sterna"], "text": "The kid was right.\nThat wasn't rage, boss. That was hunger." } ] },
+    { "speaker": "deer",    "text": "It's the same thing I saw, sir.\nThey're starving.", "if": { "dead": ["sterna", "bear"] } },
+
+    { "speaker": "bear",    "text": "Boss. If the rest of the crew is like that one...\nhow many are we talking about?" },
+    { "speaker": "sterna",  "text": "Vulture. If the rest of the crew is like that one...\nquanti? How many are we talking about?", "if": { "dead": ["bear"] } },
+    { "speaker": "deer",    "text": "Sir. If the rest of the crew is like that one...\nhow many?", "if": { "dead": ["bear", "sterna"] } },
+
+    { "speaker": "vulture", "text": "A hull that size runs twenty to thirty hands." },
+    { "speaker": "vulture", "text": "Assume all of them." },
+
+    { "speaker": "deer",    "text": "Sir.\nThat's twenty to thirty people still aboard.", "if": { "alive": ["deer"] } },
+    { "speaker": "deer",    "text": "Are we still treating them as survivors?", "if": { "alive": ["deer"] } },
+    { "speaker": "vulture", "text": "I'm treating them as hostile.", "if": { "alive": ["deer"] } },
+    { "speaker": "sterna",  "text": "Genau.\nWhatever that was, it stopped being crew a long time ago.", "if": { "alive": ["deer"] } },
+
+    { "beat": "silence" },
+
+    { "speaker": "vulture", "text": "Casualties?" },
+
+    { "speaker": "bear",    "text": "None.", "if": { "alive": ["deer", "sterna", "bear"] } },
+
+    { "speaker": "bear",    "text": "The kid didn't make it, boss.", "if": { "dead": ["deer"] },
+      "alt": [ { "dead": ["deer", "sterna"], "text": "The kid didn't make it, boss.\nSterna's gone too." } ] },
+    { "speaker": "sterna",  "text": "The kid didn't make it.\nBear's gone too. Los dos.", "if": { "dead": ["deer", "bear"] } },
+    { "speaker": "sterna",  "text": "Merde.\nHe walked out of that first boarding alive, and he didn't last the night.", "if": { "dead": ["deer"] } },
+    { "speaker": "bear",    "text": "He told us he wouldn't be dead weight.", "if": { "dead": ["deer"] } },
+
+    { "speaker": "bear",    "text": "Sterna went down covering him.", "if": { "dead": ["deer", "sterna"], "alive": ["bear"] } },
+    { "speaker": "sterna",  "text": "Bear went down first.\nHe was trying to reach the kid. Il a essayé.", "if": { "dead": ["deer", "bear"], "alive": ["sterna"] } },
+
+    { "speaker": "vulture", "text": "That's a loss.", "if": { "dead": ["deer"], "alive": ["sterna", "bear"] } },
+    { "speaker": "vulture", "text": "Stay focused. We still have a ship to clear.", "if": { "dead": ["deer"], "alive": ["sterna", "bear"] } },
+    { "beat": "silence", "if": { "dead": ["deer"], "alive": ["sterna", "bear"] } },
+
+    { "speaker": "vulture", "text": "Sterna.", "if": { "dead": ["deer", "sterna"], "alive": ["bear"] } },
+    { "beat": "silence", "if": { "dead": ["deer", "sterna"], "alive": ["bear"] } },
+    { "speaker": "vulture", "text": "Bear.", "if": { "dead": ["deer", "bear"], "alive": ["sterna"] } },
+    { "beat": "silence", "if": { "dead": ["deer", "bear"], "alive": ["sterna"] } },
+
+    { "speaker": "bear",    "text": "We lost Sterna.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "vulture", "text": "One man. Unarmed.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "vulture", "text": "I trained her for eleven years and she goes down to one unarmed man.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "vulture", "text": "You were both busy keeping the kid breathing instead of watching your own backs.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "deer",    "text": "...Understood, sir.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "bear",    "text": "That's enough, boss.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+    { "speaker": "bear",    "text": "From here on he stays with me.\nIf something gets to him, it goes through me first.", "if": { "dead": ["sterna"], "alive": ["deer", "bear"] } },
+
+    { "speaker": "sterna",  "text": "We lost Bear.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "vulture", "text": "One man. Unarmed.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "vulture", "text": "Bear has opened his way into forty ships and he goes down to one unarmed man.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "vulture", "text": "You were both busy keeping the kid breathing instead of watching your own backs.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "deer",    "text": "...Understood, sir.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "beat": "silence", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "sterna",  "text": "Bambi.\nÉcoute-moi.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+    { "speaker": "sterna",  "text": "Stay close to me and keep your head up.\nLife gets very short out here. En un segundo, y ya está.", "if": { "dead": ["bear"], "alive": ["deer", "sterna"] } },
+
+    { "speaker": "deer",    "text": "I'm alone, sir.\nSterna and Bear are both gone.", "if": { "dead": ["sterna", "bear"], "alive": ["deer"] } },
+    { "beat": "silence", "if": { "dead": ["sterna", "bear"], "alive": ["deer"] } },
+    { "speaker": "vulture", "text": "Both of them.", "if": { "dead": ["sterna", "bear"], "alive": ["deer"] } },
+    { "speaker": "vulture", "text": "I came aboard with three of my people, Coast Guard.\nNow I have you.", "if": { "dead": ["sterna", "bear"], "alive": ["deer"] } },
+    { "speaker": "deer",    "text": "...Understood, sir.", "if": { "dead": ["sterna", "bear"], "alive": ["deer"] } },
+
+    { "speaker": "vulture", "text": "You're the only one left out there, Bear.", "if": { "dead": ["deer", "sterna"], "alive": ["bear"] } },
+    { "speaker": "vulture", "text": "You're the only one left out there, Sterna.", "if": { "dead": ["deer", "bear"], "alive": ["sterna"] } },
+
+    { "speaker": "vulture", "text": "Listen to me.",
+      "alt": [ { "alive": ["deer", "sterna", "bear"], "text": "Listen to me, all three of you." } ] },
+    { "speaker": "vulture", "text": "Long range is still jammed. I cannot reach Command." },
+    { "speaker": "vulture", "text": "If one of you takes a serious hit out there, I have no way to get you off this ship." },
+    { "speaker": "vulture", "text": "No evac. No medevac. Nothing." },
+
+    { "beat": "silence" },
+
+    { "speaker": "vulture", "text": "So don't take one." },
+    { "speaker": "vulture", "text": "Keep the channel open.\nVulture out." }
+  ]
+}

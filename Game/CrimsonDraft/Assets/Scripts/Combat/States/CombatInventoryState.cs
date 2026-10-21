@@ -1,5 +1,7 @@
 #nullable enable
 
+using CrimsonDraft.Inventory;
+
 namespace CrimsonDraft.Combat
 {
     internal sealed class CombatInventoryState : ICombatMenuState
@@ -36,14 +38,14 @@ namespace CrimsonDraft.Combat
             this.view.OnCancelled -= HandleCancelled;
         }
 
-        private void HandleItemUsed(int slotIndex)
+        private void HandleItemUsed(InventoryItem? item)
         {
             this.context.Orchestrator.EnqueueAction(
-                PendingAction.UseItem(this.context.SelectedOperator, slotIndex));
+                PendingAction.UseItem(this.context.SelectedOperator, item));
             this.view.Hide();
 
             // Only release the card's focus-lift here, on an actual commit — mirrors
-            // Shoot/FocusFire, which also only release once the turn is spent. Cancelling
+            // Shoot/Melee, which also only release once the turn is spent. Cancelling
             // back to CommandPanelState (HandleCancelled below) deliberately leaves focus
             // untouched: releasing it there eased "Visual" back down over ~0.18s while
             // CommandPanelState.Enter() repositioned the command list from "Visual"'s

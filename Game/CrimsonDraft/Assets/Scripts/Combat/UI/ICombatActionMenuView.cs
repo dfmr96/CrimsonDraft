@@ -30,6 +30,5 @@ namespace CrimsonDraft.Combat
         void SetDimmed(bool dimmed);
         void SetOperatorDimmed(int index, bool dimmed);
         bool IsOperatorFocused(int index);
-        void SetOperatorFocusFireMarked(int index, bool marked);
     }
 }

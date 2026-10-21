@@ -57,6 +57,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (keyItem == null)
             {
                 this.registry.MarkLocked(this.doorId);
+                context.Sfx?.PlayInvalidAction(gameObject);
                 context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                 return;
             }
@@ -68,6 +69,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 case KeyUseResult.NotFound:
                 case KeyUseResult.AlreadyDepleted:
                     this.registry.MarkLocked(this.doorId);
+                    context.Sfx?.PlayInvalidAction(gameObject);
                     context.DialogueService.StartDialogue(this.data.DialogueReference.nodeName ?? "");
                     break;
 
@@ -88,7 +90,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     break;
 
                 case KeyUseResult.DepletedAfterUse:
-                    context.InventoryService.RemoveItem(outcome.SlotIndex);
+                    context.InventoryService.Remove(outcome.Item!);
                     context.DialogueService.StartDialogue(
                         OpenedNodeName,
                         new Dictionary<string, object>

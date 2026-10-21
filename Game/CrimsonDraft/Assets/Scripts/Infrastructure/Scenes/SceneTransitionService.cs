@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.UI;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Infrastructure.Scenes
 {
@@ -19,7 +20,9 @@ namespace CrimsonDraft.Infrastructure.Scenes
     {
         private const string CombatSceneName   = "Combat";
         private const string MainMenuSceneName = "MainMenu";
-        private const float  HitStopDuration   = 0.12f; // beat de freeze-frame clásico (FF/Pokémon) al conectar el golpe que inicia combate
+        private const float  SlowMoTimeScale   = 0.1f;
+        private const float  SlowMoStaticLead  = 0.25f; // la estática entra a este punto de la ralentización
+        private const float  StaticDuration    = 1f;    // tiempo mínimo que la estática cubre la pantalla
 
         private readonly IInputService inputService;
         private readonly IPublisher<CombatStartedEvent> combatStartedPublisher;
@@ -27,7 +30,9 @@ namespace CrimsonDraft.Infrastructure.Scenes
         private readonly EncounterContext encounterContext;
         private readonly ICameraService cameraService;
         private readonly ScreenFader screenFader;
+        private readonly StaticTransitionView staticTransition;
         private readonly GameOverView gameOverView;
+        private readonly InventorySfxData sfx;
 
         private IDisposable? combatEndedSubscription;
         private bool isInCombat;
@@ -42,7 +47,9 @@ namespace CrimsonDraft.Infrastructure.Scenes
             EncounterContext encounterContext,
             ICameraService cameraService,
             ScreenFader screenFader,
-            GameOverView gameOverView)
+            StaticTransitionView staticTransition,
+            GameOverView gameOverView,
+            InventorySfxData sfx)
         {
             this.inputService          = inputService;
             this.combatStartedPublisher = combatStartedPublisher;
@@ -50,7 +57,9 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.encounterContext      = encounterContext;
             this.cameraService         = cameraService;
             this.screenFader           = screenFader;
+            this.staticTransition      = staticTransition;
             this.gameOverView          = gameOverView;
+            this.sfx                   = sfx;
         }
 
         void IInitializable.Initialize()
@@ -73,18 +82,24 @@ namespace CrimsonDraft.Infrastructure.Scenes
             this.encounterContext.Set(encounterId, encounterAsset, operatorsStartFull);
             this.inputService.SwitchToCombat();
 
-            // Freeze-frame breve sobre el golpe que dispara el combate (estilo FF/Pokémon) antes
-            // de que arranque la transición. Usar el Time.timeScale global acá es seguro porque
-            // Combat todavía no cargó -- nada ahí depende de tiempo normal hasta después de esto.
-            Time.timeScale = 0f;
-            await UniTask.Delay(TimeSpan.FromSeconds(HitStopDuration), DelayType.UnscaledDeltaTime);
+            // El mundo se ralentiza y aparece estática de TV vieja (cambio de canal). Usar el
+            // Time.timeScale global acá es seguro porque Combat todavía no cargó -- nada ahí depende
+            // de tiempo normal hasta después de esto. Todo el timing va en tiempo no escalado.
+            Time.timeScale = SlowMoTimeScale;
+            await UniTask.Delay(TimeSpan.FromSeconds(SlowMoStaticLead), DelayType.UnscaledDeltaTime);
+            await this.staticTransition.ShowAsync();
+            float staticStart = Time.unscaledTime;
             Time.timeScale = 1f;
 
-            await this.screenFader.FadeOutAsync();
             onScreenCovered?.Invoke();
             await SceneManager.LoadSceneAsync(CombatSceneName, LoadSceneMode.Additive).ToUniTask();
             this.cameraService.ActivateCombatCamera();
-            await this.screenFader.FadeInAsync();
+
+            float remaining = StaticDuration - (Time.unscaledTime - staticStart);
+            if (remaining > 0f)
+                await UniTask.Delay(TimeSpan.FromSeconds(remaining), DelayType.UnscaledDeltaTime);
+
+            await this.staticTransition.HideAsync();
         }
 
         private void OnCombatEnded(CombatEndedEvent ev)
@@ -94,6 +109,11 @@ namespace CrimsonDraft.Infrastructure.Scenes
 
         private async UniTask EndCombatAsync(bool victory)
         {
+            // On defeat the static covers the frozen last frame while the black fader is raised
+            // and Combat unloads underneath, so the swap is hidden the same way as on entry.
+            if (!victory)
+                await this.staticTransition.ShowAsync();
+
             await this.screenFader.FadeOutAsync();
             this.cameraService.ActivateNavigationCamera();
 
@@ -118,20 +138,16 @@ namespace CrimsonDraft.Infrastructure.Scenes
         {
             this.inputService.SwitchToUI();
             this.gameOverView.Show();
-            EventSystem.current.SetSelectedGameObject(this.gameOverView.ReturnToMenuButton.gameObject);
 
-            var tcs = new UniTaskCompletionSource();
-            void OnReturnToMenuClicked() => tcs.TrySetResult();
-            this.gameOverView.ReturnToMenuButton.onClick.AddListener(OnReturnToMenuClicked);
-            try
-            {
-                await tcs.Task;
-            }
-            finally
-            {
-                this.gameOverView.ReturnToMenuButton.onClick.RemoveListener(OnReturnToMenuClicked);
-            }
+            // The game over view renders through the UI camera, i.e. *under* the screen-space
+            // overlay fader, so the black cover has to come off (behind the static, unseen)
+            // before the view can be visible. The view's own background is opaque black.
+            await this.screenFader.FadeInAsync();
+            await this.staticTransition.HideAsync();
 
+            // Nothing is interactive here: the title types itself out, holds, then we fade out and leave.
+            await this.gameOverView.PlayAsync(this.sfx);
+            await this.screenFader.FadeOutAsync();
             this.gameOverView.Hide();
 
             // Async rather than the bare synchronous LoadScene(Single) this used to call --

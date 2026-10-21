@@ -49,7 +49,8 @@ namespace CrimsonDraft.Combat
             this.shotCountView.Hide();
         }
 
-        public void OnCancel() { }
+        // Cancelling here is not allowed once the action is committed: play the denied sound.
+        public void OnCancel() => this.sfx?.PlayInvalidAction(this.commandPanel.PanelRect.gameObject);
 
         public void OnConfirm()
         {
@@ -58,24 +59,6 @@ namespace CrimsonDraft.Combat
             this.context.SelectedShotCount = Mathf.Clamp(this.shotCountView.Value, 1, max);
             this.shotCountView.Hide();
 
-            if (this.context.FocusFireParticipants.Length > 0)
-            {
-                this.context.FocusFireShotCounts[this.context.SelectedOperator] = this.context.SelectedShotCount;
-
-                int nextIndex = this.context.FocusFireParticipantIndex + 1;
-                if (nextIndex < this.context.FocusFireParticipants.Length)
-                {
-                    this.context.FocusFireParticipantIndex = nextIndex;
-                    this.context.SelectedOperator          = this.context.FocusFireParticipants[nextIndex];
-                    this.context.RepositionCommandPanelToOperator(this.context.SelectedOperator);
-                    this.context.TransitionTo(this);
-                    return;
-                }
-
-                this.context.TransitionTo(this.context.TargetSelState);
-                return;
-            }
-
             int[] enemies = this.battlefieldView.GetOccupiedEnemySlots();
             if (enemies.Length == 0)
             {
@@ -83,6 +66,7 @@ namespace CrimsonDraft.Combat
                 WeaponData? weaponData = this.roster.Count > op ? (this.roster[op].ActiveWeapon as WeaponItem)?.Data : null;
                 this.aimView.ConfigureWeapon(weaponData);
                 this.aimView.ConfigureHitMask(null);
+                this.aimView.ConfigureOverlay(null);
                 this.aimView.SetShotCount(this.context.SelectedShotCount);
                 this.context.TransitionTo(this.context.AimingState);
                 return;

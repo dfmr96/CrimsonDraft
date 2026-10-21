@@ -10,6 +10,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Enemy;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.UI;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -32,6 +33,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly IFixedCameraZoneService zoneService;
         private readonly PlayerController        player;
         private readonly EnemyNavAgent[]         enemies;
+        private readonly InventorySfxData?       sfx;
 
         private bool               isInspecting;
         private Action?            onExit;
@@ -42,15 +44,21 @@ namespace CrimsonDraft.Navigation.Interactables
             IInputService     inputService,
             IFixedCameraZoneService zoneService,
             PlayerController  player,
-            EnemyNavAgent[]   enemies)
+            EnemyNavAgent[]   enemies,
+            InventorySfxData? sfx = null)
         {
             this.inputService = inputService;
             this.zoneService  = zoneService;
             this.player       = player;
             this.enemies      = enemies;
+            this.sfx          = sfx;
         }
 
         public bool IsInspecting => this.isInspecting;
+
+        // While set, Cancel (B) is ignored -- for sequences the player must sit through (e.g.
+        // the music box playing its melody). ExitNow() is programmatic and ignores it.
+        public bool ExitLocked { get; set; }
 
         void IInitializable.Initialize()
         {
@@ -71,11 +79,13 @@ namespace CrimsonDraft.Navigation.Interactables
             this.zoneService.ActivateZone(inspectCamera);
             this.inputService.SwitchToUI();
             SetActorRenderersEnabled(false);
+            SetEnemiesSuspended(true);
         }
 
         private void OnCancel(InputAction.CallbackContext _)
         {
-            if (!this.isInspecting) return;
+            if (!this.isInspecting || this.ExitLocked) return;
+            this.sfx?.PlayCancel(this.player.gameObject);
             Exit();
         }
 
@@ -90,15 +100,27 @@ namespace CrimsonDraft.Navigation.Interactables
         private void Exit()
         {
             this.isInspecting = false;
+            this.ExitLocked   = false;
             if (this.previousZoneCamera != null)
                 this.zoneService.ActivateZone(this.previousZoneCamera);
             this.previousZoneCamera = null;
             this.inputService.SwitchToGameplay();
             SetActorRenderersEnabled(true);
+            SetEnemiesSuspended(false);
 
             var callback = this.onExit;
             this.onExit  = null;
             callback?.Invoke();
+        }
+
+        // Enemies keep their own clock (NavigationTimeScale), so they would otherwise carry on
+        // chasing the hidden player and start a combat while the inspect camera is up -- the
+        // combat transition then breaks the camera on the way back. Frozen for the duration of
+        // the view instead; a defeated (destroyed) enemy can be null.
+        private void SetEnemiesSuspended(bool suspended)
+        {
+            foreach (var enemy in this.enemies)
+                if (enemy != null) enemy.SetInspectionSuspended(suspended);
         }
 
         // The inspect camera hard-cuts to a shot the designer framed around the puzzle prop

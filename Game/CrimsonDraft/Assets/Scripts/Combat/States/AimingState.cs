@@ -1,7 +1,6 @@
 #nullable enable
 
 using System;
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using CrimsonDraft.Audio;
@@ -18,12 +17,14 @@ namespace CrimsonDraft.Combat
         private readonly IBattlefieldView      battlefieldView;
         private readonly IAimView              aimView;
         private readonly IOperatorRoster       roster;
+        private readonly IInventoryService     inventory;
         private readonly CombatSfxData?        sfx;
 
         private bool awaitingDismiss;
         private bool isPlayingBurst;
         private bool pendingStagger;
         private bool pendingDeath;
+        private bool pendingMeleeCounter;
         private ResolvedShot[] pendingShots = Array.Empty<ResolvedShot>();
 
         internal AimingState(
@@ -33,6 +34,7 @@ namespace CrimsonDraft.Combat
             IBattlefieldView      battlefieldView,
             IAimView              aimView,
             IOperatorRoster       roster,
+            IInventoryService     inventory,
             CombatSfxData?        sfx = null)
         {
             this.context         = context;
@@ -41,6 +43,7 @@ namespace CrimsonDraft.Combat
             this.battlefieldView = battlefieldView;
             this.aimView         = aimView;
             this.roster          = roster;
+            this.inventory       = inventory;
             this.sfx             = sfx;
         }
 
@@ -50,10 +53,15 @@ namespace CrimsonDraft.Combat
             this.awaitingDismiss = false;
             this.isPlayingBurst  = false;
             this.aimView.OnShotsResolved += HandleShotsResolved;
+            this.aimView.OnMeleeMissRevealed += ApplyPendingMeleeCounter;
+            this.pendingMeleeCounter = false;
 
             int op = this.context.SelectedOperator;
             float hpRatio = this.roster.Count > op ? this.roster[op].HpRatio : 1f;
             this.aimView.SetOperatorHpRatio(hpRatio);
+
+            int targetSlot = this.context.CurrentTargetSlot;
+            this.aimView.SetTargetHp(targetSlot >= 0 ? this.battlefieldView.GetEnemyCurrentHp(targetSlot) : int.MaxValue);
 
             this.aimView.Show();
         }
@@ -62,6 +70,7 @@ namespace CrimsonDraft.Combat
         {
             this.context.Orchestrator.SetWaitMode(false);
             this.aimView.OnShotsResolved -= HandleShotsResolved;
+            this.aimView.OnMeleeMissRevealed -= ApplyPendingMeleeCounter;
         }
 
         public void OnConfirm()
@@ -72,26 +81,20 @@ namespace CrimsonDraft.Combat
 
             if (this.awaitingDismiss)
             {
+                if (this.aimView.TryAdvancePostShots())
+                    return;
+
                 CloseAimAndReturnToOperatorSelectionAsync().Forget();
                 return;
             }
             this.aimView.Confirm();
         }
 
-        private readonly List<(int Slot, ResolvedShot[] Shots)> pendingGroupShots = new();
-
         private void HandleShotsResolved(ResolvedShot[] shots)
         {
             this.pendingShots   = shots ?? Array.Empty<ResolvedShot>();
             this.pendingStagger = false;
             this.pendingDeath   = false;
-
-            if (this.context.FocusFireParticipants.Length > 0)
-            {
-                HandleGroupShotsResolved();
-                this.awaitingDismiss = true;
-                return;
-            }
 
             int op = this.context.SelectedOperator;
             IWeaponSlot? weapon = null;
@@ -112,15 +115,22 @@ namespace CrimsonDraft.Combat
             int headshotPellets = 0;
             int damagingPellets = 0;
             bool anyMiss = false;
+            // A melee slash is ONE cut drawn as many points: poise and decapitation count once for the
+            // whole swing (the strongest zone it touched), not once per point. Its damage is already
+            // a single fixed hit, assigned in AimViewController.
+            bool isSlash = this.context.IsMeleeAttack;
             foreach (var shot in this.pendingShots)
             {
                 totalDamage += Mathf.Max(0, shot.Damage);
                 if (shot.Zone != ShotZone.Miss)
-                    totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                {
+                    int poise = CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
+                    totalPoiseDamage = isSlash ? Mathf.Max(totalPoiseDamage, poise) : totalPoiseDamage + poise;
+                }
                 else
                     anyMiss = true;
                 if (shot.Zone == ShotZone.Head)
-                    headshotPellets++;
+                    headshotPellets = isSlash ? 1 : headshotPellets + 1;
                 if (shot.Damage > 0)
                     damagingPellets++;
             }
@@ -139,89 +149,38 @@ namespace CrimsonDraft.Combat
                 this.pendingDeath   = result.IsDead;
 
                 // Whiffing even one point of a melee swing leaves the operator open -- a single
-                // counter-hit regardless of how many points missed, worth half that enemy's own
-                // attack damage (CombatOrchestrator.ApplyMeleeCounterDamage).
-                if (this.context.IsMeleeAttack && anyMiss)
-                    this.context.Orchestrator.ApplyMeleeCounterDamage(op, this.context.CurrentTargetSlot);
+                // counter-hit regardless of how many points missed. It lands when the damage count
+                // reveals the first missing point (ApplyPendingMeleeCounter), or on closing the panel
+                // if the player skipped the count.
+                this.pendingMeleeCounter = this.context.IsMeleeAttack && anyMiss;
             }
 
             if (weapon != null)
-                weapon.SetAmmo(weapon.CurrentAmmo - this.context.SelectedShotCount);
+                this.inventory.SpendAmmo(weapon, this.context.SelectedShotCount);
 
             this.awaitingDismiss = true;
         }
 
-        private void HandleGroupShotsResolved()
+        // Worth half that enemy's own attack damage (CombatOrchestrator.ApplyMeleeCounterDamage).
+        private void ApplyPendingMeleeCounter()
         {
-            this.pendingGroupShots.Clear();
-            int[] participants = this.context.FocusFireParticipants;
-
-            for (int i = 0; i < participants.Length; i++)
-            {
-                int slot = participants[i];
-                var weapon = this.roster.Count > slot ? this.roster[slot].ActiveWeapon : null;
-                int weaponPoiseDamage = weapon?.PoiseDamage ?? 0;
-                bool isTrigger = i == participants.Length - 1;
-                int shotCount = this.context.FocusFireShotCounts.TryGetValue(slot, out int sc) ? sc : 1;
-
-                ResolvedShot[] participantShots = isTrigger
-                    ? this.pendingShots
-                    : this.aimView.ResolveShotsForWeapon((weapon as WeaponItem)?.Data, shotCount);
-
-                int totalDamage = 0;
-                int totalPoiseDamage = 0;
-                int headshotPellets = 0;
-                foreach (var shot in participantShots)
-                {
-                    totalDamage += Mathf.Max(0, shot.Damage);
-                    if (shot.Zone != ShotZone.Miss)
-                        totalPoiseDamage += CombatMenuController.ComputePoiseDamage(shot.Zone, weaponPoiseDamage);
-                    if (shot.Zone == ShotZone.Head)
-                        headshotPellets++;
-                }
-
-                if (this.context.CurrentTargetSlot >= 0)
-                {
-                    var result = this.battlefieldView.ApplyDamageToEnemy(
-                        this.context.CurrentTargetSlot, totalDamage, totalPoiseDamage, headshotPellets);
-                    this.pendingStagger = result.IsStaggered;
-                    this.pendingDeath   = result.IsDead;
-                }
-
-                if (weapon != null)
-                    weapon.SetAmmo(weapon.CurrentAmmo - shotCount);
-
-                this.pendingGroupShots.Add((slot, participantShots));
-            }
+            if (!this.pendingMeleeCounter || this.context.CurrentTargetSlot < 0) return;
+            this.pendingMeleeCounter = false;
+            this.context.Orchestrator.ApplyMeleeCounterDamage(this.context.SelectedOperator, this.context.CurrentTargetSlot);
         }
 
         private async UniTaskVoid CloseAimAndReturnToOperatorSelectionAsync()
         {
             this.awaitingDismiss = false;
+            this.ApplyPendingMeleeCounter(); // count skipped before reaching the miss
             this.aimView.Hide();
             this.commandPanel.Hide();
 
-            bool isGroup = this.context.FocusFireParticipants.Length > 0;
-
             this.isPlayingBurst = true;
-            if (isGroup)
-            {
-                var bursts = new UniTask[this.pendingGroupShots.Count];
-                for (int i = 0; i < this.pendingGroupShots.Count; i++)
-                {
-                    var participant = this.pendingGroupShots[i];
-                    bursts[i] = this.battlefieldView.PlayOperatorShootBurstAsync(
-                        participant.Slot, this.context.CurrentTargetSlot, participant.Shots);
-                }
-                await UniTask.WhenAll(bursts);
-            }
-            else
-            {
-                await this.battlefieldView.PlayOperatorShootBurstAsync(
-                    this.context.SelectedOperator,
-                    this.context.CurrentTargetSlot,
-                    this.pendingShots, this.context.IsMeleeAttack);
-            }
+            await this.battlefieldView.PlayOperatorShootBurstAsync(
+                this.context.SelectedOperator,
+                this.context.CurrentTargetSlot,
+                this.pendingShots, this.context.IsMeleeAttack);
             this.isPlayingBurst = false;
 
             if (this.pendingDeath)
@@ -236,13 +195,7 @@ namespace CrimsonDraft.Combat
                 this.pendingStagger = false;
             }
 
-            if (isGroup)
-            {
-                this.context.Orchestrator.NotifyFocusFireCompleted();
-                this.context.FocusFireParticipants = Array.Empty<int>();
-                this.context.FocusFireShotCounts.Clear();
-            }
-            else if (this.context.IsMeleeAttack)
+            if (this.context.IsMeleeAttack)
             {
                 this.context.Orchestrator.NotifyMeleeCompleted();
             }

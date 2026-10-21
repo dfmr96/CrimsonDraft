@@ -1,7 +1,7 @@
 # Focus Fire — Design Spec
 
 **Date:** 2026-07-21
-**Status:** Approved
+**Status:** Removed (2026-10-06) — implemented, then removed from the game: it didn't add real tactical value over firing each operator separately. Kept for history only.
 **Scope:** Combat — a new command that lets the player mark several ready operators to fire together against one shared QTE, replacing GDD §5.s's "Synced Shoot" with a grounded name and a concrete mechanism.
 
 ---

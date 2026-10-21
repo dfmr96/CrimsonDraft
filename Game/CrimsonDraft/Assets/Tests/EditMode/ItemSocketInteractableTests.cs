@@ -43,6 +43,7 @@ namespace CrimsonDraft.Tests
             for (int i = 0; i < required.Length; i++)
                 arr.GetArrayElementAtIndex(i).objectReferenceValue = required[i];
             so.ApplyModifiedPropertiesWithoutUndo();
+            socket.Construct(new CrimsonDraft.Infrastructure.ItemSocketStateRegistry());
             return socket;
         }
 

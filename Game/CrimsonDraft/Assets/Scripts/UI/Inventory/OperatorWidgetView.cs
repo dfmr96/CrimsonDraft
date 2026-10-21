@@ -15,10 +15,21 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image       portrait    = null!;
         [SerializeField] private TMP_Text    nameLabel   = null!;
         [SerializeField] private GameObject  deadOverlay = null!;
+        [SerializeField] private TMP_Text?   deadLabel;
+
+        [Header("Missing (no operator in this slot) / Dead")]
+        [Tooltip("Whole card (portrait + grid). Faded for a slot with no operator (MIA).")]
+        [SerializeField] private CanvasGroup? cardFade;
+        [Tooltip("Portrait header only. Faded for a dead operator (KIA) -- the grid stays fully readable so the corpse can still be looted.")]
+        [SerializeField] private CanvasGroup? headerFade;
+        [SerializeField, Range(0f, 1f)] private float missingAlpha = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float deadAlpha    = 0.5f;
 
         [Header("HP ECG")]
         [SerializeField] private ECGSweepAnimator?  ecgLine;
         [SerializeField] private EcgHeartbeatPulse? ecgPulse;
+        [Tooltip("CDG_Statis -- text readout of the same HP bands the ECG pulse uses.")]
+        [SerializeField] private TMP_Text?          statusLabel;
 
         [Header("Weapon Slot 0 — Primary (4×1)")]
         [SerializeField] private GameObject weaponSlot0Root      = null!;
@@ -29,7 +40,98 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject weaponSlot1Root = null!;
         [SerializeField] private Image      weaponSlot1Icon = null!;
 
+        [Header("Logo / Bio page")]
+        [Tooltip("Organization emblem. Navigable: confirming it flips every card between the inventory and the Bio page.")]
+        [SerializeField] private Image?          logo;
+        [Tooltip("Bio page root. Shown instead of the grid and the weapon slots while Bio mode is on.")]
+        [SerializeField] private GameObject?     bioRoot;
+        [Tooltip("Grid_container -- hidden while Bio mode is on.")]
+        [SerializeField] private GameObject?     gridRoot;
+        [SerializeField] private CardSwitchGlitch? switchGlitch;
+        [Tooltip("Bodies of the three Bio sections (the 'Text (TMP)' under Name / Group / Bio).")]
+        [SerializeField] private TMP_Text? bioNameText;
+        [SerializeField] private TMP_Text? bioGroupText;
+        [SerializeField] private TMP_Text? bioBodyText;
+
         private MeleeWeaponData? currentMeleeData;
+        private OperatorRuntime? boundOperator;
+        private bool             bioMode;
+        private bool             isMissing;
+        private bool             deadLabelWanted;
+
+        public bool           BioMode  => this.bioMode;
+        public RectTransform? LogoRect => this.logo != null ? this.logo.rectTransform : null;
+        public bool           HasLogo  => this.logo != null && !this.isMissing && this.logo.gameObject.activeInHierarchy;
+
+        public void SetBioMode(bool on, bool animate = true)
+        {
+            if (this.bioMode == on) return;
+
+            if (animate && this.switchGlitch != null && !this.isMissing && isActiveAndEnabled)
+            {
+                this.switchGlitch.Play(() =>
+                {
+                    this.bioMode = on;
+                    ApplyBioVisibility();
+                });
+                return;
+            }
+
+            this.bioMode = on;
+            ApplyBioVisibility();
+        }
+
+        // Bio page: three sections, each with a fixed header authored in the prefab and a body
+        // filled here -- Name ("Unknown" until learned), Group (Yarn line 1) and Bio (Yarn line 2,
+        // specialty, then line 3, the description, once it exists).
+        private void RefreshBioText(OperatorData? data)
+        {
+            if (data == null) return;
+
+            var lines = ReadBioLines(data.Bio);
+            if (this.bioNameText  != null) this.bioNameText.text  = data.BioName;
+            if (this.bioGroupText != null) this.bioGroupText.text = lines.Count > 0 ? lines[0] : string.Empty;
+            if (this.bioBodyText  != null)
+            {
+                string specialty   = lines.Count > 1 ? lines[1] : string.Empty;
+                string description = lines.Count > 2 ? lines[2] : string.Empty;
+                this.bioBodyText.text = string.IsNullOrEmpty(description) ? specialty : specialty + "\n\n" + description;
+            }
+        }
+
+        private static System.Collections.Generic.List<string> ReadBioLines(Yarn.Unity.DialogueReference reference)
+        {
+            var result  = new System.Collections.Generic.List<string>();
+            var project = reference.project;
+            if (project == null || string.IsNullOrEmpty(reference.nodeName)) return result;
+
+            try
+            {
+                var localization = project.baseLocalization;
+                foreach (var id in project.GetLineIDsForNodes(new[] { reference.nodeName }))
+                    result.Add(localization.GetLocalizedString(id) ?? string.Empty);
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                Debug.LogWarning($"OperatorWidgetView: Yarn node '{reference.nodeName}' not found in '{project.name}'.");
+            }
+            return result;
+        }
+
+        // Bio mode swaps the whole navigable inventory (grid + both weapon slots) for the Bio page.
+        // Re-applied after every Bind/ShowMissing because those toggle the same objects.
+        private void ApplyBioVisibility()
+        {
+            bool bio = this.bioMode && !this.isMissing;
+
+            if (this.bioRoot  != null) this.bioRoot.SetActive(bio);
+            if (this.gridRoot != null) this.gridRoot.SetActive(!bio);
+            if (this.deadLabel != null) this.deadLabel.gameObject.SetActive(this.deadLabelWanted && !bio);
+
+            if (this.isMissing) return;
+            if (this.weaponSlot0Root != null) this.weaponSlot0Root.SetActive(!bio);
+            if (this.weaponSlot1Root != null) this.weaponSlot1Root.SetActive(!bio);
+        }
 
         public bool            HasMeleeWeapon => this.currentMeleeData != null;
         public MeleeWeaponData? MeleeData     => this.currentMeleeData;
@@ -42,19 +144,32 @@ namespace CrimsonDraft.UI
                 RefreshWeaponSlot(weapon, this.weaponSlot0Root, this.weaponSlot0Icon, this.weaponSlot0AmmoLabel);
         }
 
-        public void Bind(OperatorRuntime op)
+        public void Bind(OperatorRuntime op, bool canLoot, string? corpseRoomId)
         {
+            this.boundOperator = op;
             if (!op.IsPresent)
             {
-                gameObject.SetActive(false);
+                ShowMissing();
                 return;
             }
 
             gameObject.SetActive(true);
+            this.isMissing = false;
+            ClearMissing();
+            if (this.headerFade != null) this.headerFade.alpha = op.IsAlive ? 1f : this.deadAlpha;
 
             if (this.portrait    != null) this.portrait.sprite = op.Data?.Portrait;
             if (this.nameLabel   != null) this.nameLabel.text  = op.Data?.CombatName ?? string.Empty;
-            if (this.deadOverlay != null) this.deadOverlay.SetActive(!op.IsAlive);
+            if (this.logo != null && op.Data?.Logo != null) this.logo.sprite = op.Data.Logo;
+            RefreshBioText(op.Data);
+            bool showDead = !op.IsAlive && !canLoot;
+            if (this.deadOverlay != null) this.deadOverlay.SetActive(showDead);
+            this.deadLabelWanted = showDead;
+            if (this.deadLabel   != null)
+            {
+                this.deadLabel.gameObject.SetActive(showDead);
+                this.deadLabel.text = corpseRoomId != null ? $"RETRIEVE ITEMS IN\n{corpseRoomId}" : "KIA";
+            }
 
             this.ApplyHealthState(op.HpRatio, op.IsAlive);
 
@@ -63,21 +178,113 @@ namespace CrimsonDraft.UI
             this.currentMeleeData = op.MeleeWeapon as MeleeWeaponData;
             if (this.weaponSlot1Root != null)
                 RefreshMeleeSlot(op.MeleeWeapon, this.weaponSlot1Root, this.weaponSlot1Icon);
+
+            ApplyBioVisibility();
+        }
+
+        /// <summary>
+        /// Slot with no operator (never recruited / not in the party): the card stays on screen
+        /// faded, with "MIA" in the ECG status readout and no portrait/ECG line. It has no
+        /// inventory container, so the cursor can't enter its grid (see InventoryPresenters).
+        /// </summary>
+        public void ShowMissing()
+        {
+            gameObject.SetActive(true);
+            this.isMissing       = true;
+            this.deadLabelWanted = false;
+
+            if (this.cardFade   != null) this.cardFade.alpha   = this.missingAlpha;
+            if (this.headerFade != null) this.headerFade.alpha = 1f;
+
+            if (this.portrait     != null) this.portrait.enabled = false;
+            if (this.nameLabel    != null) this.nameLabel.text = string.Empty;
+            if (this.deadOverlay  != null) this.deadOverlay.SetActive(false);
+            if (this.deadLabel    != null) this.deadLabel.gameObject.SetActive(false);
+
+            // The status readout (CDG_Statis) lives under the ECG background: keep that, drop the
+            // trace line and stop the pulse (it has no health band to pulse for).
+            if (this.statusLabel  != null) this.statusLabel.text = "MIA";
+            if (this.ecgLine      != null) this.ecgLine.gameObject.SetActive(false);
+            if (this.ecgPulse     != null) this.ecgPulse.enabled = false;
+            if (this.weaponSlot0Root != null) this.weaponSlot0Root.SetActive(false);
+            if (this.weaponSlot1Root != null) this.weaponSlot1Root.SetActive(false);
+            this.currentMeleeData = null;
+
+            // A slot with no operator has no logo and no Bio; it keeps its empty grid.
+            if (this.logo    != null) this.logo.gameObject.SetActive(false);
+            if (this.bioRoot != null) this.bioRoot.SetActive(false);
+            if (this.gridRoot != null) this.gridRoot.SetActive(true);
+        }
+
+        private void ClearMissing()
+        {
+            if (this.cardFade     != null) this.cardFade.alpha = 1f;
+            if (this.portrait     != null) this.portrait.enabled = true;
+            if (this.ecgLine      != null) this.ecgLine.gameObject.SetActive(true);
+            if (this.ecgPulse     != null) this.ecgPulse.enabled = true;
+            if (this.logo         != null) this.logo.gameObject.SetActive(true);
         }
 
         private void ApplyHealthState(float hpRatio, bool isAlive = true)
         {
-            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive);
+            if (this.ecgLine  != null) this.ecgLine.SetHealthState(hpRatio, isAlive, mercyApplies: false);
             if (this.ecgPulse != null) this.ecgPulse.SetHealthState(hpRatio);
+            if (this.statusLabel != null)
+            {
+                this.statusLabel.text = GetStatusText(hpRatio, isAlive);
+                // Same band color the ECG background uses (alpha stays as authored on the label).
+                if (this.ecgPulse != null)
+                {
+                    var color = this.ecgPulse.BaseColor;
+                    color.a = this.statusLabel.color.a;
+                    this.statusLabel.color = color;
+                }
+            }
+        }
+
+        // Same bands as EcgHeartbeatPulse.SetHealthState (>75 / 50-75 / 25-50 / <=25).
+        private static string GetStatusText(float hpRatio, bool isAlive)
+        {
+            if (!isAlive)                     return "KIA";
+            if (hpRatio <= 0.25f)             return "Critical";
+            if (hpRatio <= 0.50f)             return "Danger";
+            if (hpRatio <= 0.75f)             return "Caution";
+            return "Fine";
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Test-only — previews the ECG states from the Inspector without touching real HP.
-        [Button("100% — Stable")]  private void TestEcgStable()   => this.ApplyHealthState(1f);
+        [Button("100% — Fine")]    private void TestEcgFine()     => this.ApplyHealthState(1f);
         [Button("60% — Caution")]  private void TestEcgCaution()  => this.ApplyHealthState(0.6f);
-        [Button("10% — Warning")]  private void TestEcgWarning()  => this.ApplyHealthState(0.1f);
-        [Button("0% — Mercy")]     private void TestEcgMercy()     => this.ApplyHealthState(0f, isAlive: true);
+        [Button("40% — Danger")]   private void TestEcgDanger()   => this.ApplyHealthState(0.4f);
+        [Button("10% — Critical")] private void TestEcgCritical() => this.ApplyHealthState(0.1f);
         [Button("KIA")]            private void TestEcgKia()      => this.ApplyHealthState(0f, isAlive: false);
+
+        // Test-only -- really kills / revives the operator bound to this card (Play Mode, inventory
+        // open) so the full KIA look (faded header, flat ECG, KIA status, loot label) can be checked.
+        [Button("Kill operator")]
+        private void TestKillOperator()
+        {
+            var panel = GetComponentInParent<PartyPanelView>();
+            if (this.boundOperator == null || panel == null) return;
+
+            // First hit takes them to Mercy (0 HP, alive); the second one is the kill.
+            for (int i = 0; i < 2 && this.boundOperator.IsAlive; i++)
+                this.boundOperator.ApplyDamage(this.boundOperator.MaxHp * 2);
+            panel.Refresh();
+        }
+
+        [Button("Revive operator")]
+        private void TestReviveOperator()
+        {
+            var panel = GetComponentInParent<PartyPanelView>();
+            if (this.boundOperator == null || panel == null || panel.Roster == null) return;
+
+            var snapshot = panel.Roster.GetHpSnapshot();
+            snapshot[this.boundOperator.SlotIndex] = this.boundOperator.MaxHp;
+            panel.Roster.RestoreHp(snapshot);
+            panel.Refresh();
+        }
 #endif
 
         private const int PrimarySlotCells = 4;
@@ -98,7 +305,11 @@ namespace CrimsonDraft.UI
             if (ammoLabel != null)
             {
                 ammoLabel.gameObject.SetActive(w != null);
-                if (w != null) ammoLabel.text = w.CurrentAmmo.ToString();
+                if (w != null)
+                {
+                    ammoLabel.text  = w.CurrentAmmo.ToString();
+                    ammoLabel.color = ItemCountColors.Loaded;
+                }
             }
         }
 

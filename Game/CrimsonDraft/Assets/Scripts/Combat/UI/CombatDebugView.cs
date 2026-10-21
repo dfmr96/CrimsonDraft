@@ -70,8 +70,11 @@ namespace CrimsonDraft.Combat
                 return;
             }
 
+            // Two hits: the first only drops them into Mercy (0 HP, still alive), which
+            // EndCombat would heal back to 1 HP; the second confirms the kill.
             OperatorRuntime target = this.roster[aliveSlots[0]];
             target.ApplyDamage(target.Hp);
+            target.ApplyDamage(1);
             this.combatSession.EndCombat(true);
         }
 

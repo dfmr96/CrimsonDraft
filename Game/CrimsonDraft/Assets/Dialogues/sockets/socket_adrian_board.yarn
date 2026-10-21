@@ -1,0 +1,12 @@
+title: socket_adrian_board
+---
+<<if $insert_result == "success">>
+You placed [important]{$item_name}[/important] on the board. ({$slots_filled}/{$slots_total})
+<<elseif $insert_result == "wrong_item">>
+[important]{$item_name}[/important] doesn't fit here.
+<<elseif $activated>>
+All the emblems are in place.
+<<else>>
+A board with slots for emblems. ({$slots_filled}/{$slots_total})
+<<endif>>
+===
