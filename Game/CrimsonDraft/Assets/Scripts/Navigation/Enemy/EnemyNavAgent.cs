@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation;
 using CrimsonDraft.Navigation.Player;
+using CrimsonDraft.Rendering.Blood;
 
 namespace CrimsonDraft.Navigation.Enemy
 {
@@ -35,6 +36,8 @@ namespace CrimsonDraft.Navigation.Enemy
         [Tooltip("Punto (colgado de un hueso del torso) desde donde sale la sangre al recibir un disparo.")]
         [SerializeField] private Transform?           hitFxPoint;
         [SerializeField] private Transform?           eyePoint;
+        [Tooltip("Charco de sangre que aparece bajo el cadáver (inactivo mientras el enemigo vive).")]
+        [SerializeField] private CorpseBloodBlob?     bloodBlob;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -393,7 +396,7 @@ namespace CrimsonDraft.Navigation.Enemy
             if (!combatTriggered) return;
             if (!ev.Victory) return;
             gameObject.SetActive(true);
-            EnterCorpseState();
+            EnterCorpseState(freshDeath: true);
             this.enemyStateRegistry?.SetDefeated(this.enemyKey, transform.position, transform.rotation);
         }
 
@@ -401,15 +404,15 @@ namespace CrimsonDraft.Navigation.Enemy
         /// that predate corpse poses).</summary>
         public void RestoreAsCorpse(Vector3? position, Quaternion? rotation)
         {
-            EnterCorpseState();
+            EnterCorpseState(freshDeath: false);
             if (position.HasValue) transform.position = position.Value;
             if (rotation.HasValue) transform.rotation = rotation.Value;
         }
 
         // Cadáver: sin IA, sin agente (lo saca también de la lista de objetivos del apuntado) y
         // sin colliders, así el jugador lo atraviesa. Queda solo la pose ZombieLyingUp, que
-        // aplica EnemyAnimationReactor.
-        private void EnterCorpseState()
+        // aplica EnemyAnimationReactor, y el charco de sangre (que solo crece en una muerte nueva).
+        private void EnterCorpseState(bool freshDeath)
         {
             ReleasePlayer();
             SetGrabPhase(EnemyGrabPhase.None);
@@ -424,6 +427,8 @@ namespace CrimsonDraft.Navigation.Enemy
             if (hitbox != null) hitbox.enabled = false;
             foreach (var col in GetComponentsInChildren<Collider>(includeInactive: true))
                 col.enabled = false;
+
+            if (bloodBlob != null) bloodBlob.Show(grow: freshDeath);
         }
 
 #if UNITY_EDITOR
