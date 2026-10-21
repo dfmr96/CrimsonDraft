@@ -68,7 +68,7 @@ namespace CrimsonDraft.Navigation
             this.world.Pickups.LoadState(data.collectedPickupIds);
             this.world.Notes.LoadState(data.readNoteIds);
             this.world.KnownMaps.LoadState(data.knownMapIds);
-            this.world.Enemies.LoadState(data.defeatedEnemyIds);
+            ApplyEnemies(data);
             this.world.RadioCalls.LoadState(data.heardRadioCallIds);
             ApplyOperatorCorpses(data);
             ApplyInventory(data);
@@ -110,6 +110,15 @@ namespace CrimsonDraft.Navigation
             foreach (var entry in data.pushables)
                 dict[entry.pushableId] = entry.position;
             this.world.Pushables.LoadState(dict);
+        }
+
+        // Registry only -- EnemyBootstrap (registered after this loader) lays the bodies down.
+        private void ApplyEnemies(SaveGameData data)
+        {
+            var poses = new List<EnemyStateRegistry.CorpsePose>();
+            foreach (var e in data.enemyCorpses ?? new List<EnemyCorpseEntry>())
+                poses.Add(new EnemyStateRegistry.CorpsePose(e.enemyId, e.position, e.rotation));
+            this.world.Enemies.LoadState(data.defeatedEnemyIds, poses);
         }
 
         // Only restores the registry data — actually spawning each corpse's GameObject is

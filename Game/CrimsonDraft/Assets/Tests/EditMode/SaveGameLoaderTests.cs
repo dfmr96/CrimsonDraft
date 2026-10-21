@@ -162,7 +162,11 @@ namespace CrimsonDraft.Tests
                     collectedPickupIds = new List<string> { "pickup-1" },
                     readNoteIds        = new List<string> { "note-1" },
                     knownMapIds        = new List<string> { "map-1" },
-                    defeatedEnemyIds   = new List<string> { "enemy-1" },
+                    defeatedEnemyIds   = new List<string> { "enemy-1", "enemy-2" },
+                    enemyCorpses       = new List<EnemyCorpseEntry>
+                    {
+                        new EnemyCorpseEntry { enemyId = "enemy-2", position = new Vector3(3f, 0f, 7f), rotation = Quaternion.identity },
+                    },
                     itemSockets        = new List<ItemSocketStateEntry>
                     {
                         new ItemSocketStateEntry { socketId = "socket-1", inserted = new[] { true, false } },
@@ -205,6 +209,9 @@ namespace CrimsonDraft.Tests
                 Assert.IsTrue(world.Notes.IsCollected("note-1"));
                 Assert.IsTrue(world.KnownMaps.IsKnown("map-1"));
                 Assert.IsTrue(world.Enemies.IsDefeated("enemy-1"));
+                Assert.IsFalse(world.Enemies.TryGetCorpsePose("enemy-1", out _));
+                Assert.IsTrue(world.Enemies.TryGetCorpsePose("enemy-2", out var corpse));
+                Assert.AreEqual(new Vector3(3f, 0f, 7f), corpse.Position);
                 Assert.IsTrue(world.OperatorCorpses.IsRecorded(0));
                 CollectionAssert.AreEqual(new[] { true, false }, world.ItemSockets.GetInserted("socket-1"));
                 Assert.IsTrue(world.Pushables.TryGet("crate-1", out var cratePosition));

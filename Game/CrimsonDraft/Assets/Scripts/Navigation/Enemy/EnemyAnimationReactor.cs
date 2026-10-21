@@ -9,7 +9,7 @@ namespace CrimsonDraft.Navigation.Enemy
     /// <summary>
     /// Traduce el estado de EnemyNavAgent en los parámetros del Animator de navegación
     /// (ZombieMale_Nav): Speed (blend Idle/Walk), Grabbing (agarre en curso), Bite (mordisco) y
-    /// Hit (reacción al disparo que inicia el combate).
+    /// Hit (reacción al disparo que inicia el combate). Un enemigo muerto pasa al estado LyingUp.
     /// Las transiciones viven en el Animator Controller; acá solo se escriben parámetros.
     /// </summary>
     public sealed class EnemyAnimationReactor : MonoBehaviour
@@ -23,11 +23,13 @@ namespace CrimsonDraft.Navigation.Enemy
         private static readonly int GrabbingHash = Animator.StringToHash("Grabbing");
         private static readonly int BiteHash     = Animator.StringToHash("Bite");
         private static readonly int HitHash      = Animator.StringToHash("Hit");
+        private static readonly int LyingUpHash  = Animator.StringToHash("LyingUp");
 
         private Animator     animator = null!;
         private NavMeshAgent navAgent = null!;
         private EnemyGrabPhase previousGrabPhase;
         private bool hitTriggered;
+        private bool corpsePoseApplied;
 
         private void Awake()
         {
@@ -41,10 +43,21 @@ namespace CrimsonDraft.Navigation.Enemy
         {
             previousGrabPhase = EnemyGrabPhase.None;
             hitTriggered      = false;
+            corpsePoseApplied = false; // reactivar el GameObject (cambio de sala) reinicia el Animator
         }
 
         private void Update()
         {
+            // Cadáver: salta directo a la pose en el piso, sin transición desde Locomotion.
+            if (owner.IsDead)
+            {
+                if (corpsePoseApplied) return;
+                animator.speed = 1f;
+                animator.Play(LyingUpHash, 0, 0f);
+                corpsePoseApplied = true;
+                return;
+            }
+
             // El disparo que inicia el combate congela la navegación al instante; la reacción de
             // daño es la excepción y sigue reproduciéndose durante el fade hacia Combat.
             if (owner.IsReactingToShot)

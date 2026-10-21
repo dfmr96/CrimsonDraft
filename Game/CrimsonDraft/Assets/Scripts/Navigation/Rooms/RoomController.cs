@@ -29,7 +29,8 @@ namespace CrimsonDraft.Navigation.Rooms
             {
                 var entry = this.enemySpawns[i];
                 if (entry?.enemy == null || entry.spawnPoint == null) continue;
-                if (!entry.enemy.gameObject.activeSelf) continue; // defeated or otherwise hidden
+                if (!entry.enemy.gameObject.activeSelf) continue; // hidden
+                if (entry.enemy.IsDead) continue;                 // corpse stays where it fell
                 entry.enemy.ResetToSpawn(entry.spawnPoint.position, entry.spawnPoint.rotation);
             }
         }

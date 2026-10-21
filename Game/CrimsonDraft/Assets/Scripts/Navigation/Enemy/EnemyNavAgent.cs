@@ -63,6 +63,7 @@ namespace CrimsonDraft.Navigation.Enemy
         public EnemyAlertState State => state;
         public EnemyGrabPhase GrabPhase => grabPhase;
         public bool IsReactingToShot { get; private set; }
+        public bool IsDead { get; private set; }
         public Vector3 HitFxPosition => hitFxPoint != null ? hitFxPoint.position : transform.position + Vector3.up;
         public float TimeScale => timeScale?.Scale ?? 1f;
 
@@ -90,7 +91,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Start()
         {
-            navAgent = GetComponent<NavMeshAgent>();
+            if (navAgent == null) navAgent = GetComponent<NavMeshAgent>();
             playerRb = playerController!.GetComponent<Rigidbody>();
             if (playerRb == null)
             {
@@ -116,7 +117,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void Update()
         {
-            if (playerController == null) return;
+            if (playerController == null || IsDead) return;
             if (dialoguePaused || inspectionSuspended) return;
 
             // Congela por completo a cualquier enemigo que no haya sido el que disparó el
@@ -346,7 +347,7 @@ namespace CrimsonDraft.Navigation.Enemy
 
         public void ResetToSpawn(Vector3 position, Quaternion rotation)
         {
-            if (!isActiveAndEnabled) return;
+            if (!isActiveAndEnabled || IsDead) return;
 
             // A room activated for the first time this session cascades Awake()/OnEnable() on its
             // enemies synchronously, but Start() (where navAgent is normally assigned) is deferred
@@ -380,15 +381,49 @@ namespace CrimsonDraft.Navigation.Enemy
         private void OnDialogueActiveChanged(DialogueActiveChangedEvent ev)
         {
             dialoguePaused = ev.IsActive;
+            if (IsDead || !navAgent.isActiveAndEnabled) return;
             navAgent.isStopped = ev.IsActive || state is EnemyAlertState.Attack;
         }
 
+        // El enemigo que disparó el combate queda tirado donde estaba (no se destruye), así
+        // puede reactivarse más adelante. El fade todavía tapa la pantalla cuando llega el
+        // evento, así que el jugador lo encuentra ya en el piso.
         private void OnCombatEnded(CombatEndedEvent ev)
         {
             if (!combatTriggered) return;
             if (!ev.Victory) return;
-            gameObject.SetActive(false);
-            this.enemyStateRegistry?.SetDefeated(this.enemyKey);
+            gameObject.SetActive(true);
+            EnterCorpseState();
+            this.enemyStateRegistry?.SetDefeated(this.enemyKey, transform.position, transform.rotation);
+        }
+
+        /// <summary>Lays a defeated enemy down at its saved pose (or wherever it stands, for saves
+        /// that predate corpse poses).</summary>
+        public void RestoreAsCorpse(Vector3? position, Quaternion? rotation)
+        {
+            EnterCorpseState();
+            if (position.HasValue) transform.position = position.Value;
+            if (rotation.HasValue) transform.rotation = rotation.Value;
+        }
+
+        // Cadáver: sin IA, sin agente (lo saca también de la lista de objetivos del apuntado) y
+        // sin colliders, así el jugador lo atraviesa. Queda solo la pose ZombieLyingUp, que
+        // aplica EnemyAnimationReactor.
+        private void EnterCorpseState()
+        {
+            ReleasePlayer();
+            SetGrabPhase(EnemyGrabPhase.None);
+            IsDead           = true;
+            IsReactingToShot = false;
+            combatTriggered  = false;
+            state            = EnemyAlertState.Idle;
+
+            if (navAgent == null) navAgent = GetComponent<NavMeshAgent>();
+            if (navAgent != null) navAgent.enabled = false;
+            if (sensor != null) sensor.enabled = false;
+            if (hitbox != null) hitbox.enabled = false;
+            foreach (var col in GetComponentsInChildren<Collider>(includeInactive: true))
+                col.enabled = false;
         }
 
 #if UNITY_EDITOR

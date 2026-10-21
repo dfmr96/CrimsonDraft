@@ -121,6 +121,7 @@ namespace CrimsonDraft.Tests
             world.Notes.SetCollected("note-1");
             world.KnownMaps.MarkKnown("map-1");
             world.Enemies.SetDefeated("enemy-1");
+            world.Enemies.SetDefeated("enemy-2", new Vector3(3f, 0f, 7f), Quaternion.identity);
             world.OperatorCorpses.Record(0, "room-1", new Vector3(9f, 0f, 9f), Quaternion.identity);
             world.ItemSockets.SetInserted("socket-1", new[] { true });
             world.Pushables.Record("crate-1", new Vector3(4f, 0f, 5f));
@@ -166,7 +167,10 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(1, data.collectedPickupIds.Count);
                 Assert.AreEqual(1, data.readNoteIds.Count);
                 Assert.AreEqual(1, data.knownMapIds.Count);
-                Assert.AreEqual(1, data.defeatedEnemyIds.Count);
+                Assert.AreEqual(2, data.defeatedEnemyIds.Count);
+                Assert.AreEqual(1, data.enemyCorpses.Count);
+                Assert.AreEqual("enemy-2", data.enemyCorpses[0].enemyId);
+                Assert.AreEqual(new Vector3(3f, 0f, 7f), data.enemyCorpses[0].position);
                 Assert.AreEqual(1, data.itemSockets.Count);
                 Assert.AreEqual("socket-1", data.itemSockets[0].socketId);
                 CollectionAssert.AreEqual(new[] { true }, data.itemSockets[0].inserted);

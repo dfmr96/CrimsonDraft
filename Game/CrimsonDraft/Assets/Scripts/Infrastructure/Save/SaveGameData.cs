@@ -30,6 +30,14 @@ namespace CrimsonDraft.Infrastructure.Save
     }
 
     [Serializable]
+    public sealed class EnemyCorpseEntry
+    {
+        public string     enemyId = "";
+        public Vector3    position;
+        public Quaternion rotation = Quaternion.identity;
+    }
+
+    [Serializable]
     public sealed class ItemSocketStateEntry
     {
         public string  socketId = "";
@@ -95,6 +103,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<string>             readNoteIds        = new List<string>();
         public List<string>             knownMapIds        = new List<string>();
         public List<string>             defeatedEnemyIds   = new List<string>();
+        public List<EnemyCorpseEntry>   enemyCorpses       = new List<EnemyCorpseEntry>();
         public List<string>             heardRadioCallIds  = new List<string>();
         public List<ItemSocketStateEntry> itemSockets      = new List<ItemSocketStateEntry>();
         public List<OperatorCorpseEntry> operatorCorpses   = new List<OperatorCorpseEntry>();

@@ -62,8 +62,12 @@ namespace CrimsonDraft.Navigation.Enemy
                     this.timeScale,
                     key);
 
-                if (this.registry.IsDefeated(key))
-                    agent.gameObject.SetActive(false);
+                if (!this.registry.IsDefeated(key)) continue;
+
+                if (this.registry.TryGetCorpsePose(key, out var pose))
+                    agent.RestoreAsCorpse(pose.Position, pose.Rotation);
+                else
+                    agent.RestoreAsCorpse(null, null);
             }
         }
     }
