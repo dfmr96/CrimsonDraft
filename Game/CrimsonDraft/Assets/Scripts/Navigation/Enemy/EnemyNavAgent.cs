@@ -40,6 +40,13 @@ namespace CrimsonDraft.Navigation.Enemy
         [SerializeField] private CorpseBloodBlob?     bloodBlob;
         [Tooltip("Arranca tirado en el piso, como cadáver sin sangre, hasta que algo lo levante (Revive). Para zombies 'muertos' puestos en la escena.")]
         [SerializeField] private bool                 startsAsCorpse;
+        [Tooltip("Trampa: no se mueve ni gira el cuerpo; agarra si el jugador le pasa por delante (attackRange + trapGrabCone). Si falla el agarre, sale a perseguir.")]
+        [SerializeField] private bool                 stationary;
+
+        // Una trampa que falló el agarre deja de esperar y persigue como cualquier crawler, hasta
+        // que la sala la vuelve a poner en su spawn.
+        private bool trapSprung;
+        private bool IsTrap => stationary && !trapSprung;
 
         private ISceneTransitionService?               sceneTransitionService;
         private ISubscriber<CombatEndedEvent>?         combatEndedSubscriber;
@@ -156,6 +163,16 @@ namespace CrimsonDraft.Navigation.Enemy
 
         private void UpdateIdle()
         {
+            if (IsTrap)
+            {
+                // La trampa no persigue ni gira: espera a que el jugador le pase por delante.
+                var toPlayer = playerController!.transform.position - transform.position;
+                if (IsInTrapGrabZone(transform.forward, toPlayer, data.attackRange, data.trapGrabCone)
+                    && Time.time >= nextGrabAllowedTime)
+                    TransitionTo(EnemyAlertState.Attack);
+                return;
+            }
+
             if (Detect())
                 TransitionTo(EnemyAlertState.Alerted);
         }
@@ -207,12 +224,12 @@ namespace CrimsonDraft.Navigation.Enemy
 
             var toPlayer = playerController!.transform.position - transform.position;
             toPlayer.y = 0f;
-            FacePlayer(toPlayer);
+            if (!IsTrap) FacePlayer(toPlayer);
 
             switch (grabPhase)
             {
                 case EnemyGrabPhase.Reaching:
-                    navAgent.SetDestination(playerController.transform.position);
+                    if (!IsTrap) navAgent.SetDestination(playerController.transform.position);
                     if (grabPhaseTimer < data.grabDelay) return;
 
                     if (hitbox.OverlapsPlayer() && playerController.TryBeginGrab(transform))
@@ -230,25 +247,43 @@ namespace CrimsonDraft.Navigation.Enemy
                     if (grabPhaseTimer >= data.grabDelay + data.grabWindow)
                     {
                         nextGrabAllowedTime = Time.time + data.grabCooldown;
-                        TransitionTo(EnemyAlertState.Alerted);
+                        OnGrabFailed();
                     }
                     return;
 
                 case EnemyGrabPhase.Holding:
-                    KeepGrabDistance(toPlayer, dt);
+                    if (!IsTrap) KeepGrabDistance(toPlayer, dt);
                     if (grabPhaseTimer >= grabHoldDuration)
                         SetGrabPhase(EnemyGrabPhase.Biting);
                     return;
 
                 case EnemyGrabPhase.Biting:
-                    KeepGrabDistance(toPlayer, dt);
+                    if (!IsTrap) KeepGrabDistance(toPlayer, dt);
                     if (grabPhaseTimer >= BiteGiveUpSeconds)
                     {
                         nextGrabAllowedTime = Time.time + data.grabCooldown;
-                        TransitionTo(EnemyAlertState.Alerted);
+                        OnGrabFailed();
                     }
                     return;
             }
+        }
+
+        /// <summary>Trap trigger: the player is within <paramref name="range"/> (horizontal) and
+        /// inside the frontal cone of <paramref name="coneAngle"/> degrees in total.</summary>
+        public static bool IsInTrapGrabZone(Vector3 forward, Vector3 toPlayer, float range, float coneAngle)
+        {
+            forward.y  = 0f;
+            toPlayer.y = 0f;
+            if (toPlayer.magnitude >= range) return false;
+            if (toPlayer.sqrMagnitude < 0.0001f) return true; // encima: alcanzable
+            return Vector3.Angle(forward, toPlayer) <= coneAngle * 0.5f;
+        }
+
+        // Tras un agarre fallido sigue persiguiendo; una trampa queda "disparada" y sale a perseguir.
+        private void OnGrabFailed()
+        {
+            if (stationary) trapSprung = true;
+            TransitionTo(EnemyAlertState.Alerted);
         }
 
         // MoveGrabberToGrabbed del template: el enemigo se acomoda a grabDistance del jugador.
@@ -318,8 +353,8 @@ namespace CrimsonDraft.Navigation.Enemy
 
                 case EnemyAlertState.Attack:
                     // Sigue avanzando hasta agarrar algo (igual que el template); la rotación
-                    // la maneja UpdateAttack para no perder de vista al jugador.
-                    navAgent.isStopped = false;
+                    // la maneja UpdateAttack para no perder de vista al jugador. La trampa no avanza.
+                    navAgent.isStopped = IsTrap;
                     navAgent.updateRotation = false;
                     SetGrabPhase(EnemyGrabPhase.Reaching);
                     break;
@@ -373,6 +408,7 @@ namespace CrimsonDraft.Navigation.Enemy
             transform.rotation = rotation;
 
             combatTriggered     = false;
+            trapSprung          = false; // volver a la sala rearma la trampa
             dialoguePaused      = false;
             nextGrabAllowedTime = 0f;
             IsReactingToShot    = false;
@@ -505,6 +541,14 @@ namespace CrimsonDraft.Navigation.Enemy
             var pos       = transform.position;
             var eyeOrigin = eyePoint != null ? eyePoint.position : pos;
             eyeOrigin.y   = pos.y;
+
+            if (stationary)
+            {
+                // La trampa no oye ni ve: solo agarra dentro de su cono frontal.
+                EnemyGizmos.LabeledArc(pos, transform.forward, data.attackRange, data.trapGrabCone, new Color(1f, 0.2f, 0.2f, 0.9f),
+                    $"Trap grab {data.attackRange:0.#}m {data.trapGrabCone:0}°");
+                return;
+            }
 
             EnemyGizmos.LabeledDisc(pos, data.attackRange, new Color(1f, 0.2f, 0.2f, 0.8f), transform.right,
                 $"Grab {data.attackRange:0.#}m");
