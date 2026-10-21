@@ -269,6 +269,9 @@ namespace CrimsonDraft.Navigation
             builder.Register<MilestoneWorldState>(Lifetime.Singleton).As<IMilestoneWorldState>();
             builder.Register<MilestoneTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<MilestoneService>(Lifetime.Singleton).AsImplementedInterfaces();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            builder.Register<MilestoneDebugOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
+#endif
         }
 
 #if UNITY_EDITOR
