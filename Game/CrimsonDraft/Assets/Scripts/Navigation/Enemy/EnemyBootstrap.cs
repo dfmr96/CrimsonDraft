@@ -7,6 +7,7 @@ using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Navigation;
+using CrimsonDraft.Navigation.Milestones;
 using CrimsonDraft.Navigation.Player;
 
 namespace CrimsonDraft.Navigation.Enemy
@@ -22,6 +23,7 @@ namespace CrimsonDraft.Navigation.Enemy
         private readonly PlayerController                        playerController;
         private readonly EnemyStateRegistry                      registry;
         private readonly NavigationTimeScale                     timeScale;
+        private readonly IMilestoneService                       milestones;
 
         [Preserve]
         public EnemyBootstrap(
@@ -33,7 +35,8 @@ namespace CrimsonDraft.Navigation.Enemy
             IPublisher<EnemyAlertChangedEvent>      enemyAlertPublisher,
             PlayerController                        playerController,
             EnemyStateRegistry                      registry,
-            NavigationTimeScale                     timeScale)
+            NavigationTimeScale                     timeScale,
+            IMilestoneService                       milestones)
         {
             this.enemies                = enemies;
             this.sceneTransitionService = sceneTransitionService;
@@ -44,6 +47,7 @@ namespace CrimsonDraft.Navigation.Enemy
             this.playerController       = playerController;
             this.registry               = registry;
             this.timeScale              = timeScale;
+            this.milestones             = milestones;
         }
 
         void IInitializable.Initialize()
@@ -61,6 +65,9 @@ namespace CrimsonDraft.Navigation.Enemy
                     this.registry,
                     this.timeScale,
                     key);
+
+                if (agent.TryGetComponent<EnemyReviveOnMilestone>(out var reviveTrigger))
+                    reviveTrigger.Construct(this.milestones, this.playerController);
 
                 if (!this.registry.IsDefeated(key))
                 {

@@ -69,6 +69,7 @@ namespace CrimsonDraft.Navigation.Enemy
         public EnemyGrabPhase GrabPhase => grabPhase;
         public bool IsReactingToShot { get; private set; }
         public bool StartsAsCorpse => this.startsAsCorpse;
+        public bool HasBeenRevived => this.enemyStateRegistry?.IsRevived(this.enemyKey) == true;
         public bool IsDead { get; private set; }
         public bool IsRising { get; private set; }
 
@@ -460,6 +461,14 @@ namespace CrimsonDraft.Navigation.Enemy
             if (bloodBlob != null && bloodBlob.gameObject.activeSelf)
                 bloodBlob.LeaveBehind(transform.parent);
             return true;
+        }
+
+        /// <summary>Uses up this enemy's one revive without getting it up (e.g. its revive trigger
+        /// fired while it was still alive), so it stays down for good once killed. Persisted.</summary>
+        public void SpendRevive()
+        {
+            if (IsDead) return;
+            this.enemyStateRegistry?.SetAlive(this.enemyKey);
         }
 
         /// <summary>Called by EnemyAnimationReactor once ZombieStandUp has finished: hands the
