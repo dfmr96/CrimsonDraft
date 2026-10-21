@@ -37,6 +37,8 @@ namespace CrimsonDraft.Combat
         // they just aren't drawn.
         [SerializeField] private Image?        overlayImage;
         [SerializeField] private GameObject    shotMarkerPrefab       = null!;
+        // Sprite swapped into a marker whose shot missed (replaces the old "MISS" text popup).
+        [SerializeField] private Sprite?       missMarkerSprite;
         [SerializeField] private GameObject    dispersionCirclePrefab = null!;
         [SerializeField] private RectTransform feedbackRoot           = null!;
         [SerializeField] private GameObject    feedbackTextPrefab     = null!;
@@ -70,6 +72,7 @@ namespace CrimsonDraft.Combat
         [SerializeField] private float     absorbInterval            = 0.3f;   // seconds between absorbed shots
         [SerializeField] private float     absorbPunchScale          = 1.35f;
         [SerializeField] private float     absorbPunchDuration       = 0.1f; // per half of the pop; keep it snappy
+        [SerializeField] private float     absorbFlyDuration         = 0.25f; // seconds for a number to travel to the counter
         // After the second axis is locked in the shots fire on their own after this short beat.
         [SerializeField] private float     resolveDelayAfterConfirm  = 0.1f;
 
@@ -670,7 +673,7 @@ namespace CrimsonDraft.Combat
                 var shot = this.pendingResolvedShots[i];
                 bool isMiss = shot.Zone == ShotZone.Miss;
                 Vector2 local = this.DenormalizeShotLocal(shot.NormalizedPos);
-                var marker = this.SpawnMarker(local);
+                var marker = this.SpawnMarker(local, isMiss);
                 if (melee)
                     this.pendingSlashPoints.Add((marker, isMiss));
 
@@ -678,9 +681,10 @@ namespace CrimsonDraft.Combat
                 {
                     if (useCounter)
                     {
-                        var popup = this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, isMiss, shot.ArmorBlocked);
-                        if (popup != null)
-                            absorbables.Add(new AbsorbableShot(popup.Value.Go, popup.Value.Text, Mathf.Max(0, shot.Damage), isMiss, melee ? null : marker));
+                        // A miss has no number: its marker already shows the miss sprite.
+                        var popup = isMiss ? null : this.CreateFeedbackText(shot.NormalizedPos, shot.Damage, false, shot.ArmorBlocked);
+                        if (isMiss || popup != null)
+                            absorbables.Add(new AbsorbableShot(popup?.Go, popup?.Text, Mathf.Max(0, shot.Damage), isMiss, melee ? null : marker));
                     }
                     else
                     {
@@ -712,9 +716,11 @@ namespace CrimsonDraft.Combat
             this.phase = AimPhase.WaitingDismiss;
         }
 
-        private GameObject SpawnMarker(Vector2 localPos)
+        private GameObject SpawnMarker(Vector2 localPos, bool isMiss)
         {
             var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
+            if (isMiss && this.missMarkerSprite != null && marker.TryGetComponent<Image>(out var markerImage))
+                markerImage.sprite = this.missMarkerSprite;
             ((RectTransform)marker.transform).localPosition = new Vector3(
                 Mathf.Round(localPos.x),
                 Mathf.Round(localPos.y),
@@ -785,13 +791,13 @@ namespace CrimsonDraft.Combat
 
         private readonly struct AbsorbableShot
         {
-            public readonly GameObject Go;
-            public readonly TMP_Text   Text;
+            public readonly GameObject? Go;
+            public readonly TMP_Text?  Text;
             public readonly int        Damage;
             public readonly bool       IsMiss;
             public readonly GameObject? Marker; // impact point that vanishes together with the number
 
-            public AbsorbableShot(GameObject go, TMP_Text text, int damage, bool isMiss, GameObject? marker = null)
+            public AbsorbableShot(GameObject? go, TMP_Text? text, int damage, bool isMiss, GameObject? marker = null)
             {
                 this.Go = go; this.Text = text; this.Damage = damage; this.IsMiss = isMiss; this.Marker = marker;
             }
@@ -838,9 +844,10 @@ namespace CrimsonDraft.Combat
             return (go, text);
         }
 
-        // Feeds the shots' numbers into the counter in order, one every absorbInterval: the counter
-        // shows the running sum and pops, and the shot's own number pops while fading away. The
-        // hit markers are untouched. Turns the counter red when the final sum would kill the target.
+        // Launches the shots' numbers at the counter in order, one every absorbInterval: each number
+        // flies to the counter and only when it lands does the counter add it and pop. The hit
+        // markers vanish as their number leaves. Turns the counter red when the final sum would
+        // kill the target.
         private async UniTask AbsorbIntoCounterAsync(List<AbsorbableShot> shots, int version)
         {
             var counter = this.damageCounterText;
@@ -848,33 +855,59 @@ namespace CrimsonDraft.Combat
 
             int running = 0;
             bool anyDamage = false;
+            var flights = new List<UniTask>();
             for (int i = 0; i < shots.Count; i++)
             {
                 var shot = shots[i];
-                if (shot.Go != null)
-                    this.AbsorbPopup(shot.Go, shot.Text);
                 if (shot.Marker != null)
                     this.VanishMarker(shot.Marker);
 
-                if (!shot.IsMiss)
+                if (!shot.IsMiss && shot.Go != null)
                 {
-                    running += shot.Damage;
                     anyDamage = true;
-                    this.GetDamageCounterRoot()?.SetActive(true);
-                    counter.color   = this.damageCounterColor;
-                    counter.text    = running.ToString();
-                    this.PunchDamageCounter();
+                    int damage = shot.Damage;
+                    flights.Add(this.FlyToCounterAsync(shot.Go, counter, () =>
+                    {
+                        running += damage;
+                        this.GetDamageCounterRoot()?.SetActive(true);
+                        counter.color = this.damageCounterColor;
+                        counter.text  = running.ToString();
+                        this.PunchDamageCounter();
+                    }, version));
                 }
 
                 await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.absorbInterval)));
                 if (this == null || version != this.sequenceVersion) return;
             }
 
+            await UniTask.WhenAll(flights);
+            if (this == null || version != this.sequenceVersion) return;
+
             if (anyDamage && running >= this.targetCurrentHp)
             {
                 counter.color = this.damageCounterLethalColor;
                 this.PunchDamageCounter();
             }
+        }
+
+        // The number travels to the counter like it's going to hit it; on arrival it disappears and
+        // onArrive runs (the counter adds it and reacts).
+        private UniTask FlyToCounterAsync(GameObject go, TMP_Text counter, Action onArrive, int version)
+        {
+            var done = new UniTaskCompletionSource();
+            go.transform.DOKill();
+            go.transform.DOMove(counter.transform.position, Mathf.Max(0.01f, this.absorbFlyDuration))
+                .SetEase(Ease.InQuad)
+                .SetLink(go)
+                .OnComplete(() =>
+                {
+                    Destroy(go);
+                    if (this != null && version == this.sequenceVersion)
+                        onArrive();
+                    done.TrySetResult();
+                })
+                .OnKill(() => done.TrySetResult());
+            return done.Task;
         }
 
         // The impact point shrinks to nothing and is destroyed.
@@ -905,19 +938,6 @@ namespace CrimsonDraft.Combat
                 await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, this.slashPointVanishInterval)));
                 if (this == null || version != this.sequenceVersion) return;
             }
-        }
-
-        // A quick "pop": the number bursts up in size and vanishes at the peak, then is destroyed.
-        private void AbsorbPopup(GameObject go, TMP_Text text)
-        {
-            go.transform.DOKill();
-            text.DOKill();
-            float duration = Mathf.Max(0.01f, this.absorbPunchDuration * 1.5f);
-            go.transform.DOScale(go.transform.localScale * this.absorbPunchScale, duration).SetEase(Ease.OutBack);
-            text.DOFade(0f, duration).SetDelay(duration * 0.35f).SetEase(Ease.InQuad).OnComplete(() =>
-            {
-                if (go != null) Destroy(go);
-            });
         }
 
         // Visual only: swell and settle back to the resting scale.
