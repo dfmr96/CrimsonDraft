@@ -51,9 +51,19 @@ namespace CrimsonDraft.Tests
         private sealed class FakeRoomOrchestrator : IRoomOrchestrator
         {
             public string? ActivatedRoomId { get; private set; }
+            public string? ActivatedCameraPath { get; private set; }
+            // Where the player stood when the room was activated -- the room picks its fallback
+            // shot from that position, so it must already be the saved one.
+            public Transform? Player;
+            public Vector3? PlayerPositionAtActivation { get; private set; }
             public RoomController? CurrentRoom => null;
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab) => UniTask.CompletedTask;
-            public void ActivateRoomImmediate(string roomId) => this.ActivatedRoomId = roomId;
+            public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
+            {
+                this.ActivatedRoomId            = roomId;
+                this.ActivatedCameraPath        = cameraPath;
+                this.PlayerPositionAtActivation = this.Player != null ? this.Player.position : null;
+            }
         }
 
         private static KeyItemData MakeKeyItemData(string id, int maxUses)
@@ -155,6 +165,7 @@ namespace CrimsonDraft.Tests
                 {
                     sceneName      = "Deck_B",
                     roomId         = "room-2",
+                    cameraPath     = "Cameras/Cam2",
                     playerPosition = new Vector3(1f, 2f, 3f),
                     playerRotation = Quaternion.identity,
                     doors             = new List<DoorStateEntry> { new DoorStateEntry { doorId = "door-1", state = DoorMapState.Unlocked } },
@@ -198,12 +209,16 @@ namespace CrimsonDraft.Tests
                 new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
+            roomOrch.Player = player.transform;
 
             try
             {
                 var loader = new SaveGameLoader(saveService, inventory, roster, roomOrch, player, itemDb, world, new PlaytimeTracker());
                 ((IInitializable)loader).Initialize();
 
+                Assert.AreEqual("Cameras/Cam2", roomOrch.ActivatedCameraPath);
+                Assert.AreEqual(new Vector3(1f, 2f, 3f), roomOrch.PlayerPositionAtActivation,
+                    "the player must already stand at the saved spot when the room picks its camera");
                 Assert.IsTrue(world.Doors.IsUnlocked("door-1"));
                 Assert.AreEqual(RoomMapState.Visited, world.Rooms.GetState("room-1"));
                 Assert.IsTrue(world.Pickups.IsCollected("pickup-1"));

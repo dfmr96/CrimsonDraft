@@ -138,7 +138,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
         public RoomController? CurrentRoom => this.currentRoom;
 
-        public void ActivateRoomImmediate(string roomId)
+        public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
         {
             var rooms = Object.FindObjectsOfType<RoomController>(true);
             RoomController? target = null;
@@ -160,8 +160,26 @@ namespace CrimsonDraft.Navigation.Rooms
             }
 
             target.Activate();
-            EnsureLiveCamera(target, this.player.transform.position);
+            if (!TryActivateSavedCamera(target, cameraPath))
+                EnsureLiveCamera(target, this.player.transform.position);
             this.currentRoom = target;
+        }
+
+        // A loaded save names its shot outright: the player is often standing outside every zone
+        // trigger (the shot came from the last one they crossed), so position alone can't recover it.
+        private bool TryActivateSavedCamera(RoomController room, string? cameraPath)
+        {
+            if (string.IsNullOrEmpty(cameraPath)) return false;
+
+            var found = room.transform.Find(cameraPath);
+            if (found == null || !found.TryGetComponent<CinemachineCamera>(out var camera))
+            {
+                Debug.LogWarning($"[RoomOrchestrator] Saved camera '{cameraPath}' not found in '{room.name}' — picking one from the player position.", room);
+                return false;
+            }
+
+            this.zoneService.ActivateZone(camera);
+            return true;
         }
 
         // Guarantees the room the player just landed in has a camera actually rendering.

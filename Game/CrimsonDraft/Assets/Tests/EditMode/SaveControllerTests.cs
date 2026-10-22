@@ -52,7 +52,7 @@ namespace CrimsonDraft.Tests
             public RoomController? Current;
             public RoomController? CurrentRoom => this.Current;
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab) => UniTask.CompletedTask;
-            public void ActivateRoomImmediate(string roomId) { }
+            public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
         }
 
         private sealed class FakeInputService : IInputService
@@ -154,7 +154,8 @@ namespace CrimsonDraft.Tests
             try
             {
                 var controller = new SaveController(
-                    inputService, view, saveService, inventory, roster, roomOrch, player, world, new PlaytimeTracker());
+                    inputService, view, saveService, inventory, roster, roomOrch, player, world, new PlaytimeTracker(),
+                    new FakeCameraZoneService());
 
                 controller.Save(3);
 
@@ -197,6 +198,84 @@ namespace CrimsonDraft.Tests
                 UnityEngine.Object.DestroyImmediate(weaponData);
                 UnityEngine.Object.DestroyImmediate(view.gameObject);
             }
+        }
+
+        // Saving at the telegraph happens with its close-up live; the save must name the room
+        // shot the player returns to, as a path under the room so it survives a scene reload.
+        [Test]
+        public void Save_recordsGameplayCameraPath_notTheInspectionShot()
+        {
+            var roomGo = new GameObject("Room");
+            var room   = roomGo.AddComponent<RoomController>();
+            var gameplay  = AddCamera(roomGo.transform, "Cameras", "Cam2");
+            var telegraph = AddCamera(roomGo.transform, "Telegraph", "TelegraphCam");
+            var zones     = new FakeCameraZoneService { GameplayZoneCamera = gameplay, CurrentZoneCamera = telegraph };
+
+            var (controller, saveService, cleanup) = MakeController(room, zones);
+            try
+            {
+                controller.Save(0);
+                Assert.AreEqual("Cameras/Cam2", saveService.WrittenData!.cameraPath);
+            }
+            finally
+            {
+                cleanup();
+                UnityEngine.Object.DestroyImmediate(roomGo);
+            }
+        }
+
+        [Test]
+        public void Save_cameraOutsideCurrentRoom_recordsNoCameraPath()
+        {
+            var roomGo  = new GameObject("Room");
+            var room    = roomGo.AddComponent<RoomController>();
+            var otherGo = new GameObject("OtherRoom");
+            var stray   = AddCamera(otherGo.transform, "Cameras", "Cam1");
+            var zones   = new FakeCameraZoneService { GameplayZoneCamera = stray, CurrentZoneCamera = stray };
+
+            var (controller, saveService, cleanup) = MakeController(room, zones);
+            try
+            {
+                controller.Save(0);
+                Assert.AreEqual("", saveService.WrittenData!.cameraPath);
+            }
+            finally
+            {
+                cleanup();
+                UnityEngine.Object.DestroyImmediate(roomGo);
+                UnityEngine.Object.DestroyImmediate(otherGo);
+            }
+        }
+
+        private static (SaveController, FakeSaveGameService, Action) MakeController(RoomController room, FakeCameraZoneService zones)
+        {
+            var world = new WorldStateRegistries(
+                new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
+                new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+            var playerGo    = new GameObject("Player");
+            var player      = playerGo.AddComponent<PlayerController>();
+            var view        = MakeView();
+            var saveService = new FakeSaveGameService();
+
+            var controller = new SaveController(
+                new FakeInputService(), view, saveService, new FakeInventoryService(), new FakeRoster(),
+                new FakeRoomOrchestrator { Current = room }, player, world, new PlaytimeTracker(), zones);
+
+            return (controller, saveService, () =>
+            {
+                UnityEngine.Object.DestroyImmediate(playerGo);
+                UnityEngine.Object.DestroyImmediate(view.gameObject);
+            });
+        }
+
+        private static Unity.Cinemachine.CinemachineCamera AddCamera(Transform room, string folder, string name)
+        {
+            var parent = new GameObject(folder).transform;
+            parent.SetParent(room, false);
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            return go.AddComponent<Unity.Cinemachine.CinemachineCamera>();
         }
 
         private static SaveSlotListView MakeView()

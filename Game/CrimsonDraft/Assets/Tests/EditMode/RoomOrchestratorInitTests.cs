@@ -220,18 +220,114 @@ namespace CrimsonDraft.Tests
             }
         }
 
+        // A loaded save puts the player wherever they stood, often outside every zone trigger, so
+        // the shot they had can't be re-derived from position: the save names it explicitly.
+        [Test]
+        public void ActivateRoomImmediate_withCameraPath_activatesThatCamera()
+        {
+            var (goA, roomA) = MakeRoom("RoomA", "room-a");
+            var (goB, _)     = MakeRoom("RoomB", "room-b");
+            AddCamera(goB, "Cameras/CamA");
+            var camB = AddCamera(goB, "Cameras/CamB");
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            context.SetStartingRoom(roomA);
+            var zones    = new FakeCameraZoneService();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, zones: zones);
+                ((IInitializable)orchestrator).Initialize();
+
+                orchestrator.ActivateRoomImmediate("room-b", "Cameras/CamB");
+
+                Assert.AreSame(camB, zones.CurrentZoneCamera);
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+            }
+        }
+
+        [Test]
+        public void ActivateRoomImmediate_withUnknownCameraPath_fallsBackToRoomCamera()
+        {
+            var (goA, roomA) = MakeRoom("RoomA", "room-a");
+            var (goB, _)     = MakeRoom("RoomB", "room-b");
+            var camA = AddCamera(goB, "Cameras/CamA");
+            AddCamera(goB, "Cameras/CamB");
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+            var context  = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            context.SetStartingRoom(roomA);
+            var zones    = new FakeCameraZoneService();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, zones: zones);
+                ((IInitializable)orchestrator).Initialize();
+
+                orchestrator.ActivateRoomImmediate("room-b", "Cameras/Renamed");
+
+                Assert.AreSame(camA, zones.CurrentZoneCamera);
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+            }
+        }
+
         // ── helpers ──────────────────────────────────────────────────────────
 
+        private static (GameObject, RoomController) MakeRoom(string name, string roomId)
+        {
+            var go   = new GameObject(name);
+            var room = go.AddComponent<RoomController>();
+            var so   = new SerializedObject(room);
+            so.FindProperty("roomId").stringValue = roomId;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return (go, room);
+        }
+
+        private static CinemachineCamera AddCamera(GameObject room, string path)
+        {
+            var parent = room.transform;
+            var names  = path.Split('/');
+            for (int i = 0; i < names.Length - 1; i++)
+            {
+                var child = parent.Find(names[i]);
+                if (child == null)
+                {
+                    child = new GameObject(names[i]).transform;
+                    child.SetParent(parent, false);
+                }
+                parent = child;
+            }
+            var go = new GameObject(names[names.Length - 1]);
+            go.transform.SetParent(parent, false);
+            return go.AddComponent<CinemachineCamera>();
+        }
+
         private static RoomOrchestrator MakeOrchestrator(
-            PlayerController     player,
-            RoomTransitionContext context,
-            SceneEntryContext?   entry = null)
+            PlayerController       player,
+            RoomTransitionContext  context,
+            SceneEntryContext?     entry = null,
+            FakeCameraZoneService? zones = null)
             => new RoomOrchestrator(
                 new FakeInputService(),
                 player,
                 context,
                 entry ?? ScriptableObject.CreateInstance<SceneEntryContext>(),
-                new FakeCameraZoneService(),
+                zones ?? new FakeCameraZoneService(),
                 new FakePublisher<RoomTransitionStartedEvent>(),
                 new FakePublisher<RoomTransitionedEvent>());
 
@@ -281,10 +377,5 @@ namespace CrimsonDraft.Tests
             public void Publish(T message) { }
         }
 
-        private sealed class FakeCameraZoneService : IFixedCameraZoneService
-        {
-            public CinemachineCamera? CurrentZoneCamera => null;
-            public void ActivateZone(CinemachineCamera zoneCamera) { }
-        }
     }
 }

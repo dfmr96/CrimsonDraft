@@ -75,8 +75,10 @@ namespace CrimsonDraft.Navigation
             this.roster.RestoreHp(data.operatorHp);
             this.playtimeTracker.RestoreFrom(data.playtimeSeconds);
 
-            this.roomOrchestrator.ActivateRoomImmediate(data.roomId);
+            // Player first: when the save names no camera (older saves), the room picks its shot
+            // from where the player stands, which must already be the saved spot.
             this.player.transform.SetPositionAndRotation(data.playerPosition, data.playerRotation);
+            this.roomOrchestrator.ActivateRoomImmediate(data.roomId, data.cameraPath);
         }
 
         private void ApplyDoors(SaveGameData data)

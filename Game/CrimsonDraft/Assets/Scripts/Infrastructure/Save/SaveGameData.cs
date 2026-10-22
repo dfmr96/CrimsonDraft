@@ -96,6 +96,9 @@ namespace CrimsonDraft.Infrastructure.Save
 
         public Vector3    playerPosition;
         public Quaternion playerRotation = Quaternion.identity;
+        // Fixed-camera shot live at save time, as a transform path under the room. Empty in saves
+        // made before it existed; the room then picks its shot from the player position.
+        public string     cameraPath     = "";
 
         public List<DoorStateEntry>     doors              = new List<DoorStateEntry>();
         public List<RoomStateEntry>     rooms              = new List<RoomStateEntry>();

@@ -76,7 +76,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.isInspecting       = true;
             this.onExit             = onExit;
             this.previousZoneCamera = this.zoneService.CurrentZoneCamera;
-            this.zoneService.ActivateZone(inspectCamera);
+            this.zoneService.ActivateInspectionShot(inspectCamera);
             this.inputService.SwitchToUI();
             SetActorRenderersEnabled(false);
             SetEnemiesSuspended(true);

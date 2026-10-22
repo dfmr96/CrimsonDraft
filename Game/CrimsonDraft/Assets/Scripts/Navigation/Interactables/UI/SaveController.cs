@@ -13,6 +13,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save;
 using CrimsonDraft.Infrastructure.Save.UI;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using CrimsonDraft.Operators;
@@ -30,6 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private readonly PlayerController    player;
         private readonly WorldStateRegistries world;
         private readonly PlaytimeTracker     playtimeTracker;
+        private readonly IFixedCameraZoneService zoneService;
         private readonly SaveSlotNavigator   navigator;
         // The save telegraph reuses the main menu's list sounds (same slot-list UI).
         private readonly MainMenuSfxData?    menuSfx;
@@ -56,6 +58,7 @@ namespace CrimsonDraft.Navigation.Interactables
             PlayerController     player,
             WorldStateRegistries world,
             PlaytimeTracker      playtimeTracker,
+            IFixedCameraZoneService zoneService,
             MainMenuSfxData?     menuSfx = null)
         {
             this.inputService     = inputService;
@@ -66,6 +69,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.player           = player;
             this.world            = world;
             this.playtimeTracker  = playtimeTracker;
+            this.zoneService      = zoneService;
             this.menuSfx          = menuSfx;
             this.navigator = new SaveSlotNavigator(view, "Save to", Save, canConfirm: null, onClosed: OnNavigatorClosed);
         }
@@ -273,6 +277,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 playtimeSeconds = this.playtimeTracker.CurrentSeconds,
                 playerPosition  = this.player.transform.position,
                 playerRotation  = this.player.transform.rotation,
+                cameraPath      = GameplayCameraPath(),
                 operatorHp      = this.roster.GetHpSnapshot(),
             };
 
@@ -314,6 +319,22 @@ namespace CrimsonDraft.Navigation.Interactables
             data.inventoryItems.AddRange(InventorySerializer.Capture(this.inventoryService));
 
             return data;
+        }
+
+        // The room shot the player returns to -- at the telegraph the live camera is its close-up,
+        // which GameplayZoneCamera skips. Stored as a path under the room so it resolves again
+        // after the scene reloads.
+        private string GameplayCameraPath()
+        {
+            var room   = this.roomOrchestrator.CurrentRoom;
+            var camera = this.zoneService.GameplayZoneCamera;
+            if (room == null || camera == null || !camera.transform.IsChildOf(room.transform)) return "";
+
+            var names = new List<string>();
+            for (var t = camera.transform; t != room.transform; t = t.parent)
+                names.Add(t.name);
+            names.Reverse();
+            return string.Join("/", names);
         }
 
         void IDisposable.Dispose()

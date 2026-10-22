@@ -61,7 +61,7 @@ namespace CrimsonDraft.Tests
             public FakeRoomOrchestrator(RoomController? currentRoom) => this.CurrentRoom = currentRoom;
             public RoomController? CurrentRoom { get; }
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab) => UniTask.CompletedTask;
-            public void ActivateRoomImmediate(string roomId) { }
+            public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
         }
 
         private sealed class FakeSpawner : IOperatorCorpseSpawner

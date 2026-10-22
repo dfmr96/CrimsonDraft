@@ -374,7 +374,7 @@ namespace CrimsonDraft.Tests
                 return UniTask.CompletedTask;
             }
 
-            public void ActivateRoomImmediate(string roomId) { }
+            public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
         }
 
         private sealed class FakeDialogue : IDialogueService
