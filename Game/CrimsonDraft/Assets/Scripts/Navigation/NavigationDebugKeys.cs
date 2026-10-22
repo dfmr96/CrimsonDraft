@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Enemy;
 using CrimsonDraft.Navigation.Player;
@@ -21,10 +22,13 @@ namespace CrimsonDraft.Navigation
     //        corpse recorded and spawned at the player's feet).
     //  F6 -- gets the enemy corpse nearest to the player back up (EnemyNavAgent.Revive), until
     //        a real trigger (milestone, story event) is hooked up.
+    //  F5 -- toggles UI/preview camera gating (UiCameraAutoToggle.GatingEnabled) to A/B its
+    //        performance against the original always-on cameras.
     public sealed class NavigationDebugKeys : ITickable
     {
-        private const Key KillOperatorKey = Key.F7;
-        private const Key ReviveEnemyKey  = Key.F6;
+        private const Key KillOperatorKey       = Key.F7;
+        private const Key ReviveEnemyKey        = Key.F6;
+        private const Key ToggleCameraGatingKey = Key.F5;
 
         private readonly IOperatorRoster         roster;
         private readonly IInventoryService       inventory;
@@ -75,6 +79,15 @@ namespace CrimsonDraft.Navigation
 
             if (keyboard[KillOperatorKey].wasPressedThisFrame) KillOperator();
             if (keyboard[ReviveEnemyKey].wasPressedThisFrame)  ReviveNearestCorpse();
+            if (keyboard[ToggleCameraGatingKey].wasPressedThisFrame) ToggleCameraGating();
+        }
+
+        private static void ToggleCameraGating()
+        {
+            UiCameraAutoToggle.GatingEnabled = !UiCameraAutoToggle.GatingEnabled;
+            Debug.Log(UiCameraAutoToggle.GatingEnabled
+                ? "[NavigationDebugKeys] Camera gating ON (fix): UI/preview cameras render only while needed."
+                : "[NavigationDebugKeys] Camera gating OFF (original): UI/preview cameras always render.");
         }
 
         private void KillOperator()

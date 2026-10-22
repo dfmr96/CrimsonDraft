@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Rendering.Shine;
@@ -75,10 +76,21 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             // the player actually sees instead of world axes.
             this.previewCamera        = this.mountPoint.parent.GetComponent<Camera>();
             this.initialMountRotation = this.mountPoint.rotation;
+
+            // Detached above, the rig no longer switches off with the panel -- so only render the
+            // preview while it is shown. Only the Camera component: mountPoint (the model) is its child.
+            SyncPreviewCamera();
+            UiCameraAutoToggle.GatingChanged += SyncPreviewCamera;
+        }
+
+        void OnDestroy()
+        {
+            UiCameraAutoToggle.GatingChanged -= SyncPreviewCamera;
         }
 
         void Update()
         {
+
             // Unscaled time -- inventory/inspect UI pauses gameplay via Time.timeScale = 0,
             // but this preview should keep spinning/pulsing while that's shown.
             if (this.currentInstance != null && this.autoRotate)
@@ -139,6 +151,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             }
 
             this.root.SetActive(true);
+            SyncPreviewCamera();
             FadeVolume(1f);
         }
 
@@ -146,7 +159,15 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         {
             ClearInstance();
             this.root.SetActive(false);
+            SyncPreviewCamera();
             FadeVolume(0f);
+        }
+
+        private void SyncPreviewCamera()
+        {
+            if (this.previewCamera == null) return;
+            bool render = !UiCameraAutoToggle.GatingEnabled || this.root.activeSelf;
+            if (this.previewCamera.enabled != render) this.previewCamera.enabled = render;
         }
 
         // Used instead of the auto-rotate (autoRotate = false) by callers that let the player

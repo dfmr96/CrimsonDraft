@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -63,8 +64,14 @@ namespace CrimsonDraft.Infrastructure.UI
             int layer = LayerMask.NameToLayer(UiLayerName);
             if (layer < 0 || this.canvas == null) return;
 
+            // Camera.allCameras skips disabled cameras, and UiCameraAutoToggle keeps the UI camera
+            // off whenever no UI is showing -- which is exactly the case right before game over.
+            var candidates = new List<Camera>(Camera.allCameras);
+            foreach (var gate in UiCameraAutoToggle.Instances)
+                if (!candidates.Contains(gate.Camera)) candidates.Add(gate.Camera);
+
             Camera? uiCamera = null;
-            foreach (var cam in Camera.allCameras)
+            foreach (var cam in candidates)
             {
                 if (cam.targetTexture != null || (cam.cullingMask & (1 << layer)) == 0) continue;
 
@@ -83,6 +90,9 @@ namespace CrimsonDraft.Infrastructure.UI
             this.canvas.renderMode    = RenderMode.ScreenSpaceCamera;
             this.canvas.worldCamera   = uiCamera;
             this.canvas.planeDistance = 1f;
+
+            // Turn the camera on this frame rather than after its next canvas rescan.
+            if (uiCamera.TryGetComponent<UiCameraAutoToggle>(out var toggle)) toggle.Track(this.canvas);
         }
     }
 }
