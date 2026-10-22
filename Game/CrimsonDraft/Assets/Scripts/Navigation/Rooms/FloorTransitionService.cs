@@ -53,6 +53,10 @@ namespace CrimsonDraft.Navigation.Rooms
 
             await SceneManager.UnloadSceneAsync(fromScene).ToUniTask();
             await SceneManager.LoadSceneAsync(toScene, LoadSceneMode.Additive).ToUniTask();
+            // An additive load never becomes the active scene on its own, and unloading fromScene
+            // left Boot active -- saves record the active scene's name, so a save on the new floor
+            // would reload Boot alone. Runtime Instantiate() also lands in the active scene.
+            SceneManager.SetActiveScene(SceneManager.GetSceneByName(toScene));
             await SceneManager.UnloadSceneAsync(TransitionSceneName).ToUniTask();
 
             this.inputService.SwitchToGameplay();
