@@ -6,8 +6,8 @@ using UnityEngine;
 namespace CrimsonDraft.Combat
 {
     /// <summary>
-    /// World-space selector for an enemy or an operator: a slowly turning ring on the floor at their
-    /// feet, split into glowing arcs (optionally with a short open cylinder of light rising from it;
+    /// World-space selector for an enemy or an operator: a slowly turning square ring on the floor at
+    /// their feet, split into four glowing lines (optionally with a short open cylinder of light rising from it;
     /// see the TargetHalo shader). The mesh is built once in code at unit size and scaled to whoever
     /// it is shown around in <see cref="ShowAround"/>.
     /// </summary>
@@ -16,6 +16,7 @@ namespace CrimsonDraft.Combat
     {
         private const int Segments = 48;
         private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private MaterialPropertyBlock? block; // created in EnsureBuilt: Unity forbids it in a field initializer
 
         [SerializeField] private Material? haloMaterial;
         [Header("Size (derived from the enemy's bounds)")]
@@ -29,14 +30,11 @@ namespace CrimsonDraft.Combat
         [SerializeField]            private bool  showColumn      = false;
         [Header("Animation")]
         [SerializeField, Min(0f)]   private float growDuration   = 0.18f;
-        [Tooltip("Degrees per second the ring turns around its center (negative = the other way).")]
-        [SerializeField]            private float rotationSpeed   = 30f;
 
         private MeshRenderer meshRenderer = null!;
         private Transform? follow;
         private bool built;
         private float sizeMultiplier = 1f;
-        private float yaw;
         private float targetHeight = 1f;
         private float targetRadius = 1f;
 
@@ -50,6 +48,7 @@ namespace CrimsonDraft.Combat
         {
             if (this.built) return;
 
+            this.block = new MaterialPropertyBlock();
             this.meshRenderer = this.GetComponent<MeshRenderer>();
             this.GetComponent<MeshFilter>().sharedMesh = BuildMesh(this.showColumn);
             if (this.haloMaterial != null)
@@ -69,10 +68,9 @@ namespace CrimsonDraft.Combat
             this.EnsureBuilt();
             this.sizeMultiplier = Mathf.Max(0.05f, sizeMultiplier);
 
-            var block = new MaterialPropertyBlock();
-            this.meshRenderer.GetPropertyBlock(block);
-            block.SetColor(ColorId, tint);
-            this.meshRenderer.SetPropertyBlock(block);
+            this.meshRenderer.GetPropertyBlock(this.block!);
+            this.block!.SetColor(ColorId, tint);
+            this.meshRenderer.SetPropertyBlock(this.block);
         }
 
         /// <summary>
@@ -156,7 +154,6 @@ namespace CrimsonDraft.Combat
         {
             if (this.follow == null) return;
 
-            this.yaw = Mathf.Repeat(this.yaw + this.rotationSpeed * Time.deltaTime, 360f);
             this.UpdatePosition();
         }
 
@@ -165,7 +162,7 @@ namespace CrimsonDraft.Combat
             if (this.follow == null) return;
             var p = this.follow.position;
             this.transform.position = new Vector3(p.x, p.y + this.footOffsetY, p.z);
-            this.transform.rotation = Quaternion.Euler(0f, this.yaw, 0f);
+            this.transform.rotation = Quaternion.identity;
         }
 
         private void OnDestroy() => this.transform.DOKill();
@@ -175,12 +172,12 @@ namespace CrimsonDraft.Combat
         private static Mesh BuildMesh(bool includeWall)
         {
             int ringVerts = includeWall ? (Segments + 1) * 2 : 0;
-            int discVerts = Segments + 2;
+            const int discVerts = 4;
             var vertices  = new Vector3[ringVerts + discVerts];
             var uvs       = new Vector2[vertices.Length];
             var colors    = new Color[vertices.Length];
             var wallTris  = new int[includeWall ? Segments * 6 : 0];
-            var discTris  = new int[Segments * 3];
+            var discTris  = new int[6];
 
             for (int i = 0; includeWall && i <= Segments; i++)
             {
@@ -200,23 +197,19 @@ namespace CrimsonDraft.Combat
                 }
             }
 
-            int center = ringVerts;
-            vertices[center] = Vector3.zero; uvs[center] = new Vector2(0.5f, 0.5f); colors[center] = Color.black;
-            for (int i = 0; i <= Segments; i++)
+            // Square floor quad covering [-1, 1]; the shader draws the square ring inside it.
+            int q = ringVerts;
+            for (int i = 0; i < 4; i++)
             {
-                float angle = (float)i / Segments * Mathf.PI * 2f;
-                float x = Mathf.Cos(angle), z = Mathf.Sin(angle);
-                int v = center + 1 + i;
-                vertices[v] = new Vector3(x, 0f, z);
-                uvs[v]      = new Vector2(x * 0.5f + 0.5f, z * 0.5f + 0.5f);
-                colors[v]   = Color.black;
-
-                if (i < Segments)
-                {
-                    int d = i * 3;
-                    discTris[d] = center; discTris[d + 1] = v + 1; discTris[d + 2] = v;
-                }
+                float x = (i == 0 || i == 3) ? -1f : 1f;
+                float z = (i < 2) ? -1f : 1f;
+                vertices[q + i] = new Vector3(x, 0f, z);
+                uvs[q + i]      = new Vector2(x * 0.5f + 0.5f, z * 0.5f + 0.5f);
+                colors[q + i]   = Color.black;
             }
+            // Wound like the old disc (center, next, current): seen from above, (-1,-1) -> (-1,1) -> (1,1) -> (1,-1).
+            discTris[0] = q; discTris[1] = q + 3; discTris[2] = q + 2;
+            discTris[3] = q; discTris[4] = q + 2; discTris[5] = q + 1;
 
             var mesh = new Mesh { name = "TargetHalo" };
             mesh.subMeshCount = 1;

@@ -1,7 +1,7 @@
 Shader "CrimsonDraft/VFX/TargetHalo"
 {
-    // Selector drawn in the world around a character's feet: a ring on the floor split into a few
-    // arcs with gaps between them, with a soft glow around the arcs (and an HDR-bright core so a
+    // Selector drawn in the world around a character's feet: a square ring on the floor split into
+    // a few lines with gaps between them, with a soft glow around the arcs (and an HDR-bright core so a
     // camera with Bloom makes it shine). Everything comes from one procedural mesh (TargetHalo) --
     // vertex color R flags which part a fragment belongs to (1 = optional cylinder wall,
     // 0 = floor disc); the wall's UV.y is its normalized height.
@@ -11,8 +11,10 @@ Shader "CrimsonDraft/VFX/TargetHalo"
         _Intensity      ("Intensity", Range(0, 4)) = 1
 
         [Header(Floor Arcs)]
-        _ArcCount       ("Arc Count", Range(1, 8)) = 3
-        _ArcFill        ("Arc Length (fraction of each section)", Range(0.1, 1)) = 0.68
+        _ArcCount       ("Arc Count", Range(1, 8)) = 4
+        _PulseAmount    ("Pulse Size (fraction of the ring radius)", Range(0, 0.2)) = 0.12
+        _PulseSpeed     ("Pulse Speed (cycles per second)", Range(0, 6)) = 1.5
+        _ArcFill        ("Arc Length (fraction of each section)", Range(0.1, 1)) = 0.5
         _ArcSoftness    ("Arc End Softness", Range(0.001, 0.2)) = 0.03
         _RingRadius     ("Ring Radius (normalized)", Range(0.3, 1)) = 0.8
         _RingWidth      ("Ring Width", Range(0.01, 0.4)) = 0.05
@@ -58,6 +60,8 @@ Shader "CrimsonDraft/VFX/TargetHalo"
                 half4 _Color;
                 half  _Intensity;
                 half  _ArcCount;
+                half  _PulseAmount;
+                half  _PulseSpeed;
                 half  _ArcFill;
                 half  _ArcSoftness;
                 half  _RingRadius;
@@ -119,13 +123,20 @@ Shader "CrimsonDraft/VFX/TargetHalo"
                 else
                 {
                     float2 c = IN.uv * 2.0 - 1.0;
-                    half   d = length(c);
+                    half   d = max(abs(c.x), abs(c.y));                      // square distance: rings are squares
                     if (d > 1.0) discard;
 
-                    // Split the ring into _ArcCount sections, each drawn only over _ArcFill of its length.
-                    half a = atan2(c.y, c.x) * (1.0 / 6.2831853) + 0.5;     // 0..1 around the circle
-                    half t = frac(a * _ArcCount);                            // position inside the section
-                    half dr = d - _RingRadius;
+                    // Split the ring into _ArcCount sections, each drawn only over _ArcFill of its length,
+                    // centered in its section (with 4 arcs, one per side, gaps at the corners).
+                    // Position along the square's perimeter, 0..1, counter-clockwise from the right side's
+                    // bottom corner. The lines are static; the whole square breathes in and out instead.
+                    half side, u;
+                    if (abs(c.x) >= abs(c.y)) { side = c.x > 0 ? 0 : 2; u = c.x > 0 ? c.y : -c.y; }
+                    else                      { side = c.y > 0 ? 1 : 3; u = c.y > 0 ? -c.x : c.x; }
+                    half a = (side + u * 0.5 + 0.5) * 0.25;
+                    half t = frac(a * _ArcCount + _ArcFill * 0.5);           // position inside the section
+                    half pulse = 1.0 + _PulseAmount * sin(_Time.y * _PulseSpeed * 6.2831853);
+                    half dr = d - _RingRadius * pulse;
                     half arcMask, core, glow, fill, edge;
                     if (_HardEdge > 0.5)
                     {
