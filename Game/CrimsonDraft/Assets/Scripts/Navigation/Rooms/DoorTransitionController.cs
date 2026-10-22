@@ -23,7 +23,9 @@ namespace CrimsonDraft.Navigation.Rooms
         private RoomTransitionContext? context;
         private bool                   completed;
         private bool                   canSkip;
-        private bool                   hasDoor;
+        // Set by the clip's OnDoorOpenSfx event: only a transition that opened a door closes one,
+        // so prefabs without that event (e.g. the stairs) stay silent.
+        private bool                   doorOpened;
 
         private void Awake()
         {
@@ -76,8 +78,6 @@ namespace CrimsonDraft.Navigation.Rooms
                 Debug.LogWarning("[DoorTransitionController] No door prefab assigned — transition will fade without door.");
             }
 
-            this.hasDoor = animator != null;
-
             RunTransition(animator).Forget();
         }
 
@@ -97,6 +97,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
         internal void PlayDoorOpenSfx()
         {
+            this.doorOpened = true;
             this.openSwitch.SetValue(gameObject);
             this.doorEvent.Post(gameObject);
         }
@@ -106,7 +107,7 @@ namespace CrimsonDraft.Navigation.Rooms
             if (this.completed) return;
             this.completed = true;
 
-            if (this.hasDoor)
+            if (this.doorOpened)
             {
                 this.closeSwitch.SetValue(gameObject);
                 this.doorEvent.Post(gameObject);
