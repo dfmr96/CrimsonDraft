@@ -22,7 +22,10 @@ namespace CrimsonDraft.Editor
         private const string PropShadowType     = "m_Shadows.m_Type";
         private const string PropShadowStrength = "m_Shadows.m_Strength";
         private const string PropShadowNear     = "m_Shadows.m_NearPlane";
+        private const string PropShadowBias     = "m_Shadows.m_Bias";
+        private const string PropShadowNormal   = "m_Shadows.m_NormalBias";
         private const string PropShadowTier     = "m_AdditionalLightsShadowResolutionTier"; // vive en UniversalAdditionalLightData
+        private const string PropUsePipeline    = "m_UsePipelineSettings";                  // vive en UniversalAdditionalLightData
         private const string PropCastShadows    = "m_CastShadows";
         private const string PropReceiveShadows = "m_ReceiveShadows";
 
@@ -56,6 +59,8 @@ namespace CrimsonDraft.Editor
         [SerializeField] private LightShadows shadowType      = LightShadows.Hard;
         [SerializeField] private float        shadowStrength  = 1f;
         [SerializeField] private float        maxNearPlane    = 0.2f;
+        [SerializeField] private float        depthBias       = 0.05f;
+        [SerializeField] private float        normalBias      = 0.4f;
         [SerializeField] private int          resolutionTier  = 2;
         [SerializeField] private bool         fixtureCastOff  = true;
 
@@ -146,6 +151,8 @@ namespace CrimsonDraft.Editor
             if (this.shadowType == LightShadows.None) this.shadowType = LightShadows.Hard;
             this.shadowStrength = EditorGUILayout.Slider("Shadow Strength", this.shadowStrength, 0f, 1f);
             this.maxNearPlane   = EditorGUILayout.FloatField(new GUIContent("Near Plane máximo", "Si el Near Plane es mayor, los objetos cercanos a la luz no proyectan sombra."), this.maxNearPlane);
+            this.depthBias      = EditorGUILayout.FloatField(new GUIContent("Depth Bias", "Bias custom de la luz. Con \"Use settings from Render Pipeline\" se usa el del URP Asset, que puede borrar las sombras de lo que está cerca del piso."), this.depthBias);
+            this.normalBias     = EditorGUILayout.FloatField("Normal Bias", this.normalBias);
             this.resolutionTier = EditorGUILayout.Popup("Shadow Resolution", this.resolutionTier, TierNames);
             this.fixtureCastOff = EditorGUILayout.Toggle(new GUIContent("Apagar sombra de la lámpara", "La pieza que contiene la luz (padre con MeshRenderer) no proyecta sombra; si no, deja una mancha en la pared."), this.fixtureCastOff);
 
@@ -340,12 +347,20 @@ namespace CrimsonDraft.Editor
                 if (light.shadowNearPlane > this.maxNearPlane + 0.001f)
                     entry.Issues.Add($"Near Plane {light.shadowNearPlane:0.##}: lo que esté más cerca de la luz no proyecta sombra");
 
-                var tier = FindTierProperty(light);
+                var data = FindLightData(light);
+                var tier = data?.FindProperty(PropShadowTier);
                 if (tier == null)
-                    entry.Note = "No tiene UniversalAdditionalLightData: no se puede revisar la resolución.";
+                    entry.Note = "No tiene UniversalAdditionalLightData: no se puede revisar la resolución ni el bias.";
                 else if (tier.intValue != this.resolutionTier)
                     entry.Issues.Add($"Shadow Resolution {TierName(tier.intValue)} (objetivo {TierNames[this.resolutionTier]})");
+
+                var usePipeline = data?.FindProperty(PropUsePipeline);
+                if (usePipeline != null && usePipeline.boolValue)
+                    entry.Issues.Add($"Bias en \"Use settings from Render Pipeline\" (depth {PipelineDepthBias():0.##}): lo que está cerca del piso no proyecta sombra");
             }
+
+            if (!Mathf.Approximately(light.shadowBias, this.depthBias) || !Mathf.Approximately(light.shadowNormalBias, this.normalBias))
+                entry.Issues.Add($"Bias {light.shadowBias:0.###} / {light.shadowNormalBias:0.###} (objetivo {this.depthBias:0.###} / {this.normalBias:0.###})");
 
             if (this.fixtureCastOff)
             {
@@ -486,23 +501,40 @@ namespace CrimsonDraft.Editor
                 if (near.floatValue > this.maxNearPlane + 0.001f) { near.floatValue = this.maxNearPlane; changed.Add(PropShadowNear); }
             }
 
+            var bias = so.FindProperty(PropShadowBias);
+            if (!Mathf.Approximately(bias.floatValue, this.depthBias)) { bias.floatValue = this.depthBias; changed.Add(PropShadowBias); }
+
+            var normal = so.FindProperty(PropShadowNormal);
+            if (!Mathf.Approximately(normal.floatValue, this.normalBias)) { normal.floatValue = this.normalBias; changed.Add(PropShadowNormal); }
+
             so.ApplyModifiedProperties();
             this.Persist(so, changed, v => v.propertyPath switch
             {
                 PropShadowType     => v.intValue != (int)LightShadows.None,
                 PropShadowStrength => v.floatValue >= this.shadowStrength - 0.001f,
                 PropShadowNear     => v.floatValue <= this.maxNearPlane + 0.001f,
+                PropShadowBias     => Mathf.Approximately(v.floatValue, this.depthBias),
+                PropShadowNormal   => Mathf.Approximately(v.floatValue, this.normalBias),
                 _                  => true,
             });
 
             if (light.type != LightType.Directional)
             {
-                var tier = FindTierProperty(light);
-                if (tier != null && tier.intValue != this.resolutionTier)
+                var data = FindLightData(light);
+                if (data != null)
                 {
-                    tier.intValue = this.resolutionTier;
-                    tier.serializedObject.ApplyModifiedProperties();
-                    this.Persist(tier.serializedObject, new List<string> { PropShadowTier }, v => v.intValue == this.resolutionTier);
+                    var dataChanged = new List<string>();
+
+                    var tier = data.FindProperty(PropShadowTier);
+                    if (tier != null && tier.intValue != this.resolutionTier) { tier.intValue = this.resolutionTier; dataChanged.Add(PropShadowTier); }
+
+                    var usePipeline = data.FindProperty(PropUsePipeline);
+                    if (usePipeline != null && usePipeline.boolValue) { usePipeline.boolValue = false; dataChanged.Add(PropUsePipeline); }
+
+                    data.ApplyModifiedProperties();
+                    this.Persist(data, dataChanged, v => v.propertyPath == PropUsePipeline
+                        ? !v.boolValue
+                        : v.intValue == this.resolutionTier);
                 }
             }
 
@@ -605,7 +637,10 @@ namespace CrimsonDraft.Editor
                 case PropShadowType:     prop.intValue   = (int)this.shadowType;           break;
                 case PropShadowStrength: prop.floatValue = this.shadowStrength;            break;
                 case PropShadowNear:     prop.floatValue = this.maxNearPlane;              break;
+                case PropShadowBias:     prop.floatValue = this.depthBias;                 break;
+                case PropShadowNormal:   prop.floatValue = this.normalBias;                break;
                 case PropShadowTier:     prop.intValue   = this.resolutionTier;            break;
+                case PropUsePipeline:    prop.boolValue  = false;                          break;
                 case PropReceiveShadows: prop.boolValue  = true;                           break;
                 case PropCastShadows:
                     prop.intValue = so.targetObject is Renderer r && IsLightFixture(r)
@@ -646,11 +681,17 @@ namespace CrimsonDraft.Editor
             return light.transform.parent != null ? light.transform.parent.GetComponent<MeshRenderer>() : null;
         }
 
-        private static SerializedProperty? FindTierProperty(Light light)
+        private static SerializedObject? FindLightData(Light light)
         {
             var data = light.GetComponent(UrpLightDataType);
-            if (data == null) return null;
-            return new SerializedObject(data).FindProperty(PropShadowTier);
+            return data != null ? new SerializedObject(data) : null;
+        }
+
+        private static float PipelineDepthBias()
+        {
+            var rp = GraphicsSettings.currentRenderPipeline;
+            var prop = rp != null ? new SerializedObject(rp).FindProperty("m_ShadowDepthBias") : null;
+            return prop?.floatValue ?? 0f;
         }
 
         private static bool HasShadowCasterPass(Material mat)
