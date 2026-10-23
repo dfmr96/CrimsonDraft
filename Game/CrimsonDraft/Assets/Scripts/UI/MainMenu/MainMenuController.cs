@@ -20,7 +20,7 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
         [SerializeField] private LoadGameSaveListView loadListView      = null!;
-        [SerializeField] private MainMenuCameraTravel cameraTravel      = null!;
+        [SerializeField] private MainMenuPanelNavigator panelNavigator  = null!;
         [SerializeField] private NewGamePromptView    newGamePromptView = null!;
 
         private IInputService         inputService         = null!;
@@ -163,8 +163,8 @@ namespace CrimsonDraft.UI.MainMenu
         }
 
         /// <summary>
-        /// Called by MainMenuCameraTravel once the camera arrives at LoadGame-Camera --
-        /// mirrors how TravelToOptions() hands off to OptionsTabController.Open().
+        /// Called by MainMenuPanelNavigator once the LOADGAME panel is shown --
+        /// mirrors how it hands off to OptionsMenuNavigator.Open().
         /// </summary>
         public void OpenLoadGameList()
         {
@@ -208,7 +208,7 @@ namespace CrimsonDraft.UI.MainMenu
             if (this.isLoadingSlot) return;
 
             this.inputService.SwitchToUI();
-            this.cameraTravel.TravelBackFromLoadGame();
+            this.panelNavigator.BackFromLoadGame();
         }
 
         private void OnNavigate(InputAction.CallbackContext ctx)

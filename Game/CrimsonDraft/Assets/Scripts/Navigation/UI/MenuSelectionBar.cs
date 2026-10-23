@@ -23,6 +23,8 @@ namespace CrimsonDraft.UI.MainMenu
         [Header("Follow")]
         [Tooltip("Botones que la barra sigue por seleccion del EventSystem. Vacio = la maneja un controlador por codigo.")]
         [SerializeField] private Button[] buttons = System.Array.Empty<Button>();
+        [Tooltip("Opcional, mismo orden que Buttons: rect de referencia de cada boton (hijo suyo, con su Image apagada). La barra se desliza hacia ese rect en vez del rect del boton, asi conserva la forma y el tamaño autorados (ej. una tira bajo el texto). Vacio = sigue al boton entero.")]
+        [SerializeField] private RectTransform[] anchors = System.Array.Empty<RectTransform>();
         [SerializeField] private float followSpeed = 18f;
 
         [Header("Colors")]
@@ -95,10 +97,17 @@ namespace CrimsonDraft.UI.MainMenu
 
             if (this.buttons.Length > 0)
             {
-                var found = FindSelected();
-                if (found != null && found != this.target) Follow(found, snap: this.alpha < 0.05f);
-                if (found != null) this.targetGroup = found.GetComponentInParent<CanvasGroup>();
-                targetAlpha = found == null ? 0f : this.normalColor.a * (this.targetGroup != null ? this.targetGroup.alpha : 1f);
+                int selected = FindSelectedIndex();
+                if (selected >= 0)
+                {
+                    var button = (RectTransform)this.buttons[selected].transform;
+                    var follow = this.anchors.Length == this.buttons.Length && this.anchors[selected] != null
+                        ? this.anchors[selected]
+                        : button;
+                    if (follow != this.target) Follow(follow, snap: this.alpha < 0.05f);
+                    this.targetGroup = button.GetComponentInParent<CanvasGroup>();
+                }
+                targetAlpha = selected < 0 ? 0f : this.normalColor.a * (this.targetGroup != null ? this.targetGroup.alpha : 1f);
             }
 
             this.flash = Mathf.Max(0f, this.flash - dt / Mathf.Max(0.0001f, this.flashDuration));
@@ -118,13 +127,13 @@ namespace CrimsonDraft.UI.MainMenu
             this.snapNext = false;
         }
 
-        private RectTransform? FindSelected()
+        private int FindSelectedIndex()
         {
             var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            if (selected == null) return null;
-            foreach (var button in this.buttons)
-                if (button != null && button.gameObject == selected) return (RectTransform)button.transform;
-            return null;
+            if (selected == null) return -1;
+            for (int i = 0; i < this.buttons.Length; i++)
+                if (this.buttons[i] != null && this.buttons[i].gameObject == selected) return i;
+            return -1;
         }
 
         private readonly Vector3[] corners = new Vector3[4];

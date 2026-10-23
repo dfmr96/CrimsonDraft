@@ -11,12 +11,13 @@ namespace CrimsonDraft.UI.MainMenu
     public sealed class MainMenuRevealSequence : MonoBehaviour
     {
         [Header("Bar")]
-        [Tooltip("Pivot debe estar en el borde izquierdo (0, 0.5) para que crezca hacia la derecha.")]
-        [SerializeField] private RectTransform bar         = null!;
+        [Tooltip("Opcional (vacio = se salta la barra). Pivot debe estar en el borde izquierdo (0, 0.5) para que crezca hacia la derecha.")]
+        [SerializeField] private RectTransform? bar;
         [SerializeField] private float         barDuration = 0.5f;
 
         [Header("Small Logo")]
-        [SerializeField] private Image smallLogo           = null!;
+        [Tooltip("Opcional: vacio = se salta el logo.")]
+        [SerializeField] private Image? smallLogo;
         [SerializeField] private int   logoFlickerCount    = 3;
         [SerializeField] private float logoFlickerInterval = 0.08f;
 
@@ -42,8 +43,8 @@ namespace CrimsonDraft.UI.MainMenu
 
             this.hasRevealed = true;
 
-            this.bar.localScale = new Vector3(0f, 1f, 1f);
-            SetAlpha(this.smallLogo, 0f);
+            if (this.bar != null) this.bar.localScale = new Vector3(0f, 1f, 1f);
+            if (this.smallLogo != null) SetAlpha(this.smallLogo, 0f);
 
             foreach (var group in this.buttons)
             {
@@ -52,18 +53,18 @@ namespace CrimsonDraft.UI.MainMenu
                 group.blocksRaycasts  = false;
             }
 
-            DOTween.Sequence()
-                .SetTarget(this)
-                .SetUpdate(true)
-                .Append(this.bar.DOScaleX(1f, this.barDuration).SetEase(Ease.OutQuad))
-                .Append(BuildLogoFlickerSequence())
-                .AppendCallback(RevealButtons);
+            var reveal = DOTween.Sequence().SetTarget(this).SetUpdate(true);
+            if (this.bar != null)
+                reveal.Append(this.bar.DOScaleX(1f, this.barDuration).SetEase(Ease.OutQuad));
+            if (this.smallLogo != null)
+                reveal.Append(BuildLogoFlickerSequence(this.smallLogo));
+            reveal.AppendCallback(RevealButtons);
         }
 
         private void ShowRevealedInstantly()
         {
-            this.bar.localScale = Vector3.one;
-            SetAlpha(this.smallLogo, 1f);
+            if (this.bar != null) this.bar.localScale = Vector3.one;
+            if (this.smallLogo != null) SetAlpha(this.smallLogo, 1f);
 
             foreach (var group in this.buttons)
             {
@@ -79,15 +80,15 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnDisable() => DOTween.Kill(this);
 
-        private Sequence BuildLogoFlickerSequence()
+        private Sequence BuildLogoFlickerSequence(Image logo)
         {
             var flicker = DOTween.Sequence().SetTarget(this).SetUpdate(true);
             for (int i = 0; i < this.logoFlickerCount; i++)
             {
-                flicker.Append(this.smallLogo.DOFade(1f, this.logoFlickerInterval));
-                flicker.Append(this.smallLogo.DOFade(0f, this.logoFlickerInterval));
+                flicker.Append(logo.DOFade(1f, this.logoFlickerInterval));
+                flicker.Append(logo.DOFade(0f, this.logoFlickerInterval));
             }
-            flicker.Append(this.smallLogo.DOFade(1f, this.logoFlickerInterval));
+            flicker.Append(logo.DOFade(1f, this.logoFlickerInterval));
             return flicker;
         }
 

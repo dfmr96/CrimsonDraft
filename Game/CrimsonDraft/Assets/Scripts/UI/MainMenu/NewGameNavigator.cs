@@ -17,7 +17,7 @@ namespace CrimsonDraft.UI.MainMenu
     /// <see cref="ControlOptionsController"/>. The button reads "Next": confirming it swaps the
     /// canvas to step 2 (Gamma), where Up/Down moves between the gamma bar and the same button,
     /// now reading "Start", and confirming that starts the game. Cancel from step 2 goes back to
-    /// step 1 (see <see cref="TryGoBack"/>) before the camera is allowed to travel back.
+    /// step 1 (see <see cref="TryGoBack"/>) before the menu is allowed to leave the screen.
     ///
     /// Both steps read and write the persistent settings (control scheme, gamma), so whatever was
     /// changed in Options shows up here and vice versa.
@@ -95,7 +95,7 @@ namespace CrimsonDraft.UI.MainMenu
         }
 
         /// <summary>Cancel pressed while New Game is open. Returns true if it only went back from
-        /// Gamma to Controls (the camera stays put), false if the caller should leave the screen.</summary>
+        /// Gamma to Controls (the screen stays open), false if the caller should leave the screen.</summary>
         public bool TryGoBack()
         {
             if (!this.isOpen || this.step != Step.Gamma) return false;
