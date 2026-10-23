@@ -39,6 +39,7 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
+        private bool? legacySpawnsLeft;
         private bool cameraMode;
         private int cameraDragButton = -1;
         private bool fastFly;
@@ -60,17 +61,21 @@ namespace CrimsonDraft.Navigation.Editor
             this.RefreshRooms();
             EditorApplication.hierarchyChanged += this.OnHierarchyChanged;
             EditorApplication.update += this.OnEditorUpdate;
+            EditorApplication.projectChanged += this.OnProjectChanged;
         }
 
         private void OnDisable()
         {
             EditorApplication.hierarchyChanged -= this.OnHierarchyChanged;
             EditorApplication.update -= this.OnEditorUpdate;
+            EditorApplication.projectChanged -= this.OnProjectChanged;
             FixedCameraZoneTrigger.GizmoHighlightCamera = null;
             this.DestroyViewCamera();
             this.ReleaseTexture();
             SceneView.RepaintAll();
         }
+
+        private void OnProjectChanged() => this.legacySpawnsLeft = null;
 
         private void OnHierarchyChanged()
         {
@@ -313,8 +318,11 @@ namespace CrimsonDraft.Navigation.Editor
             }
             DoorArrivalSettings.Distance = EditorGUILayout.FloatField(DoorArrivalSettings.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
 
-            // One-shot conversion of the old spawn points; disappears with them once migrated.
-            if (GUILayout.Button(new GUIContent("Migrate Doors", SpawnPointMigration.Explanation), EditorStyles.toolbarButton, GUILayout.Width(88f)))
+            // One-shot conversion of the old spawn points; hidden once none is left, so a second click
+            // can never reset hand-tuned arrivals.
+            this.legacySpawnsLeft ??= SpawnPointMigration.HasLegacySpawns();
+            if (this.legacySpawnsLeft == true
+                && GUILayout.Button(new GUIContent("Migrate Doors", SpawnPointMigration.Explanation), EditorStyles.toolbarButton, GUILayout.Width(88f)))
                 EditorApplication.delayCall += SpawnPointMigration.MigrateWithConfirmation;
         }
 

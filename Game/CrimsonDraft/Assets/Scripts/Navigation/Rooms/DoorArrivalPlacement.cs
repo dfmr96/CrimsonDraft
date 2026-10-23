@@ -23,7 +23,11 @@ namespace CrimsonDraft.Navigation.Rooms
                 if (!any) { bounds = renderer.bounds; any = true; }
                 else bounds.Encapsulate(renderer.bounds);
             }
-            return any ? bounds : new Bounds(door.transform.position, new Vector3(0.2f, 2f, 1.2f));
+            if (any) return bounds;
+
+            // No model: a thin slab on the pivot, turned like the transform so its thin axis follows the door.
+            var slab = door.transform.rotation * new Vector3(0.2f, 2f, 1.2f);
+            return new Bounds(door.transform.position, new Vector3(Mathf.Abs(slab.x), Mathf.Abs(slab.y), Mathf.Abs(slab.z)));
         }
 
         /// <summary>A point inside the room, used to tell which side of a door is the interior.</summary>

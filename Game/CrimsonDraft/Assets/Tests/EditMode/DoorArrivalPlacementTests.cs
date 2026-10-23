@@ -59,6 +59,26 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void BareDoorTurned90_facesIntoRoomAlongZ()
+        {
+            var go = new GameObject("Door");
+            go.transform.SetPositionAndRotation(new Vector3(0, 0, 0), Quaternion.Euler(0, 90, 0));
+            try
+            {
+                var bounds = DoorArrivalPlacement.DoorBounds(go.transform);
+                var pose = DoorArrivalPlacement.DefaultPose(bounds, new Vector3(0, 1, 4), 1f);
+
+                Assert.That(pose.position.x, Is.EqualTo(0f).Within(1e-4));
+                Assert.That(pose.position.z, Is.EqualTo(1f).Within(1e-4));
+                Assert.That(Vector3.Dot(pose.rotation * Vector3.forward, Vector3.forward), Is.EqualTo(1f).Within(1e-4));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
         public void PlaceAtDefault_createsArrivalChildOnce()
         {
             var door = new GameObject("Door").AddComponent<DoorArrival>();

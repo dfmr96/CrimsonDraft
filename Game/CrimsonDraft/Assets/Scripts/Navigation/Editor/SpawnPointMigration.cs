@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,98 +13,184 @@ using CrimsonDraft.Navigation.Rooms;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>One-shot migration from SpawnPoint / SceneSpawnPoint to door arrivals (deleted together
-    /// with the old classes). Pass 0 saves DoorArrival + ArrivalPoint into the door prefab assets, so the
-    /// component is part of the door; pass 1 converts every room prefab; pass 2 every production scene.
-    /// Each door gets its arrival re-placed at the default distance (on the side of the spawn it replaces
-    /// when there is one) and inherits that spawn's camera and, for scene doors, its entry id. Every old
-    /// spawn is deleted; the ones no door claimed are logged as errors first.</summary>
+    /// with the old classes).
+    ///
+    /// Door destinations and spawn fromRooms point at other rooms, so they only exist as overrides on
+    /// the room prefab instances in the deck scenes; inside a room prefab asset they are null. That is
+    /// why the matching runs in the scenes:
+    /// 0. door prefab assets get DoorArrival + ArrivalPoint (bases before variants, so a variant inherits
+    ///    the component instead of adding a second one);
+    /// 1. every production scene: each door instance gets its arrival placed (on the side of the spawn
+    ///    it replaces), that spawn's camera and, for scene doors, its entry id; spawns that are scene
+    ///    objects are deleted there, spawns that come from a room prefab are left for pass 2;
+    /// 2. room prefab assets: their SpawnPoint / SceneSpawnPoint are deleted;
+    /// 3. every production scene again: overrides left pointing at the deleted spawns are removed.
+    /// Spawns no door claimed are logged as errors. Refuses to run while anything is unsaved, and once
+    /// no spawn is left (a second run would reset every hand-tuned arrival).</summary>
     public static class SpawnPointMigration
     {
         private const string PrefabsRoot = "Assets/Prefabs";
         private const string ScenesRoot = "Assets/Scenes/Production";
 
+        public const string Explanation =
+            "Adds a DoorArrival to every door prefab, places every door arrival in every production scene, copies " +
+            "the spawn cameras and entry ids to the doors, and deletes every SpawnPoint and SceneSpawnPoint. " +
+            "Prefabs and scenes are saved. Commit or stash your own changes first.";
+
         private sealed class Stats
         {
-            public int Assets, Doors, Cameras, Spawns, Unmatched;
+            public int Saved, Doors, Cameras, Spawns, Unmatched;
         }
-
-        public const string Explanation =
-            "Adds a DoorArrival to every door prefab, re-places every door arrival in every room prefab and " +
-            "production scene, copies the spawn cameras and entry ids to the doors, and deletes every SpawnPoint " +
-            "and SceneSpawnPoint. Prefabs and scenes are saved. Commit or stash your own changes first.";
 
         [MenuItem("CrimsonDraft/Doors/Migrate Spawn Points To Door Arrivals")]
         internal static void MigrateWithConfirmation()
         {
+            if (!CanRun(out var reason)) { Debug.LogError("[SpawnPointMigration] " + reason); return; }
             if (EditorUtility.DisplayDialog("Migrate spawn points to door arrivals", Explanation, "Migrate", "Cancel"))
-                Migrate();
+                Run(dryRun: false);
         }
 
-        internal static void Migrate()
+        [MenuItem("CrimsonDraft/Doors/Migrate Spawn Points To Door Arrivals (Dry Run)")]
+        internal static void DryRun()
         {
+            if (!CanRun(out var reason)) { Debug.LogError("[SpawnPointMigration] " + reason); return; }
+            Run(dryRun: true);
+        }
+
+        /// <summary>Whether there is still anything to migrate; cheap enough for a button state.</summary>
+        public static bool HasLegacySpawns()
+        {
+            var spawnGuid = ScriptGuid(typeof(SpawnPoint));
+            var sceneSpawnGuid = ScriptGuid(typeof(SceneSpawnPoint));
+            return AssetDatabase.FindAssets("t:Prefab", new[] { PrefabsRoot }).Concat(AssetDatabase.FindAssets("t:Scene", new[] { ScenesRoot }))
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Any(path => FileMentions(path, spawnGuid) || FileMentions(path, sceneSpawnGuid));
+        }
+
+        private static bool CanRun(out string reason)
+        {
+            reason = "";
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
                 if (!SceneManager.GetSceneAt(i).isDirty) continue;
-                Debug.LogError("[SpawnPointMigration] Save or discard the changes in the open scenes first; nothing was migrated.");
-                return;
+                reason = "Save or discard the changes in the open scenes first; nothing was migrated.";
+                return false;
             }
-            var reopen = SceneManager.GetActiveScene().path;
+            var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            if (stage != null && stage.scene.isDirty)
+            {
+                reason = "Save or discard the prefab open in Prefab Mode first; nothing was migrated.";
+                return false;
+            }
+            if (!HasLegacySpawns())
+            {
+                reason = "No SpawnPoint or SceneSpawnPoint left: already migrated. Nothing was changed.";
+                return false;
+            }
+            return true;
+        }
+
+        private static void Run(bool dryRun)
+        {
+            var openScenes = Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i).path)
+                .Where(p => !string.IsNullOrEmpty(p)).ToArray();
             var stats = new Stats();
             float distance = DoorArrivalSettings.Distance;
+            var scenePaths = AssetDatabase.FindAssets("t:Scene", new[] { ScenesRoot }).Select(AssetDatabase.GUIDToAssetPath).ToArray();
 
-            var prefabPaths = AssetDatabase.FindAssets("t:Prefab", new[] { PrefabsRoot }).Select(AssetDatabase.GUIDToAssetPath).ToArray();
-            var doorPrefabs = new List<string>();
-            var roomPrefabs = new List<string>();
-            foreach (var path in prefabPaths)
+            try
             {
-                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (asset == null) continue;
-                if (asset.GetComponentInChildren<RoomController>(true) != null) roomPrefabs.Add(path);
-                else if (asset.GetComponentInChildren<RoomDoorInteractable>(true) != null
-                         || asset.GetComponentInChildren<SceneDoorInteractable>(true) != null) doorPrefabs.Add(path);
-            }
-
-            // Pass 0: door prefabs own the component and its child; rooms only override the pose.
-            foreach (var path in doorPrefabs)
-                EditPrefab(path, root =>
+                var doorPrefabs = new List<string>();
+                var roomPrefabs = new List<string>();
+                foreach (var path in AssetDatabase.FindAssets("t:Prefab", new[] { PrefabsRoot }).Select(AssetDatabase.GUIDToAssetPath))
                 {
-                    foreach (var door in Doors(root.transform))
-                    {
-                        var arrival = door.GetComponent<DoorArrival>() ?? door.gameObject.AddComponent<DoorArrival>();
-                        arrival.PlaceAtDefault(distance, door.transform.position + door.transform.forward);
-                    }
-                    return true;
-                }, stats);
+                    var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (asset == null) continue;
+                    if (asset.GetComponentInChildren<RoomController>(true) != null) roomPrefabs.Add(path);
+                    else if (asset.GetComponentInChildren<RoomDoorInteractable>(true) != null
+                             || asset.GetComponentInChildren<SceneDoorInteractable>(true) != null) doorPrefabs.Add(path);
+                }
 
-            // Pass 1: room prefabs.
-            foreach (var path in roomPrefabs)
-                EditPrefab(path, root =>
+                if (!dryRun)
                 {
+                    // Pass 0: bases before variants.
+                    foreach (var path in doorPrefabs.OrderBy(VariantDepth))
+                        EditPrefab(path, root =>
+                        {
+                            foreach (var door in Doors(root.transform))
+                            {
+                                var arrival = door.GetComponent<DoorArrival>();
+                                if (arrival != null && arrival.ArrivalPoint != null) continue; // inherited from the base
+                                arrival ??= door.gameObject.AddComponent<DoorArrival>();
+                                arrival.PlaceAtDefault(distance, door.transform.position + door.transform.forward);
+                            }
+                            return true;
+                        }, stats);
+                }
+
+                // Pass 1: scenes, where door destinations and spawn fromRooms resolve.
+                foreach (var path in scenePaths)
+                {
+                    var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                    var roots = scene.GetRootGameObjects();
+                    var sceneSpawns = roots.SelectMany(g => g.GetComponentsInChildren<SceneSpawnPoint>(true)).ToList();
                     bool changed = false;
-                    var sceneSpawns = root.GetComponentsInChildren<SceneSpawnPoint>(true).ToList();
-                    foreach (var room in root.GetComponentsInChildren<RoomController>(true))
-                        changed |= MigrateRoom(room, sceneSpawns, distance, stats, path);
-                    return changed;
-                }, stats);
+                    foreach (var room in roots.SelectMany(g => g.GetComponentsInChildren<RoomController>(true)))
+                        changed |= MigrateRoom(room, sceneSpawns, distance, stats, scene.name, dryRun);
+                    if (!changed || dryRun) continue;
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                    stats.Saved++;
+                }
 
-            // Pass 2: scenes (rooms that only exist there, scene-level spawns and camera assignments).
-            foreach (var path in AssetDatabase.FindAssets("t:Scene", new[] { ScenesRoot }).Select(AssetDatabase.GUIDToAssetPath))
+                if (!dryRun)
+                {
+                    // Pass 2: the spawns that came from room prefabs.
+                    foreach (var path in roomPrefabs)
+                        EditPrefab(path, root =>
+                        {
+                            var spawns = root.GetComponentsInChildren<SpawnPoint>(true).Cast<Component>()
+                                .Concat(root.GetComponentsInChildren<SceneSpawnPoint>(true)).ToList();
+                            foreach (var spawn in spawns) Delete(spawn, path);
+                            return spawns.Count > 0;
+                        }, stats);
+
+                    // Pass 3: overrides that pointed at the deleted spawns.
+                    foreach (var path in scenePaths)
+                    {
+                        var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                        var instances = scene.GetRootGameObjects()
+                            .SelectMany(g => g.GetComponentsInChildren<Transform>(true))
+                            .Select(t => t.gameObject)
+                            .Where(PrefabUtility.IsOutermostPrefabInstanceRoot)
+                            .ToArray();
+                        if (instances.Length == 0) continue;
+                        PrefabUtility.RemoveUnusedOverrides(instances, InteractionMode.AutomatedAction);
+                        EditorSceneManager.SaveScene(scene);
+                    }
+                    AssetDatabase.SaveAssets();
+                }
+            }
+            finally
             {
-                var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
-                var sceneSpawns = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<SceneSpawnPoint>(true)).ToList();
-                bool changed = false;
-                foreach (var room in scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<RoomController>(true)))
-                    changed |= MigrateRoom(room, sceneSpawns, distance, stats, scene.name);
-                if (!changed) continue;
-                EditorSceneManager.MarkSceneDirty(scene);
-                EditorSceneManager.SaveScene(scene);
-                stats.Assets++;
+                for (int i = 0; i < openScenes.Length; i++)
+                    EditorSceneManager.OpenScene(openScenes[i], i == 0 ? OpenSceneMode.Single : OpenSceneMode.Additive);
             }
 
-            if (!string.IsNullOrEmpty(reopen)) EditorSceneManager.OpenScene(reopen, OpenSceneMode.Single);
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[SpawnPointMigration] Assets saved {stats.Assets}, doors placed {stats.Doors}, cameras copied {stats.Cameras}, " +
-                      $"spawns deleted {stats.Spawns}, unmatched {stats.Unmatched}.");
+            Debug.Log($"[SpawnPointMigration] {(dryRun ? "DRY RUN, nothing saved. " : "")}Assets saved {stats.Saved}, door arrivals placed {stats.Doors}, " +
+                      $"cameras copied {stats.Cameras}, spawns handled {stats.Spawns}, unmatched {stats.Unmatched}.");
+        }
+
+        private static int VariantDepth(string path)
+        {
+            int depth = 0;
+            var current = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            while (current != null && PrefabUtility.GetPrefabAssetType(current) == PrefabAssetType.Variant)
+            {
+                current = PrefabUtility.GetCorrespondingObjectFromSource(current);
+                depth++;
+            }
+            return depth;
         }
 
         private static void EditPrefab(string path, System.Func<GameObject, bool> edit, Stats stats)
@@ -113,7 +200,7 @@ namespace CrimsonDraft.Navigation.Editor
             {
                 if (!edit(root)) return;
                 PrefabUtility.SaveAsPrefabAsset(root, path);
-                stats.Assets++;
+                stats.Saved++;
             }
             finally
             {
@@ -125,48 +212,56 @@ namespace CrimsonDraft.Navigation.Editor
             root.GetComponentsInChildren<RoomDoorInteractable>(true).Cast<Component>()
                 .Concat(root.GetComponentsInChildren<SceneDoorInteractable>(true));
 
-        private static bool MigrateRoom(RoomController room, List<SceneSpawnPoint> sceneSpawns, float distance, Stats stats, string where)
+        private static bool MigrateRoom(RoomController room, List<SceneSpawnPoint> sceneSpawns, float distance, Stats stats, string where, bool dryRun)
         {
-            var spawns = room.GetComponentsInChildren<SpawnPoint>(true).ToList();
-            var roomSceneSpawns = sceneSpawns.Where(s => s != null && s.StartingRoom == room).ToList();
+            var spawns = room.GetComponentsInChildren<SpawnPoint>(true);
+            var roomSceneSpawns = sceneSpawns.Where(s => s != null && s.StartingRoom == room).ToArray();
             var doors = room.GetComponentsInChildren<RoomDoorInteractable>(true);
             var sceneDoors = room.GetComponentsInChildren<SceneDoorInteractable>(true);
-            if (doors.Length == 0 && sceneDoors.Length == 0 && spawns.Count == 0 && roomSceneSpawns.Count == 0) return false;
+            if (doors.Length == 0 && sceneDoors.Length == 0 && spawns.Length == 0 && roomSceneSpawns.Length == 0) return false;
 
             var used = new HashSet<Component>();
-            foreach (var door in doors)
+            var roomMatch = SpawnMatching.MatchNearest(
+                doors.Select(d => d.transform.position).ToList(), spawns.Select(s => s.transform.position).ToList(),
+                (d, s) => doors[d].Destination != null && spawns[s].FromRoom == doors[d].Destination);
+            for (int i = 0; i < doors.Length; i++)
             {
-                var match = Nearest(spawns.Where(s => door.Destination != null && s.FromRoom == door.Destination && !used.Contains(s)), door.transform.position);
-                Place(door, match, room, distance, stats, used);
+                SpawnPoint? match = roomMatch.TryGetValue(i, out var s) ? spawns[s] : null;
+                if (match != null) used.Add(match);
+                if (!dryRun) Place(doors[i], match, room, distance, stats);
             }
-            foreach (var door in sceneDoors)
+
+            var sceneMatch = SpawnMatching.MatchNearest(
+                sceneDoors.Select(d => d.transform.position).ToList(), roomSceneSpawns.Select(s => s.transform.position).ToList(),
+                (d, s) => true);
+            for (int i = 0; i < sceneDoors.Length; i++)
             {
-                var match = Nearest(roomSceneSpawns.Where(s => !used.Contains(s)), door.transform.position);
-                Place(door, match, room, distance, stats, used);
+                SceneSpawnPoint? match = sceneMatch.TryGetValue(i, out var s) ? roomSceneSpawns[s] : null;
+                if (match != null) used.Add(match);
+                if (dryRun) continue;
+                Place(sceneDoors[i], match, room, distance, stats);
                 if (match == null) continue;
-                var so = new SerializedObject(door);
-                so.FindProperty("entryPointId").stringValue = ((SceneSpawnPoint)match).EntryPointId;
+                var so = new SerializedObject(sceneDoors[i]);
+                so.FindProperty("entryPointId").stringValue = match.EntryPointId;
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
             foreach (var spawn in spawns.Cast<Component>().Concat(roomSceneSpawns))
             {
+                stats.Spawns++;
                 if (!used.Contains(spawn))
                 {
                     var from = spawn is SpawnPoint sp ? (sp.FromRoom != null ? sp.FromRoom.name : "none") : "scene entry " + ((SceneSpawnPoint)spawn).EntryPointId;
-                    Debug.LogError($"[SpawnPointMigration] Unmatched spawn {where}/{room.name}/{spawn.name} from {from} at {spawn.transform.position:F2}");
+                    Debug.LogError($"[SpawnPointMigration] Unmatched spawn {where}/{room.name}/{spawn.name} from {from} at {spawn.transform.position:F2}", spawn);
                     stats.Unmatched++;
                 }
-                Delete(spawn, where);
-                stats.Spawns++;
+                // Spawns that come from a room prefab are deleted from the prefab in pass 2.
+                if (!dryRun && !PrefabUtility.IsPartOfPrefabInstance(spawn)) Delete(spawn, where);
             }
             return true;
         }
 
-        private static Component? Nearest(IEnumerable<Component> candidates, Vector3 position) =>
-            candidates.OrderBy(c => (c.transform.position - position).sqrMagnitude).FirstOrDefault();
-
-        private static void Place(Component door, Component? match, RoomController room, float distance, Stats stats, HashSet<Component> used)
+        private static void Place(Component door, Component? match, RoomController room, float distance, Stats stats)
         {
             var arrival = door.GetComponent<DoorArrival>() ?? door.gameObject.AddComponent<DoorArrival>();
             var hint = match != null ? match.transform.position : DoorArrivalPlacement.InteriorHint(room);
@@ -174,7 +269,6 @@ namespace CrimsonDraft.Navigation.Editor
             stats.Doors++;
             if (match == null) return;
 
-            used.Add(match);
             var camera = new SerializedObject(match).FindProperty("camera").objectReferenceValue;
             if (camera == null) return;
             var so = new SerializedObject(arrival);
@@ -196,6 +290,21 @@ namespace CrimsonDraft.Navigation.Editor
             {
                 Debug.LogError($"[SpawnPointMigration] Could not delete {where}/{go.name}: {e.Message}", go);
             }
+        }
+
+        private static string ScriptGuid(System.Type type)
+        {
+            var script = AssetDatabase.FindAssets(type.Name + " t:MonoScript")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .FirstOrDefault(p => Path.GetFileNameWithoutExtension(p) == type.Name);
+            return script != null ? AssetDatabase.AssetPathToGUID(script) : "";
+        }
+
+        private static bool FileMentions(string assetPath, string guid)
+        {
+            if (string.IsNullOrEmpty(guid)) return false;
+            var full = Path.GetFullPath(assetPath);
+            return File.Exists(full) && File.ReadAllText(full).Contains(guid);
         }
     }
 }
