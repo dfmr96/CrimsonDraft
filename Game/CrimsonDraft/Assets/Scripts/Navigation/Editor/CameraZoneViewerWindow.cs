@@ -178,7 +178,7 @@ namespace CrimsonDraft.Navigation.Editor
                 }
 
                 this.unlit = GUILayout.Toggle(this.unlit, "Unlit", EditorStyles.toolbarButton, GUILayout.Width(48f));
-                this.DrawSpawnAlignControls();
+                this.DrawArrivalControls();
                 this.cameraMode = GUILayout.Toggle(this.cameraMode, "Move Camera", EditorStyles.toolbarButton, GUILayout.Width(88f));
                 if (!this.cameraMode) this.StopFlying();
                 this.DrawFovField();
@@ -297,22 +297,21 @@ namespace CrimsonDraft.Navigation.Editor
         private const float FlySpeed = 3f;
         private const float FastMultiplier = 3f;
 
-        // Moves the room SpawnPoints to a fixed distance in front of their door, back to it.
-        private void DrawSpawnAlignControls()
+        // Puts every door arrival of the room back in front of its door, back to it.
+        private void DrawArrivalControls()
         {
             var room = this.CurrentRoom;
             using (new EditorGUI.DisabledScope(room == null))
             {
-                if (GUILayout.Button(new GUIContent("Align Spawns", "Put this room's spawn points in front of their door, facing into the room, at the distance (m) on the right."),
-                        EditorStyles.toolbarButton, GUILayout.Width(84f)) && room != null)
+                if (GUILayout.Button(new GUIContent("Reset Arrivals", "Put every door arrival of this room back in front of its door at the distance on the right."),
+                        EditorStyles.toolbarButton, GUILayout.Width(90f)) && room != null)
                 {
-                    var skipped = new List<string>();
-                    int aligned = SpawnPointAligner.Align(room, SpawnPointAligner.Distance, skipped);
-                    SpawnPointAligner.Report(aligned, skipped);
+                    int count = DoorArrivalSettings.ResetRoom(room);
+                    Debug.Log($"[CameraZoneViewer] Reset {count} door arrival(s) in '{room.name}' at {DoorArrivalSettings.Distance:0.##} m.");
                     SceneView.RepaintAll();
                 }
             }
-            SpawnPointAligner.Distance = EditorGUILayout.FloatField(SpawnPointAligner.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
+            DoorArrivalSettings.Distance = EditorGUILayout.FloatField(DoorArrivalSettings.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
         }
 
         private void DrawFovField()
