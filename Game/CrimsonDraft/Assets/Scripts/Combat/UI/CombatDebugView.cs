@@ -5,8 +5,11 @@
 using System.Text;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using VContainer;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using System;
+using CrimsonDraft.Infrastructure.DebugMenu;
+#endif
 using CrimsonDraft.Infrastructure.Scenes;
 using CrimsonDraft.Operators;
 
@@ -15,8 +18,9 @@ namespace CrimsonDraft.Combat
     public sealed class CombatDebugView : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI? text;
-        [SerializeField] private Key killOperatorAndEndCombatKey = Key.F9;
-        [SerializeField] private Key killAllOperatorsKey         = Key.F8;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private IDisposable[] menuRegistrations = Array.Empty<IDisposable>();
+#endif
 
         private ATBSystem?              atbSystem;
         private CombatActionQueue?      actionQueue;
@@ -31,7 +35,11 @@ namespace CrimsonDraft.Combat
         public void Construct(ATBSystem atbSystem, CombatActionQueue actionQueue,
                               CombatOrchestrator orchestrator, IOperatorRoster roster,
                               IBattlefieldView battlefieldView, IEncounterContext encounterContext,
-                              CombatSessionController combatSession)
+                              CombatSessionController combatSession
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                              , IDebugMenu debugMenu
+#endif
+                              )
         {
             this.atbSystem        = atbSystem;
             this.actionQueue      = actionQueue;
@@ -41,21 +49,31 @@ namespace CrimsonDraft.Combat
             this.encounterContext = encounterContext;
             this.combatSession    = combatSession;
             this.initialized      = true;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Only exists while the combat scene is loaded, so these entries appear and vanish with it.
+            this.menuRegistrations = new[]
+            {
+                debugMenu.Register(DebugMenuEntry.Action("Combat", "Kill first operator and end combat", KillFirstAliveOperatorAndEndCombat)),
+                debugMenu.Register(DebugMenuEntry.Action("Combat", "Kill all operators (defeat)", KillAllOperators)),
+            };
+#endif
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void OnDestroy()
+        {
+            foreach (var registration in this.menuRegistrations) registration.Dispose();
+        }
+#endif
 
         private void Update()
         {
             if (!this.initialized || this.text == null) return;
             this.text.text = BuildDebugText();
-
-            Keyboard kb = Keyboard.current;
-            if (kb != null && kb[this.killOperatorAndEndCombatKey].wasPressedThisFrame)
-                KillFirstAliveOperatorAndEndCombat();
-            if (kb != null && kb[this.killAllOperatorsKey].wasPressedThisFrame)
-                KillAllOperators();
         }
 
-        // Debug-only shortcut for exercising the operator-death → corpse flow without
+        // Debug menu entry for exercising the operator-death → corpse flow without
         // playing an entire encounter: kills the first alive operator directly via the
         // same public ApplyDamage API combat uses, then ends combat exactly like a real
         // victory would (CombatEndedEvent fires, OperatorCorpseBootstrap reacts to it).
@@ -78,7 +96,7 @@ namespace CrimsonDraft.Combat
             this.combatSession.EndCombat(true);
         }
 
-        // Debug-only shortcut for exercising the defeat flow end-to-end: kills every alive
+        // Debug menu entry for exercising the defeat flow end-to-end: kills every alive
         // operator through the same ApplyDamage + PlayOperatorDeath path a real enemy attack
         // uses, then lets CombatOrchestrator.SyncOperatorWipe() detect the wipe on its own
         // once the death animations settle, exactly like it would in a real encounter.

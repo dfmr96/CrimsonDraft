@@ -4,6 +4,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.DebugMenu;
 using CrimsonDraft.Navigation.Milestones;
 
 namespace CrimsonDraft.Tests
@@ -107,7 +108,7 @@ namespace CrimsonDraft.Tests
         public void Overlay_firstToggleShows_secondHides()
         {
             Node("Take Sheep Key");
-            var overlay = new MilestoneDebugOverlay(this.registry, new[] { this.graph });
+            var overlay = new MilestoneDebugOverlay(new DebugMenuRegistry(), this.registry, new[] { this.graph });
             try
             {
                 overlay.Toggle();

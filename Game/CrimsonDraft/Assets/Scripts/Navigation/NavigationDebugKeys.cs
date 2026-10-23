@@ -2,12 +2,13 @@
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure.DebugMenu;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Enemy;
@@ -16,20 +17,19 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Navigation
 {
-    // Debug-only shortcuts:
-    //  F7 -- exercises the dead-operator loot flow without a combat: kills the last alive
+    // Debug menu entries (group "Navigation"; no keys of their own any more):
+    //  Kill last alive operator -- exercises the dead-operator loot flow without a combat: kills the last alive
     //        operator and runs the same aftermath a combat death gets (weapon released,
     //        corpse recorded and spawned at the player's feet).
-    //  F6 -- gets the enemy corpse nearest to the player back up (EnemyNavAgent.Revive), until
+    //  Revive nearest enemy corpse -- gets the enemy corpse nearest to the player back up (EnemyNavAgent.Revive), until
     //        a real trigger (milestone, story event) is hooked up.
-    //  F5 -- toggles UI/preview camera gating (UiCameraAutoToggle.GatingEnabled) to A/B its
+    //  UI camera gating -- toggles UI/preview camera gating (UiCameraAutoToggle.GatingEnabled) to A/B its
     //        performance against the original always-on cameras.
-    public sealed class NavigationDebugKeys : ITickable
+    public sealed class NavigationDebugKeys : IInitializable, IDisposable
     {
-        private const Key KillOperatorKey       = Key.F7;
-        private const Key ReviveEnemyKey        = Key.F6;
-        private const Key ToggleCameraGatingKey = Key.F5;
+        private const string Group = "Navigation";
 
+        private readonly IDebugMenu              menu;
         private readonly IOperatorRoster         roster;
         private readonly IInventoryService       inventory;
         private readonly OperatorCorpseBootstrap corpses;
@@ -38,12 +38,14 @@ namespace CrimsonDraft.Navigation
 
         [Preserve]
         public NavigationDebugKeys(
+            IDebugMenu              menu,
             IOperatorRoster         roster,
             IInventoryService       inventory,
             OperatorCorpseBootstrap corpses,
             EnemyNavAgent[]         enemies,
             PlayerController        player)
         {
+            this.menu      = menu;
             this.roster    = roster;
             this.inventory = inventory;
             this.corpses   = corpses;
@@ -72,20 +74,28 @@ namespace CrimsonDraft.Navigation
             return best;
         }
 
-        void ITickable.Tick()
-        {
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
+        private IDisposable[] registrations = Array.Empty<IDisposable>();
 
-            if (keyboard[KillOperatorKey].wasPressedThisFrame) KillOperator();
-            if (keyboard[ReviveEnemyKey].wasPressedThisFrame)  ReviveNearestCorpse();
-            if (keyboard[ToggleCameraGatingKey].wasPressedThisFrame) ToggleCameraGating();
+        void IInitializable.Initialize()
+        {
+            this.registrations = new[]
+            {
+                this.menu.Register(DebugMenuEntry.Action(Group, "Kill last alive operator", KillOperator)),
+                this.menu.Register(DebugMenuEntry.Action(Group, "Revive nearest enemy corpse", ReviveNearestCorpse)),
+                this.menu.Register(DebugMenuEntry.Toggle(Group, "UI camera gating",
+                    () => UiCameraAutoToggle.GatingEnabled, SetCameraGating)),
+            };
         }
 
-        private static void ToggleCameraGating()
+        void IDisposable.Dispose()
         {
-            UiCameraAutoToggle.GatingEnabled = !UiCameraAutoToggle.GatingEnabled;
-            Debug.Log(UiCameraAutoToggle.GatingEnabled
+            foreach (var registration in this.registrations) registration.Dispose();
+        }
+
+        private static void SetCameraGating(bool enabled)
+        {
+            UiCameraAutoToggle.GatingEnabled = enabled;
+            Debug.Log(enabled
                 ? "[NavigationDebugKeys] Camera gating ON (fix): UI/preview cameras render only while needed."
                 : "[NavigationDebugKeys] Camera gating OFF (original): UI/preview cameras always render.");
         }

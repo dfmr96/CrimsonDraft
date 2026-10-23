@@ -5,40 +5,40 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Scripting;
 using UnityEngine.UI;
 using VContainer.Unity;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.DebugMenu;
 
 namespace CrimsonDraft.Navigation.Milestones
 {
-    // Debug-only: F1 toggles a box listing the titles of the milestones available right now
+    // Debug-only: a debug menu toggle (group "Overlays") shows a box listing the titles of the milestones available right now
     // (see MilestoneAvailability), one per line. Built in code like ScreenFader, so no scene or
     // prefab has to carry it; refreshed whenever a milestone completes while it is shown.
-    public sealed class MilestoneDebugOverlay : ITickable, IDisposable
+    public sealed class MilestoneDebugOverlay : IInitializable, IDisposable
     {
-        private const Key ToggleKey = Key.F1;
-
+        private readonly IDebugMenu        menu;
         private readonly MilestoneRegistry registry;
         private readonly MilestoneGraph[]  graphs;
 
         private GameObject?       root;
         private TextMeshProUGUI?  text;
+        private IDisposable?      registration;
 
         [Preserve]
-        public MilestoneDebugOverlay(MilestoneRegistry registry, MilestoneGraph[] graphs)
+        public MilestoneDebugOverlay(IDebugMenu menu, MilestoneRegistry registry, MilestoneGraph[] graphs)
         {
+            this.menu     = menu;
             this.registry = registry;
             this.graphs   = graphs;
             this.registry.Completed += OnCompleted;
         }
 
-        void ITickable.Tick()
+        void IInitializable.Initialize()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard[ToggleKey].wasPressedThisFrame) return;
-            Toggle();
+            this.registration = this.menu.Register(DebugMenuEntry.Toggle("Overlays", "Available milestones",
+                () => IsVisible, _ => Toggle()));
         }
 
         public bool   IsVisible => this.root != null && this.root.activeSelf;
@@ -114,6 +114,7 @@ namespace CrimsonDraft.Navigation.Milestones
         void IDisposable.Dispose()
         {
             this.registry.Completed -= OnCompleted;
+            this.registration?.Dispose();
             if (this.root == null) return;
             if (Application.isPlaying) UnityEngine.Object.Destroy(this.root);
             else UnityEngine.Object.DestroyImmediate(this.root);

@@ -3,40 +3,43 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
 using System.Linq;
+using System;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.DebugMenu;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using VContainer.Unity;
 
 namespace CrimsonDraft.UI
 {
     /// <summary>
-    /// Debug shortcut: Shift + O + P adds every note of the NoteDatabase to the player's
+    /// Debug menu entry ("Unlock all notes") that adds every note of the NoteDatabase to the player's
     /// collection, so they can all be read from the Files tab during gameplay.
     /// Editor and development builds only.
     /// </summary>
-    public sealed class DebugNoteUnlocker : ITickable
+    public sealed class DebugNoteUnlocker : IInitializable, IDisposable
     {
+        private readonly IDebugMenu         menu;
         private readonly NoteRegistry       registry;
         private readonly FilesTabController filesTab;
 
-        public DebugNoteUnlocker(NoteRegistry registry, FilesTabController filesTab)
+        private IDisposable? registration;
+
+        public DebugNoteUnlocker(IDebugMenu menu, NoteRegistry registry, FilesTabController filesTab)
         {
+            this.menu     = menu;
             this.registry = registry;
             this.filesTab = filesTab;
         }
 
-        public void Tick()
+        public void Initialize()
         {
-            var kb = Keyboard.current;
-            if (kb == null) return;
+            this.registration = this.menu.Register(DebugMenuEntry.Action("Inventory", "Unlock all notes", UnlockAll));
+        }
 
-            bool shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
-            if (!shift || !kb.oKey.isPressed || !kb.pKey.isPressed) return;
+        public void Dispose() => this.registration?.Dispose();
 
-            // Fire once per chord: only on the frame the last of O/P goes down.
-            if (!kb.oKey.wasPressedThisFrame && !kb.pKey.wasPressedThisFrame) return;
-
+        private void UnlockAll()
+        {
             int added = 0;
             foreach (var note in this.filesTab.Database.Notes.Where(n => n != null && !string.IsNullOrEmpty(n.NoteId)))
             {
@@ -45,7 +48,7 @@ namespace CrimsonDraft.UI
                 added++;
             }
 
-            Debug.Log($"[Notes] Debug unlock (Shift+O+P): {added} note(s) added to the collection.");
+            Debug.Log($"[Notes] Debug unlock: {added} note(s) added to the collection.");
         }
     }
 }
