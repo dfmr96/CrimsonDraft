@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
@@ -14,14 +15,17 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         private readonly FixedCameraZoneTrigger[] triggers;
         private readonly IFixedCameraZoneService  zoneService;
         private readonly PlayerController         player;
+        private readonly PuzzleStateRegistry      puzzleStates;
 
         [Preserve]
         public FixedCameraZoneBootstrap(
-            FixedCameraZoneTrigger[] triggers, IFixedCameraZoneService zoneService, PlayerController player)
+            FixedCameraZoneTrigger[] triggers, IFixedCameraZoneService zoneService, PlayerController player,
+            PuzzleStateRegistry puzzleStates)
         {
             this.triggers    = triggers;
             this.zoneService = zoneService;
             this.player      = player;
+            this.puzzleStates = puzzleStates;
         }
 
         // Zones are polygons tested here, not physics triggers: a hidden room's zones are skipped
@@ -39,7 +43,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         void IInitializable.Initialize()
         {
             foreach (var trigger in this.triggers)
-                trigger.Construct(this.zoneService);
+                trigger.Construct(this.zoneService, this.puzzleStates);
 
             // A room can hold several zone cameras, but only one may be enabled at a time
             // or Cinemachine can't tell which one to show, and this service can only ever

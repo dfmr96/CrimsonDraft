@@ -3,6 +3,8 @@
 using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.Navigation.CamaraSystem
 {
@@ -32,7 +34,14 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         [SerializeField] private Vector2 dividerStart = new Vector2(-1f, 0f);
         [SerializeField] private Vector2 dividerEnd = new Vector2(1f, 0f);
 
+        [Header("Completion gate (optional)")]
+        [Tooltip("Once every socket / puzzle referenced here is complete, this zone stops cutting to its camera. A camera already showing stays until the player leaves the zone.")]
+        [SerializeField] private ItemSocketInteractable? completeWhenSocket;
+        [Tooltip("Component implementing IPuzzle (PuzzleInteractable, GeneratorSwitchPanel, MusicBoxPanel...). Complete once it is solved.")]
+        [SerializeField] private MonoBehaviour? completeWhenPuzzle;
+
         private IFixedCameraZoneService? zoneService;
+        private PuzzleStateRegistry? puzzleStates;
         private bool playerInside;
 
         public CinemachineCamera ZoneCamera => this.zoneCamera;
@@ -131,9 +140,31 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
         }
 
-        public void Construct(IFixedCameraZoneService zoneService)
+        public void Construct(IFixedCameraZoneService zoneService, PuzzleStateRegistry? puzzleStates = null)
         {
             this.zoneService = zoneService;
+            this.puzzleStates = puzzleStates;
+        }
+
+        /// <summary>True when the zone has a completion gate and everything it waits for is done. A completed
+        /// zone no longer fires; without any gate this is always false.</summary>
+        public bool IsCompleted
+        {
+            get
+            {
+                bool gated = false;
+                if (this.completeWhenSocket != null)
+                {
+                    gated = true;
+                    if (!this.completeWhenSocket.IsCompleted) return false;
+                }
+                if (this.completeWhenPuzzle is IPuzzle puzzle)
+                {
+                    gated = true;
+                    if (this.puzzleStates == null || !this.puzzleStates.IsSolved(puzzle.PuzzleId)) return false;
+                }
+                return gated;
+            }
         }
 
         /// <summary>True when the world position is inside the polygon and within the height range.</summary>
@@ -169,7 +200,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             bool entered = inside && !this.playerInside;
             this.playerInside = inside;
 
-            if (inside && (entered || this.useTwoSidedSwitch)) this.TryActivate(playerPosition);
+            if (inside && (entered || this.useTwoSidedSwitch) && !this.IsCompleted) this.TryActivate(playerPosition);
         }
 
         private void OnDisable()
@@ -274,6 +305,15 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         }
 
 #if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (this.completeWhenPuzzle != null && this.completeWhenPuzzle is not IPuzzle)
+            {
+                Debug.LogWarning($"[FixedCameraZoneTrigger] '{this.completeWhenPuzzle.name}' does not implement IPuzzle; the completion gate is ignored.", this);
+                this.completeWhenPuzzle = null;
+            }
+        }
+
         private void Reset()
         {
             this.polygon = new[]

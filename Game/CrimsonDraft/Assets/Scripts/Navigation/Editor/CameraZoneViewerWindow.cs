@@ -16,7 +16,8 @@ namespace CrimsonDraft.Navigation.Editor
     /// lists the RoomControllers of the open scene; the camera list holds the cameras that room's
     /// FixedCameraZoneTriggers activate. The view shows every trigger volume of the room, so it is
     /// easy to see whether the player can reach another camera's trigger while still in frame.
-    /// Read-only: it never moves or enables anything in the scene.
+    /// By default it only looks; the Move Camera toggle turns the view into a free-fly control
+    /// for the selected camera (see HandleCameraControls).
     /// The camera is rendered to a texture from EditorApplication.update, never inside OnGUI
     /// (rendering a URP camera from a GUI event corrupts the GUIClip stack), and the trigger
     /// volumes are projected on top in GUI space.</summary>
@@ -38,6 +39,11 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
+        private bool cameraMode;
+        private int cameraDragButton = -1;
+        private bool fastFly;
+        private double lastFlightTime;
+        private readonly HashSet<KeyCode> heldKeys = new HashSet<KeyCode>();
         private PlayerController? player;
         private float planeY;
 
@@ -75,7 +81,13 @@ namespace CrimsonDraft.Navigation.Editor
         private void OnEditorUpdate()
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (EditorApplication.timeSinceStartup - this.lastRenderTime < RenderInterval) return;
+
+            double now = EditorApplication.timeSinceStartup;
+            float dt = Mathf.Min((float)(now - this.lastFlightTime), 0.1f);
+            this.lastFlightTime = now;
+            this.ApplyFlight(dt);
+
+            if (now - this.lastRenderTime < RenderInterval) return;
             this.lastRenderTime = EditorApplication.timeSinceStartup;
 
             var camera = this.CurrentCamera;
@@ -129,6 +141,7 @@ namespace CrimsonDraft.Navigation.Editor
 
         private void OnGUI()
         {
+            this.TrackFlightKeys();
             this.DrawToolbar();
 
             var room = this.CurrentRoom;
@@ -165,6 +178,10 @@ namespace CrimsonDraft.Navigation.Editor
                 }
 
                 this.unlit = GUILayout.Toggle(this.unlit, "Unlit", EditorStyles.toolbarButton, GUILayout.Width(48f));
+                this.DrawSpawnAlignControls();
+                this.cameraMode = GUILayout.Toggle(this.cameraMode, "Move Camera", EditorStyles.toolbarButton, GUILayout.Width(88f));
+                if (!this.cameraMode) this.StopFlying();
+                this.DrawFovField();
 
                 // Zones that still use their BoxCollider work, but can not be edited until converted.
                 var room = this.CurrentRoom;
@@ -253,7 +270,10 @@ namespace CrimsonDraft.Navigation.Editor
                         "The room is inactive, so its geometry will not render.", MessageType.Warning);
             }
 
-            if (this.viewCamera != null) this.EditHandles(room, this.viewCamera, view, controlId);
+            if (this.cameraMode)
+                this.HandleCameraControls(camera, view, controlId);
+            else if (this.viewCamera != null)
+                this.EditHandles(room, this.viewCamera, view, controlId);
         }
 
         // ---- Zone editing handles --------------------------------------------------------
@@ -267,6 +287,171 @@ namespace CrimsonDraft.Navigation.Editor
             public int Index;
             public Vector3 World;
             public Vector2 Gui;
+        }
+
+        // ---- Camera fly mode -------------------------------------------------------------
+
+        private const float LookSensitivity = 0.2f;
+        private const float PanSensitivity = 0.005f;
+        private const float DollyPerScroll = 0.2f;
+        private const float FlySpeed = 3f;
+        private const float FastMultiplier = 3f;
+
+        // Moves the room SpawnPoints to a fixed distance in front of their door, back to it.
+        private void DrawSpawnAlignControls()
+        {
+            var room = this.CurrentRoom;
+            using (new EditorGUI.DisabledScope(room == null))
+            {
+                if (GUILayout.Button(new GUIContent("Align Spawns", "Put this room's spawn points in front of their door, facing into the room, at the distance (m) on the right."),
+                        EditorStyles.toolbarButton, GUILayout.Width(84f)) && room != null)
+                {
+                    var skipped = new List<string>();
+                    int aligned = SpawnPointAligner.Align(room, SpawnPointAligner.Distance, skipped);
+                    SpawnPointAligner.Report(aligned, skipped);
+                    SceneView.RepaintAll();
+                }
+            }
+            SpawnPointAligner.Distance = EditorGUILayout.FloatField(SpawnPointAligner.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
+        }
+
+        private void DrawFovField()
+        {
+            var camera = this.CurrentCamera;
+            if (!this.cameraMode || camera == null) return;
+
+            GUILayout.Label("FOV", GUILayout.Width(28f));
+            var lens = camera.Lens;
+            EditorGUI.BeginChangeCheck();
+            float fov = EditorGUILayout.FloatField(lens.FieldOfView, EditorStyles.toolbarTextField, GUILayout.Width(44f));
+            if (!EditorGUI.EndChangeCheck()) return;
+
+            Undo.RecordObject(camera, "Change Camera FOV");
+            lens.FieldOfView = Mathf.Clamp(fov, 1f, 170f);
+            camera.Lens = lens;
+            EditorUtility.SetDirty(camera);
+            this.lastRenderTime = 0;
+        }
+
+        /// <summary>Right mouse drag looks around, middle drag pans, the wheel dollies, and while the right
+        /// button is held WASD / Q E fly (Shift is faster). Everything edits the selected camera transform
+        /// with undo.</summary>
+        private void HandleCameraControls(CinemachineCamera camera, Rect rect, int controlId)
+        {
+            var e = Event.current;
+            switch (e.GetTypeForControl(controlId))
+            {
+                case EventType.Repaint:
+                    EditorGUI.LabelField(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, 18f),
+                        "Camera mode: RMB look + WASD/QE fly (Shift faster)  |  MMB pan  |  wheel dolly",
+                        EditorStyles.whiteMiniLabel);
+                    break;
+
+                case EventType.MouseDown:
+                    if ((e.button != 1 && e.button != 2) || !rect.Contains(e.mousePosition)) break;
+                    Undo.IncrementCurrentGroup();
+                    Undo.SetCurrentGroupName("Move Camera");
+                    this.cameraDragButton = e.button;
+                    this.heldKeys.Clear();
+                    this.lastFlightTime = EditorApplication.timeSinceStartup;
+                    GUIUtility.hotControl = controlId;
+                    e.Use();
+                    break;
+
+                case EventType.MouseDrag:
+                    if (GUIUtility.hotControl != controlId) break;
+                    this.DragCamera(camera, e);
+                    e.Use();
+                    break;
+
+                case EventType.MouseUp:
+                    if (GUIUtility.hotControl != controlId) break;
+                    GUIUtility.hotControl = 0;
+                    this.StopFlying();
+                    e.Use();
+                    break;
+
+                case EventType.ScrollWheel:
+                    if (!rect.Contains(e.mousePosition)) break;
+                    Undo.RecordObject(camera.transform, "Move Camera");
+                    camera.transform.position += camera.transform.forward * (-e.delta.y * DollyPerScroll);
+                    this.CameraMoved();
+                    e.Use();
+                    break;
+            }
+        }
+
+        private void DragCamera(CinemachineCamera camera, Event e)
+        {
+            var transform = camera.transform;
+            Undo.RecordObject(transform, "Move Camera");
+
+            if (this.cameraDragButton == 1)
+            {
+                var euler = transform.eulerAngles;
+                float pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+                pitch = Mathf.Clamp(pitch + e.delta.y * LookSensitivity, -89f, 89f);
+                transform.rotation = Quaternion.Euler(pitch, euler.y + e.delta.x * LookSensitivity, 0f);
+            }
+            else if (this.cameraDragButton == 2)
+            {
+                transform.position += (-transform.right * e.delta.x + transform.up * e.delta.y) * PanSensitivity;
+            }
+            this.CameraMoved();
+        }
+
+        // Keys only matter while flying (right button held). They are tracked from GUI events and
+        // applied from EditorApplication.update, so movement is smooth and frame-rate independent.
+        private void TrackFlightKeys()
+        {
+            var e = Event.current;
+            if (!this.cameraMode || this.cameraDragButton != 1) return;
+            if (e.type != EventType.KeyDown && e.type != EventType.KeyUp) return;
+
+            this.fastFly = e.shift;
+            if (!IsFlightKey(e.keyCode)) return;
+
+            if (e.type == EventType.KeyDown) this.heldKeys.Add(e.keyCode);
+            else this.heldKeys.Remove(e.keyCode);
+            e.Use();
+        }
+
+        private static bool IsFlightKey(KeyCode key) =>
+            key == KeyCode.W || key == KeyCode.A || key == KeyCode.S || key == KeyCode.D
+            || key == KeyCode.Q || key == KeyCode.E;
+
+        private void ApplyFlight(float dt)
+        {
+            var camera = this.CurrentCamera;
+            if (!this.cameraMode || this.cameraDragButton != 1 || camera == null || this.heldKeys.Count == 0) return;
+
+            var transform = camera.transform;
+            var direction = Vector3.zero;
+            if (this.heldKeys.Contains(KeyCode.W)) direction += transform.forward;
+            if (this.heldKeys.Contains(KeyCode.S)) direction -= transform.forward;
+            if (this.heldKeys.Contains(KeyCode.D)) direction += transform.right;
+            if (this.heldKeys.Contains(KeyCode.A)) direction -= transform.right;
+            if (this.heldKeys.Contains(KeyCode.E)) direction += Vector3.up;
+            if (this.heldKeys.Contains(KeyCode.Q)) direction -= Vector3.up;
+            if (direction == Vector3.zero) return;
+
+            Undo.RecordObject(transform, "Move Camera");
+            transform.position += direction.normalized * (FlySpeed * (this.fastFly ? FastMultiplier : 1f) * dt);
+            this.CameraMoved();
+            this.Repaint();
+        }
+
+        private void StopFlying()
+        {
+            this.cameraDragButton = -1;
+            this.heldKeys.Clear();
+        }
+
+        private void CameraMoved()
+        {
+            this.lastRenderTime = 0;
+            SceneView.RepaintAll();
+            this.Repaint();
         }
 
         private ZoneHandle? dragging;

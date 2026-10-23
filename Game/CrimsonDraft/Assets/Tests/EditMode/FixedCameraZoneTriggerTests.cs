@@ -1,7 +1,9 @@
 #nullable enable
 
 using System.Reflection;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Interactables;
 using NUnit.Framework;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -172,6 +174,41 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void SolvedPuzzle_stopsTheZoneFromCuttingToItsCamera()
+        {
+            SetField("useTwoSidedSwitch", false);
+            var puzzle = this.root.AddComponent<FakePuzzle>();
+            SetField("completeWhenPuzzle", puzzle);
+            var registry = new PuzzleStateRegistry();
+            var service = new FakeZoneService();
+            this.trigger.Construct(service, registry);
+
+            Assert.IsFalse(this.trigger.IsCompleted);
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+
+            registry.SetSolved(FakePuzzle.Id);
+            Assert.IsTrue(this.trigger.IsCompleted);
+
+            // Solved while the player is inside: the camera stays, nothing cuts back or away.
+            service.Force(this.b);
+            this.trigger.Evaluate(new Vector3(0.1f, 1, 0));
+            Assert.AreSame(this.b, service.CurrentZoneCamera);
+
+            // Leaving and coming back no longer fires it either.
+            this.trigger.Evaluate(new Vector3(50, 1, 0));
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreSame(this.b, service.CurrentZoneCamera);
+        }
+
+        [Test]
+        public void ZoneWithoutAGate_isNeverCompleted()
+        {
+            this.trigger.Construct(new FakeZoneService(), new PuzzleStateRegistry());
+            Assert.IsFalse(this.trigger.IsCompleted);
+        }
+
+        [Test]
         public void Evaluate_ignoresAPlayerOutsideThePolygon()
         {
             var service = new FakeZoneService();
@@ -188,6 +225,13 @@ namespace CrimsonDraft.Tests
         }
 
         private void service_SwitchAway(FakeZoneService service) => service.Force(this.b);
+
+        private sealed class FakePuzzle : MonoBehaviour, IPuzzle
+        {
+            public const string Id = "fake-puzzle";
+            public string PuzzleId => Id;
+            public void BindPuzzleState(PuzzleStateRegistry registry) { }
+        }
 
         private sealed class FakeZoneService : IFixedCameraZoneService
         {

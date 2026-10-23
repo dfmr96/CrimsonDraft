@@ -33,6 +33,9 @@ namespace CrimsonDraft.Navigation.Interactables
 
         public bool IsActivated { get; private set; }
 
+        /// <summary>Activated and, for a socket with a valve to turn, turned as well.</summary>
+        public bool IsCompleted => this.IsActivated && !this.NeedsTurn;
+
         // Only meaningful for a socket with a SocketValveTighten beside it: the socket is filled
         // first, then the player interacts again and chooses to turn the handle.
         public bool IsTurned { get; private set; }

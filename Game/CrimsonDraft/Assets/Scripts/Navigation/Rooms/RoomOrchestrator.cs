@@ -230,7 +230,7 @@ namespace CrimsonDraft.Navigation.Rooms
         {
             foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true))
             {
-                if (trigger.ZoneCamera == null) continue;
+                if (trigger.ZoneCamera == null || trigger.IsCompleted) continue;
 
                 if (trigger.Contains(position))
                 {
