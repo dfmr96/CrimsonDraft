@@ -367,7 +367,7 @@ namespace CrimsonDraft.Tests
             public GameObject?     LastDoorPrefab  { get; private set; }
             public RoomController? CurrentRoom     => null;
 
-            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
+            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Vector3 departurePosition)
             {
                 LastDestination = destination;
                 LastDoorPrefab  = doorPrefab;

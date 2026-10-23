@@ -60,7 +60,7 @@ namespace CrimsonDraft.Tests
         {
             public FakeRoomOrchestrator(RoomController? currentRoom) => this.CurrentRoom = currentRoom;
             public RoomController? CurrentRoom { get; }
-            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab) => UniTask.CompletedTask;
+            public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Vector3 departurePosition) => UniTask.CompletedTask;
             public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
         }
 

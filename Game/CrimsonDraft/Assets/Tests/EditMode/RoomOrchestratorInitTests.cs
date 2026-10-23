@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using NUnit.Framework;
@@ -10,6 +11,7 @@ using VContainer.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
@@ -79,21 +81,16 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Initialize_whenSceneEntryContextHasPendingEntry_activatesSpawnPointStartingRoom()
+        public void Initialize_withPendingEntry_startsInRoomOfEntryDoorAtItsArrival()
         {
             var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
             var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
             entryContext.SetPendingEntry("entry-1");
 
-            var roomA   = new GameObject("RoomA").AddComponent<RoomController>();
-            var roomB   = new GameObject("RoomB").AddComponent<RoomController>();
-            var spawnGo = new GameObject("Spawn");
-            var spawn   = spawnGo.AddComponent<SceneSpawnPoint>();
-            var spawnSo = new SerializedObject(spawn);
-            spawnSo.FindProperty("entryPointId").stringValue          = "entry-1";
-            spawnSo.FindProperty("startingRoom").objectReferenceValue = roomB;
-            spawnSo.ApplyModifiedPropertiesWithoutUndo();
-
+            var roomA = new GameObject("RoomA").AddComponent<RoomController>();
+            var roomB = new GameObject("RoomB").AddComponent<RoomController>();
+            var door  = MakeEntryDoor(roomB, "entry-1");
+            door.GetComponent<DoorArrival>().ArrivalPoint.position = new Vector3(5, 1, 3);
             context.SetStartingRoom(roomA);
 
             var playerGo = new GameObject("Player");
@@ -104,18 +101,95 @@ namespace CrimsonDraft.Tests
                 var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
                 ((IInitializable)orchestrator).Initialize();
 
-                Assert.IsTrue(roomB.gameObject.activeSelf,  "spawn point starting room must be active");
+                Assert.IsTrue(roomB.gameObject.activeSelf,  "room of the entry door must be active");
                 Assert.IsFalse(roomA.gameObject.activeSelf, "fallback starting room must not be active");
+                Assert.AreEqual(new Vector3(5, 1, 3), player.transform.position);
             }
             finally
             {
                 Object.DestroyImmediate(roomA.gameObject);
                 Object.DestroyImmediate(roomB.gameObject);
-                Object.DestroyImmediate(spawnGo);
-                Object.DestroyImmediate(playerGo.gameObject);
+                Object.DestroyImmediate(playerGo);
                 Object.DestroyImmediate(context);
                 Object.DestroyImmediate(entryContext);
             }
+        }
+
+        [Test]
+        public void Initialize_withPendingEntryButNoDoor_logsErrorAndUsesStartingRoom()
+        {
+            var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
+            entryContext.SetPendingEntry("entry-1");
+
+            var roomA = new GameObject("RoomA").AddComponent<RoomController>();
+            context.SetStartingRoom(roomA);
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
+                LogAssert.Expect(LogType.Error, new Regex("entry-1"));
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(roomA.gameObject.activeSelf);
+            }
+            finally
+            {
+                Object.DestroyImmediate(roomA.gameObject);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+                Object.DestroyImmediate(entryContext);
+            }
+        }
+
+        [Test]
+        public void Initialize_withEntryDoorWithoutArrival_logsErrorAndUsesStartingRoom()
+        {
+            var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
+            entryContext.SetPendingEntry("entry-1");
+
+            var roomA = new GameObject("RoomA").AddComponent<RoomController>();
+            var roomB = new GameObject("RoomB").AddComponent<RoomController>();
+            var door  = MakeEntryDoor(roomB, "entry-1");
+            var arrival = new SerializedObject(door.GetComponent<DoorArrival>());
+            arrival.FindProperty("arrivalPoint").objectReferenceValue = null;
+            arrival.ApplyModifiedPropertiesWithoutUndo();
+            context.SetStartingRoom(roomA);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
+                LogAssert.Expect(LogType.Error, new Regex("DoorArrival"));
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(roomA.gameObject.activeSelf,  "falls back to the starting room");
+                Assert.IsFalse(roomB.gameObject.activeSelf);
+            }
+            finally
+            {
+                Object.DestroyImmediate(roomA.gameObject);
+                Object.DestroyImmediate(roomB.gameObject);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+                Object.DestroyImmediate(entryContext);
+            }
+        }
+
+        private static SceneDoorInteractable MakeEntryDoor(RoomController room, string entryPointId)
+        {
+            var go = new GameObject("EntryDoor");
+            go.transform.SetParent(room.transform, false);
+            var door = go.AddComponent<SceneDoorInteractable>();
+            var so = new SerializedObject(door);
+            so.FindProperty("entryPointId").stringValue = entryPointId;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return door;
         }
 
         [Test]

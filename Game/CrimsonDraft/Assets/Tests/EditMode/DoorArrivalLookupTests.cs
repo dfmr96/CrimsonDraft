@@ -1,7 +1,9 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Navigation.Interactables;
@@ -84,6 +86,33 @@ namespace CrimsonDraft.Tests
             var a = MakeSceneDoor("TR_01");
             Assert.IsNull(DoorArrivalLookup.FindEntryDoor(new[] { unset, a }, ""));
             Assert.IsNull(DoorArrivalLookup.FindEntryDoor(new[] { unset, a }, "TR_99"));
+        }
+
+        [Test]
+        public void ResolveArrival_returnsArrivalOfDoorBack()
+        {
+            var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            Assert.AreSame(back.GetComponent<DoorArrival>(),
+                RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
+        }
+
+        [Test]
+        public void ResolveArrival_noDoorBack_logsErrorAndReturnsNull()
+        {
+            LogAssert.Expect(LogType.Error, new Regex("No door back to 'Origin' in 'Destination'"));
+            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
+        }
+
+        [Test]
+        public void ResolveArrival_doorWithoutArrivalPoint_logsErrorAndReturnsNull()
+        {
+            var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            var so = new SerializedObject(back.GetComponent<DoorArrival>());
+            so.FindProperty("arrivalPoint").objectReferenceValue = null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            LogAssert.Expect(LogType.Error, new Regex("has no DoorArrival"));
+            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
         }
 
         private RoomController MakeRoom(string name)

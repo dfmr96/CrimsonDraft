@@ -185,7 +185,7 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.unlocksOnCross?.UnlockFromOtherSide();
             this.roomOrchestrator
-                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab)
+                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab, this.transform.position)
                 .Forget();
         }
     }

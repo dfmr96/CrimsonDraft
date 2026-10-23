@@ -85,23 +85,29 @@ namespace CrimsonDraft.Navigation.Rooms
 
             if (entryId != null)
             {
-                foreach (var sp in Object.FindObjectsOfType<SceneSpawnPoint>(true))
+                var door = DoorArrivalLookup.FindEntryDoor(
+                    Object.FindObjectsByType<SceneDoorInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None), entryId);
+                var arrival = door != null ? door.GetComponent<DoorArrival>() : null;
+                var room    = door != null ? door.GetComponentInParent<RoomController>(true) : null;
+
+                if (door == null)
+                    Debug.LogError($"[RoomOrchestrator] No SceneDoorInteractable with entry '{entryId}' — starting in the default room.");
+                else if (arrival == null || arrival.ArrivalPoint == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') has no DoorArrival — starting in the default room.", door);
+                else if (room == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') is not inside a RoomController — starting in the default room.", door);
+                else
                 {
-                    if (sp.EntryPointId != entryId) continue;
-
-                    this.player.transform.SetPositionAndRotation(
-                        sp.transform.position, sp.transform.rotation);
-                    sp.ActivateCamera(this.zoneService);
-                    return sp.StartingRoom;
+                    this.player.transform.SetPositionAndRotation(arrival.ArrivalPoint.position, arrival.ArrivalPoint.rotation);
+                    arrival.ActivateCamera(this.zoneService);
+                    return room;
                 }
-
-                Debug.LogWarning($"[RoomOrchestrator] No SceneSpawnPoint with entry '{entryId}' — falling back.");
             }
 
             return this.context.StartingRoom;
         }
 
-        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab)
+        public async UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Vector3 departurePosition)
         {
             if (this.isTransitioning) return;
             this.isTransitioning = true;
@@ -115,13 +121,14 @@ namespace CrimsonDraft.Navigation.Rooms
 
             await SceneManager.LoadSceneAsync(TransitionSceneName, LoadSceneMode.Additive).ToUniTask();
 
-            this.currentRoom!.Deactivate();
+            var origin = this.currentRoom!;
+            origin.Deactivate();
             destination.Activate();
 
-            var spawnPoint     = FindSpawnPoint(destination, this.currentRoom);
-            var spawnTransform = spawnPoint != null ? spawnPoint.transform : destination.transform;
+            var arrival        = ResolveArrival(destination, origin, departurePosition);
+            var spawnTransform = arrival != null ? arrival.ArrivalPoint : destination.transform;
             this.player.transform.SetPositionAndRotation(spawnTransform.position, spawnTransform.rotation);
-            spawnPoint?.ActivateCamera(this.zoneService);
+            arrival?.ActivateCamera(this.zoneService);
             EnsureLiveCamera(destination, spawnTransform.position);
 
             await tcs.Task;
@@ -241,16 +248,24 @@ namespace CrimsonDraft.Navigation.Rooms
             return null;
         }
 
-        private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)
+        // The door of the destination that leads back to the room the player came from owns the
+        // arrival point. Missing door or arrival is a data error: reported, then the room root.
+        internal static DoorArrival? ResolveArrival(RoomController destination, RoomController origin, Vector3 departurePosition)
         {
-            foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
+            var door = DoorArrivalLookup.FindArrivalDoor(destination, origin, departurePosition);
+            if (door == null)
             {
-                if (sp.FromRoom == fromRoom)
-                    return sp;
+                Debug.LogError($"[RoomOrchestrator] No door back to '{origin.name}' in '{destination.name}' — placing the player at the room root.", destination);
+                return null;
             }
 
-            Debug.LogWarning($"[RoomOrchestrator] No SpawnPoint for '{fromRoom.name}' in '{destination.name}' — using room root.");
-            return null;
+            var arrival = door.GetComponent<DoorArrival>();
+            if (arrival == null || arrival.ArrivalPoint == null)
+            {
+                Debug.LogError($"[RoomOrchestrator] Door '{door.name}' in '{destination.name}' has no DoorArrival — placing the player at the room root.", door);
+                return null;
+            }
+            return arrival;
         }
     }
 }
