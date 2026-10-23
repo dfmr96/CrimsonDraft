@@ -6,6 +6,7 @@ using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using CrimsonDraft.Infrastructure.Audio;
+using CrimsonDraft.Infrastructure.DebugMenu;
 using CrimsonDraft.Infrastructure.Cameras;
 using CrimsonDraft.Infrastructure.Graphics;
 using CrimsonDraft.Infrastructure.Events;
@@ -115,6 +116,11 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<SaveGameService>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<GameStateResetter>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<PlaytimeTracker>(Lifetime.Singleton);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            builder.Register<DebugMenuRegistry>(Lifetime.Singleton).As<IDebugMenu>();
+            builder.RegisterEntryPoint<DebugMenuController>().AsSelf();
+#endif
         }
     }
 }
