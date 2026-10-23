@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
 using UnityEngine.Scripting;
@@ -8,16 +9,31 @@ using VContainer.Unity;
 
 namespace CrimsonDraft.Navigation.CamaraSystem
 {
-    public sealed class FixedCameraZoneBootstrap : IInitializable
+    public sealed class FixedCameraZoneBootstrap : IInitializable, ITickable
     {
         private readonly FixedCameraZoneTrigger[] triggers;
         private readonly IFixedCameraZoneService  zoneService;
+        private readonly PlayerController         player;
 
         [Preserve]
-        public FixedCameraZoneBootstrap(FixedCameraZoneTrigger[] triggers, IFixedCameraZoneService zoneService)
+        public FixedCameraZoneBootstrap(
+            FixedCameraZoneTrigger[] triggers, IFixedCameraZoneService zoneService, PlayerController player)
         {
             this.triggers    = triggers;
             this.zoneService = zoneService;
+            this.player      = player;
+        }
+
+        // Zones are polygons tested here, not physics triggers: a hidden room's zones are skipped
+        // so only the room the player is in can cut the camera.
+        void ITickable.Tick()
+        {
+            var position = this.player.transform.position;
+            foreach (var trigger in this.triggers)
+            {
+                if (trigger == null || !trigger.isActiveAndEnabled) continue;
+                trigger.Evaluate(position);
+            }
         }
 
         void IInitializable.Initialize()

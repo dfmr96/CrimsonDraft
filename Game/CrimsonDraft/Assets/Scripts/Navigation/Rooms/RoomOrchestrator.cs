@@ -185,11 +185,11 @@ namespace CrimsonDraft.Navigation.Rooms
         // Guarantees the room the player just landed in has a camera actually rendering.
         //
         // Most SpawnPoints have no camera assigned, so a room's shot normally comes from a
-        // FixedCameraZoneTrigger reacting to the player via OnTriggerEnter. That's a
-        // physics-timed callback on a teleported transform: it can land a frame or more late,
-        // and never fires at all when the spawn position sits outside every zone volume. Until
-        // it fires, the brain is still on the camera of the room we just deactivated -- which
-        // renders the inside of a hidden room, i.e. a black screen.
+        // FixedCameraZoneTrigger reacting to the player position. That check only runs on the
+        // next frame after a teleport, and never fires at all when the spawn position sits
+        // outside every zone polygon. Until it fires, the brain is still on the camera of the
+        // room we just deactivated -- which renders the inside of a hidden room, i.e. a black
+        // screen.
         //
         // So resolve the same answer the trigger would give, immediately and deterministically,
         // and fall back to any camera in the room so it can never be left with none. A trigger
@@ -232,24 +232,13 @@ namespace CrimsonDraft.Navigation.Rooms
             {
                 if (trigger.ZoneCamera == null) continue;
 
-                var collider = trigger.GetComponent<Collider>();
-                if (collider != null && Contains(collider, position))
+                if (trigger.Contains(position))
                 {
                     var camera = trigger.ResolveCameraAt(position, null);
                     if (camera != null) return camera;
                 }
             }
             return null;
-        }
-
-        private static bool Contains(Collider collider, Vector3 position)
-        {
-            // ClosestPoint is exact for the convex volumes zone triggers are built from, but it
-            // throws on a non-convex MeshCollider -- those settle for the looser bounds test.
-            if (collider is MeshCollider mesh && !mesh.convex)
-                return collider.bounds.Contains(position);
-
-            return (collider.ClosestPoint(position) - position).sqrMagnitude < 0.0001f;
         }
 
         private static SpawnPoint? FindSpawnPoint(RoomController destination, RoomController fromRoom)

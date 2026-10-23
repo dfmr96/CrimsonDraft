@@ -65,13 +65,98 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void OffsetCollider_usesVolumeCenterInsteadOfObjectPivot()
+        public void OffsetDivider_splitsAtTheDividerNotTheObjectPivot()
         {
-            var box = this.root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0, 0, 10);
+            SetField("dividerStart", new Vector2(-1f, 10f));
+            SetField("dividerEnd", new Vector2(1f, 10f));
             Assert.AreSame(this.a, this.trigger.ResolveCameraAt(new Vector3(0, 0, 9), this.b));
             Assert.AreSame(this.b, this.trigger.ResolveCameraAt(new Vector3(0, 0, 11), this.a));
             Assert.AreSame(this.a, this.trigger.ResolveCameraAt(new Vector3(0, 0, 10.1f), this.a));
+        }
+
+        [Test]
+        public void DiagonalDivider_decidesTheSideByDistanceToTheLine()
+        {
+            // Runs along x = z; positive side is the left of start -> end seen from above.
+            SetField("dividerStart", new Vector2(0f, 0f));
+            SetField("dividerEnd", new Vector2(10f, 10f));
+            Assert.AreSame(this.b, this.trigger.ResolveCameraAt(new Vector3(0, 0, 5), this.a));
+            Assert.AreSame(this.a, this.trigger.ResolveCameraAt(new Vector3(5, 0, 0), this.b));
+        }
+
+        [Test]
+        public void Contains_followsAConcavePolygon()
+        {
+            SetField("polygon", new[]
+            {
+                new Vector2(0, 0), new Vector2(4, 0), new Vector2(4, 1),
+                new Vector2(1, 1), new Vector2(1, 4), new Vector2(0, 4),
+            });
+            Assert.IsTrue(this.trigger.Contains(new Vector3(0.5f, 1, 3)));
+            Assert.IsTrue(this.trigger.Contains(new Vector3(3, 1, 0.5f)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(3, 1, 3)));
+        }
+
+        [Test]
+        public void Contains_rejectsPositionsOutsideTheHeightRange()
+        {
+            SetField("minHeight", 0f);
+            SetField("maxHeight", 2f);
+            Assert.IsTrue(this.trigger.Contains(new Vector3(0, 1, 0)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(0, 3, 0)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(0, -1, 0)));
+        }
+
+        [Test]
+        public void Contains_usesTheTransform()
+        {
+            this.root.transform.SetPositionAndRotation(new Vector3(10, 0, 0), Quaternion.Euler(0, 90, 0));
+            this.root.transform.localScale = new Vector3(2, 1, 1);
+            // Local polygon is a 2x2 square; local X is stretched to 4 units and turned along -Z.
+            Assert.IsTrue(this.trigger.Contains(new Vector3(10.5f, 1, -1.5f)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(12f, 1, 0)));
+        }
+
+        [Test]
+        public void Evaluate_activatesOnEntryAndNotAgainWhileInsideSingleSided()
+        {
+            SetField("useTwoSidedSwitch", false);
+            var service = new FakeZoneService();
+            this.trigger.Construct(service);
+
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreEqual(1, service.ActivateCount);
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+
+            this.a.enabled = true;
+            this.trigger.Evaluate(new Vector3(0.1f, 1, 0));
+            Assert.AreEqual(1, service.ActivateCount);
+
+            this.trigger.Evaluate(new Vector3(50, 1, 0));
+            this.service_SwitchAway(service);
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreEqual(2, service.ActivateCount);
+        }
+
+        [Test]
+        public void Evaluate_twoSidedFollowsThePlayerAcrossTheDivider()
+        {
+            var service = new FakeZoneService();
+            this.trigger.Construct(service);
+
+            this.trigger.Evaluate(new Vector3(0, 1, -0.8f));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+            this.trigger.Evaluate(new Vector3(0, 1, 0.8f));
+            Assert.AreSame(this.b, service.CurrentZoneCamera);
+        }
+
+        [Test]
+        public void Evaluate_ignoresAPlayerOutsideThePolygon()
+        {
+            var service = new FakeZoneService();
+            this.trigger.Construct(service);
+            this.trigger.Evaluate(new Vector3(20, 1, 0));
+            Assert.AreEqual(0, service.ActivateCount);
         }
 
         [Test]
@@ -79,6 +164,25 @@ namespace CrimsonDraft.Tests
         {
             SetField("positiveSideCamera", null);
             Assert.IsNull(this.trigger.ResolveCameraAt(Vector3.forward, this.a));
+        }
+
+        private void service_SwitchAway(FakeZoneService service) => service.Force(this.b);
+
+        private sealed class FakeZoneService : IFixedCameraZoneService
+        {
+            public CinemachineCamera? CurrentZoneCamera { get; private set; }
+            public CinemachineCamera? GameplayZoneCamera => this.CurrentZoneCamera;
+            public int ActivateCount { get; private set; }
+
+            public void ActivateZone(CinemachineCamera zoneCamera)
+            {
+                this.CurrentZoneCamera = zoneCamera;
+                this.ActivateCount++;
+            }
+
+            public void ActivateInspectionShot(CinemachineCamera inspectCamera) => this.CurrentZoneCamera = inspectCamera;
+
+            public void Force(CinemachineCamera camera) => this.CurrentZoneCamera = camera;
         }
 
         private CinemachineCamera CreateCamera(string name)
