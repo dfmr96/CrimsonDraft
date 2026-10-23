@@ -242,6 +242,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<DeadOperatorGearReleaser>(Lifetime.Singleton).AsImplementedInterfaces();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
+            builder.Register<DebugWorldOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
 #endif
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));

@@ -137,6 +137,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
 #if UNITY_EDITOR
         /// <summary>Camera the Camera Zone Viewer is looking through; its triggers draw more opaque.</summary>
         public static CinemachineCamera? GizmoHighlightCamera;
+#endif
 
         /// <summary>Stable colour per camera, shared by the scene gizmos and the Camera Zone Viewer.</summary>
         public static Color GizmoColorFor(CinemachineCamera? camera)
@@ -166,6 +167,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
         }
 
+#if UNITY_EDITOR
         /// <summary>Floor and ceiling of the extruded polygon as world-space triangles.</summary>
         public void GetCapTriangles(List<Vector3[]> triangles)
         {
@@ -184,6 +186,8 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
         }
 
+#endif
+
         /// <summary>A vertical world-space quad along the divider, pushed <paramref name="offset"/> world units
         /// along its positive normal. Offset 0 is the divider itself; ±sideMargin are the thresholds.</summary>
         public Vector3[] GetDividerQuad(float offset)
@@ -197,6 +201,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             return new[] { start + push, end + push, end + push + rise, start + push + rise };
         }
 
+#if UNITY_EDITOR
         private void Reset()
         {
             this.polygon = new[]
