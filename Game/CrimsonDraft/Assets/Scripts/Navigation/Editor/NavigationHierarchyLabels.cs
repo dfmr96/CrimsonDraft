@@ -58,20 +58,12 @@ namespace CrimsonDraft.Navigation.Editor
                 }
                 else
                 {
-                    var spawn = go.GetComponent<SpawnPoint>();
-                    if (spawn != null)
+                    // The arrival point child of a door: where the player appears coming in through it.
+                    var arrival = go.transform.parent != null ? go.transform.parent.GetComponent<DoorArrival>() : null;
+                    if (arrival != null && arrival.ArrivalPoint == go.transform)
                     {
-                        var fromId = spawn.FromRoom?.RoomId;
-                        if (!string.IsNullOrEmpty(fromId))
-                        {
-                            label = $"← {fromId}";
-                            color = new Color(0.5f, 0.8f, 1f);
-                        }
-                        else
-                        {
-                            label = "← no ref";
-                            color = Color.red;
-                        }
+                        label = arrival.ArrivalCamera != null ? $"⇠ arrival · {arrival.ArrivalCamera.name}" : "⇠ arrival";
+                        color = new Color(0.5f, 0.8f, 1f);
                     }
                 }
             }

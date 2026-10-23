@@ -60,8 +60,7 @@ namespace CrimsonDraft.Navigation.Editor
                 string.IsNullOrEmpty(b.RoomId) ? b.name : b.RoomId,
                 System.StringComparison.Ordinal));
 
-            var doors  = Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true);
-            var spawns = Object.FindObjectsOfType<SpawnPoint>(includeInactive: true);
+            var doors = Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true);
 
             for (var i = 0; i < rooms.Length; i++)
             {
@@ -80,31 +79,23 @@ namespace CrimsonDraft.Navigation.Editor
                 });
             }
 
-            // Build (destRoom, fromRoom) pairs that have a matching SpawnPoint.
-            var spawnPairs = new HashSet<(RoomController, RoomController)>();
-            foreach (var sp in spawns)
-            {
-                if (sp.FromRoom == null) continue;
-                var spRoom = sp.GetComponentInParent<RoomController>(includeInactive: true);
-                if (spRoom != null)
-                    spawnPairs.Add((spRoom, sp.FromRoom));
-            }
-
             foreach (var door in doors)
             {
                 var fromRoom = door.GetComponentInParent<RoomController>(includeInactive: true);
                 if (fromRoom == null) continue;
 
-                var dest     = door.Destination;
-                var hasSpawn = dest != null && spawnPairs.Contains((dest, fromRoom));
+                var dest        = door.Destination;
+                // Arriving in dest places the player at its door back to fromRoom.
+                var hasDoorBack = dest != null
+                    && DoorArrivalLookup.FindArrivalDoor(dest, fromRoom, door.transform.position) != null;
 
                 edges.Add(new EdgeData
                 {
                     FromRoom      = fromRoom,
                     ToRoom        = dest,
                     Door          = door,
-                    HasIssue      = dest == null || !hasSpawn,
-                    HasSpawnPoint = hasSpawn,
+                    HasIssue      = dest == null || !hasDoorBack,
+                    HasDoorBack   = hasDoorBack,
                 });
             }
 
@@ -329,7 +320,7 @@ namespace CrimsonDraft.Navigation.Editor
             public RoomController?      ToRoom;
             public RoomDoorInteractable Door;
             public bool                 HasIssue;
-            public bool                 HasSpawnPoint;
+            public bool                 HasDoorBack;
         }
     }
 }

@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Toolbars;
 using UnityEngine;
@@ -36,21 +37,36 @@ namespace CrimsonDraft.Navigation.Editor
                 }
             }
 
-            foreach (var spawn in Object.FindObjectsOfType<SpawnPoint>(includeInactive: true))
-            {
-                if (spawn.FromRoom == null)
-                {
-                    Debug.LogWarning($"[NavValidation] SpawnPoint '{spawn.name}' has no fromRoom set.", spawn);
-                    issues++;
-                    continue;
-                }
+            var roomDoors  = Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true);
+            var sceneDoors = Object.FindObjectsOfType<SceneDoorInteractable>(includeInactive: true);
 
-                var ownerRoom = spawn.GetComponentInParent<RoomController>(includeInactive: true);
-                if (ownerRoom != null && spawn.FromRoom == ownerRoom)
+            // Every door is where somebody arrives: it needs its arrival point.
+            foreach (var door in roomDoors.Cast<Component>().Concat(sceneDoors))
+            {
+                var arrival = door.GetComponent<DoorArrival>();
+                if (arrival == null || arrival.ArrivalPoint == null)
                 {
-                    Debug.LogWarning($"[NavValidation] SpawnPoint '{spawn.name}' points to its own room '{ownerRoom.RoomId}'.", spawn);
+                    Debug.LogWarning($"[NavValidation] Door '{door.name}' has no DoorArrival arrival point.", door);
                     issues++;
                 }
+            }
+
+            // Crossing S -> D places the player at D's door back to S; without one the runtime logs an error.
+            foreach (var door in roomDoors)
+            {
+                var origin = door.GetComponentInParent<RoomController>(includeInactive: true);
+                if (origin == null || door.Destination == null) continue;
+                if (DoorArrivalLookup.FindArrivalDoor(door.Destination, origin, door.transform.position) != null) continue;
+
+                Debug.LogWarning($"[NavValidation] No door back to '{origin.name}' in '{door.Destination.name}' (crossing '{door.name}').", door);
+                issues++;
+            }
+
+            foreach (var group in sceneDoors.Where(d => !string.IsNullOrEmpty(d.EntryPointId)).GroupBy(d => d.EntryPointId))
+            {
+                if (group.Count() < 2) continue;
+                Debug.LogWarning($"[NavValidation] Entry point '{group.Key}' is used by several scene doors: {string.Join(", ", group.Select(d => d.name))}.", group.First());
+                issues++;
             }
 
             foreach (var door in Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true))
