@@ -15,6 +15,19 @@ namespace CrimsonDraft.Navigation.Editor
     {
         public override void OnInspectorGUI()
         {
+            var legacy = (FixedCameraZoneTrigger)this.target;
+            if (legacy.IsLegacyBox)
+            {
+                EditorGUILayout.HelpBox(
+                    "This zone still uses its BoxCollider: it works as the same rectangle, but the polygon fields below are ignored and it has no handles. Convert it to edit it.",
+                    MessageType.Warning);
+                if (GUILayout.Button("Convert Box To Polygon"))
+                {
+                    CameraZoneBoxMigration.Convert(legacy, useUndo: true);
+                    SceneView.RepaintAll();
+                }
+            }
+
             this.DrawDefaultInspector();
             EditorGUILayout.HelpBox(
                 "Select the object to edit the zone in the Scene view: drag the cubes to move vertices, click '+' on an edge to add one.",
@@ -24,6 +37,7 @@ namespace CrimsonDraft.Navigation.Editor
         private void OnSceneGUI()
         {
             var trigger = (FixedCameraZoneTrigger)this.target;
+            if (trigger.IsLegacyBox) return; // edits would be ignored while the BoxCollider defines the zone
             this.serializedObject.Update();
 
             var polygon = this.serializedObject.FindProperty("polygon");

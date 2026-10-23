@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Editor
@@ -23,6 +24,9 @@ namespace CrimsonDraft.Navigation.Editor
     {
         private const float ListWidth = 190f;
         private const double RenderInterval = 0.1;
+        private const float PlayerMarkerRadius = 0.1f;
+        private const float PlayerDotRadius = 0.03f;
+        private const int PlayerMarkerSegments = 24;
 
         private RoomController[] rooms = System.Array.Empty<RoomController>();
         private CinemachineCamera[] cameras = System.Array.Empty<CinemachineCamera>();
@@ -34,6 +38,8 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
+        private PlayerController? player;
+        private float planeY;
 
         [MenuItem("CrimsonDraft/Camera Zone Viewer")]
         private static void Open()
@@ -88,6 +94,8 @@ namespace CrimsonDraft.Navigation.Editor
                 .OrderBy(r => r.name).ToArray();
             this.roomIndex = previousRoom != null ? System.Array.IndexOf(this.rooms, previousRoom) : 0;
             if (this.roomIndex < 0) this.roomIndex = 0;
+
+            this.player = FindFirstObjectByType<PlayerController>(FindObjectsInactive.Include);
 
             this.RefreshCameras();
             if (previousCamera != null)
@@ -158,6 +166,18 @@ namespace CrimsonDraft.Navigation.Editor
 
                 this.unlit = GUILayout.Toggle(this.unlit, "Unlit", EditorStyles.toolbarButton, GUILayout.Width(48f));
 
+                // Zones that still use their BoxCollider work, but can not be edited until converted.
+                var room = this.CurrentRoom;
+                var legacy = room == null ? System.Array.Empty<FixedCameraZoneTrigger>()
+                    : room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true).Where(t => t.IsLegacyBox).ToArray();
+                if (legacy.Length > 0 && GUILayout.Button($"Convert {legacy.Length} box zone(s)", EditorStyles.toolbarButton))
+                {
+                    Undo.IncrementCurrentGroup();
+                    Undo.SetCurrentGroupName("Convert Camera Zones");
+                    foreach (var trigger in legacy) CameraZoneBoxMigration.Convert(trigger, useUndo: true);
+                    SceneView.RepaintAll();
+                }
+
                 GUILayout.FlexibleSpace();
 
                 using (new EditorGUI.DisabledScope(this.cameras.Length == 0))
@@ -210,6 +230,7 @@ namespace CrimsonDraft.Navigation.Editor
             if (camera == null || Event.current.type == EventType.Layout) return;
 
             FixedCameraZoneTrigger.GizmoHighlightCamera = camera;
+            this.planeY = this.ResolvePlaneY(room);
             var view = FitToGameAspect(area);
 
             if (Event.current.type == EventType.Repaint)
@@ -314,6 +335,7 @@ namespace CrimsonDraft.Navigation.Editor
             var adds = new List<ZoneHandle>();
             foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
             {
+                if (trigger.IsLegacyBox) continue; // edits would be ignored while the BoxCollider defines the zone
                 var polygon = trigger.Polygon;
                 float height = trigger.MinHeight;
                 for (int i = 0; i < polygon.Count && polygon.Count >= 3; i++)
@@ -335,9 +357,10 @@ namespace CrimsonDraft.Navigation.Editor
             return handles;
         }
 
-        private static void TryAddHandle(List<ZoneHandle> list, Camera view, Rect rect,
+        private void TryAddHandle(List<ZoneHandle> list, Camera view, Rect rect,
             FixedCameraZoneTrigger trigger, HandleKind kind, int index, Vector3 world)
         {
+            world = this.OnPlane(world);
             var viewPoint = view.worldToCameraMatrix.MultiplyPoint3x4(world);
             if (-viewPoint.z <= view.nearClipPlane) return;
 
@@ -387,7 +410,7 @@ namespace CrimsonDraft.Navigation.Editor
             var farPoint = inverse.MultiplyPoint(new Vector3(ndc.x, ndc.y, 1f));
             var ray = new Ray(nearPoint, (farPoint - nearPoint).normalized);
 
-            var plane = new Plane(handle.Trigger.transform.up, handle.World);
+            var plane = new Plane(Vector3.up, handle.World);
             if (!plane.Raycast(ray, out float distance)) return false;
 
             var local = handle.Trigger.transform.InverseTransformPoint(ray.GetPoint(distance));
@@ -545,38 +568,47 @@ namespace CrimsonDraft.Navigation.Editor
             float near = view.nearClipPlane;
             var overlay = new OverlayProjection(worldToView, projection, near, rect.size);
 
-            var caps = new List<Vector3[]>();
-            var walls = new List<Vector3[]>();
+            // Same look as the runtime DebugWorldOverlay: flat zones and the player marker, all on the
+            // one plane the player's feet stand on. No walls or ceiling.
+            var playerPosition = this.player != null ? this.player.transform.position : (Vector3?)null;
 
             GUI.BeginClip(rect);
             foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
             {
-                var color = FixedCameraZoneTrigger.GizmoColorFor(trigger.ZoneCamera);
+                var polygon = trigger.Polygon;
+                if (polygon.Count < 3) continue;
+
                 bool emphasized = trigger.ReferencedCameras.Contains(current);
+                bool playerInside = playerPosition.HasValue && trigger.Contains(playerPosition.Value);
+                var color = FixedCameraZoneTrigger.GizmoColorFor(trigger.ZoneCamera);
+                var lineColor = playerInside ? Color.white : color;
 
-                caps.Clear();
-                walls.Clear();
-                trigger.GetCapTriangles(caps);
-                trigger.GetWallQuads(walls);
+                var floor = new Vector3[polygon.Count];
+                for (int i = 0; i < floor.Length; i++) floor[i] = this.OnPlane(trigger.ToWorld(polygon[i], trigger.MinHeight));
 
-                foreach (var cap in caps) overlay.Draw(cap, color, emphasized ? 0.22f : 0.08f, 0f);
-                foreach (var wall in walls) overlay.Draw(wall, color, emphasized ? 0.22f : 0.08f, emphasized ? 3f : 1.5f);
+                var triangles = CameraZonePolygon.Triangulate(polygon);
+                for (int i = 0; i + 2 < triangles.Count; i += 3)
+                    overlay.Draw(new[] { floor[triangles[i]], floor[triangles[i + 1]], floor[triangles[i + 2]] },
+                        color, emphasized ? 0.28f : 0.1f, 0f);
+
+                for (int i = 0; i < floor.Length; i++)
+                    overlay.DrawLine(floor[i], floor[(i + 1) % floor.Length], lineColor, emphasized ? 3f : 1.5f);
 
                 if (trigger.UseTwoSidedSwitch)
                 {
                     float margin = Mathf.Max(0f, trigger.SideMargin);
-                    overlay.Draw(trigger.GetDividerQuad(-margin), FixedCameraZoneTrigger.GizmoColorFor(trigger.ZoneCamera), 0f, 2f);
-                    overlay.Draw(trigger.GetDividerQuad(margin), FixedCameraZoneTrigger.GizmoColorFor(
-                        trigger.ReferencedCameras.LastOrDefault()), 0f, 2f);
-                    overlay.Draw(trigger.GetDividerQuad(0f), Color.white, 0f, 2f);
+                    foreach (float offset in new[] { -margin, margin })
+                    {
+                        var edge = trigger.GetDividerQuad(offset);
+                        overlay.DrawLine(this.OnPlane(edge[0]), this.OnPlane(edge[1]), lineColor, 2f);
+                    }
+                    var divider = trigger.GetDividerQuad(0f);
+                    overlay.DrawLine(this.OnPlane(divider[0]), this.OnPlane(divider[1]), Color.white, 2f);
                 }
 
-                var polygon = trigger.Polygon;
-                if (polygon.Count < 3) continue;
                 var anchor = Vector3.zero;
-                for (int i = 0; i < polygon.Count; i++)
-                    anchor += trigger.ToWorld(polygon[i], (trigger.MinHeight + trigger.MaxHeight) * 0.5f);
-                anchor /= polygon.Count;
+                foreach (var point in floor) anchor += point;
+                anchor /= floor.Length;
 
                 var anchorView = worldToView.MultiplyPoint3x4(anchor);
                 if (-anchorView.z > near)
@@ -586,7 +618,41 @@ namespace CrimsonDraft.Navigation.Editor
                     GUI.Label(new Rect(p.x - 80f, p.y - 8f, 160f, 16f), LabelFor(trigger), style);
                 }
             }
+
+            if (this.player != null)
+            {
+                var feet = this.OnPlane(this.player.FootPosition);
+                overlay.Draw(Circle(feet, PlayerMarkerRadius), new Color(1f, 0.85f, 0.2f), 1f, 0f);
+                overlay.Draw(Circle(feet, PlayerDotRadius), new Color(0.9f, 0.1f, 0.1f), 1f, 0f);
+            }
             GUI.EndClip();
+        }
+
+        private Vector3 OnPlane(Vector3 world)
+        {
+            world.y = this.planeY;
+            return world;
+        }
+
+        private static Vector3[] Circle(Vector3 center, float radius)
+        {
+            var points = new Vector3[PlayerMarkerSegments];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float angle = i * Mathf.PI * 2f / points.Length;
+                points[i] = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+            }
+            return points;
+        }
+
+        /// <summary>Height of the plane every zone and the player marker are flattened onto: the player's
+        /// feet, as in the runtime overlay. Without a player in the scene, the room's first zone floor.</summary>
+        private float ResolvePlaneY(RoomController room)
+        {
+            if (this.player != null) return this.player.FootPosition.y;
+
+            var trigger = room.GetComponentInChildren<FixedCameraZoneTrigger>(includeInactive: false);
+            return trigger != null ? trigger.ToWorld(Vector2.zero, trigger.MinHeight).y : 0f;
         }
 
         private static string LabelFor(FixedCameraZoneTrigger trigger) =>
@@ -606,6 +672,21 @@ namespace CrimsonDraft.Navigation.Editor
                 this.projection = projection;
                 this.near = near;
                 this.size = size;
+            }
+
+            public void DrawLine(Vector3 a, Vector3 b, Color color, float width)
+            {
+                var va = this.worldToView.MultiplyPoint3x4(a);
+                var vb = this.worldToView.MultiplyPoint3x4(b);
+                bool aIn = -va.z > this.near;
+                bool bIn = -vb.z > this.near;
+                if (!aIn && !bIn) return;
+
+                if (!aIn) va = Vector3.Lerp(va, vb, (-this.near - va.z) / (vb.z - va.z));
+                else if (!bIn) vb = Vector3.Lerp(va, vb, (-this.near - va.z) / (vb.z - va.z));
+
+                Handles.color = color;
+                Handles.DrawAAPolyLine(width, ToGui(this.projection, va, this.size), ToGui(this.projection, vb, this.size));
             }
 
             /// <param name="fillAlpha">0 skips the fill.</param>

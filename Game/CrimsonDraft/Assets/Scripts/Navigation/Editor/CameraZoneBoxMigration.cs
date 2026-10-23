@@ -78,25 +78,22 @@ namespace CrimsonDraft.Navigation.Editor
             Debug.Log($"[CameraZoneBoxMigration] Converted {converted} trigger(s) in {paths.Count} prefab(s) checked.");
         }
 
-        private static bool Convert(FixedCameraZoneTrigger trigger, bool useUndo)
+        internal static bool Convert(FixedCameraZoneTrigger trigger, bool useUndo)
         {
             var box = trigger.GetComponent<BoxCollider>();
             if (box == null) return false;
 
-            var center = box.center;
-            var half = box.size * 0.5f;
+            var shape = FixedCameraZoneTrigger.ShapeFromBox(box);
 
             var serialized = new SerializedObject(trigger);
             var polygon = serialized.FindProperty("polygon");
-            polygon.arraySize = 4;
-            polygon.GetArrayElementAtIndex(0).vector2Value = new Vector2(center.x - half.x, center.z - half.z);
-            polygon.GetArrayElementAtIndex(1).vector2Value = new Vector2(center.x - half.x, center.z + half.z);
-            polygon.GetArrayElementAtIndex(2).vector2Value = new Vector2(center.x + half.x, center.z + half.z);
-            polygon.GetArrayElementAtIndex(3).vector2Value = new Vector2(center.x + half.x, center.z - half.z);
-            serialized.FindProperty("minHeight").floatValue = center.y - half.y;
-            serialized.FindProperty("maxHeight").floatValue = center.y + half.y;
-            serialized.FindProperty("dividerStart").vector2Value = new Vector2(center.x - half.x, center.z);
-            serialized.FindProperty("dividerEnd").vector2Value = new Vector2(center.x + half.x, center.z);
+            polygon.arraySize = shape.Polygon.Length;
+            for (int i = 0; i < shape.Polygon.Length; i++)
+                polygon.GetArrayElementAtIndex(i).vector2Value = shape.Polygon[i];
+            serialized.FindProperty("minHeight").floatValue = shape.MinHeight;
+            serialized.FindProperty("maxHeight").floatValue = shape.MaxHeight;
+            serialized.FindProperty("dividerStart").vector2Value = shape.DividerStart;
+            serialized.FindProperty("dividerEnd").vector2Value = shape.DividerEnd;
 
             if (useUndo)
             {

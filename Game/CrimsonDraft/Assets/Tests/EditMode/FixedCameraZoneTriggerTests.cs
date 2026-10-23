@@ -151,6 +151,27 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void LegacyBoxCollider_definesTheZoneUntilItIsRemoved()
+        {
+            var box = this.root.AddComponent<BoxCollider>();
+            box.center = new Vector3(0, 1, 10);
+            box.size = new Vector3(8, 2, 6);
+
+            Assert.IsTrue(this.trigger.IsLegacyBox);
+            Assert.IsTrue(this.trigger.Contains(new Vector3(3.5f, 1, 12.5f)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(0, 1, 0)));
+            Assert.IsFalse(this.trigger.Contains(new Vector3(0, 3, 10)));
+
+            // The divider runs along the box X axis through its centre, like the old forward plane.
+            Assert.AreSame(this.b, this.trigger.ResolveCameraAt(new Vector3(0, 1, 11), this.a));
+            Assert.AreSame(this.a, this.trigger.ResolveCameraAt(new Vector3(0, 1, 9), this.b));
+
+            Object.DestroyImmediate(box);
+            Assert.IsFalse(this.trigger.IsLegacyBox);
+            Assert.IsTrue(this.trigger.Contains(new Vector3(0, 1, 0)));
+        }
+
+        [Test]
         public void Evaluate_ignoresAPlayerOutsideThePolygon()
         {
             var service = new FakeZoneService();

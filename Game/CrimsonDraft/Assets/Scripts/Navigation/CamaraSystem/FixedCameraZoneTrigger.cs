@@ -36,23 +36,29 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         private bool playerInside;
 
         public CinemachineCamera ZoneCamera => this.zoneCamera;
-        public IReadOnlyList<Vector2> Polygon => this.polygon;
-        public float MinHeight => this.minHeight;
-        public float MaxHeight => this.maxHeight;
+        public IReadOnlyList<Vector2> Polygon => this.ActiveShape.Polygon;
+        public float MinHeight => this.ActiveShape.MinHeight;
+        public float MaxHeight => this.ActiveShape.MaxHeight;
         public bool UseTwoSidedSwitch => this.useTwoSidedSwitch;
         public float SideMargin => this.sideMargin;
         public Vector2 Centroid
         {
             get
             {
-                if (this.polygon == null || this.polygon.Length == 0) return Vector2.zero;
+                var polygon = this.ActiveShape.Polygon;
+                if (polygon == null || polygon.Length == 0) return Vector2.zero;
                 var sum = Vector2.zero;
-                foreach (var point in this.polygon) sum += point;
-                return sum / this.polygon.Length;
+                foreach (var point in polygon) sum += point;
+                return sum / polygon.Length;
             }
         }
-        public Vector2 DividerStart => this.dividerStart;
-        public Vector2 DividerEnd => this.dividerEnd;
+        public Vector2 DividerStart => this.ActiveShape.DividerStart;
+        public Vector2 DividerEnd => this.ActiveShape.DividerEnd;
+
+        /// <summary>True while the zone still has the old BoxCollider. Such a zone is built from that box
+        /// (same footprint, height and divider as the migration would produce) until it is converted, so
+        /// scenes that were never migrated keep working.</summary>
+        public bool IsLegacyBox => this.TryGetComponent<BoxCollider>(out _);
 
         /// <summary>Every camera this trigger can switch to (the positive side only when the two-sided switch is on).</summary>
         public IEnumerable<CinemachineCamera> ReferencedCameras
@@ -64,6 +70,67 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
         }
 
+        /// <summary>Everything that defines a zone footprint, from either the serialized polygon or a legacy box.</summary>
+        public readonly struct ZoneShape
+        {
+            public readonly Vector2[] Polygon;
+            public readonly float MinHeight;
+            public readonly float MaxHeight;
+            public readonly Vector2 DividerStart;
+            public readonly Vector2 DividerEnd;
+
+            public ZoneShape(Vector2[] polygon, float minHeight, float maxHeight, Vector2 dividerStart, Vector2 dividerEnd)
+            {
+                this.Polygon = polygon;
+                this.MinHeight = minHeight;
+                this.MaxHeight = maxHeight;
+                this.DividerStart = dividerStart;
+                this.DividerEnd = dividerEnd;
+            }
+        }
+
+        /// <summary>The rectangle a box collider stands for: its footprint and height range, with the divider
+        /// along the local X axis of the box through its centre (the plane the old two-sided switch used).</summary>
+        public static ZoneShape ShapeFromBox(BoxCollider box)
+        {
+            var center = box.center;
+            var half = box.size * 0.5f;
+            return new ZoneShape(
+                new[]
+                {
+                    new Vector2(center.x - half.x, center.z - half.z),
+                    new Vector2(center.x - half.x, center.z + half.z),
+                    new Vector2(center.x + half.x, center.z + half.z),
+                    new Vector2(center.x + half.x, center.z - half.z),
+                },
+                center.y - half.y, center.y + half.y,
+                new Vector2(center.x - half.x, center.z),
+                new Vector2(center.x + half.x, center.z));
+        }
+
+        private BoxCollider? cachedBox;
+        private Vector3 cachedBoxCenter;
+        private Vector3 cachedBoxSize;
+        private ZoneShape cachedBoxShape;
+
+        private ZoneShape ActiveShape
+        {
+            get
+            {
+                if (!this.TryGetComponent<BoxCollider>(out var box))
+                    return new ZoneShape(this.polygon, this.minHeight, this.maxHeight, this.dividerStart, this.dividerEnd);
+
+                if (this.cachedBox != box || this.cachedBoxCenter != box.center || this.cachedBoxSize != box.size)
+                {
+                    this.cachedBox = box;
+                    this.cachedBoxCenter = box.center;
+                    this.cachedBoxSize = box.size;
+                    this.cachedBoxShape = ShapeFromBox(box);
+                }
+                return this.cachedBoxShape;
+            }
+        }
+
         public void Construct(IFixedCameraZoneService zoneService)
         {
             this.zoneService = zoneService;
@@ -72,9 +139,10 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// <summary>True when the world position is inside the polygon and within the height range.</summary>
         public bool Contains(Vector3 worldPosition)
         {
+            var shape = this.ActiveShape;
             var local = this.transform.InverseTransformPoint(worldPosition);
-            if (local.y < this.minHeight || local.y > this.maxHeight) return false;
-            return CameraZonePolygon.Contains(this.polygon, new Vector2(local.x, local.z));
+            if (local.y < shape.MinHeight || local.y > shape.MaxHeight) return false;
+            return CameraZonePolygon.Contains(shape.Polygon, new Vector2(local.x, local.z));
         }
 
         public CinemachineCamera? ResolveCameraAt(Vector3 position, CinemachineCamera? current)
@@ -125,8 +193,9 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// camera-B side. Zero when the divider is degenerate.</summary>
         private float DistanceFromDivider(Vector3 worldPosition)
         {
-            var start = this.transform.TransformPoint(new Vector3(this.dividerStart.x, 0f, this.dividerStart.y));
-            var end = this.transform.TransformPoint(new Vector3(this.dividerEnd.x, 0f, this.dividerEnd.y));
+            var shape = this.ActiveShape;
+            var start = this.transform.TransformPoint(new Vector3(shape.DividerStart.x, 0f, shape.DividerStart.y));
+            var end = this.transform.TransformPoint(new Vector3(shape.DividerEnd.x, 0f, shape.DividerEnd.y));
             var direction = new Vector2(end.x - start.x, end.z - start.z);
             if (direction.sqrMagnitude < 1e-8f) return 0f;
 
@@ -154,15 +223,16 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// <summary>The side walls of the extruded polygon, one world-space quad per edge.</summary>
         public void GetWallQuads(List<Vector3[]> quads)
         {
-            int count = this.polygon.Length;
+            var shape = this.ActiveShape;
+            int count = shape.Polygon.Length;
             for (int i = 0; i < count && count >= 3; i++)
             {
-                var a = this.polygon[i];
-                var b = this.polygon[(i + 1) % count];
+                var a = shape.Polygon[i];
+                var b = shape.Polygon[(i + 1) % count];
                 quads.Add(new[]
                 {
-                    this.ToWorld(a, this.minHeight), this.ToWorld(b, this.minHeight),
-                    this.ToWorld(b, this.maxHeight), this.ToWorld(a, this.maxHeight),
+                    this.ToWorld(a, shape.MinHeight), this.ToWorld(b, shape.MinHeight),
+                    this.ToWorld(b, shape.MaxHeight), this.ToWorld(a, shape.MaxHeight),
                 });
             }
         }
@@ -171,16 +241,17 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// <summary>Floor and ceiling of the extruded polygon as world-space triangles.</summary>
         public void GetCapTriangles(List<Vector3[]> triangles)
         {
-            var indices = CameraZonePolygon.Triangulate(this.polygon);
-            foreach (float height in new[] { this.minHeight, this.maxHeight })
+            var shape = this.ActiveShape;
+            var indices = CameraZonePolygon.Triangulate(shape.Polygon);
+            foreach (float height in new[] { shape.MinHeight, shape.MaxHeight })
             {
                 for (int i = 0; i + 2 < indices.Count; i += 3)
                 {
                     triangles.Add(new[]
                     {
-                        this.ToWorld(this.polygon[indices[i]], height),
-                        this.ToWorld(this.polygon[indices[i + 1]], height),
-                        this.ToWorld(this.polygon[indices[i + 2]], height),
+                        this.ToWorld(shape.Polygon[indices[i]], height),
+                        this.ToWorld(shape.Polygon[indices[i + 1]], height),
+                        this.ToWorld(shape.Polygon[indices[i + 2]], height),
                     });
                 }
             }
@@ -192,12 +263,13 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// along its positive normal. Offset 0 is the divider itself; ±sideMargin are the thresholds.</summary>
         public Vector3[] GetDividerQuad(float offset)
         {
-            var start = this.ToWorld(this.dividerStart, this.minHeight);
-            var end = this.ToWorld(this.dividerEnd, this.minHeight);
+            var shape = this.ActiveShape;
+            var start = this.ToWorld(shape.DividerStart, shape.MinHeight);
+            var end = this.ToWorld(shape.DividerEnd, shape.MinHeight);
             var direction = new Vector2(end.x - start.x, end.z - start.z);
             var normal = direction.sqrMagnitude < 1e-8f ? Vector2.zero : new Vector2(-direction.y, direction.x).normalized;
             var push = new Vector3(normal.x, 0f, normal.y) * offset;
-            var rise = this.transform.up * (this.maxHeight - this.minHeight);
+            var rise = this.transform.up * (shape.MaxHeight - shape.MinHeight);
             return new[] { start + push, end + push, end + push + rise, start + push + rise };
         }
 
@@ -214,7 +286,8 @@ namespace CrimsonDraft.Navigation.CamaraSystem
 
         private void OnDrawGizmos()
         {
-            if (this.polygon == null || this.polygon.Length < 3) return;
+            var shape = this.ActiveShape;
+            if (shape.Polygon == null || shape.Polygon.Length < 3) return;
 
             var color = GizmoColorFor(this.zoneCamera);
             bool emphasized = UnityEditor.Selection.Contains(this.gameObject)
@@ -238,8 +311,8 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
 
             var center = Vector3.zero;
-            foreach (var point in this.polygon) center += this.ToWorld(point, (this.minHeight + this.maxHeight) * 0.5f);
-            center /= this.polygon.Length;
+            foreach (var point in shape.Polygon) center += this.ToWorld(point, (shape.MinHeight + shape.MaxHeight) * 0.5f);
+            center /= shape.Polygon.Length;
 
             var label = this.zoneCamera != null ? this.zoneCamera.name : "(no camera)";
             if (this.useTwoSidedSwitch && this.positiveSideCamera != null) label += " | " + this.positiveSideCamera.name;
