@@ -92,27 +92,48 @@ namespace CrimsonDraft.Tests
         public void ResolveArrival_returnsArrivalOfDoorBack()
         {
             var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
-            Assert.AreSame(back.GetComponent<DoorArrival>(),
-                RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
+            var arrival = back.gameObject.AddComponent<DoorArrival>();
+            arrival.PlaceAtDefault(1f, Vector3.right);
+
+            Assert.AreSame(arrival, RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero, out var problem));
+            Assert.IsNull(problem);
         }
 
         [Test]
-        public void ResolveArrival_noDoorBack_logsErrorAndReturnsNull()
+        public void ResolveArrival_noDoorBack_reportsProblemWithoutLogging()
         {
-            LogAssert.Expect(LogType.Error, new Regex("No door back to 'Origin' in 'Destination'"));
-            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
+            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero, out var problem));
+            StringAssert.Contains("No door back to 'Origin' in 'Destination'", problem);
+            LogAssert.NoUnexpectedReceived();
         }
 
         [Test]
-        public void ResolveArrival_doorWithoutArrivalPoint_logsErrorAndReturnsNull()
+        public void ResolveArrival_doorNotMigrated_reportsMissingDoorArrival()
         {
-            var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
-            var so = new SerializedObject(back.GetComponent<DoorArrival>());
-            so.FindProperty("arrivalPoint").objectReferenceValue = null;
+            MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero, out var problem));
+            StringAssert.Contains("has no DoorArrival", problem);
+        }
+
+        [Test]
+        public void FindLegacySpawnPoint_returnsSpawnFromOrigin()
+        {
+            var spawnGo = new GameObject("Spawn");
+            spawnGo.transform.SetParent(this.destination.transform, false);
+            var spawn = spawnGo.AddComponent<SpawnPoint>();
+            var so = new SerializedObject(spawn);
+            so.FindProperty("fromRoom").objectReferenceValue = this.origin;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            LogAssert.Expect(LogType.Error, new Regex("has no DoorArrival"));
-            Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero));
+            Assert.AreSame(spawn, RoomOrchestrator.FindLegacySpawnPoint(this.destination, this.origin));
+            Assert.IsNull(RoomOrchestrator.FindLegacySpawnPoint(this.destination, this.other));
+        }
+
+        [Test]
+        public void AddingADoor_doesNotAddDoorArrivalByItself()
+        {
+            var door = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            Assert.IsNull(door.GetComponent<DoorArrival>(), "nothing may be written to unmigrated prefabs/scenes");
         }
 
         private RoomController MakeRoom(string name)

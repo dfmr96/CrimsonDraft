@@ -90,7 +90,9 @@ namespace CrimsonDraft.Tests
             var roomA = new GameObject("RoomA").AddComponent<RoomController>();
             var roomB = new GameObject("RoomB").AddComponent<RoomController>();
             var door  = MakeEntryDoor(roomB, "entry-1");
-            door.GetComponent<DoorArrival>().ArrivalPoint.position = new Vector3(5, 1, 3);
+            var doorArrival = door.gameObject.AddComponent<DoorArrival>();
+            doorArrival.PlaceAtDefault(1f, Vector3.zero);
+            doorArrival.ArrivalPoint.position = new Vector3(5, 1, 3);
             context.SetStartingRoom(roomA);
 
             var playerGo = new GameObject("Player");
@@ -153,10 +155,7 @@ namespace CrimsonDraft.Tests
 
             var roomA = new GameObject("RoomA").AddComponent<RoomController>();
             var roomB = new GameObject("RoomB").AddComponent<RoomController>();
-            var door  = MakeEntryDoor(roomB, "entry-1");
-            var arrival = new SerializedObject(door.GetComponent<DoorArrival>());
-            arrival.FindProperty("arrivalPoint").objectReferenceValue = null;
-            arrival.ApplyModifiedPropertiesWithoutUndo();
+            MakeEntryDoor(roomB, "entry-1"); // not migrated: no DoorArrival, and no legacy spawn either
             context.SetStartingRoom(roomA);
 
             var playerGo = new GameObject("Player");
@@ -175,6 +174,46 @@ namespace CrimsonDraft.Tests
             {
                 Object.DestroyImmediate(roomA.gameObject);
                 Object.DestroyImmediate(roomB.gameObject);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+                Object.DestroyImmediate(entryContext);
+            }
+        }
+
+        [Test]
+        public void Initialize_withPendingEntryAndOnlyLegacySceneSpawn_usesLegacySpawn()
+        {
+            var context      = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var entryContext = ScriptableObject.CreateInstance<SceneEntryContext>();
+            entryContext.SetPendingEntry("entry-1");
+
+            var roomA   = new GameObject("RoomA").AddComponent<RoomController>();
+            var roomB   = new GameObject("RoomB").AddComponent<RoomController>();
+            var spawnGo = new GameObject("Spawn");
+            spawnGo.transform.position = new Vector3(2, 1, 7);
+            var spawn   = spawnGo.AddComponent<SceneSpawnPoint>();
+            var spawnSo = new SerializedObject(spawn);
+            spawnSo.FindProperty("entryPointId").stringValue          = "entry-1";
+            spawnSo.FindProperty("startingRoom").objectReferenceValue = roomB;
+            spawnSo.ApplyModifiedPropertiesWithoutUndo();
+            context.SetStartingRoom(roomA);
+
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context, entry: entryContext);
+                ((IInitializable)orchestrator).Initialize();
+
+                Assert.IsTrue(roomB.gameObject.activeSelf, "legacy spawn starting room must be active");
+                Assert.AreEqual(new Vector3(2, 1, 7), player.transform.position); // any LogError would fail the test
+            }
+            finally
+            {
+                Object.DestroyImmediate(roomA.gameObject);
+                Object.DestroyImmediate(roomB.gameObject);
+                Object.DestroyImmediate(spawnGo);
                 Object.DestroyImmediate(playerGo);
                 Object.DestroyImmediate(context);
                 Object.DestroyImmediate(entryContext);

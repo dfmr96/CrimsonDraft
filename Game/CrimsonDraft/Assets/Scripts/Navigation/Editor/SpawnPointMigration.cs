@@ -27,8 +27,19 @@ namespace CrimsonDraft.Navigation.Editor
             public int Assets, Doors, Cameras, Spawns, Unmatched;
         }
 
+        public const string Explanation =
+            "Adds a DoorArrival to every door prefab, re-places every door arrival in every room prefab and " +
+            "production scene, copies the spawn cameras and entry ids to the doors, and deletes every SpawnPoint " +
+            "and SceneSpawnPoint. Prefabs and scenes are saved. Commit or stash your own changes first.";
+
         [MenuItem("CrimsonDraft/Doors/Migrate Spawn Points To Door Arrivals")]
-        private static void Migrate()
+        internal static void MigrateWithConfirmation()
+        {
+            if (EditorUtility.DisplayDialog("Migrate spawn points to door arrivals", Explanation, "Migrate", "Cancel"))
+                Migrate();
+        }
+
+        internal static void Migrate()
         {
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {

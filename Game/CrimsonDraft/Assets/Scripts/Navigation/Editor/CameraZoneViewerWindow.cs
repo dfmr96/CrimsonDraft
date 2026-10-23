@@ -312,6 +312,10 @@ namespace CrimsonDraft.Navigation.Editor
                 }
             }
             DoorArrivalSettings.Distance = EditorGUILayout.FloatField(DoorArrivalSettings.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
+
+            // One-shot conversion of the old spawn points; disappears with them once migrated.
+            if (GUILayout.Button(new GUIContent("Migrate Doors", SpawnPointMigration.Explanation), EditorStyles.toolbarButton, GUILayout.Width(88f)))
+                EditorApplication.delayCall += SpawnPointMigration.MigrateWithConfirmation;
         }
 
         private void DrawFovField()

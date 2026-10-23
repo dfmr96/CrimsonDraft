@@ -84,9 +84,19 @@ arrival point, starts in the `RoomController` it belongs to (replacing
 current fallback. `targetEntryPointId` on the origin door is unchanged, so doors in other
 scenes need no edits.
 
-**No legacy path.** `SpawnPoint` and `SceneSpawnPoint` are deleted once the migration
-has run. An arrival door without `DoorArrival` is a data error: `LogError` + the room
-root fallback, like a missing door back.
+**Transition period (decided after the plan).** Room prefabs and scenes cannot be modified
+yet, so the code lands before the data is migrated:
+
+- no `[RequireComponent(typeof(DoorArrival))]` on the door classes: it made Unity add the
+  component in memory to every loaded door, which would be written to prefabs and scenes
+  by any unrelated save;
+- the orchestrator falls back to the old `SpawnPoint` / `SceneSpawnPoint` when the arrival
+  door has no `DoorArrival` (marked TEMPORARY); the error is only logged when both are
+  missing;
+- the migration is a button (**Migrate Doors** in the Camera Zone Viewer, and the menu
+  command), run once prefabs and scenes may be modified;
+- after it has run, a small follow-up commit deletes the fallback, `SpawnPoint`,
+  `SceneSpawnPoint`, `SpawnPointAligner` and the migration itself.
 
 ### Default placement
 
