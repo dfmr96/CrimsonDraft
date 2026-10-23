@@ -21,8 +21,11 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private string     targetSceneName      = null!;
         [SerializeField] private string     targetEntryPointId   = null!;
         [SerializeField] private GameObject doorTransitionPrefab = null!;
+        [Tooltip("Id other scenes use to arrive through this door (their targetEntryPointId).")]
+        [SerializeField] private string     entryPointId         = "";
 
-        public string DoorId => this.doorId;
+        public string DoorId       => this.doorId;
+        public string EntryPointId => this.entryPointId;
 
         // Doors have their own opening/transition animation — the player shouldn't also play
         // a generic Interact animation.
