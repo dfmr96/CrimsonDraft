@@ -31,7 +31,17 @@ namespace CrimsonDraft.Navigation.Editor
         private int cameraIndex;
         private Vector2 listScroll;
         private ZoneViewport? viewport;
+        private ZoneViewport? planViewport;
         private ZoneOverlay? overlay;
+
+        private enum ViewMode { Camera, Plan, Split }
+        private static readonly string[] ViewModeLabels = { "Camera", "Plan", "Split" };
+        private const float MinPlanZoom = 0.25f;
+        private const float MaxPlanZoom = 8f;
+        private ViewMode viewMode;
+        private float planZoom = 1f;
+        private Vector2 planPan;
+        private Vector2Int planPixels;
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
@@ -44,6 +54,7 @@ namespace CrimsonDraft.Navigation.Editor
         private PlayerController? player;
 
         private ZoneViewport Viewport => this.viewport ??= new ZoneViewport("CameraZoneViewer_Camera");
+        private ZoneViewport PlanViewport => this.planViewport ??= new ZoneViewport("CameraZoneViewer_Plan");
         private ZoneOverlay Overlay => this.overlay ??= new ZoneOverlay(this.Repaint);
 
         [MenuItem("CrimsonDraft/Camera Zone Viewer")]
@@ -70,6 +81,8 @@ namespace CrimsonDraft.Navigation.Editor
             FixedCameraZoneTrigger.GizmoHighlightCamera = null;
             this.viewport?.Dispose();
             this.viewport = null;
+            this.planViewport?.Dispose();
+            this.planViewport = null;
             SceneView.RepaintAll();
         }
 
@@ -94,9 +107,13 @@ namespace CrimsonDraft.Navigation.Editor
             this.lastRenderTime = EditorApplication.timeSinceStartup;
 
             var camera = this.CurrentCamera;
-            if (camera == null || this.viewPixels.x < 16 || this.viewPixels.y < 16) return;
+            var room = this.CurrentRoom;
+            if (camera == null) return;
 
-            this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), this.unlit);
+            if (this.viewMode != ViewMode.Plan && this.viewPixels.x >= 16 && this.viewPixels.y >= 16)
+                this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), this.unlit);
+            if (this.viewMode != ViewMode.Camera && room != null && this.planPixels.x >= 16 && this.planPixels.y >= 16)
+                this.PlanViewport.Render(this.planPixels, view => this.SetupPlanCamera(view, room), this.unlit);
             this.Repaint();
         }
 
@@ -185,9 +202,12 @@ namespace CrimsonDraft.Navigation.Editor
                 {
                     this.roomIndex = newRoom;
                     this.cameraIndex = 0;
+                    this.planPan = Vector2.zero;
+                    this.planZoom = 1f;
                     this.RefreshCameras();
                 }
 
+                this.viewMode = (ViewMode)GUILayout.Toolbar((int)this.viewMode, ViewModeLabels, EditorStyles.toolbarButton, GUILayout.Width(150f));
                 this.unlit = GUILayout.Toggle(this.unlit, "Unlit", EditorStyles.toolbarButton, GUILayout.Width(48f));
                 this.DrawArrivalControls();
                 this.cameraMode = GUILayout.Toggle(this.cameraMode, "Move Camera", EditorStyles.toolbarButton, GUILayout.Width(88f));
@@ -253,38 +273,137 @@ namespace CrimsonDraft.Navigation.Editor
         {
             var camera = this.CurrentCamera;
             var area = GUILayoutUtility.GetRect(10f, 10f, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
-            int controlId = GUIUtility.GetControlID(FocusType.Passive);
+            // Both ids are taken every pass so they stay stable whatever the view mode.
+            int cameraControlId = GUIUtility.GetControlID(FocusType.Passive);
+            int planControlId = GUIUtility.GetControlID(FocusType.Passive);
             // The Layout pass returns a dummy rect; every other pass has the real one.
             if (camera == null || Event.current.type == EventType.Layout) return;
 
             FixedCameraZoneTrigger.GizmoHighlightCamera = camera;
             float planeY = ZoneOverlay.ResolvePlaneY(room, this.player);
-            var view = ZoneViewport.FitToGameAspect(area);
 
+            switch (this.viewMode)
+            {
+                case ViewMode.Camera:
+                    this.DrawCameraView(room, camera, area, planeY, cameraControlId);
+                    break;
+                case ViewMode.Plan:
+                    this.DrawPlanView(room, camera, area, planeY, planControlId);
+                    break;
+                default:
+                    float half = Mathf.Floor(area.width * 0.5f);
+                    this.DrawCameraView(room, camera, new Rect(area.x, area.y, half - 1f, area.height), planeY, cameraControlId);
+                    this.DrawPlanView(room, camera, new Rect(area.x + half + 1f, area.y, area.width - half - 1f, area.height), planeY, planControlId);
+                    break;
+            }
+
+            if (Event.current.type == EventType.Repaint && !room.gameObject.activeInHierarchy)
+                EditorGUI.HelpBox(new Rect(area.x, area.y, area.width, 32f),
+                    "The room is inactive, so its geometry will not render.", MessageType.Warning);
+        }
+
+        private void DrawCameraView(RoomController room, CinemachineCamera camera, Rect area, float planeY, int controlId)
+        {
+            var view = ZoneViewport.FitToGameAspect(area);
             if (Event.current.type == EventType.Repaint)
             {
                 EditorGUI.DrawRect(area, Color.black);
-
-                float scale = EditorGUIUtility.pixelsPerPoint;
-                this.viewPixels = new Vector2Int(
-                    Mathf.Clamp(Mathf.RoundToInt(view.width * scale), 0, 2048),
-                    Mathf.Clamp(Mathf.RoundToInt(view.height * scale), 0, 2048));
-
+                this.viewPixels = ToPixels(view);
                 if (this.Viewport.Texture != null)
                     GUI.DrawTexture(view, this.Viewport.Texture, ScaleMode.StretchToFill, false);
-
                 if (this.Viewport.HasCamera)
                     this.Overlay.Draw(room, this.Viewport.Camera, view, planeY, camera, this.player);
-
-                if (!room.gameObject.activeInHierarchy)
-                    EditorGUI.HelpBox(new Rect(area.x, area.y, area.width, 32f),
-                        "The room is inactive, so its geometry will not render.", MessageType.Warning);
             }
 
             if (this.cameraMode)
                 this.HandleCameraControls(camera, view, controlId);
             else if (this.Viewport.HasCamera)
                 this.Overlay.Edit(room, this.Viewport.Camera, view, planeY, controlId);
+        }
+
+        // Top-down orthographic view of the room: every zone, the selected camera and its view on the
+        // floor. Middle mouse pans, the wheel zooms, the left button edits zones like the camera view.
+        private void DrawPlanView(RoomController room, CinemachineCamera camera, Rect area, float planeY, int controlId)
+        {
+            var e = Event.current;
+            if (e.type == EventType.Repaint)
+            {
+                EditorGUI.DrawRect(area, Color.black);
+                this.planPixels = ToPixels(area);
+                if (this.PlanViewport.Texture != null)
+                    GUI.DrawTexture(area, this.PlanViewport.Texture, ScaleMode.StretchToFill, false);
+                if (this.PlanViewport.HasCamera)
+                {
+                    var plan = this.PlanViewport.Camera;
+                    this.Overlay.Draw(room, plan, area, planeY, camera, this.player);
+                    var game = Handles.GetMainGameViewSize();
+                    this.Overlay.DrawCameraFrustum(camera, game.y > 0f ? game.x / game.y : 16f / 9f, plan, area, planeY);
+                }
+                EditorGUI.LabelField(new Rect(area.x + 6f, area.y + area.height - 20f, area.width - 12f, 18f),
+                    "Plan: MMB pan  |  wheel zoom  |  LMB edit zones", EditorStyles.whiteMiniLabel);
+            }
+
+            if (area.Contains(e.mousePosition) || GUIUtility.hotControl == controlId)
+                this.HandlePlanNavigation(area, controlId);
+            if (this.PlanViewport.HasCamera)
+                this.Overlay.Edit(room, this.PlanViewport.Camera, area, planeY, GUIUtility.GetControlID(FocusType.Passive));
+        }
+
+        private void HandlePlanNavigation(Rect area, int controlId)
+        {
+            var e = Event.current;
+            switch (e.GetTypeForControl(controlId))
+            {
+                case EventType.MouseDown when e.button == 2:
+                    GUIUtility.hotControl = controlId;
+                    e.Use();
+                    break;
+                case EventType.MouseDrag when GUIUtility.hotControl == controlId:
+                    float worldPerPixel = this.PlanViewport.HasCamera
+                        ? this.PlanViewport.Camera.orthographicSize * 2f / Mathf.Max(1f, area.height) : 0.01f;
+                    // Screen right = world +X, screen up = world +Z for a camera looking straight down.
+                    this.planPan += new Vector2(-e.delta.x, e.delta.y) * worldPerPixel;
+                    e.Use();
+                    this.RequestRender();
+                    break;
+                case EventType.MouseUp when GUIUtility.hotControl == controlId:
+                    GUIUtility.hotControl = 0;
+                    e.Use();
+                    break;
+                case EventType.ScrollWheel:
+                    this.planZoom = Mathf.Clamp(this.planZoom * (1f - e.delta.y * 0.05f), MinPlanZoom, MaxPlanZoom);
+                    e.Use();
+                    this.RequestRender();
+                    break;
+            }
+        }
+
+        private void SetupPlanCamera(Camera view, RoomController room)
+        {
+            var bounds = PlanViewFraming.RoomBounds(room);
+            float aspect = this.planPixels.y > 0 ? (float)this.planPixels.x / this.planPixels.y : 1f;
+            var (position, rotation, size) = PlanViewFraming.Fit(bounds, aspect, this.planZoom, this.planPan);
+            view.transform.SetPositionAndRotation(position, rotation);
+            view.orthographic = true;
+            view.orthographicSize = size;
+            view.nearClipPlane = 0.1f;
+            view.farClipPlane = position.y - bounds.min.y + 20f;
+            view.clearFlags = CameraClearFlags.SolidColor;
+            view.backgroundColor = Color.black;
+        }
+
+        private void RequestRender()
+        {
+            this.lastRenderTime = 0;
+            this.Repaint();
+        }
+
+        private static Vector2Int ToPixels(Rect rect)
+        {
+            float scale = EditorGUIUtility.pixelsPerPoint;
+            return new Vector2Int(
+                Mathf.Clamp(Mathf.RoundToInt(rect.width * scale), 0, 2048),
+                Mathf.Clamp(Mathf.RoundToInt(rect.height * scale), 0, 2048));
         }
 
         // ---- Camera fly mode -------------------------------------------------------------

@@ -322,6 +322,51 @@ namespace CrimsonDraft.Navigation.Editor
             GUI.EndClip();
         }
 
+        /// <summary>The camera's position and the footprint of its view on the floor plane, for the plan
+        /// view: lines from the camera to where the four frustum corners meet the floor (rays that never
+        /// reach it stop at the far plane, flattened).</summary>
+        public void DrawCameraFrustum(CinemachineCamera camera, float aspect, Camera view, Rect rect, float planeY)
+        {
+            view.aspect = rect.width / rect.height;
+            var overlay = new OverlayProjection(view.worldToCameraMatrix, view.projectionMatrix, view.nearClipPlane, rect.size);
+            var t = camera.transform;
+            var lens = camera.Lens;
+            float tanV = Mathf.Tan(lens.FieldOfView * 0.5f * Mathf.Deg2Rad);
+            float tanH = tanV * aspect;
+            var origin = t.position;
+            var ground = new Vector3(origin.x, planeY, origin.z);
+
+            var corners = new Vector3[4];
+            int k = 0;
+            foreach (var (sx, sy) in new[] { (-1f, -1f), (1f, -1f), (1f, 1f), (-1f, 1f) })
+            {
+                var direction = (t.forward + t.right * (sx * tanH) + t.up * (sy * tanV)).normalized;
+                corners[k++] = FloorPoint(origin, direction, planeY, lens.FarClipPlane);
+            }
+
+            var color = FixedCameraZoneTrigger.GizmoColorFor(camera);
+            GUI.BeginClip(rect);
+            for (int i = 0; i < 4; i++)
+            {
+                overlay.DrawLine(ground, corners[i], new Color(color.r, color.g, color.b, 0.6f), 1.5f);
+                overlay.DrawLine(corners[i], corners[(i + 1) % 4], color, 2f);
+            }
+            overlay.Draw(Circle(ground, 0.25f), color, 1f, 0f);
+            GUI.EndClip();
+        }
+
+        private static Vector3 FloorPoint(Vector3 origin, Vector3 direction, float planeY, float far)
+        {
+            if (direction.y < -1e-4f)
+            {
+                float distance = (planeY - origin.y) / direction.y;
+                if (distance > 0f && distance <= far) return origin + direction * distance;
+            }
+            var point = origin + direction * Mathf.Min(far, 30f);
+            point.y = planeY;
+            return point;
+        }
+
         internal Vector3 OnPlane(Vector3 world)
         {
             world.y = this.planeY;
