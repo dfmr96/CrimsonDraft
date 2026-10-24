@@ -5,6 +5,8 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Toolbars;
 using UnityEngine;
+using CrimsonDraft.Navigation.CamaraSystem;
+using Unity.Cinemachine;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Rooms;
 
@@ -63,6 +65,26 @@ namespace CrimsonDraft.Navigation.Editor
                 Debug.LogWarning($"[NavValidation] No door back to '{origin.name}' in '{door.Destination.name}' (crossing '{door.name}').", door);
                 issues++;
             }
+
+            // One camera, one activation polygon: per room, cameras with none or with several / two-sided zones.
+            int twoSidedLeft = 0;
+            foreach (var room in Object.FindObjectsOfType<RoomController>(includeInactive: true))
+            {
+                var triggers = room.GetComponentsInChildren<FixedCameraZoneTrigger>(true);
+                twoSidedLeft += triggers.Count(t => t.UseTwoSidedSwitch);
+                var statuses = room.GetComponentsInChildren<CinemachineCamera>(true)
+                    .Select(c => (camera: c, state: CameraActivation.For(c, triggers).State)).ToArray();
+                var none = statuses.Where(s => s.state == CameraActivationState.None).ToArray();
+                var legacy = statuses.Where(s => s.state == CameraActivationState.Legacy).ToArray();
+                if (none.Length == 0 && legacy.Length == 0) continue;
+
+                var first = none.Length > 0 ? none[0].camera : legacy[0].camera;
+                Debug.LogWarning($"[NavValidation] Room '{room.name}': {none.Length} camera(s) without activation trigger, " +
+                                 $"{legacy.Length} with several or two-sided (e.g. '{first.name}'). Fix them in the Camera Zone Viewer.", first);
+                issues++;
+            }
+            if (twoSidedLeft > 0)
+                Debug.LogWarning($"[NavValidation] {twoSidedLeft} two-sided camera zone(s) left (legacy).");
 
             foreach (var group in sceneDoors.Where(d => !string.IsNullOrEmpty(d.EntryPointId)).GroupBy(d => d.EntryPointId))
             {
