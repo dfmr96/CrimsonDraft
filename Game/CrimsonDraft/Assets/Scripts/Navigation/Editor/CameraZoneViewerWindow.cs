@@ -5,7 +5,6 @@ using System.Linq;
 using Unity.Cinemachine;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
@@ -25,17 +24,14 @@ namespace CrimsonDraft.Navigation.Editor
     {
         private const float ListWidth = 190f;
         private const double RenderInterval = 0.1;
-        private const float PlayerMarkerRadius = 0.1f;
-        private const float PlayerDotRadius = 0.03f;
-        private const int PlayerMarkerSegments = 24;
 
         private RoomController[] rooms = System.Array.Empty<RoomController>();
         private CinemachineCamera[] cameras = System.Array.Empty<CinemachineCamera>();
         private int roomIndex;
         private int cameraIndex;
         private Vector2 listScroll;
-        private Camera? viewCamera;
-        private RenderTexture? viewTexture;
+        private ZoneViewport? viewport;
+        private ZoneOverlay? overlay;
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
@@ -46,7 +42,9 @@ namespace CrimsonDraft.Navigation.Editor
         private double lastFlightTime;
         private readonly HashSet<KeyCode> heldKeys = new HashSet<KeyCode>();
         private PlayerController? player;
-        private float planeY;
+
+        private ZoneViewport Viewport => this.viewport ??= new ZoneViewport("CameraZoneViewer_Camera");
+        private ZoneOverlay Overlay => this.overlay ??= new ZoneOverlay(this.Repaint);
 
         [MenuItem("CrimsonDraft/Camera Zone Viewer")]
         private static void Open()
@@ -70,8 +68,8 @@ namespace CrimsonDraft.Navigation.Editor
             EditorApplication.update -= this.OnEditorUpdate;
             EditorApplication.projectChanged -= this.OnProjectChanged;
             FixedCameraZoneTrigger.GizmoHighlightCamera = null;
-            this.DestroyViewCamera();
-            this.ReleaseTexture();
+            this.viewport?.Dispose();
+            this.viewport = null;
             SceneView.RepaintAll();
         }
 
@@ -98,7 +96,7 @@ namespace CrimsonDraft.Navigation.Editor
             var camera = this.CurrentCamera;
             if (camera == null || this.viewPixels.x < 16 || this.viewPixels.y < 16) return;
 
-            this.RenderView(camera);
+            this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), this.unlit);
             this.Repaint();
         }
 
@@ -260,8 +258,8 @@ namespace CrimsonDraft.Navigation.Editor
             if (camera == null || Event.current.type == EventType.Layout) return;
 
             FixedCameraZoneTrigger.GizmoHighlightCamera = camera;
-            this.planeY = this.ResolvePlaneY(room);
-            var view = FitToGameAspect(area);
+            float planeY = ZoneOverlay.ResolvePlaneY(room, this.player);
+            var view = ZoneViewport.FitToGameAspect(area);
 
             if (Event.current.type == EventType.Repaint)
             {
@@ -272,11 +270,11 @@ namespace CrimsonDraft.Navigation.Editor
                     Mathf.Clamp(Mathf.RoundToInt(view.width * scale), 0, 2048),
                     Mathf.Clamp(Mathf.RoundToInt(view.height * scale), 0, 2048));
 
-                if (this.viewTexture != null)
-                    GUI.DrawTexture(view, this.viewTexture, ScaleMode.StretchToFill, false);
+                if (this.Viewport.Texture != null)
+                    GUI.DrawTexture(view, this.Viewport.Texture, ScaleMode.StretchToFill, false);
 
-                if (this.viewCamera != null)
-                    this.DrawTriggerOverlay(room, camera, this.viewCamera, view);
+                if (this.Viewport.HasCamera)
+                    this.Overlay.Draw(room, this.Viewport.Camera, view, planeY, camera, this.player);
 
                 if (!room.gameObject.activeInHierarchy)
                     EditorGUI.HelpBox(new Rect(area.x, area.y, area.width, 32f),
@@ -285,21 +283,8 @@ namespace CrimsonDraft.Navigation.Editor
 
             if (this.cameraMode)
                 this.HandleCameraControls(camera, view, controlId);
-            else if (this.viewCamera != null)
-                this.EditHandles(room, this.viewCamera, view, controlId);
-        }
-
-        // ---- Zone editing handles --------------------------------------------------------
-
-        private enum HandleKind { Vertex, Add, DividerStart, DividerEnd, Move }
-
-        private struct ZoneHandle
-        {
-            public FixedCameraZoneTrigger Trigger;
-            public HandleKind Kind;
-            public int Index;
-            public Vector3 World;
-            public Vector2 Gui;
+            else if (this.Viewport.HasCamera)
+                this.Overlay.Edit(room, this.Viewport.Camera, view, planeY, controlId);
         }
 
         // ---- Camera fly mode -------------------------------------------------------------
@@ -473,476 +458,5 @@ namespace CrimsonDraft.Navigation.Editor
             this.Repaint();
         }
 
-        private ZoneHandle? dragging;
-        private Vector2 lastDragPoint;
-
-        /// <summary>Same handles as the Scene view, on top of the camera view: drag a white vertex or a
-        /// yellow divider end, drag the orange square to move the whole zone, click a green dot to split
-        /// an edge, Ctrl+click a vertex to delete it. Drags move the point on the zone's floor plane
-        /// under the mouse.</summary>
-        private void EditHandles(RoomController room, Camera view, Rect rect, int controlId)
-        {
-            view.aspect = rect.width / rect.height;
-            var handles = this.CollectHandles(room, view, rect);
-            var e = Event.current;
-
-            switch (e.GetTypeForControl(controlId))
-            {
-                case EventType.Repaint:
-                    foreach (var handle in handles) DrawHandle(handle);
-                    break;
-
-                case EventType.MouseDown:
-                    if (e.button != 0 || !rect.Contains(e.mousePosition)) break;
-                    var hit = Pick(handles, e.mousePosition);
-                    if (hit == null) break;
-
-                    Undo.IncrementCurrentGroup();
-                    Undo.SetCurrentGroupName("Edit Camera Zone");
-                    var picked = hit.Value;
-                    if (picked.Kind == HandleKind.Vertex && e.control)
-                    {
-                        RemoveVertex(picked);
-                    }
-                    else
-                    {
-                        if (picked.Kind == HandleKind.Add) picked = InsertVertex(picked);
-                        if (picked.Kind == HandleKind.Move)
-                            TryGetFloorPoint(picked, e.mousePosition, view, rect, out this.lastDragPoint);
-                        this.dragging = picked;
-                        GUIUtility.hotControl = controlId;
-                    }
-                    e.Use();
-                    this.Repaint();
-                    break;
-
-                case EventType.MouseDrag:
-                    if (GUIUtility.hotControl != controlId || this.dragging == null) break;
-                    this.MoveHandle(this.dragging.Value, e.mousePosition, view, rect);
-                    e.Use();
-                    this.Repaint();
-                    break;
-
-                case EventType.MouseUp:
-                    if (GUIUtility.hotControl != controlId) break;
-                    GUIUtility.hotControl = 0;
-                    this.dragging = null;
-                    e.Use();
-                    break;
-            }
-        }
-
-        private List<ZoneHandle> CollectHandles(RoomController room, Camera view, Rect rect)
-        {
-            var handles = new List<ZoneHandle>();
-            var moves = new List<ZoneHandle>();
-            var adds = new List<ZoneHandle>();
-            foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
-            {
-                if (trigger.IsLegacyBox) continue; // edits would be ignored while the BoxCollider defines the zone
-                var polygon = trigger.Polygon;
-                float height = trigger.MinHeight;
-                for (int i = 0; i < polygon.Count && polygon.Count >= 3; i++)
-                {
-                    TryAddHandle(handles, view, rect, trigger, HandleKind.Vertex, i, trigger.ToWorld(polygon[i], height));
-                    var mid = (polygon[i] + polygon[(i + 1) % polygon.Count]) * 0.5f;
-                    TryAddHandle(adds, view, rect, trigger, HandleKind.Add, i, trigger.ToWorld(mid, height));
-                }
-                if (polygon.Count >= 3)
-                    TryAddHandle(moves, view, rect, trigger, HandleKind.Move, 0, trigger.ToWorld(trigger.Centroid, height));
-                if (trigger.UseTwoSidedSwitch)
-                {
-                    TryAddHandle(handles, view, rect, trigger, HandleKind.DividerStart, 0, trigger.ToWorld(trigger.DividerStart, height));
-                    TryAddHandle(handles, view, rect, trigger, HandleKind.DividerEnd, 0, trigger.ToWorld(trigger.DividerEnd, height));
-                }
-            }
-            handles.AddRange(moves);
-            handles.AddRange(adds);
-            return handles;
-        }
-
-        private void TryAddHandle(List<ZoneHandle> list, Camera view, Rect rect,
-            FixedCameraZoneTrigger trigger, HandleKind kind, int index, Vector3 world)
-        {
-            world = this.OnPlane(world);
-            var viewPoint = view.worldToCameraMatrix.MultiplyPoint3x4(world);
-            if (-viewPoint.z <= view.nearClipPlane) return;
-
-            var local = ToGui(view.projectionMatrix, viewPoint, rect.size);
-            list.Add(new ZoneHandle
-            {
-                Trigger = trigger, Kind = kind, Index = index, World = world,
-                Gui = new Vector2(rect.x + local.x, rect.y + local.y),
-            });
-        }
-
-        private static ZoneHandle? Pick(List<ZoneHandle> handles, Vector2 mouse)
-        {
-            // Vertices and divider ends come first in the list, then the move squares, then the "+" dots.
-            foreach (var handle in handles)
-            {
-                float radius = handle.Kind == HandleKind.Add ? 6f : handle.Kind == HandleKind.Move ? 10f : 8f;
-                if ((handle.Gui - mouse).sqrMagnitude <= radius * radius) return handle;
-            }
-            return null;
-        }
-
-        private static void DrawHandle(ZoneHandle handle)
-        {
-            float size = handle.Kind == HandleKind.Add ? 5f : handle.Kind == HandleKind.Move ? 14f : 9f;
-            var rect = new Rect(handle.Gui.x - size * 0.5f, handle.Gui.y - size * 0.5f, size, size);
-            var fill = handle.Kind switch
-            {
-                HandleKind.Add => new Color(0.4f, 1f, 0.4f),
-                HandleKind.Move => new Color(1f, 0.55f, 0.1f),
-                HandleKind.Vertex => Color.white,
-                _ => Color.yellow,
-            };
-            EditorGUI.DrawRect(new Rect(rect.x - 1f, rect.y - 1f, rect.width + 2f, rect.height + 2f), Color.black);
-            EditorGUI.DrawRect(rect, fill);
-        }
-
-        /// <summary>The mouse position projected onto the handle's floor plane, as local (x, z) of its trigger.</summary>
-        private static bool TryGetFloorPoint(ZoneHandle handle, Vector2 mouse, Camera view, Rect rect, out Vector2 point)
-        {
-            point = default;
-            float u = (mouse.x - rect.x) / rect.width;
-            float v = (mouse.y - rect.y) / rect.height;
-            var inverse = (view.projectionMatrix * view.worldToCameraMatrix).inverse;
-            var ndc = new Vector2(u * 2f - 1f, 1f - v * 2f);
-            var nearPoint = inverse.MultiplyPoint(new Vector3(ndc.x, ndc.y, -1f));
-            var farPoint = inverse.MultiplyPoint(new Vector3(ndc.x, ndc.y, 1f));
-            var ray = new Ray(nearPoint, (farPoint - nearPoint).normalized);
-
-            var plane = new Plane(Vector3.up, handle.World);
-            if (!plane.Raycast(ray, out float distance)) return false;
-
-            var local = handle.Trigger.transform.InverseTransformPoint(ray.GetPoint(distance));
-            point = new Vector2(local.x, local.z);
-            return true;
-        }
-
-        private void MoveHandle(ZoneHandle handle, Vector2 mouse, Camera view, Rect rect)
-        {
-            if (!TryGetFloorPoint(handle, mouse, view, rect, out var point)) return;
-
-            if (handle.Kind == HandleKind.Move)
-            {
-                FixedCameraZoneTriggerEditor.Translate(new SerializedObject(handle.Trigger), point - this.lastDragPoint);
-                this.lastDragPoint = point;
-                SceneView.RepaintAll();
-                return;
-            }
-
-            var serialized = new SerializedObject(handle.Trigger);
-            switch (handle.Kind)
-            {
-                case HandleKind.Vertex:
-                    serialized.FindProperty("polygon").GetArrayElementAtIndex(handle.Index).vector2Value = point;
-                    break;
-                case HandleKind.DividerStart:
-                    serialized.FindProperty("dividerStart").vector2Value = point;
-                    break;
-                case HandleKind.DividerEnd:
-                    serialized.FindProperty("dividerEnd").vector2Value = point;
-                    break;
-            }
-            serialized.ApplyModifiedProperties();
-            SceneView.RepaintAll();
-        }
-
-        /// <summary>Splits the edge after <c>Index</c> at its midpoint; returns the handle of the new vertex.</summary>
-        private static ZoneHandle InsertVertex(ZoneHandle edge)
-        {
-            var serialized = new SerializedObject(edge.Trigger);
-            var polygon = serialized.FindProperty("polygon");
-            var a = polygon.GetArrayElementAtIndex(edge.Index).vector2Value;
-            var b = polygon.GetArrayElementAtIndex((edge.Index + 1) % polygon.arraySize).vector2Value;
-
-            polygon.InsertArrayElementAtIndex(edge.Index);
-            polygon.GetArrayElementAtIndex(edge.Index + 1).vector2Value = (a + b) * 0.5f;
-            serialized.ApplyModifiedProperties();
-            SceneView.RepaintAll();
-
-            edge.Kind = HandleKind.Vertex;
-            edge.Index += 1;
-            return edge;
-        }
-
-        private static void RemoveVertex(ZoneHandle vertex)
-        {
-            var serialized = new SerializedObject(vertex.Trigger);
-            var polygon = serialized.FindProperty("polygon");
-            if (polygon.arraySize <= 3) return;
-
-            polygon.DeleteArrayElementAtIndex(vertex.Index);
-            serialized.ApplyModifiedProperties();
-            SceneView.RepaintAll();
-        }
-
-        /// <summary>Largest rect with the Game view's aspect ratio that fits in <paramref name="area"/>, centred.</summary>
-        private static Rect FitToGameAspect(Rect area)
-        {
-            var size = Handles.GetMainGameViewSize();
-            if (size.x <= 0f || size.y <= 0f || area.width <= 0f || area.height <= 0f) return area;
-
-            float aspect = size.x / size.y;
-            float width = Mathf.Min(area.width, area.height * aspect);
-            float height = width / aspect;
-            return new Rect(area.x + (area.width - width) * 0.5f, area.y + (area.height - height) * 0.5f, width, height);
-        }
-
-        private void RenderView(CinemachineCamera source)
-        {
-            if (this.viewTexture == null || this.viewTexture.width != this.viewPixels.x || this.viewTexture.height != this.viewPixels.y)
-            {
-                this.ReleaseTexture();
-                this.viewTexture = new RenderTexture(this.viewPixels.x, this.viewPixels.y, 24, RenderTextureFormat.ARGB32)
-                {
-                    hideFlags = HideFlags.HideAndDontSave,
-                };
-            }
-
-            var view = this.EnsureViewCamera();
-            this.CopyLens(source, view);
-            view.aspect = (float)this.viewPixels.x / this.viewPixels.y;
-            view.targetTexture = this.viewTexture;
-
-            // Unlit look: URP's material debug mode "Albedo" draws surfaces without lighting.
-            // The setting is global, so it is switched on only for this synchronous Render call.
-            var material = UniversalRenderPipelineDebugDisplaySettings.Instance.materialSettings;
-            var previousMode = material.materialDebugMode;
-            if (this.unlit) material.materialDebugMode = DebugMaterialMode.Albedo;
-            try { view.Render(); }
-            finally { material.materialDebugMode = previousMode; }
-        }
-
-        private Camera EnsureViewCamera()
-        {
-            if (this.viewCamera != null) return this.viewCamera;
-            var go = new GameObject("CameraZoneViewer_Camera") { hideFlags = HideFlags.HideAndDontSave };
-            this.viewCamera = go.AddComponent<Camera>();
-            this.viewCamera.enabled = false;
-            this.viewCamera.allowHDR = false;
-            this.viewCamera.allowMSAA = false;
-            var urpData = go.AddComponent<UniversalAdditionalCameraData>();
-            urpData.renderPostProcessing = false;
-            urpData.antialiasing = AntialiasingMode.None;
-            urpData.renderShadows = false;
-            return this.viewCamera;
-        }
-
-        private void DestroyViewCamera()
-        {
-            if (this.viewCamera != null) DestroyImmediate(this.viewCamera.gameObject);
-            this.viewCamera = null;
-        }
-
-        private void ReleaseTexture()
-        {
-            if (this.viewTexture != null)
-            {
-                this.viewTexture.Release();
-                DestroyImmediate(this.viewTexture);
-            }
-            this.viewTexture = null;
-        }
-
-        private void CopyLens(CinemachineCamera source, Camera target)
-        {
-            var lens = source.Lens;
-            target.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
-            target.orthographic = lens.ModeOverride == LensSettings.OverrideModes.Orthographic
-                || (lens.ModeOverride == LensSettings.OverrideModes.None && lens.Orthographic);
-            target.fieldOfView = lens.FieldOfView;
-            target.orthographicSize = lens.OrthographicSize;
-            target.nearClipPlane = lens.NearClipPlane;
-            target.farClipPlane = lens.FarClipPlane;
-            target.clearFlags = CameraClearFlags.Skybox;
-        }
-
-        // ---- Trigger overlay -------------------------------------------------------------
-
-        private void DrawTriggerOverlay(RoomController room, CinemachineCamera current, Camera view, Rect rect)
-        {
-            // The texture was rendered with this aspect; keep the projection in step with the rect.
-            view.aspect = rect.width / rect.height;
-            var worldToView = view.worldToCameraMatrix;
-            var projection = view.projectionMatrix;
-            float near = view.nearClipPlane;
-            var overlay = new OverlayProjection(worldToView, projection, near, rect.size);
-
-            // Same look as the runtime DebugWorldOverlay: flat zones and the player marker, all on the
-            // one plane the player's feet stand on. No walls or ceiling.
-            var playerPosition = this.player != null ? this.player.transform.position : (Vector3?)null;
-
-            GUI.BeginClip(rect);
-            foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
-            {
-                var polygon = trigger.Polygon;
-                if (polygon.Count < 3) continue;
-
-                bool emphasized = trigger.ReferencedCameras.Contains(current);
-                bool playerInside = playerPosition.HasValue && trigger.Contains(playerPosition.Value);
-                var color = FixedCameraZoneTrigger.GizmoColorFor(trigger.ZoneCamera);
-                var lineColor = playerInside ? Color.white : color;
-
-                var floor = new Vector3[polygon.Count];
-                for (int i = 0; i < floor.Length; i++) floor[i] = this.OnPlane(trigger.ToWorld(polygon[i], trigger.MinHeight));
-
-                var triangles = CameraZonePolygon.Triangulate(polygon);
-                for (int i = 0; i + 2 < triangles.Count; i += 3)
-                    overlay.Draw(new[] { floor[triangles[i]], floor[triangles[i + 1]], floor[triangles[i + 2]] },
-                        color, emphasized ? 0.28f : 0.1f, 0f);
-
-                for (int i = 0; i < floor.Length; i++)
-                    overlay.DrawLine(floor[i], floor[(i + 1) % floor.Length], lineColor, emphasized ? 3f : 1.5f);
-
-                if (trigger.UseTwoSidedSwitch)
-                {
-                    float margin = Mathf.Max(0f, trigger.SideMargin);
-                    foreach (float offset in new[] { -margin, margin })
-                    {
-                        var edge = trigger.GetDividerQuad(offset);
-                        overlay.DrawLine(this.OnPlane(edge[0]), this.OnPlane(edge[1]), lineColor, 2f);
-                    }
-                    var divider = trigger.GetDividerQuad(0f);
-                    overlay.DrawLine(this.OnPlane(divider[0]), this.OnPlane(divider[1]), Color.white, 2f);
-                }
-
-                var anchor = Vector3.zero;
-                foreach (var point in floor) anchor += point;
-                anchor /= floor.Length;
-
-                var anchorView = worldToView.MultiplyPoint3x4(anchor);
-                if (-anchorView.z > near)
-                {
-                    var p = ToGui(projection, anchorView, rect.size);
-                    var style = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = color } };
-                    GUI.Label(new Rect(p.x - 80f, p.y - 8f, 160f, 16f), LabelFor(trigger), style);
-                }
-            }
-
-            if (this.player != null)
-            {
-                var feet = this.OnPlane(this.player.FootPosition);
-                overlay.Draw(Circle(feet, PlayerMarkerRadius), new Color(1f, 0.85f, 0.2f), 1f, 0f);
-                overlay.Draw(Circle(feet, PlayerDotRadius), new Color(0.9f, 0.1f, 0.1f), 1f, 0f);
-            }
-            GUI.EndClip();
-        }
-
-        private Vector3 OnPlane(Vector3 world)
-        {
-            world.y = this.planeY;
-            return world;
-        }
-
-        private static Vector3[] Circle(Vector3 center, float radius)
-        {
-            var points = new Vector3[PlayerMarkerSegments];
-            for (int i = 0; i < points.Length; i++)
-            {
-                float angle = i * Mathf.PI * 2f / points.Length;
-                points[i] = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
-            }
-            return points;
-        }
-
-        /// <summary>Height of the plane every zone and the player marker are flattened onto: the player's
-        /// feet, as in the runtime overlay. Without a player in the scene, the room's first zone floor.</summary>
-        private float ResolvePlaneY(RoomController room)
-        {
-            if (this.player != null) return this.player.FootPosition.y;
-
-            var trigger = room.GetComponentInChildren<FixedCameraZoneTrigger>(includeInactive: false);
-            return trigger != null ? trigger.ToWorld(Vector2.zero, trigger.MinHeight).y : 0f;
-        }
-
-        private static string LabelFor(FixedCameraZoneTrigger trigger) =>
-            string.Join(" | ", trigger.ReferencedCameras.Select(c => c.name));
-
-        /// <summary>Projects world-space convex polygons to the view rect, clipped to the near plane.</summary>
-        private readonly struct OverlayProjection
-        {
-            private readonly Matrix4x4 worldToView;
-            private readonly Matrix4x4 projection;
-            private readonly float near;
-            private readonly Vector2 size;
-
-            public OverlayProjection(Matrix4x4 worldToView, Matrix4x4 projection, float near, Vector2 size)
-            {
-                this.worldToView = worldToView;
-                this.projection = projection;
-                this.near = near;
-                this.size = size;
-            }
-
-            public void DrawLine(Vector3 a, Vector3 b, Color color, float width)
-            {
-                var va = this.worldToView.MultiplyPoint3x4(a);
-                var vb = this.worldToView.MultiplyPoint3x4(b);
-                bool aIn = -va.z > this.near;
-                bool bIn = -vb.z > this.near;
-                if (!aIn && !bIn) return;
-
-                if (!aIn) va = Vector3.Lerp(va, vb, (-this.near - va.z) / (vb.z - va.z));
-                else if (!bIn) vb = Vector3.Lerp(va, vb, (-this.near - va.z) / (vb.z - va.z));
-
-                Handles.color = color;
-                Handles.DrawAAPolyLine(width, ToGui(this.projection, va, this.size), ToGui(this.projection, vb, this.size));
-            }
-
-            /// <param name="fillAlpha">0 skips the fill.</param>
-            /// <param name="lineWidth">0 skips the outline.</param>
-            public void Draw(Vector3[] worldPolygon, Color color, float fillAlpha, float lineWidth)
-            {
-                var polygon = new List<Vector3>(worldPolygon.Length);
-                foreach (var point in worldPolygon) polygon.Add(this.worldToView.MultiplyPoint3x4(point));
-                polygon = ClipToNear(polygon, this.near);
-                if (polygon.Count < 3) return;
-
-                var points = new Vector3[polygon.Count];
-                for (int i = 0; i < points.Length; i++) points[i] = ToGui(this.projection, polygon[i], this.size);
-                if (fillAlpha > 0f)
-                {
-                    Handles.color = new Color(color.r, color.g, color.b, fillAlpha);
-                    Handles.DrawAAConvexPolygon(points);
-                }
-                if (lineWidth > 0f)
-                {
-                    Handles.color = color;
-                    Handles.DrawAAPolyLine(lineWidth, points.Concat(new[] { points[0] }).ToArray());
-                }
-            }
-        }
-
-        /// <summary>Sutherland-Hodgman against the near plane, in view space (camera looks down -Z).</summary>
-        private static List<Vector3> ClipToNear(List<Vector3> polygon, float near)
-        {
-            var result = new List<Vector3>(polygon.Count + 1);
-            for (int i = 0; i < polygon.Count; i++)
-            {
-                var a = polygon[i];
-                var b = polygon[(i + 1) % polygon.Count];
-                bool aIn = -a.z > near;
-                bool bIn = -b.z > near;
-                if (aIn) result.Add(a);
-                if (aIn != bIn)
-                {
-                    float t = (-near - a.z) / (b.z - a.z);
-                    result.Add(Vector3.Lerp(a, b, t));
-                }
-            }
-            return result;
-        }
-
-        private static Vector3 ToGui(Matrix4x4 projection, Vector3 viewPoint, Vector2 size)
-        {
-            var clip = projection * new Vector4(viewPoint.x, viewPoint.y, viewPoint.z, 1f);
-            float x = clip.x / clip.w;
-            float y = clip.y / clip.w;
-            return new Vector3((x * 0.5f + 0.5f) * size.x, (1f - (y * 0.5f + 0.5f)) * size.y, 0f);
-        }
     }
 }
