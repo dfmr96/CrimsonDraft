@@ -44,7 +44,8 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int planPixels;
         private Vector2Int viewPixels;
         private double lastRenderTime;
-        private bool unlit = true;
+        private bool syncSceneView;
+        private (CinemachineCamera? camera, Vector3 position, Quaternion rotation, float fov) lastSynced;
         private bool? legacySpawnsLeft;
         private bool cameraMode;
         private int cameraDragButton = -1;
@@ -109,11 +110,12 @@ namespace CrimsonDraft.Navigation.Editor
             var camera = this.CurrentCamera;
             var room = this.CurrentRoom;
             if (camera == null) return;
+            if (this.syncSceneView) this.SyncSceneViewIfChanged(camera);
 
             if (this.viewMode != ViewMode.Plan && this.viewPixels.x >= 16 && this.viewPixels.y >= 16)
-                this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), this.unlit);
+                this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), unlit: false);
             if (this.viewMode != ViewMode.Camera && room != null && this.planPixels.x >= 16 && this.planPixels.y >= 16)
-                this.PlanViewport.Render(this.planPixels, view => this.SetupPlanCamera(view, room), this.unlit);
+                this.PlanViewport.Render(this.planPixels, view => this.SetupPlanCamera(view, room), unlit: false);
             this.Repaint();
         }
 
@@ -201,7 +203,16 @@ namespace CrimsonDraft.Navigation.Editor
                 }
 
                 this.viewMode = (ViewMode)GUILayout.Toolbar((int)this.viewMode, ViewModeLabels, EditorStyles.toolbarButton, GUILayout.Width(150f));
-                this.unlit = GUILayout.Toggle(this.unlit, "Unlit", EditorStyles.toolbarButton, GUILayout.Width(48f));
+                // The tool's own render is lit: unlit only exists inside the Scene view's render, so the
+                // Scene view is put where the camera is and keeps its own shading (e.g. lighting off).
+                using (new EditorGUI.DisabledScope(this.CurrentCamera == null))
+                {
+                    if (GUILayout.Button(new GUIContent("Look Through", "Put the Scene view exactly where the selected camera is, to see it with the Scene view's own shading (lighting off)."),
+                            EditorStyles.toolbarButton, GUILayout.Width(84f)))
+                        this.LookThroughInSceneView();
+                    this.syncSceneView = GUILayout.Toggle(this.syncSceneView, new GUIContent("Sync", "Keep the Scene view on the selected camera while you switch or move it."),
+                        EditorStyles.toolbarButton, GUILayout.Width(40f));
+                }
                 this.DrawArrivalControls();
                 this.cameraMode = GUILayout.Toggle(this.cameraMode, "Move Camera", EditorStyles.toolbarButton, GUILayout.Width(88f));
                 if (!this.cameraMode) this.StopFlying();
@@ -456,6 +467,25 @@ namespace CrimsonDraft.Navigation.Editor
             view.farClipPlane = position.y - bounds.min.y + 20f;
             view.clearFlags = CameraClearFlags.SolidColor;
             view.backgroundColor = Color.black;
+        }
+
+        private void LookThroughInSceneView()
+        {
+            var camera = this.CurrentCamera;
+            var sceneView = SceneView.lastActiveSceneView;
+            if (camera == null || sceneView == null) return;
+            SceneViewSync.LookThrough(sceneView, camera);
+            this.lastSynced = (camera, camera.transform.position, camera.transform.rotation, camera.Lens.FieldOfView);
+        }
+
+        // Re-aligns only when the selected camera, its pose or its FOV changed, so the Scene view can still
+        // be orbited freely while Sync is on and nothing moves.
+        private void SyncSceneViewIfChanged(CinemachineCamera camera)
+        {
+            var t = camera.transform;
+            if (this.lastSynced.camera == camera && this.lastSynced.position == t.position
+                && this.lastSynced.rotation == t.rotation && Mathf.Approximately(this.lastSynced.fov, camera.Lens.FieldOfView)) return;
+            this.LookThroughInSceneView();
         }
 
         private void RequestRender()
