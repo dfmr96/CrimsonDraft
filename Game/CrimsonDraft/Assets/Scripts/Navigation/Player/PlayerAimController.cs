@@ -148,10 +148,13 @@ private void ExitAim()
                     ? this.roster[PlayerOperatorSlot].ActiveWeapon
                     : null;
 
-                bool isShotgunFamily = activeWeapon != null
-                    && activeWeapon.GunType is GunType.Shotgun or GunType.REShotgun;
-                bool isPistolFamily = activeWeapon != null
-                    && activeWeapon.GunType is GunType.Pistols or GunType.REPistols;
+                // Durante el agarre las animaciones Grabbed* sueltan la pose de manos, así que el arma
+                // quedaría flotando: se oculta hasta que el enemigo suelta al jugador.
+                bool showWeapon = activeWeapon != null && !this.playerController.IsGrabbed;
+                bool isShotgunFamily = showWeapon
+                    && activeWeapon!.GunType is GunType.Shotgun or GunType.REShotgun;
+                bool isPistolFamily = showWeapon
+                    && activeWeapon!.GunType is GunType.Pistols or GunType.REPistols;
 
                 if (this.pistolWeapon.activeSelf != isPistolFamily)
                     this.pistolWeapon.SetActive(isPistolFamily);
