@@ -176,42 +176,6 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             return CameraZonePolygon.Contains(shape.Polygon, new Vector2(local.x, local.z));
         }
 
-        // The body may still overlap a zone after its reference point leaves it, as
-        // it did with OnTriggerStay. The divider still uses the reference point.
-        public bool OverlapsBody(Bounds body)
-        {
-            var shape = this.ActiveShape;
-            if (shape.Polygon == null || shape.Polygon.Length < 3) return false;
-            // Player capsules are upright: test their vertical interval and their
-            // conservative circular footprint against each world-space polygon edge.
-            var localCenter = this.transform.InverseTransformPoint(body.center);
-            float verticalRadius = 0f;
-            for (int x = -1; x <= 1; x += 2)
-                for (int y = -1; y <= 1; y += 2)
-                    for (int z = -1; z <= 1; z += 2)
-                    {
-                        var corner = body.center + Vector3.Scale(body.extents, new Vector3(x, y, z));
-                        verticalRadius = Mathf.Max(verticalRadius,
-                            Mathf.Abs(this.transform.InverseTransformPoint(corner).y - localCenter.y));
-                    }
-            if (localCenter.y + verticalRadius < shape.MinHeight
-                || localCenter.y - verticalRadius > shape.MaxHeight) return false;
-            if (CameraZonePolygon.Contains(shape.Polygon, new Vector2(localCenter.x, localCenter.z))) return true;
-
-            var point = new Vector2(body.center.x, body.center.z);
-            float radius = Mathf.Max(body.extents.x, body.extents.z);
-            for (int i = 0; i < shape.Polygon.Length; i++)
-            {
-                var a3 = this.ToWorld(shape.Polygon[i], 0f);
-                var b3 = this.ToWorld(shape.Polygon[(i + 1) % shape.Polygon.Length], 0f);
-                var a = new Vector2(a3.x, a3.z);
-                var edge = new Vector2(b3.x, b3.z) - a;
-                float t = edge.sqrMagnitude > 0f ? Mathf.Clamp01(Vector2.Dot(point - a, edge) / edge.sqrMagnitude) : 0f;
-                if ((point - (a + edge * t)).sqrMagnitude <= radius * radius) return true;
-            }
-            return false;
-        }
-
         public CinemachineCamera? ResolveCameraAt(Vector3 position, CinemachineCamera? current)
         {
             if (!this.useTwoSidedSwitch) return this.zoneCamera;
@@ -230,9 +194,11 @@ namespace CrimsonDraft.Navigation.CamaraSystem
 
         /// <summary>Called every frame with the player position. Fires on entering the polygon; with the
         /// two-sided switch it keeps re-resolving while the player stays inside.</summary>
-        public void Evaluate(Vector3 playerPosition, Bounds? playerBody = null)
+        public void Evaluate(Vector3 playerPosition)
         {
-            bool inside = playerBody.HasValue ? this.OverlapsBody(playerBody.Value) : this.Contains(playerPosition);
+            // The player point, not the body: a body overlapping two zones near their border keeps
+            // the one it came from "inside", so walking back would never cut back to it.
+            bool inside = this.Contains(playerPosition);
             bool entered = inside && !this.playerInside;
             this.playerInside = inside;
 

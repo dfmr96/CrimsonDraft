@@ -244,42 +244,6 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void BodyOverlap_keepsEvaluatingPastThePolygonEdgeUntilTheDividerThreshold()
-        {
-            SetField("polygon", new[]
-            {
-                new Vector2(-1, -1), new Vector2(-1, 0),
-                new Vector2(1, 0), new Vector2(1, -1),
-            });
-            var service = new FakeZoneService();
-            this.trigger.Construct(service);
-            var initial = new Vector3(0, 1, -0.5f);
-            this.trigger.Evaluate(initial, new Bounds(initial, new Vector3(1, 2, 1)));
-            Assert.AreSame(this.a, service.CurrentZoneCamera);
-
-            var crossed = new Vector3(0, 1, 0.3f);
-            Assert.IsFalse(this.trigger.Contains(crossed));
-            this.trigger.Evaluate(crossed, new Bounds(crossed, new Vector3(1, 2, 1)));
-            Assert.AreSame(this.b, service.CurrentZoneCamera);
-
-            // Once entirely outside, this zone must leave another shot alone.
-            service.Force(this.a);
-            var outside = new Vector3(0, 1, 2);
-            this.trigger.Evaluate(outside, new Bounds(outside, new Vector3(1, 2, 1)));
-            Assert.AreSame(this.a, service.CurrentZoneCamera);
-        }
-
-        [Test]
-        public void BodyOverlap_acceptsTheBodyAboveTheFeetButRejectsOtherFloors()
-        {
-            SetField("minHeight", 0.5f);
-            SetField("maxHeight", 2f);
-            Assert.IsFalse(this.trigger.Contains(Vector3.zero));
-            Assert.IsTrue(this.trigger.OverlapsBody(new Bounds(Vector3.up, new Vector3(1, 2, 1))));
-            Assert.IsFalse(this.trigger.OverlapsBody(new Bounds(Vector3.up * 5, new Vector3(1, 2, 1))));
-        }
-
-        [Test]
         public void MissingSecondCamera_doesNotSelectAnIncompleteSwitch()
         {
             SetField("positiveSideCamera", null);
