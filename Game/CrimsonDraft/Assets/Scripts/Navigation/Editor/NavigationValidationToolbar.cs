@@ -72,7 +72,7 @@ namespace CrimsonDraft.Navigation.Editor
             {
                 var triggers = room.GetComponentsInChildren<FixedCameraZoneTrigger>(true);
                 twoSidedLeft += triggers.Count(t => t.UseTwoSidedSwitch);
-                var statuses = room.GetComponentsInChildren<CinemachineCamera>(true)
+                var statuses = ZoneCameras.Of(room)
                     .Select(c => (camera: c, state: CameraActivation.For(c, triggers).State)).ToArray();
                 var none = statuses.Where(s => s.state == CameraActivationState.None).ToArray();
                 var legacy = statuses.Where(s => s.state == CameraActivationState.Legacy).ToArray();

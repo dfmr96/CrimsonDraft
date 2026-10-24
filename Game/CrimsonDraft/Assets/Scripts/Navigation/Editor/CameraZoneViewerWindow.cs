@@ -139,19 +139,9 @@ namespace CrimsonDraft.Navigation.Editor
 
         private void RefreshCameras()
         {
-            var list = new List<CinemachineCamera>();
+            // Zone cameras only: follow and inspection cameras do not get an activation zone.
             var room = this.CurrentRoom;
-            if (room != null)
-            {
-                foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true))
-                {
-                    foreach (var camera in trigger.ReferencedCameras)
-                        if (camera != null && !list.Contains(camera)) list.Add(camera);
-                }
-                // Cameras no zone activates yet still need one: list them too.
-                foreach (var camera in room.GetComponentsInChildren<CinemachineCamera>(includeInactive: true))
-                    if (!list.Contains(camera)) list.Add(camera);
-            }
+            var list = room != null ? ZoneCameras.Of(room) : System.Array.Empty<CinemachineCamera>();
             this.cameras = list.OrderBy(c => c.name).ToArray();
             this.cameraIndex = Mathf.Clamp(this.cameraIndex, 0, Mathf.Max(0, this.cameras.Length - 1));
         }
@@ -461,7 +451,8 @@ namespace CrimsonDraft.Navigation.Editor
             view.transform.SetPositionAndRotation(position, rotation);
             view.orthographic = true;
             view.orthographicSize = size;
-            view.nearClipPlane = 0.1f;
+            // Section cut above head height, so ceilings do not hide the room.
+            view.nearClipPlane = PlanViewFraming.NearClip(position.y, ZoneOverlay.ResolvePlaneY(room, this.player));
             view.farClipPlane = position.y - bounds.min.y + 20f;
             view.clearFlags = CameraClearFlags.SolidColor;
             view.backgroundColor = Color.black;

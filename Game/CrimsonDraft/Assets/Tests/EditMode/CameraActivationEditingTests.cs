@@ -40,7 +40,6 @@ namespace CrimsonDraft.Tests
             floor.transform.position = Origin + Vector3.down * 0.05f;
             floor.AddComponent<BoxCollider>().size = new Vector3(20f, 0.1f, 20f);
             var camera = MakeCamera(Origin + new Vector3(2f, 5f, 3f), Quaternion.Euler(90f, 0f, 0f));
-            Physics.SyncTransforms();
 
             var zone = Track(CameraActivationEditing.CreateTrigger(camera, this.room));
 
@@ -50,6 +49,24 @@ namespace CrimsonDraft.Tests
             CollectionAssert.AreEqual(new[] { new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1) }, zone.Polygon);
             Assert.AreEqual("Cameras", zone.transform.parent.name);
             Assert.AreSame(this.room.transform, zone.transform.parent.parent);
+        }
+
+        [Test]
+        public void CreateTrigger_lookRayHitsWall_placesZoneOnTheFloorBelow()
+        {
+            var floor = Track(new GameObject("Floor"));
+            floor.transform.position = Origin + Vector3.down * 0.05f;
+            floor.AddComponent<BoxCollider>().size = new Vector3(40f, 0.1f, 40f);
+            var wall = Track(new GameObject("Wall"));
+            wall.transform.position = Origin + new Vector3(0f, 2f, 6f);
+            wall.AddComponent<BoxCollider>().size = new Vector3(10f, 4f, 0.2f);
+            // Pitched 10° down: the look ray meets the wall (~1.6 m up) before the floor.
+            var camera = MakeCamera(Origin + new Vector3(0f, 2.5f, 0f), Quaternion.Euler(10f, 0f, 0f));
+
+            var zone = Track(CameraActivationEditing.CreateTrigger(camera, this.room));
+
+            Assert.That(zone.transform.position.y, Is.EqualTo(Origin.y).Within(1e-3f), "zone must sit on the floor, not on the wall");
+            Assert.That(zone.transform.position.z, Is.LessThan(Origin.z + 6f), "in front of the wall");
         }
 
         [Test]

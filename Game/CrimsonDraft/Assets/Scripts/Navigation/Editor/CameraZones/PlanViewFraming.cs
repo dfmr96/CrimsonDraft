@@ -9,6 +9,12 @@ namespace CrimsonDraft.Navigation.Editor
     public static class PlanViewFraming
     {
         public const float DefaultHalfSize = 5f;
+        /// <summary>Height above the floor plane where the plan cuts the room, so ceilings do not hide it.</summary>
+        public const float CutHeight = 2.2f;
+
+        /// <summary>Near clip for a straight-down camera at <paramref name="cameraY"/>: a section cut
+        /// <see cref="CutHeight"/> above <paramref name="floorY"/>.</summary>
+        public static float NearClip(float cameraY, float floorY) => Mathf.Max(0.1f, cameraY - (floorY + CutHeight));
         private const float Margin = 1.1f;
         private const float HeightAboveRoom = 10f;
 

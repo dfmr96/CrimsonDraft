@@ -42,6 +42,14 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void NearClip_cutsAboveHeadHeight()
+        {
+            // Camera 12 m up, floor at 1: everything above 1 + CutHeight is clipped away (ceilings).
+            Assert.That(PlanViewFraming.NearClip(12f, 1f), Is.EqualTo(12f - 1f - PlanViewFraming.CutHeight).Within(1e-4));
+            Assert.That(PlanViewFraming.NearClip(1f, 1f), Is.EqualTo(0.1f).Within(1e-4));
+        }
+
+        [Test]
         public void Fit_looksStraightDown()
         {
             var (_, rotation, _) = PlanViewFraming.Fit(new Bounds(Vector3.zero, Vector3.one), 1f, 1f, Vector2.zero);

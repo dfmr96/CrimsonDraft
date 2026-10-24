@@ -4,6 +4,7 @@ using Unity.Cinemachine;
 using UnityEditor;
 using UnityEngine;
 using CrimsonDraft.Navigation.CamaraSystem;
+using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Editor
@@ -62,17 +63,40 @@ namespace CrimsonDraft.Navigation.Editor
 
         public static void Delete(FixedCameraZoneTrigger trigger) => Undo.DestroyObjectImmediate(trigger.gameObject);
 
-        // Where the camera looks on the floor; with nothing under its look ray, the floor of the room's
-        // bounds under the camera, else a little below the camera.
+        // Where the camera looks on the floor. The look ray's first hit is only taken when it is floor
+        // (upward-facing, not the player); a wall or prop hit drops straight down to the floor in front of
+        // it. With no floor found, the floor of the room's bounds under the camera, else a little below it.
+        // A zone placed on a wall or at player height would never contain the player's point.
         private static Vector3 FloorPointFor(CinemachineCamera camera, RoomController room)
         {
+            Physics.SyncTransforms();
             var t = camera.transform;
-            if (Physics.Raycast(t.position, t.forward, out var hit, LookDistance, ~0, QueryTriggerInteraction.Ignore))
-                return hit.point;
+            if (TryFirstHit(t.position, t.forward, LookDistance, out var hit))
+            {
+                if (IsFloor(hit)) return hit.point;
+                if (TryFirstHit(hit.point + hit.normal * 0.2f, Vector3.down, LookDistance, out var below) && IsFloor(below))
+                    return below.point;
+            }
 
             var bounds = PlanViewFraming.RoomBounds(room);
             float y = bounds.size != Vector3.zero ? bounds.min.y : t.position.y - FallbackDrop;
             return new Vector3(t.position.x, y, t.position.z);
+        }
+
+        private static bool IsFloor(RaycastHit hit) => hit.normal.y > 0.7f;
+
+        // Nearest non-trigger hit that is not the player's own collider.
+        private static bool TryFirstHit(Vector3 origin, Vector3 direction, float distance, out RaycastHit first)
+        {
+            first = default;
+            float best = float.MaxValue;
+            foreach (var hit in Physics.RaycastAll(origin, direction, distance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.distance >= best || hit.collider.GetComponentInParent<PlayerController>() != null) continue;
+                first = hit;
+                best = hit.distance;
+            }
+            return best < float.MaxValue;
         }
     }
 }
