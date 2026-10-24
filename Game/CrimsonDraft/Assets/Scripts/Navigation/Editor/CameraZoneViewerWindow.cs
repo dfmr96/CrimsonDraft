@@ -148,6 +148,9 @@ namespace CrimsonDraft.Navigation.Editor
                     foreach (var camera in trigger.ReferencedCameras)
                         if (camera != null && !list.Contains(camera)) list.Add(camera);
                 }
+                // Cameras no zone activates yet still need one: list them too.
+                foreach (var camera in room.GetComponentsInChildren<CinemachineCamera>(includeInactive: true))
+                    if (!list.Contains(camera)) list.Add(camera);
             }
             this.cameras = list.OrderBy(c => c.name).ToArray();
             this.cameraIndex = Mathf.Clamp(this.cameraIndex, 0, Mathf.Max(0, this.cameras.Length - 1));
@@ -180,7 +183,7 @@ namespace CrimsonDraft.Navigation.Editor
             }
             if (this.cameras.Length == 0)
             {
-                EditorGUILayout.HelpBox("This room has no FixedCameraZoneTrigger with a camera assigned.", MessageType.Info);
+                EditorGUILayout.HelpBox("This room has no CinemachineCamera.", MessageType.Info);
                 return;
             }
 
@@ -246,28 +249,100 @@ namespace CrimsonDraft.Navigation.Editor
             this.lastRenderTime = 0;
         }
 
+        private static readonly Color OkColor = new Color(0.3f, 0.85f, 0.35f);
+        private static readonly Color NoneColor = new Color(0.55f, 0.55f, 0.55f);
+        private static readonly Color LegacyColor = new Color(1f, 0.6f, 0.15f);
+
+        // Camera list with each camera's activation status (green: one trigger, grey: none, orange:
+        // several or two-sided), then the fix-up actions for the selected camera.
         private void DrawCameraList()
         {
-            using (var scroll = new EditorGUILayout.ScrollViewScope(this.listScroll, GUILayout.Width(ListWidth)))
+            var room = this.CurrentRoom;
+            var triggers = room != null
+                ? room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true)
+                : System.Array.Empty<FixedCameraZoneTrigger>();
+
+            using (new EditorGUILayout.VerticalScope(GUILayout.Width(ListWidth)))
             {
-                this.listScroll = scroll.scrollPosition;
-                for (int i = 0; i < this.cameras.Length; i++)
+                using (var scroll = new EditorGUILayout.ScrollViewScope(this.listScroll))
                 {
-                    var rect = EditorGUILayout.GetControlRect(false, 20f);
-                    bool selected = i == this.cameraIndex;
-                    if (selected) EditorGUI.DrawRect(rect, new Color(0.17f, 0.36f, 0.54f, 0.9f));
-                    EditorGUI.DrawRect(new Rect(rect.x, rect.y + 3f, 6f, rect.height - 6f),
-                        FixedCameraZoneTrigger.GizmoColorFor(this.cameras[i]));
-                    GUI.Label(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), this.cameras[i].name);
-                    if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+                    this.listScroll = scroll.scrollPosition;
+                    for (int i = 0; i < this.cameras.Length; i++)
                     {
-                        this.cameraIndex = i;
-                        this.lastRenderTime = 0;
-                        Event.current.Use();
+                        var camera = this.cameras[i];
+                        if (camera == null) continue;
+                        var rect = EditorGUILayout.GetControlRect(false, 20f);
+                        if (i == this.cameraIndex) EditorGUI.DrawRect(rect, new Color(0.17f, 0.36f, 0.54f, 0.9f));
+                        EditorGUI.DrawRect(new Rect(rect.x, rect.y + 3f, 6f, rect.height - 6f), FixedCameraZoneTrigger.GizmoColorFor(camera));
+                        var state = CameraActivation.For(camera, triggers).State;
+                        EditorGUI.DrawRect(new Rect(rect.xMax - 12f, rect.y + 6f, 8f, 8f), StateColor(state));
+                        GUI.Label(new Rect(rect.x + 10f, rect.y, rect.width - 26f, rect.height), camera.name);
+                        if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+                        {
+                            this.cameraIndex = i;
+                            this.lastRenderTime = 0;
+                            Event.current.Use();
+                        }
+                    }
+                }
+
+                var current = this.CurrentCamera;
+                if (room != null && current != null) this.DrawActivationPanel(room, current, triggers);
+            }
+        }
+
+        private void DrawActivationPanel(RoomController room, CinemachineCamera camera, FixedCameraZoneTrigger[] triggers)
+        {
+            var status = CameraActivation.For(camera, triggers);
+            EditorGUILayout.Space(4f);
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                var label = status.State switch
+                {
+                    CameraActivationState.Ok => "One activation trigger",
+                    CameraActivationState.None => "No activation trigger",
+                    _ => $"Legacy: {status.Triggers.Count} trigger(s), keep one",
+                };
+                var style = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = StateColor(status.State) } };
+                GUILayout.Label(label, style);
+
+                if (status.State == CameraActivationState.None)
+                {
+                    if (GUILayout.Button("Create Trigger"))
+                        EditorApplication.delayCall += () => this.AfterEdit(CameraActivationEditing.CreateTrigger(camera, room));
+                    return;
+                }
+
+                foreach (var trigger in status.Triggers)
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        var name = trigger.UseTwoSidedSwitch ? trigger.name + " (2-sided)" : trigger.name;
+                        if (GUILayout.Button(name, EditorStyles.label, GUILayout.MinWidth(60f))) EditorGUIUtility.PingObject(trigger);
+                        if (status.State != CameraActivationState.Legacy) continue;
+                        if (GUILayout.Button("Keep", EditorStyles.miniButtonLeft, GUILayout.Width(40f)))
+                            EditorApplication.delayCall += () => { CameraActivationEditing.KeepOnly(trigger, camera); this.AfterEdit(trigger); };
+                        if (GUILayout.Button("Delete", EditorStyles.miniButtonRight, GUILayout.Width(46f)))
+                            EditorApplication.delayCall += () => { CameraActivationEditing.Delete(trigger); this.AfterEdit(null); };
                     }
                 }
             }
         }
+
+        private void AfterEdit(Object? changed)
+        {
+            if (changed != null) EditorUtility.SetDirty(changed);
+            this.RefreshRooms();
+            this.RequestRender();
+            SceneView.RepaintAll();
+        }
+
+        private static Color StateColor(CameraActivationState state) => state switch
+        {
+            CameraActivationState.Ok => OkColor,
+            CameraActivationState.None => NoneColor,
+            _ => LegacyColor,
+        };
 
         private void DrawView(RoomController room)
         {
