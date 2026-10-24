@@ -138,14 +138,22 @@ namespace CrimsonDraft.Navigation.Editor
             this.cameraIndex = Mathf.Clamp(this.cameraIndex, 0, Mathf.Max(0, this.cameras.Length - 1));
         }
 
+        // Unity null checks: a room or camera destroyed under the window (scene reload, tests) reads as null.
         private RoomController? CurrentRoom =>
-            this.roomIndex >= 0 && this.roomIndex < this.rooms.Length ? this.rooms[this.roomIndex] : null;
+            this.roomIndex >= 0 && this.roomIndex < this.rooms.Length && this.rooms[this.roomIndex] != null
+                ? this.rooms[this.roomIndex] : null;
 
         private CinemachineCamera? CurrentCamera =>
-            this.cameraIndex >= 0 && this.cameraIndex < this.cameras.Length ? this.cameras[this.cameraIndex] : null;
+            this.cameraIndex >= 0 && this.cameraIndex < this.cameras.Length && this.cameras[this.cameraIndex] != null
+                ? this.cameras[this.cameraIndex] : null;
+
+        private bool HasDestroyedReferences =>
+            this.rooms.Any(r => r == null) || this.cameras.Any(c => c == null)
+            || (!ReferenceEquals(this.player, null) && this.player == null);
 
         private void OnGUI()
         {
+            if (this.HasDestroyedReferences) this.RefreshRooms();
             this.TrackFlightKeys();
             this.DrawToolbar();
 
