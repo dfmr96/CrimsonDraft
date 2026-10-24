@@ -5,6 +5,7 @@ using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
+using UnityEngine;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 
@@ -32,11 +33,16 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         // so only the room the player is in can cut the camera.
         void ITickable.Tick()
         {
+            // Inspection shots temporarily own the camera; navigation zones must
+            // not replace them while the player remains inside a two-sided zone.
+            if (this.zoneService.CurrentZoneCamera != this.zoneService.GameplayZoneCamera) return;
             var position = this.player.transform.position;
+            var body = this.player.GetComponent<Collider>();
+            Bounds? bodyBounds = body != null && body.enabled ? body.bounds : null;
             foreach (var trigger in this.triggers)
             {
                 if (trigger == null || !trigger.isActiveAndEnabled) continue;
-                trigger.Evaluate(position);
+                trigger.Evaluate(position, bodyBounds);
             }
         }
 

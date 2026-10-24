@@ -217,6 +217,68 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(0, service.ActivateCount);
         }
 
+        [TestCase(0f, false)]
+        [TestCase(0.2f, false)]
+        [TestCase(0.75f, true)]
+        public void Evaluate_switchRequiresTheDestinationThresholdToBeInsideTheZone(
+            float zoneEnd, bool shouldSwitch)
+        {
+            // Same divider (z=0), margin (0.25) and route in all cases.
+            // Only the zone's forward edge moves.
+            SetField("polygon", new[]
+            {
+                new Vector2(-1, -1), new Vector2(-1, zoneEnd),
+                new Vector2(1, zoneEnd), new Vector2(1, -1),
+            });
+            var service = new FakeZoneService();
+            this.trigger.Construct(service);
+            this.trigger.Evaluate(new Vector3(0, 1, -0.5f));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+
+            foreach (float z in new[] { -0.1f, 0.1f, 0.3f, 0.5f })
+                this.trigger.Evaluate(new Vector3(0, 1, z));
+
+            // The divider resolver itself chooses B; containment can prevent activation.
+            Assert.AreSame(this.b, this.trigger.ResolveCameraAt(new Vector3(0, 1, 0.5f), this.a));
+            Assert.AreSame(shouldSwitch ? this.b : this.a, service.CurrentZoneCamera);
+        }
+
+        [Test]
+        public void BodyOverlap_keepsEvaluatingPastThePolygonEdgeUntilTheDividerThreshold()
+        {
+            SetField("polygon", new[]
+            {
+                new Vector2(-1, -1), new Vector2(-1, 0),
+                new Vector2(1, 0), new Vector2(1, -1),
+            });
+            var service = new FakeZoneService();
+            this.trigger.Construct(service);
+            var initial = new Vector3(0, 1, -0.5f);
+            this.trigger.Evaluate(initial, new Bounds(initial, new Vector3(1, 2, 1)));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+
+            var crossed = new Vector3(0, 1, 0.3f);
+            Assert.IsFalse(this.trigger.Contains(crossed));
+            this.trigger.Evaluate(crossed, new Bounds(crossed, new Vector3(1, 2, 1)));
+            Assert.AreSame(this.b, service.CurrentZoneCamera);
+
+            // Once entirely outside, this zone must leave another shot alone.
+            service.Force(this.a);
+            var outside = new Vector3(0, 1, 2);
+            this.trigger.Evaluate(outside, new Bounds(outside, new Vector3(1, 2, 1)));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+        }
+
+        [Test]
+        public void BodyOverlap_acceptsTheBodyAboveTheFeetButRejectsOtherFloors()
+        {
+            SetField("minHeight", 0.5f);
+            SetField("maxHeight", 2f);
+            Assert.IsFalse(this.trigger.Contains(Vector3.zero));
+            Assert.IsTrue(this.trigger.OverlapsBody(new Bounds(Vector3.up, new Vector3(1, 2, 1))));
+            Assert.IsFalse(this.trigger.OverlapsBody(new Bounds(Vector3.up * 5, new Vector3(1, 2, 1))));
+        }
+
         [Test]
         public void MissingSecondCamera_doesNotSelectAnIncompleteSwitch()
         {
