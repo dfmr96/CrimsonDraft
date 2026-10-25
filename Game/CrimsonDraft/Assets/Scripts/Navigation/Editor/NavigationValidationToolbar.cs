@@ -54,13 +54,15 @@ namespace CrimsonDraft.Navigation.Editor
             }
 
             // Crossing S -> D places the player at D's door back to S; without one the runtime logs an error.
+            var rooms = Object.FindObjectsOfType<RoomController>(includeInactive: true);
             foreach (var door in roomDoors)
             {
-                var origin = door.GetComponentInParent<RoomController>(includeInactive: true);
-                if (origin == null || door.Destination == null) continue;
-                if (DoorArrivalLookup.FindArrivalDoor(door.Destination, origin, door.transform.position) != null) continue;
+                var origin      = door.GetComponentInParent<RoomController>(includeInactive: true);
+                var destination = RoomLookup.Find(rooms, door.DestinationRoomId);
+                if (origin == null || destination == null) continue;
+                if (DoorArrivalLookup.FindArrivalDoor(destination, origin, door.transform.position) != null) continue;
 
-                Debug.LogWarning($"[NavValidation] No door back to '{origin.name}' in '{door.Destination.name}' (crossing '{door.name}').", door);
+                Debug.LogWarning($"[NavValidation] No door back to '{origin.name}' in '{destination.name}' (crossing '{door.name}').", door);
                 issues++;
             }
 
@@ -93,9 +95,14 @@ namespace CrimsonDraft.Navigation.Editor
 
             foreach (var door in Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true))
             {
-                if (door.Destination == null)
+                if (string.IsNullOrEmpty(door.DestinationRoomId))
                 {
                     Debug.LogWarning($"[NavValidation] RoomDoorInteractable '{door.name}' has no destination set.", door);
+                    issues++;
+                }
+                else if (RoomLookup.Find(rooms, door.DestinationRoomId) == null)
+                {
+                    Debug.LogWarning($"[NavValidation] RoomDoorInteractable '{door.name}' leads to '{door.DestinationRoomId}', which is not a room of this scene.", door);
                     issues++;
                 }
             }

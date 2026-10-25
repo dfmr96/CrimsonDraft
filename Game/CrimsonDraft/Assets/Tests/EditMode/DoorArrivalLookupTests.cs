@@ -130,7 +130,11 @@ namespace CrimsonDraft.Tests
         {
             var go = new GameObject(name);
             this.created.Add(go);
-            return go.AddComponent<RoomController>();
+            var room = go.AddComponent<RoomController>();
+            var so   = new SerializedObject(room);
+            so.FindProperty("roomId").stringValue = "Deck_T/" + name.ToUpperInvariant();
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return room;
         }
 
         private RoomDoorInteractable MakeRoomDoor(RoomController room, RoomController target, Vector3 position)
@@ -140,7 +144,7 @@ namespace CrimsonDraft.Tests
             go.transform.position = position;
             var door = go.AddComponent<RoomDoorInteractable>();
             var so = new SerializedObject(door);
-            so.FindProperty("destination").objectReferenceValue = target;
+            so.FindProperty("destinationRoomId").stringValue = target.RoomId;
             so.ApplyModifiedPropertiesWithoutUndo();
             return door;
         }

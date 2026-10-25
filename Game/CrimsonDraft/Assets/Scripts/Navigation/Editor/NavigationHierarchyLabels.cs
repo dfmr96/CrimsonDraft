@@ -44,7 +44,7 @@ namespace CrimsonDraft.Navigation.Editor
                 var door = go.GetComponent<RoomDoorInteractable>();
                 if (door != null)
                 {
-                    var destId = door.Destination?.RoomId;
+                    var destId = door.DestinationRoomId;
                     if (!string.IsNullOrEmpty(destId))
                     {
                         label = $"→ {destId}";

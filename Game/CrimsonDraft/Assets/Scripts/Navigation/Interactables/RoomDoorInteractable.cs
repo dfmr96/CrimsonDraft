@@ -18,8 +18,12 @@ namespace CrimsonDraft.Navigation.Interactables
 
         [SerializeField] private string        doorId               = null!;
         [SerializeField] private DoorData      data                 = null!;
-        [SerializeField] private RoomController destination         = null!;
+        [SerializeField] private string        destinationRoomId    = "";
         [SerializeField] private GameObject    doorTransitionPrefab = null!;
+
+        // Legacy object references, read only by RoomIdMigration; removed once it has run.
+        [SerializeField, HideInInspector] private RoomController?       destination;
+        [SerializeField, HideInInspector] private RoomDoorInteractable? unlocksOnCross;
         [SerializeField] private AK.Wwise.Event doorLockedEvent     = new();
 
         // Opt-in override for doors whose lock state is driven entirely by gameplay (e.g. the
@@ -34,18 +38,19 @@ namespace CrimsonDraft.Navigation.Interactables
         // from the other side") and open permanently once crossed from the far side. Set this
         // on the door that does the unlocking, pointing at its counterpart elsewhere in the
         // scene -- e.g. Door_B2 (mechanismLocked = true, shows the locked-from-other-side
-        // dialogue) is referenced by Door_B1.unlocksOnCross, so walking through Door_B1 clears
+        // dialogue) is referenced by Door_B1.unlocksOnCrossRef, so walking through Door_B1 clears
         // Door_B2's lock and both sides behave as a normal two-way door from then on.
-        [SerializeField] private RoomDoorInteractable? unlocksOnCross;
+        [SerializeField] private DoorRef unlocksOnCrossRef;
 
         // Optional feedback shown the first time this door is used while unlocksOnCross is still
         // mechanism-locked (e.g. "You unlocked the door."). The player advances the dialogue and
         // only then crosses. Skipped on later uses and when no node is set.
         [SerializeField] private DialogueReference unlocksOnCrossDialogue = new();
 
-        public string         DoorId      => this.doorId;
-        public RoomController? Destination => this.destination;
-        public bool            MechanismLocked => this.mechanismLocked;
+        public string  DoorId            => this.doorId;
+        public string  DestinationRoomId => this.destinationRoomId;
+        public DoorRef UnlocksOnCross    => this.unlocksOnCrossRef;
+        public bool    MechanismLocked   => this.mechanismLocked;
 
         public void SetMechanismLocked(bool locked) => this.mechanismLocked = locked;
 
@@ -172,7 +177,8 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             var node = this.unlocksOnCrossDialogue.nodeName;
 
-            if (this.unlocksOnCross == null || !this.unlocksOnCross.MechanismLocked || string.IsNullOrEmpty(node))
+            var unlocks = this.unlocksOnCrossRef.Resolve(RoomLookup.LoadedRooms());
+            if (unlocks == null || !unlocks.MechanismLocked || string.IsNullOrEmpty(node))
             {
                 CrossDoor();
                 return;
@@ -183,9 +189,18 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private void CrossDoor()
         {
-            this.unlocksOnCross?.UnlockFromOtherSide();
+            var rooms       = RoomLookup.LoadedRooms();
+            var destination = RoomLookup.Find(rooms, this.destinationRoomId);
+            if (destination == null)
+            {
+                Debug.LogError($"[RoomDoorInteractable] Door '{this.doorId}' leads to '{this.destinationRoomId}', " +
+                               "which is not a room of the loaded scene.", this);
+                return;
+            }
+
+            this.unlocksOnCrossRef.Resolve(rooms)?.UnlockFromOtherSide();
             this.roomOrchestrator
-                .TransitionToRoomAsync(this.destination, this.doorTransitionPrefab, this.transform.position)
+                .TransitionToRoomAsync(destination, this.doorTransitionPrefab, this.transform.position)
                 .Forget();
         }
     }

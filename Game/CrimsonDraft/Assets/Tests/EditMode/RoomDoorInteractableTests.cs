@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
@@ -27,16 +28,18 @@ namespace CrimsonDraft.Tests
             IRoomOrchestrator orchestrator,
             DoorStateRegistry? registry = null,
             string            doorId   = "test-door",
-            RoomDoorInteractable? unlocksOnCross = null)
+            DoorRef?          unlocksOnCross = null,
+            string?           destinationId  = null)
         {
             var go   = new GameObject();
             var door = go.AddComponent<RoomDoorInteractable>();
             var so   = new SerializedObject(door);
             so.FindProperty("data").objectReferenceValue                 = data;
-            so.FindProperty("destination").objectReferenceValue          = destination;
+            so.FindProperty("destinationRoomId").stringValue             = destinationId ?? destination.RoomId;
             so.FindProperty("doorTransitionPrefab").objectReferenceValue = doorPrefab;
             so.FindProperty("doorId").stringValue                        = doorId;
-            so.FindProperty("unlocksOnCross").objectReferenceValue       = unlocksOnCross;
+            so.FindProperty("unlocksOnCrossRef.roomId").stringValue      = unlocksOnCross?.RoomId ?? "";
+            so.FindProperty("unlocksOnCrossRef.doorId").stringValue      = unlocksOnCross?.DoorId ?? "";
             so.ApplyModifiedPropertiesWithoutUndo();
             door.Construct(orchestrator, registry ?? new DoorStateRegistry());
             return door;
@@ -74,8 +77,16 @@ namespace CrimsonDraft.Tests
             return data;
         }
 
+        private static int roomCount;
+
         private static RoomController MakeRoom()
-            => new GameObject("Room").AddComponent<RoomController>();
+        {
+            var room = new GameObject("Room").AddComponent<RoomController>();
+            var so   = new SerializedObject(room);
+            so.FindProperty("roomId").stringValue = "Deck_T/ROOM_" + (++roomCount);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return room;
+        }
 
         private static InteractionContext MakeContext(FakeDialogue dialogue, FakeInventoryService inventory)
             => new(inventory, null!, dialogue, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -261,15 +272,17 @@ namespace CrimsonDraft.Tests
             var prefab         = new GameObject("DoorPrefab");
             var orchestrator   = new FakeOrchestrator();
 
-            // Door A: locked from the other side until Door B is crossed.
+            // Door A (inside room B): locked from the other side until Door B is crossed.
             var doorA = MakeDoor(MakeUnlockedDoor(), destinationA, prefab, orchestrator, registry, "door-a");
+            doorA.transform.SetParent(destinationB.transform, false);
             var soA   = new SerializedObject(doorA);
             soA.FindProperty("useMechanismLock").boolValue = true;
             soA.FindProperty("mechanismLocked").boolValue  = true;
             soA.ApplyModifiedPropertiesWithoutUndo();
 
             // Door B: the free side, paired to unlock Door A once crossed.
-            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b", doorA);
+            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b",
+                new DoorRef(destinationB.RoomId, "door-a"));
 
             Assert.IsTrue(doorA.MechanismLocked, "door A should start locked from the other side");
 
@@ -281,6 +294,24 @@ namespace CrimsonDraft.Tests
             UnityEngine.Object.DestroyImmediate(doorB.gameObject);
             UnityEngine.Object.DestroyImmediate(destinationA.gameObject);
             UnityEngine.Object.DestroyImmediate(destinationB.gameObject);
+            UnityEngine.Object.DestroyImmediate(prefab);
+        }
+
+        [Test]
+        public void Interact_withUnknownDestination_logsErrorAndDoesNotTransition()
+        {
+            var room         = MakeRoom();
+            var prefab       = new GameObject("DoorPrefab");
+            var orchestrator = new FakeOrchestrator();
+            var door         = MakeDoor(MakeUnlockedDoor(), room, prefab, orchestrator, destinationId: "Deck_T/NOWHERE");
+
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Deck_T/NOWHERE"));
+            door.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
+
+            Assert.IsNull(orchestrator.LastDestination, "an unknown destination must not start a transition");
+
+            UnityEngine.Object.DestroyImmediate(door.gameObject);
+            UnityEngine.Object.DestroyImmediate(room.gameObject);
             UnityEngine.Object.DestroyImmediate(prefab);
         }
 
@@ -317,11 +348,13 @@ namespace CrimsonDraft.Tests
             var orchestrator = new FakeOrchestrator();
 
             var doorA = MakeDoor(MakeUnlockedDoor(), destinationA, prefab, orchestrator, registry, "door-a");
+            doorA.transform.SetParent(destinationB.transform, false);
             var soA   = new SerializedObject(doorA);
             soA.FindProperty("useMechanismLock").boolValue = true;
             soA.FindProperty("mechanismLocked").boolValue  = true;
             soA.ApplyModifiedPropertiesWithoutUndo();
-            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b", doorA);
+            var doorB = MakeDoor(MakeUnlockedDoor(), destinationB, prefab, orchestrator, registry, "door-b",
+                new DoorRef(destinationB.RoomId, "door-a"));
 
             doorA.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));
             doorB.Interact(MakeContext(new FakeDialogue(), new FakeInventoryService()));

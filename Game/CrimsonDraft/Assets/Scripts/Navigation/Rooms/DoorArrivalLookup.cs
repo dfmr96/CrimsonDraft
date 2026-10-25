@@ -19,7 +19,7 @@ namespace CrimsonDraft.Navigation.Rooms
             float bestDistance = float.MaxValue;
             foreach (var door in destination.GetComponentsInChildren<RoomDoorInteractable>(true))
             {
-                if (door.Destination != origin) continue;
+                if (!string.Equals(door.DestinationRoomId, origin.RoomId, System.StringComparison.Ordinal)) continue;
 
                 var offset = door.transform.position - departurePosition;
                 offset.y = 0f;
