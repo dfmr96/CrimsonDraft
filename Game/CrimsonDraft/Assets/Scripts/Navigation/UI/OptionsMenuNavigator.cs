@@ -19,7 +19,7 @@ namespace CrimsonDraft.UI.MainMenu
     /// Cancel from the content returns to the buttons (see <see cref="TryGoBack"/>), Cancel from the
     /// buttons is left to <see cref="MainMenuPanelNavigator"/>, which leaves Options.
     ///
-    /// The pause menu keeps using <see cref="OptionsTabController"/> (tab row + content together).
+    /// The pause menu's Settings uses this same navigator (see <see cref="ContentChanged"/>).
     /// </summary>
     public sealed class OptionsMenuNavigator : MonoBehaviour
     {
@@ -51,6 +51,10 @@ namespace CrimsonDraft.UI.MainMenu
 
         private IInputService    inputService = null!;
         private InventorySfxData sfx          = null!;
+
+        /// <summary>Raised when a tab's content takes over (0 = Video, 1 = Control, 2 = Sound) and
+        /// with -1 when the three buttons are shown again or Options closes.</summary>
+        public event System.Action<int>? ContentChanged;
 
         private bool isOpen;
         private bool inContent;
@@ -107,6 +111,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.heldHorizontalDirection = 0;
             HideAllOutlines();
             this.selector?.SetVisible(false);
+            ContentChanged?.Invoke(-1);
         }
 
         /// <summary>Cancel pressed while Options is open. Returns true if it only went back from a
@@ -145,6 +150,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.contentRoot.SetActive(false);
             this.buttonsRoot.SetActive(true);
             EventSystem.current?.SetSelectedGameObject(this.tabs[selectedTab].button.gameObject);
+            ContentChanged?.Invoke(-1);
         }
 
         private void OnTabButtonPressed(int tab)
@@ -193,6 +199,7 @@ namespace CrimsonDraft.UI.MainMenu
                 panel.ShowOutline(this.contentIndex);
                 this.selector?.FollowOrHide(panel.GetSelectorAnchor(this.contentIndex), snap: true);
             }
+            ContentChanged?.Invoke(tab);
         }
 
         // The anchor can change without the channel changing (a Left/Right inside a Control row).
