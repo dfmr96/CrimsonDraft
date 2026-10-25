@@ -145,12 +145,12 @@ namespace CrimsonDraft.Navigation
                 });
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
-            // The pause menu's Settings tabs reuse the main menu's Options components; they sit
+            // The pause menu's Settings reuses the main menu's Options components; they sit
             // under PauseMenuView rather than being registered themselves, so inject them here.
             builder.RegisterBuildCallback(resolver =>
             {
                 var pauseView = resolver.Resolve<PauseMenuView>();
-                resolver.Inject(pauseView.OptionsTabs);
+                resolver.Inject(pauseView.OptionsNavigator);
                 resolver.Inject(pauseView.GammaPanel);
                 resolver.Inject(pauseView.SoundPanel);
             });

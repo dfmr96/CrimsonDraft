@@ -9,21 +9,27 @@ using CrimsonDraft.UI.MainMenu;
 namespace CrimsonDraft.Navigation.UI
 {
     /// <summary>
-    /// The pause menu's panels. Main (Resume / Settings / Quit) is navigated through the
-    /// EventSystem with a single sliding <see cref="MenuSelectionBar"/>; Settings works like the
-    /// main menu's Options screen -- the tab row (Video / Control / Sound) and the active tab's
-    /// content are on screen together, driven by <see cref="OptionsTabController"/>.
+    /// The pause menu's panels, shown one at a time like the main menu's. Main (Resume / Settings /
+    /// Quit) is navigated through the EventSystem with a single sliding <see cref="MenuSelectionBar"/>
+    /// and its buttons appear one after another (<see cref="StaggeredReveal"/> on the panel).
+    /// Both live inside one frame (<see cref="ScreenPowerOn"/>) that opens when the pause menu does;
+    /// Settings just swaps what is inside it: three buttons (Video / Control / Sound) and, once one
+    /// is confirmed, only that tab's content -- driven by <see cref="OptionsMenuNavigator"/>, the
+    /// same component the main menu's Options uses.
     /// </summary>
     public sealed class PauseMenuView : MonoBehaviour
     {
         [Header("Roots")]
         [SerializeField] private GameObject root            = null!;
         [SerializeField] private GameObject dimBackground   = null!;
+        [Tooltip("Resume / Settings / Quit. Lleva el StaggeredReveal de los botones.")]
         [SerializeField] private GameObject mainPanel        = null!;
-        [Tooltip("Fila de tabs de Settings (Video / Control / Sound).")]
-        [SerializeField] private GameObject optionsPanel     = null!;
-        [Tooltip("Contenido de los tabs (Options-Windows).")]
-        [SerializeField] private GameObject windowsRoot      = null!;
+        [Tooltip("Marco de la pantalla (Screen): se abre en Y al abrir el pause. Contiene MainPanel y los botones / contenido de Settings.")]
+        [SerializeField] private ScreenPowerOn screen = null!;
+        [Tooltip("Los 3 botones de Settings (Screen/Buttons).")]
+        [SerializeField] private GameObject settingsButtons = null!;
+        [Tooltip("Contenido de las pestañas (Screen/Options_panel).")]
+        [SerializeField] private GameObject settingsContent = null!;
 
         // Same shared Volume Inventory/pickup-preview/Inspect fade in -- gives the pause menu
         // the same CRT/PSX-boosted look while it's open. Optional: null just skips the fade.
@@ -38,10 +44,10 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private Button optionsButton = null!;
         [SerializeField] private Button quitButton    = null!;
 
-        [Header("Settings tabs")]
-        [SerializeField] private OptionsTabController optionsTabs = null!;
+        [Header("Settings")]
+        [SerializeField] private OptionsMenuNavigator optionsNavigator = null!;
         [Tooltip("Video: slider de gamma.")]
-        [SerializeField] private SliderGammaPanel gammaPanel = null!;
+        [SerializeField] private GeneralMenuController gammaPanel = null!;
         [Tooltip("Control: Classic/Modern y Keyboard/Gamepad.")]
         [SerializeField] private ControlOptionsController controlsPanel = null!;
         [Tooltip("Sound: Master / SFX / UI SFX / Music.")]
@@ -63,14 +69,27 @@ namespace CrimsonDraft.Navigation.UI
         public Button ResumeButton            => this.resumeButton;
         public Button OptionsButton           => this.optionsButton;
         public Button QuitButton              => this.quitButton;
-        public OptionsTabController OptionsTabs => this.optionsTabs;
-        public SliderGammaPanel GammaPanel      => this.gammaPanel;
+        public OptionsMenuNavigator OptionsNavigator => this.optionsNavigator;
+        public GeneralMenuController GammaPanel => this.gammaPanel;
         public ControlOptionsController ControlsPanel => this.controlsPanel;
         public OptionsMenuController SoundPanel => this.soundPanel;
 
         public GameObject FirstMainSelectable => this.resumeButton.gameObject;
 
         private GameObject? lastSelected;
+        private bool controllerClaimed;
+
+        /// <summary>
+        /// A child scope (InventoryScope) re-creates the parent's scoped IInitializables, so two
+        /// PauseMenuControllers can exist for this one view. Only the first to claim it may drive it:
+        /// with two, every Back is handled twice (tab -> buttons, then buttons -> main panel).
+        /// </summary>
+        public bool TryClaimController()
+        {
+            if (this.controllerClaimed) return false;
+            this.controllerClaimed = true;
+            return true;
+        }
 
         // Watches the EventSystem's selection (Resume / Settings / Quit) and plays the cursor
         // sound on every move between two real selectables -- opening or closing a panel selects
@@ -88,21 +107,23 @@ namespace CrimsonDraft.Navigation.UI
 
         private void OnDisable() => this.lastSelected = null;
 
+        // The frame opens only when it becomes active, i.e. when the pause menu opens -- going
+        // between Main and Settings keeps it as it is.
         public void ShowMain()
         {
             this.root.SetActive(true);
             this.dimBackground.SetActive(true);
+            this.screen.gameObject.SetActive(true);
+            this.settingsButtons.SetActive(false);
+            this.settingsContent.SetActive(false);
             this.mainPanel.SetActive(true);
-            this.optionsPanel.SetActive(false);
-            this.windowsRoot.SetActive(false);
         }
 
-        public void ShowOptions()
+        public void ShowSettings()
         {
             this.dimBackground.SetActive(true);
             this.mainPanel.SetActive(false);
-            this.optionsPanel.SetActive(true);
-            this.windowsRoot.SetActive(true);
+            this.settingsButtons.SetActive(true);
         }
 
         public void HideAll()
@@ -110,8 +131,7 @@ namespace CrimsonDraft.Navigation.UI
             SetVideoUiMode(false);
             this.root.SetActive(false);
             this.mainPanel.SetActive(false);
-            this.optionsPanel.SetActive(false);
-            this.windowsRoot.SetActive(false);
+            this.screen.gameObject.SetActive(false);
             SetBackdropVisible(true);
         }
 
