@@ -58,6 +58,8 @@ namespace CrimsonDraft.Infrastructure.DebugMenu
             if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
             if (keyboard.upArrowKey.wasPressedThisFrame)   this.selection.Move(-1);
             if (keyboard.downArrowKey.wasPressedThisFrame) this.selection.Move(1);
+            if (keyboard.leftArrowKey.wasPressedThisFrame)  this.selection.CycleCurrent(-1);
+            if (keyboard.rightArrowKey.wasPressedThisFrame) this.selection.CycleCurrent(1);
             if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
                 this.selection.ActivateCurrent();
 
@@ -102,7 +104,7 @@ namespace CrimsonDraft.Infrastructure.DebugMenu
         internal static string Format(IReadOnlyList<DebugMenuEntry> entries, int selected)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("<color=#BF3030><b>DEBUG MENU</b></color>   <color=#8A8780>Up/Down - Enter - F1/Esc</color>");
+            sb.AppendLine("<color=#BF3030><b>DEBUG MENU</b></color>   <color=#8A8780>Up/Down - Left/Right - Enter - F1/Esc</color>");
 
             if (entries.Count == 0)
             {
@@ -121,7 +123,9 @@ namespace CrimsonDraft.Infrastructure.DebugMenu
                 }
 
                 string state  = entry.IsToggle ? (entry.IsOn ? "  <color=#58C46A>[ON]</color>" : "  <color=#8A8780>[OFF]</color>") : "";
-                string line   = $"{entry.Label}{state}";
+                string line   = entry.IsChoice
+                    ? (entry.CurrentOption is { } option ? $"{entry.Label}: < {option} >" : $"{entry.Label}: (none)")
+                    : $"{entry.Label}{state}";
                 sb.AppendLine(i == selected ? $"<mark=#BF303066><color=#FFFFFF>> {line}</color></mark>" : $"  {line}");
             }
 
