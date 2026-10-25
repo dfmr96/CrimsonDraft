@@ -100,6 +100,7 @@ namespace CrimsonDraft.UI
         {
             DOTween.Kill(this);
             this.isClosing = false;
+            ExitStorageMode(); // reopened while a storage close was still animating
             Time.timeScale = 0f;
             this.inputService.SwitchToInventory();
             this.transform.localScale = new Vector3(this.openScale.x, 0f, this.openScale.z);
@@ -143,13 +144,6 @@ namespace CrimsonDraft.UI
             this.isClosing = true;
 
             this.cursor.CancelAll();
-            if (this.storageMode)
-            {
-                this.storageMode = false;
-                this.cursor.ExitTransferMode();
-                if (this.storageWindow != null) this.storageWindow.Hide();
-                if (this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
-            }
             this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
 
@@ -163,8 +157,20 @@ namespace CrimsonDraft.UI
                 .OnComplete(FinishClose);
         }
 
+        // The storage window covers the party cards: tearing it down before the scale-out has finished
+        // shows the cards for the length of the close animation.
+        private void ExitStorageMode()
+        {
+            if (!this.storageMode) return;
+            this.storageMode = false;
+            this.cursor.ExitTransferMode();
+            if (this.storageWindow != null) this.storageWindow.Hide();
+            if (this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
+        }
+
         private void FinishClose()
         {
+            ExitStorageMode();
             this.canvasRoot.SetActive(false);
             UiCameraGate.Release(this);
             this.transform.localScale = this.openScale;
