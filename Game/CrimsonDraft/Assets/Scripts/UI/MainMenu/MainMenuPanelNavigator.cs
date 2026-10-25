@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using DG.Tweening;
 using CrimsonDraft.Infrastructure.Input;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,6 +21,10 @@ namespace CrimsonDraft.UI.MainMenu
     {
         private enum Destination { None, NewGame, Options, LoadGame }
 
+        // How the title gives way to a sub menu: straight away, with the storm (lightning, white-out,
+        // slow dim), or with a plain dim while the rain fades out (Options).
+        private enum Intro { None, Storm, Dim }
+
         [Header("Panels")]
         [SerializeField] private GameObject mainMenuPanel = null!;
         [SerializeField] private GameObject newGamePanel  = null!;
@@ -35,6 +40,10 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private OptionsMenuNavigator optionsController = null!;
         [Tooltip("Navegación del panel de New Game (filas de controles + botón de inicio).")]
         [SerializeField] private NewGameNavigator newGameNavigator = null!;
+        [Tooltip("Transicion lenta (rayo, flash, fondo que se oscurece) para New Game y Load Game. Opcional: sin esto se abren directo.")]
+        [SerializeField] private MainMenuStormTransition? stormTransition;
+        [Tooltip("Lluvia en el titulo, musica solo en Options, nada en New Game / Load Game.")]
+        [SerializeField] private MainMenuMusicController? music;
         [Tooltip("Con esto se abre la lista de saves al entrar a LOADGAME. El panel de Load Game maneja su propio Confirm/Cancel (navegación anidada lista/confirmar), así que OnCancel lo ignora por completo -- ver BackFromLoadGame.")]
         [SerializeField] private MainMenuController mainMenuController = null!;
 
@@ -42,6 +51,8 @@ namespace CrimsonDraft.UI.MainMenu
         private MainMenuSfxData   sfx          = null!; // panel switch whoosh
         private InventorySfxData  uiSfx        = null!; // shared UI decide / cancel
         private Destination       currentDestination;
+        private bool              transitioning; // the storm is playing: no cancel, no second open
+        private bool              launching;     // the game is starting (long fade): no way back
         private GameObject?       lastMainMenuButton;
 
         [Inject]
@@ -71,23 +82,57 @@ namespace CrimsonDraft.UI.MainMenu
         }
 
         private void OpenNewGame() =>
-            Open(Destination.NewGame, this.newGamePanel, this.newGameButton, this.newGameNavigator.Open);
+            Open(Destination.NewGame, this.newGamePanel, this.newGameButton, this.newGameNavigator.Open, Intro.Storm);
 
         private void OpenOptions() =>
-            Open(Destination.Options, this.optionsPanel, this.optionsButton, this.optionsController.Open);
+            Open(Destination.Options, this.optionsPanel, this.optionsButton, this.optionsController.Open, Intro.Dim);
 
         private void OpenLoadGame() =>
-            Open(Destination.LoadGame, this.loadGamePanel, this.loadGameButton, this.mainMenuController.OpenLoadGameList);
+            Open(Destination.LoadGame, this.loadGamePanel, this.loadGameButton, this.mainMenuController.OpenLoadGameList, Intro.Storm);
 
-        private void Open(Destination destination, GameObject panel, Button source, Action onOpened)
+        private void Open(Destination destination, GameObject panel, Button source, Action onOpened, Intro intro = Intro.None)
         {
             if (this.currentDestination != Destination.None) return;
             this.currentDestination = destination;
             this.lastMainMenuButton = source.gameObject;
 
             this.uiSfx.PlayDecide(gameObject);
-            this.sfx.PlayPanelTravel(gameObject);
             EventSystem.current?.SetSelectedGameObject(null);
+
+            if (intro == Intro.Dim && this.stormTransition != null)
+            {
+                // The rain fades out and the screen dims; the sub menu only opens once it is quiet.
+                this.transitioning = true;
+                this.music?.EnterSilentSubMenu();
+                this.stormTransition.PlayDim(() =>
+                {
+                    this.transitioning = false;
+                    ShowPanel(destination, panel, onOpened);
+                });
+                return;
+            }
+
+            if (intro == Intro.Storm && this.stormTransition != null)
+            {
+                this.transitioning = true;
+                this.stormTransition.Play(
+                    onThunder:  () => this.sfx.PlayThunder(gameObject),
+                    onDarkened: () =>
+                    {
+                        this.transitioning = false;
+                        ShowPanel(destination, panel, onOpened);
+                    });
+                return;
+            }
+
+            ShowPanel(destination, panel, onOpened);
+        }
+
+        private void ShowPanel(Destination destination, GameObject panel, Action onOpened)
+        {
+            this.sfx.PlayPanelTravel(gameObject);
+            if (destination == Destination.Options) this.music?.EnterOptions();
+            else this.music?.EnterSilentSubMenu();
 
             this.mainMenuPanel.SetActive(false);
             panel.SetActive(true);
@@ -100,6 +145,9 @@ namespace CrimsonDraft.UI.MainMenu
                 if (this.currentDestination == destination) onOpened();
             });
         }
+
+        /// <summary>The game is about to load (the long fade has started): Cancel no longer goes back.</summary>
+        public void BeginLaunch() => this.launching = true;
 
         /// <summary>
         /// The Load Game panel owns Confirm/Cancel itself (list vs confirm sub-state via
@@ -115,7 +163,9 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnCancel(InputAction.CallbackContext _)
         {
-            if (this.currentDestination == Destination.None
+            if (this.transitioning
+                || this.launching
+                || this.currentDestination == Destination.None
                 || this.currentDestination == Destination.LoadGame) return;
 
             // New Game has two steps (controls, gamma) and Options has two levels (buttons,
@@ -133,23 +183,60 @@ namespace CrimsonDraft.UI.MainMenu
             this.uiSfx.PlayCancel(gameObject);
             this.sfx.PlayPanelTravel(gameObject);
 
+            // Leaving Options: the music fades out first and the title only comes back once it is
+            // gone (see ShowMainMenuWhenQuiet). From the other sub menus there is nothing to wait for.
+            float closeStarted = Time.unscaledTime;
+            bool waitForQuiet  = from == Destination.Options && this.music != null;
+            if (waitForQuiet) this.music!.EnterSilentSubMenu();
+            else this.music?.EnterMainMenu();
+
+            GameObject panel = this.newGamePanel;
             switch (from)
             {
                 case Destination.NewGame:
                     this.newGameNavigator.Close();
-                    this.newGamePanel.SetActive(false);
+                    panel = this.newGamePanel;
                     break;
                 case Destination.Options:
                     this.optionsController.Close();
-                    this.optionsPanel.SetActive(false);
+                    panel = this.optionsPanel;
                     break;
                 case Destination.LoadGame:
-                    this.loadGamePanel.SetActive(false);
+                    panel = this.loadGamePanel;
                     break;
             }
 
+            // The screen turns off (ScreenPowerOn) before the main menu comes back.
+            Action showTitle = waitForQuiet ? () => ShowMainMenuWhenQuiet(closeStarted) : ShowMainMenu;
+            var powerOn = panel.GetComponent<ScreenPowerOn>();
+            if (powerOn != null) powerOn.Close(showTitle);
+            else
+            {
+                panel.SetActive(false);
+                showTitle();
+            }
+        }
+
+        private void ShowMainMenuWhenQuiet(float closeStarted)
+        {
+            float wait = this.music!.SilenceSeconds - (Time.unscaledTime - closeStarted);
+            if (wait <= 0f)
+            {
+                ShowMainMenu();
+                return;
+            }
+            DOVirtual.DelayedCall(wait, ShowMainMenu, ignoreTimeScale: true).SetTarget(this);
+        }
+
+        private void ShowMainMenu()
+        {
+            // Something opened a sub menu again before the close finished: leave it alone.
+            if (this.currentDestination != Destination.None) return;
+
             // Enabling the main menu re-selects its first button; put the cursor back on the one
             // that opened the sub menu instead.
+            this.stormTransition?.Restore();
+            this.music?.EnterMainMenu();
             this.mainMenuPanel.SetActive(true);
             if (this.lastMainMenuButton != null)
                 EventSystem.current?.SetSelectedGameObject(this.lastMainMenuButton);
