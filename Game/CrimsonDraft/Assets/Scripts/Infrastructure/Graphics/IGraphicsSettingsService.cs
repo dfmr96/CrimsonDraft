@@ -26,5 +26,12 @@ namespace CrimsonDraft.Infrastructure.Graphics
         /// </summary>
         void PushGammaSuppression();
         void PopGammaSuppression();
+
+        /// <summary>
+        /// "Detalle" of the room decay layer (PSXDecay shader + decay decals): Low for weaker
+        /// PCs, Medium for the full effect. Persisted and applied at startup.
+        /// </summary>
+        CrimsonDraft.Rendering.Decay.DecayDetail DecayDetail { get; }
+        void SetDecayDetail(CrimsonDraft.Rendering.Decay.DecayDetail detail);
     }
 }

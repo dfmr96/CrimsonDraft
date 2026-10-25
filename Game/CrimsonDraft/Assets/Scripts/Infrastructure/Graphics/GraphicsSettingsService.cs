@@ -1,5 +1,6 @@
 #nullable enable
 
+using CrimsonDraft.Rendering.Decay;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -19,6 +20,7 @@ namespace CrimsonDraft.Infrastructure.Graphics
     public sealed class GraphicsSettingsService : IGraphicsSettingsService, IInitializable, System.IDisposable
     {
         private const string GammaKey          = "Graphics.Gamma";
+        private const string DecayDetailKey    = "Graphics.DecayDetail";
         private const float  DefaultGamma      = 0.5f;
         private const float  GammaOffsetRange  = 0.5f;
         private const int    GammaStepCount    = 8;
@@ -30,6 +32,7 @@ namespace CrimsonDraft.Infrastructure.Graphics
         public float Gamma { get; private set; }
         public event System.Action? GammaChanged;
         public int   GammaSteps => GammaStepCount;
+        public DecayDetail DecayDetail { get; private set; }
 
         private int suppressionCount;
 
@@ -39,6 +42,8 @@ namespace CrimsonDraft.Infrastructure.Graphics
         void IInitializable.Initialize()
         {
             this.Gamma = PlayerPrefs.GetFloat(GammaKey, DefaultGamma);
+            this.DecayDetail = (DecayDetail)PlayerPrefs.GetInt(DecayDetailKey, (int)DecayDetail.Medium);
+            DecayQuality.Set(this.DecayDetail);
             SceneManager.sceneLoaded += OnSceneLoaded;
             Apply();
         }
@@ -51,6 +56,13 @@ namespace CrimsonDraft.Infrastructure.Graphics
             PlayerPrefs.SetFloat(GammaKey, value01);
             Apply();
             GammaChanged?.Invoke();
+        }
+
+        public void SetDecayDetail(DecayDetail detail)
+        {
+            this.DecayDetail = detail;
+            PlayerPrefs.SetInt(DecayDetailKey, (int)detail);
+            DecayQuality.Set(detail);
         }
 
         public void PushGammaSuppression()
