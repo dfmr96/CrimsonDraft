@@ -27,6 +27,7 @@ namespace CrimsonDraft.Inventory
         InventoryItem? Held { get; }
         int HeldRotation { get; }
         bool HeldIsSplit { get; }
+        bool HeldIsSpawned { get; }
         event Action? HeldChanged;
 
         // Raised whenever any operator or storage container's contents change.
@@ -38,6 +39,10 @@ namespace CrimsonDraft.Inventory
         void RotateHeld();
         DropResult TryDrop(ContainerId target, Vector2Int origin);
         void CancelHeld();
+
+        // Puts an item that is in no container into the hand (debug item spawner). Replaces a
+        // previously spawned held item; refused while a picked-up item is held.
+        bool TrySpawnHeld(InventoryItem item);
 
         bool TryCombine(InventoryItem a, InventoryItem b, out InventoryItem? result);
         bool TryUseConsumable(InventoryItem item, int operatorSlot);

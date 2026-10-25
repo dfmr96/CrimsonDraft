@@ -99,6 +99,10 @@ namespace CrimsonDraft.UI
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
             this.inputService.InventoryPickup.performed  += OnPickup;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            this.inputService.InventoryNextTab.performed += OnDebugNextItem;
+            this.inputService.InventoryPrevTab.performed += OnDebugPrevItem;
+#endif
             this.inputBound = true;
         }
 
@@ -107,6 +111,10 @@ namespace CrimsonDraft.UI
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
             this.inputService.InventoryPickup.performed  -= OnPickup;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            this.inputService.InventoryNextTab.performed -= OnDebugNextItem;
+            this.inputService.InventoryPrevTab.performed -= OnDebugPrevItem;
+#endif
             this.inputBound = false;
         }
 
@@ -239,8 +247,11 @@ namespace CrimsonDraft.UI
             {
                 var footprint = ItemPlacement.FootprintOf(held.Data.GridSize, this.inventory.HeldRotation);
                 this.selector.ShowAtCell(presenter.Grid, cell, null, footprint, holdStyle: true, showTooltip: false);
-                this.selector.HideTooltip();
-                this.heldView.Show(held, this.inventory.HeldRotation, presenter.Grid, cell, CanDropAt(presenter.Container, footprint, cell));
+                // A spawned (debug) item is named while it is cycled; a picked-up one needs no label.
+                if (this.inventory.HeldIsSpawned) this.selector.ShowTooltipAtSelector(held.Data.DisplayName);
+                else                              this.selector.HideTooltip();
+                this.heldView.Show(held, this.inventory.HeldRotation, presenter.Grid, cell,
+                    CanDropAt(presenter.Container, footprint, cell, allowSwap: !this.inventory.HeldIsSpawned));
                 return;
             }
 
@@ -249,11 +260,11 @@ namespace CrimsonDraft.UI
             this.selector.ShowAtCell(presenter.Grid, cell, presenter.ViewAt(cell), null, this.isCombineMode, showTooltip);
         }
 
-        private static bool CanDropAt(ItemContainer container, Vector2Int footprint, Vector2Int origin)
+        private static bool CanDropAt(ItemContainer container, Vector2Int footprint, Vector2Int origin, bool allowSwap)
         {
             if (!container.IsWithinBounds(footprint, origin)) return false;
             var overlapping = container.GetOverlapping(footprint, origin);
-            return overlapping.Count == 0 || (overlapping.Count == 1 && !overlapping.First().IsEquipped);
+            return overlapping.Count == 0 || (allowSwap && overlapping.Count == 1 && !overlapping.First().IsEquipped);
         }
 
         private void OnGridRendered(ContainerId id)
@@ -396,6 +407,9 @@ namespace CrimsonDraft.UI
         // tab's own submenus/held-item state get first chance to consume Cancel.
         public bool TryConsumeCancel()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (TryDiscardDebugItem()) return true;
+#endif
             if (this.transferMode)
             {
                 if (this.IsHoldingItem) Drop();
@@ -458,6 +472,59 @@ namespace CrimsonDraft.UI
         }
 
         public void RequestClose() => OnCloseRequested?.Invoke();
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // ── Debug item spawner (RE 1.5 style) ────────────────────────────────
+        // Hold Select (Tab) and press R1/L1 (E/Q) to put a catalog item in the hand and cycle it;
+        // releasing Select keeps the item. Select + Cancel throws a spawned item away.
+
+        [Inject] private IObjectResolver resolver = null!;
+        private DebugItemCatalog? debugCatalog;
+
+        private static bool DebugModifierHeld =>
+            (Gamepad.current != null && Gamepad.current.selectButton.isPressed)
+            || (Keyboard.current != null && Keyboard.current.tabKey.isPressed);
+
+        private void OnDebugNextItem(InputAction.CallbackContext _) => CycleDebugItem(1);
+        private void OnDebugPrevItem(InputAction.CallbackContext _) => CycleDebugItem(-1);
+
+        private void CycleDebugItem(int delta)
+        {
+            if (!DebugModifierHeld || !CanSpawnDebugItem()) return;
+
+            // Never replace an item the player picked up: it would be lost.
+            if (this.IsHoldingItem && !this.inventory.HeldIsSpawned)
+            {
+                this.sfx.PlayInvalidAction(this.gameObject);
+                return;
+            }
+
+            if (this.debugCatalog == null && this.resolver.TryResolve<ItemDatabase>(out var database))
+                this.debugCatalog = new DebugItemCatalog(database.AllItems);
+            if (this.debugCatalog == null) return;
+
+            if (!this.inventory.HeldIsSpawned) this.debugCatalog.Reset();
+            var data = this.debugCatalog.Step(delta);
+            if (data == null || !this.inventory.TrySpawnHeld(DebugItemCatalog.CreateFull(data))) return;
+
+            this.sfx.PlayCursor(this.gameObject);
+            Refresh();
+        }
+
+        private bool CanSpawnDebugItem() =>
+            !this.onMeleeSlot && !this.onLogoSlot && !this.isCombineMode && this.selector.IsVisible
+            && (this.tabManager == null || (!this.tabManager.IsTabBarActive && !this.tabManager.IsConsumingTabInput))
+            && (this.contextMenu == null || !this.contextMenu.IsOpen)
+            && (this.inspectPanel == null || !this.inspectPanel.IsOpen);
+
+        private bool TryDiscardDebugItem()
+        {
+            if (!this.inventory.HeldIsSpawned || !DebugModifierHeld) return false;
+            this.inventory.CancelHeld();
+            this.sfx.PlayCancel(this.gameObject);
+            return true;
+        }
+#endif
 
         public void CancelAll()
         {
