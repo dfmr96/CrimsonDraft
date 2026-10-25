@@ -137,6 +137,38 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual(1, this.roster[0].Hp);
         }
 
+        // ── Forced victory (debug menu) ──
+
+        [Test]
+        public void ForceVictory_publishesVictoryImmediately()
+        {
+            this.orchestrator.ForceVictory();
+
+            Assert.AreEqual(1, this.combatEndPublisher.PublishCount);
+            Assert.IsTrue(this.combatEndPublisher.LastMessage!.Value.Victory);
+        }
+
+        [Test]
+        public void ForceVictory_revivesMercyOperators()
+        {
+            this.roster[0].ApplyDamage(100); // 0 HP, still alive -> Mercy
+
+            this.orchestrator.ForceVictory();
+
+            Assert.IsFalse(this.roster[0].IsMercy);
+            Assert.AreEqual(1, this.roster[0].Hp);
+        }
+
+        [Test]
+        public void ForceVictory_endsCombatOnlyOnce()
+        {
+            this.orchestrator.ForceVictory();
+            this.orchestrator.ForceVictory();
+            Tick();
+
+            Assert.AreEqual(1, this.combatEndPublisher.PublishCount);
+        }
+
         // ── Fakes ──────────────────────────────────────────────────────
 
         private sealed class FakeRandomSource : IRandomSource

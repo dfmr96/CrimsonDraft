@@ -55,6 +55,7 @@ namespace CrimsonDraft.Combat
             this.menuRegistrations = new[]
             {
                 debugMenu.Register(DebugMenuEntry.Action("Combat", "Kill first operator and end combat", KillFirstAliveOperatorAndEndCombat)),
+                debugMenu.Register(DebugMenuEntry.Action("Combat", "Win combat (instant)", WinCombat)),
                 debugMenu.Register(DebugMenuEntry.Action("Combat", "Kill all operators (defeat)", KillAllOperators)),
             };
 #endif
@@ -95,6 +96,11 @@ namespace CrimsonDraft.Combat
             target.ApplyDamage(1);
             this.combatSession.EndCombat(true);
         }
+
+        // Debug menu entry for winning the encounter on demand: ends it as a victory right
+        // away through CombatOrchestrator.ForceVictory (Mercy operators healed,
+        // CombatEndedEvent published), without waiting for any enemy death animation.
+        private void WinCombat() => this.orchestrator?.ForceVictory();
 
         // Debug menu entry for exercising the defeat flow end-to-end: kills every alive
         // operator through the same ApplyDamage + PlayOperatorDeath path a real enemy attack
