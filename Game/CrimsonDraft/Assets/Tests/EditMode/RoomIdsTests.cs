@@ -35,6 +35,23 @@ namespace CrimsonDraft.Tests
         public void DeckOfScene_dropsDevelopmentSuffix()
             => Assert.AreEqual("Deck_C", RoomIds.DeckOfScene("Deck_C_Development"));
 
+        [TestCase("Deck_B", "kitchen",         "Deck_B/KITCHEN")]
+        [TestCase("Deck_C", " storage room ",  "Deck_C/STORAGE_ROOM")]
+        [TestCase("Deck_C", "SAVEROOM_C",      "Deck_C/SAVEROOM_C")]
+        public void Compose_cleansTheTypedName_withoutLegacyRenames(string deck, string name, string expected)
+            => Assert.AreEqual(expected, RoomIds.Compose(deck, name));
+
+        [Test]
+        public void Compose_emptyName_isEmpty()
+            => Assert.AreEqual("", RoomIds.Compose("Deck_B", "  "));
+
+        [Test]
+        public void RoomPartOf_returnsTheNameAfterTheDeck()
+        {
+            Assert.AreEqual("KITCHEN", RoomIds.RoomPartOf("Deck_B/KITCHEN"));
+            Assert.AreEqual("KITCHEN", RoomIds.RoomPartOf("KITCHEN"));
+        }
+
         [Test]
         public void FindCollisions_reportsTwoLegacyIdsNormalizingToOne()
         {

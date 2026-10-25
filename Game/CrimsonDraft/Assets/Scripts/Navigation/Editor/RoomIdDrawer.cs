@@ -45,6 +45,73 @@ namespace CrimsonDraft.Navigation.Editor
         }
     }
 
+    /// <summary>A room's own id: deck popup + name box, composed as Deck/ROOM, with warnings for an id
+    /// another loaded room already uses or one the RoomCatalog doesn't list yet.</summary>
+    [CustomPropertyDrawer(typeof(RoomIdDefinitionAttribute))]
+    public sealed class RoomIdDefinitionDrawer : PropertyDrawer
+    {
+        private static float Line => EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+            => Line * 3f + (Problem(property) != null ? RoomPickers.WarningHeight : 0f);
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            if (property.propertyType != SerializedPropertyType.String)
+            {
+                EditorGUI.LabelField(position, label.text, "[RoomIdDefinition] needs a string field.");
+                return;
+            }
+
+            float h       = EditorGUIUtility.singleLineHeight;
+            var deckLine  = new Rect(position.x, position.y, position.width, h);
+            var nameLine  = new Rect(position.x, position.y + Line, position.width, h);
+            var idLine    = new Rect(position.x, position.y + Line * 2f, position.width, h);
+
+            label = EditorGUI.BeginProperty(position, label, property);
+            EditorGUI.LabelField(deckLine, label);
+
+            using (new EditorGUI.IndentLevelScope())
+            using (new EditorGUI.DisabledScope(property.hasMultipleDifferentValues))
+            {
+                var current = property.stringValue;
+                var decks   = RoomPickers.Decks(RoomIds.DeckOf(current));
+                var deck    = RoomIds.DeckOf(current) ?? decks[0];
+                var name    = RoomIds.RoomPartOf(current);
+
+                EditorGUI.BeginChangeCheck();
+                int deckIndex = EditorGUI.Popup(new Rect(deckLine.x, deckLine.y, deckLine.width, h), "Deck", decks.IndexOf(deck), decks.ToArray());
+                var newName   = EditorGUI.DelayedTextField(nameLine, "Name", name);
+                if (EditorGUI.EndChangeCheck())
+                    property.stringValue = RoomIds.Compose(decks[Math.Max(0, deckIndex)], newName);
+
+                EditorGUI.LabelField(idLine, "Id", property.hasMultipleDifferentValues ? "—" : property.stringValue, EditorStyles.boldLabel);
+            }
+            EditorGUI.EndProperty();
+
+            var problem = Problem(property);
+            if (problem != null)
+                EditorGUI.HelpBox(new Rect(position.x, idLine.yMax + 2f, position.width, RoomPickers.WarningHeight - 4f), problem, MessageType.Warning);
+        }
+
+        private static string? Problem(SerializedProperty property)
+        {
+            if (property.hasMultipleDifferentValues) return null;
+            var id = property.stringValue;
+            if (string.IsNullOrEmpty(id)) return "No room id: pick a deck and type a name.";
+            if (!RoomIds.IsWellFormed(id)) return $"'{id}' is not in Deck/ROOM form.";
+
+            // Same scene only: in Prefab Mode the deck scene's instance of this very room shares the id.
+            var self = property.serializedObject.targetObject as RoomController;
+            if (self != null)
+                foreach (var other in RoomLookup.LoadedRooms())
+                    if (other != self && other.gameObject.scene == self.gameObject.scene && other.RoomId == id)
+                        return $"'{id}' is also used by '{other.name}'.";
+
+            return RoomPickers.IsUnknown(id) ? $"'{id}' is not in the RoomCatalog yet: press Rebuild From Scenes on it." : null;
+        }
+    }
+
     /// <summary>Unlock target picker: the room, then one of that room's doors.</summary>
     [CustomPropertyDrawer(typeof(DoorRef))]
     public sealed class DoorRefDrawer : PropertyDrawer
@@ -107,6 +174,18 @@ namespace CrimsonDraft.Navigation.Editor
         };
 
         private static RoomCatalog? Catalog => catalog != null ? catalog : catalog = RoomCatalogEditor.Find();
+
+        /// <summary>Decks to pick from: those of the production scenes and the catalog, plus <paramref name="current"/>.</summary>
+        public static List<string> Decks(string? current)
+        {
+            var decks = RoomCatalogEditor.DeckScenes
+                .Select(path => RoomIds.DeckOfScene(System.IO.Path.GetFileNameWithoutExtension(path)))
+                .Concat(Catalog != null ? Catalog.Rooms.Select(r => RoomIds.DeckOf(r.RoomId) ?? "") : Enumerable.Empty<string>())
+                .Where(d => !string.IsNullOrEmpty(d))
+                .ToList();
+            if (!string.IsNullOrEmpty(current)) decks.Add(current!);
+            return decks.Distinct().ToList();
+        }
 
         public static bool IsUnknown(string id)
             => !string.IsNullOrEmpty(id) && Catalog != null && !Catalog.Contains(id);

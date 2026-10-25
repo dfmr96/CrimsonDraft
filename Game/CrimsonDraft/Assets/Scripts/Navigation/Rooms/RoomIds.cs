@@ -49,6 +49,21 @@ namespace CrimsonDraft.Navigation.Rooms
             return collisions;
         }
 
+        /// <summary>The id a room gets from a deck and a typed name (the RoomController inspector):
+        /// upper case, spaces to '_'; empty when no name was typed.</summary>
+        public static string Compose(string deck, string name)
+        {
+            var room = name.Trim().ToUpperInvariant().Replace(' ', '_');
+            return room.Length == 0 ? "" : deck + "/" + room;
+        }
+
+        /// <summary><c>Deck_B/KITCHEN</c> → <c>KITCHEN</c>; an id without a deck is returned whole.</summary>
+        public static string RoomPartOf(string id)
+        {
+            int cut = id.IndexOf('/');
+            return cut >= 0 ? id.Substring(cut + 1) : id;
+        }
+
         public static bool IsWellFormed(string id) => !string.IsNullOrEmpty(id) && WellFormed.IsMatch(id);
 
         public static string? DeckOf(string id)
