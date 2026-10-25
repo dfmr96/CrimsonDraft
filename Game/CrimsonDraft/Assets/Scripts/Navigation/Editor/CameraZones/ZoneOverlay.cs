@@ -186,7 +186,7 @@ namespace CrimsonDraft.Navigation.Editor
             var plane = new Plane(Vector3.up, handle.World);
             if (!plane.Raycast(ray, out float distance)) return false;
 
-            var local = handle.Trigger.transform.InverseTransformPoint(ray.GetPoint(distance));
+            var local = handle.Trigger.ToLocal(ray.GetPoint(distance));
             point = new Vector2(local.x, local.z);
             return true;
         }

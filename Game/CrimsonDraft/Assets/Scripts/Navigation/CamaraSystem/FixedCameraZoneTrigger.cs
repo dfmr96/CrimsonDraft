@@ -22,6 +22,9 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         [Tooltip("Distance in world units from the divider to each switching threshold. Total neutral width is twice this value.")]
         [Min(0f)] [SerializeField] private float sideMargin = 0.25f;
 
+        [Tooltip("Measure the polygon and heights in the parent's space (the room) instead of this object's. " +
+                 "For a zone living on its camera: moving or turning the camera then never moves where it activates.")]
+        [SerializeField] private bool polygonInParentSpace;
         [Tooltip("Zone outline as (x, z) points in local space. At least three.")]
         [SerializeField] private Vector2[] polygon =
         {
@@ -171,7 +174,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         public bool Contains(Vector3 worldPosition)
         {
             var shape = this.ActiveShape;
-            var local = this.transform.InverseTransformPoint(worldPosition);
+            var local = this.ToLocal(worldPosition);
             if (local.y < shape.MinHeight || local.y > shape.MaxHeight) return false;
             return CameraZonePolygon.Contains(shape.Polygon, new Vector2(local.x, local.z));
         }
@@ -227,8 +230,8 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         private float DistanceFromDivider(Vector3 worldPosition)
         {
             var shape = this.ActiveShape;
-            var start = this.transform.TransformPoint(new Vector3(shape.DividerStart.x, 0f, shape.DividerStart.y));
-            var end = this.transform.TransformPoint(new Vector3(shape.DividerEnd.x, 0f, shape.DividerEnd.y));
+            var start = this.FrameToWorld(new Vector3(shape.DividerStart.x, 0f, shape.DividerStart.y));
+            var end = this.FrameToWorld(new Vector3(shape.DividerEnd.x, 0f, shape.DividerEnd.y));
             var direction = new Vector2(end.x - start.x, end.z - start.z);
             if (direction.sqrMagnitude < 1e-8f) return 0f;
 
@@ -251,7 +254,28 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         }
 
         public Vector3 ToWorld(Vector2 point, float height) =>
-            this.transform.TransformPoint(new Vector3(point.x, height, point.y));
+            this.FrameToWorld(new Vector3(point.x, height, point.y));
+
+        /// <summary>A world position in the space the polygon is measured in (this object, or its parent).</summary>
+        public Vector3 ToLocal(Vector3 world)
+        {
+            var frame = this.Frame;
+            return frame != null ? frame.InverseTransformPoint(world) : world;
+        }
+
+        /// <summary>The space the polygon lives in: this object, or with polygonInParentSpace its parent (world
+        /// when it has none).</summary>
+        public Transform? Frame => this.polygonInParentSpace ? this.transform.parent : this.transform;
+
+        public Vector3 FrameUp => this.Frame != null ? this.Frame.up : Vector3.up;
+        public Vector3 FrameRight => this.Frame != null ? this.Frame.right : Vector3.right;
+        public Vector3 FrameForward => this.Frame != null ? this.Frame.forward : Vector3.forward;
+
+        private Vector3 FrameToWorld(Vector3 local)
+        {
+            var frame = this.Frame;
+            return frame != null ? frame.TransformPoint(local) : local;
+        }
 
         /// <summary>The side walls of the extruded polygon, one world-space quad per edge.</summary>
         public void GetWallQuads(List<Vector3[]> quads)
@@ -302,7 +326,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             var direction = new Vector2(end.x - start.x, end.z - start.z);
             var normal = direction.sqrMagnitude < 1e-8f ? Vector2.zero : new Vector2(-direction.y, direction.x).normalized;
             var push = new Vector3(normal.x, 0f, normal.y) * offset;
-            var rise = this.transform.up * (shape.MaxHeight - shape.MinHeight);
+            var rise = this.FrameUp * (shape.MaxHeight - shape.MinHeight);
             return new[] { start + push, end + push, end + push + rise, start + push + rise };
         }
 

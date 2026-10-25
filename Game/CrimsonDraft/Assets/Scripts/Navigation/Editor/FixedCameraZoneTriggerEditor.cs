@@ -42,7 +42,6 @@ namespace CrimsonDraft.Navigation.Editor
 
             var polygon = this.serializedObject.FindProperty("polygon");
             float height = this.serializedObject.FindProperty("minHeight").floatValue;
-            var transform = trigger.transform;
 
             for (int i = 0; i < polygon.arraySize; i++)
             {
@@ -51,10 +50,10 @@ namespace CrimsonDraft.Navigation.Editor
 
                 Handles.color = Color.white;
                 EditorGUI.BeginChangeCheck();
-                var moved = this.Slide(transform, world);
+                var moved = Slide(trigger, world);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    var local = transform.InverseTransformPoint(moved);
+                    var local = trigger.ToLocal(moved);
                     element.vector2Value = new Vector2(local.x, local.z);
                 }
             }
@@ -63,11 +62,11 @@ namespace CrimsonDraft.Navigation.Editor
             Handles.color = new Color(1f, 0.55f, 0.1f);
             var centerWorld = trigger.ToWorld(trigger.Centroid, height);
             EditorGUI.BeginChangeCheck();
-            var centerMoved = Handles.Slider2D(centerWorld, transform.up, transform.right, transform.forward,
+            var centerMoved = Handles.Slider2D(centerWorld, trigger.FrameUp, trigger.FrameRight, trigger.FrameForward,
                 HandleUtility.GetHandleSize(centerWorld) * 0.12f, Handles.RectangleHandleCap, 0f);
             if (EditorGUI.EndChangeCheck())
             {
-                var delta = transform.InverseTransformPoint(centerMoved) - transform.InverseTransformPoint(centerWorld);
+                var delta = trigger.ToLocal(centerMoved) - trigger.ToLocal(centerWorld);
                 Translate(this.serializedObject, new Vector2(delta.x, delta.z));
             }
 
@@ -130,16 +129,16 @@ namespace CrimsonDraft.Navigation.Editor
             var world = trigger.ToWorld(property.vector2Value, height);
 
             EditorGUI.BeginChangeCheck();
-            var moved = this.Slide(trigger.transform, world);
+            var moved = Slide(trigger, world);
             if (!EditorGUI.EndChangeCheck()) return;
 
-            var local = trigger.transform.InverseTransformPoint(moved);
+            var local = trigger.ToLocal(moved);
             property.vector2Value = new Vector2(local.x, local.z);
         }
 
-        // Moves a point freely inside the zone's floor plane.
-        private Vector3 Slide(Transform space, Vector3 world) =>
-            Handles.Slider2D(world, space.up, space.right, space.forward,
+        // Moves a point freely inside the zone's floor plane (its own space, or its parent's).
+        private static Vector3 Slide(FixedCameraZoneTrigger trigger, Vector3 world) =>
+            Handles.Slider2D(world, trigger.FrameUp, trigger.FrameRight, trigger.FrameForward,
                 HandleUtility.GetHandleSize(world) * 0.08f, Handles.CubeHandleCap, 0f);
     }
 }
