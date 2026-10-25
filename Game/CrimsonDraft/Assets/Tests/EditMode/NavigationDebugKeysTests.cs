@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Navigation;
 using static CrimsonDraft.Tests.InventoryTestData;
 
@@ -40,5 +41,19 @@ namespace CrimsonDraft.Tests
         [Test]
         public void PickNearest_noCandidates_isNull()
             => Assert.IsNull(NavigationDebugKeys.PickNearest(Vector3.zero, new Vector3[0]));
+
+        [Test]
+        public void RevealMaps_marksEveryDeckKnown_asIfItsMapWasPickedUp()
+        {
+            var known = new KnownMapsRegistry();
+            known.MarkKnown("Deck_B");
+
+            int revealed = NavigationDebugKeys.RevealMaps(
+                new[] { MapTestData.Map("Deck_B"), null, MapTestData.Map("Deck_C") }, known);
+
+            Assert.AreEqual(1, revealed, "Deck_B was already known; the null entry is skipped");
+            Assert.IsTrue(known.IsKnown("Deck_B"));
+            Assert.IsTrue(known.IsKnown("Deck_C"));
+        }
     }
 }
