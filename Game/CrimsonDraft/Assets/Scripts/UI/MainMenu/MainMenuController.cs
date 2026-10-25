@@ -16,6 +16,8 @@ namespace CrimsonDraft.UI.MainMenu
     public sealed class MainMenuController : MonoBehaviour
     {
         [SerializeField] private string newGameSceneName = "Deck_B_Development";
+        [Tooltip("Cuanto dura el fundido a negro antes de empezar a cargar (con el sonido de inicio). El sonido usa sus primeros 3 s.")]
+        [SerializeField] private float launchFadeSeconds = 3f;
 
         [SerializeField] private Button loadGameButton = null!;
         [SerializeField] private Button exitButton     = null!;
@@ -153,7 +155,18 @@ namespace CrimsonDraft.UI.MainMenu
             StartNewGameAsync().Forget();
         }
 
-        private async UniTaskVoid StartNewGameAsync() => await this.screenFader.LoadSceneAsync(this.newGameSceneName);
+        private async UniTaskVoid StartNewGameAsync()
+        {
+            BeginLaunchFade();
+            await this.screenFader.LoadSceneAsync(this.newGameSceneName, this.launchFadeSeconds);
+        }
+
+        // The way into the game: a long fade to black with the start sound under it.
+        private void BeginLaunchFade()
+        {
+            this.panelNavigator.BeginLaunch();
+            this.sfx.PlayGameStart(gameObject);
+        }
 
         private void SelectScheme(ControlScheme scheme)
         {
@@ -197,7 +210,8 @@ namespace CrimsonDraft.UI.MainMenu
 
             // Same loading screen as New Game: fade, quote screen, then the saved scene.
             this.isLoadingSlot = true;
-            this.screenFader.LoadSceneAsync(sceneName).Forget();
+            BeginLaunchFade();
+            this.screenFader.LoadSceneAsync(sceneName, this.launchFadeSeconds).Forget();
         }
 
         private void OnLoadNavigatorClosed()
