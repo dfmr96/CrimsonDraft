@@ -12,11 +12,13 @@ namespace CrimsonDraft.Navigation.Rooms
         public void SetPendingEntry(string entryPointId)
             => this.PendingEntryPointId = entryPointId;
 
+        // A script reload in the editor round-trips these private strings through Unity's serializer,
+        // which turns null into "": empty means nothing pending.
         public string? Consume()
         {
             var id                   = this.PendingEntryPointId;
             this.PendingEntryPointId = null;
-            return id;
+            return string.IsNullOrEmpty(id) ? null : id;
         }
 
         /// <summary>Room the next deck scene starts in (debug teleport); wins over an entry point.</summary>
@@ -28,7 +30,7 @@ namespace CrimsonDraft.Navigation.Rooms
         {
             var id             = this.PendingRoomId;
             this.PendingRoomId = null;
-            return id;
+            return string.IsNullOrEmpty(id) ? null : id;
         }
     }
 }
