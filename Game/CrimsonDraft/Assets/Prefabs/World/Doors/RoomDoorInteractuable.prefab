@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2603294468256501389}
   - component: {fileID: 532451808631969920}
   - component: {fileID: 8328022970152657757}
+  - component: {fileID: 1970765248428736753}
   m_Layer: 8
   m_Name: RoomDoorInteractuable
   m_TagString: Untagged
@@ -32,6 +33,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1087506348062762806}
+  - {fileID: 6796089897504787698}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!65 &532451808631969920
@@ -75,6 +77,60 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: 69c29bd588dc8cf468840ecbedd59899, type: 2}
+  useMechanismLock: 0
+  mechanismLocked: 0
+  mechanismLockedDialogue:
+    project: {fileID: 0}
+    nodeName: 
+  unlocksOnCross: {fileID: 0}
+  unlocksOnCrossDialogue:
+    project: {fileID: 0}
+    nodeName: 
+--- !u!114 &1970765248428736753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136673735758382635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7d348a25760e054484066148ecff98c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.DoorArrival
+  arrivalPoint: {fileID: 6796089897504787698}
+  arrivalCamera: {fileID: 0}
+--- !u!1 &1340853618489338767
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6796089897504787698}
+  m_Layer: 0
+  m_Name: ArrivalPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6796089897504787698
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340853618489338767}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.70710707, z: 0, w: 0.70710653}
+  m_LocalPosition: {x: -0.9600004, y: 1, z: 0.39999884}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2603294468256501389}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2015094808959882283
 GameObject:
   m_ObjectHideFlags: 0
