@@ -38,6 +38,11 @@ namespace CrimsonDraft.UI
             if (this.tooltip != null) this.tooltip.ShowAboveSelector(this.selectorRect);
         }
 
+        public void ShowTooltipAtSelector(string label)
+        {
+            if (this.tooltip != null) this.tooltip.ShowAtItem(label, this.selectorRect);
+        }
+
         public void ShowAtCell(InventoryGrid grid, Vector2Int cell, InventoryItemView? item, Vector2Int? heldFootprint, bool holdStyle, bool showTooltip)
         {
             AttachTo(grid);

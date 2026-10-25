@@ -11,7 +11,7 @@ namespace CrimsonDraft.Navigation.Editor
     /// door" action used by the door inspector and the Camera Zone Viewer.</summary>
     public static class DoorArrivalSettings
     {
-        // Same key the old SpawnPointAligner used, so a tuned value carries over.
+        // Key kept from the removed spawn point aligner, so a tuned value carries over.
         private const string DistancePref = "CrimsonDraft.SpawnDoorDistance";
 
         public static float Distance

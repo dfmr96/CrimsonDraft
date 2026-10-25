@@ -43,6 +43,9 @@ namespace CrimsonDraft.Infrastructure.DebugMenu
 
         public void ActivateCurrent() => Current?.Activate();
 
+        /// <summary>Left/Right on the highlighted entry: cycles a choice, ignored by the others.</summary>
+        public void CycleCurrent(int delta) => Current?.Cycle(delta);
+
         private void Clamp()
         {
             int count = this.menu.Entries.Count;

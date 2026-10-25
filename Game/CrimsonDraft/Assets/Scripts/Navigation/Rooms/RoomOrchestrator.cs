@@ -81,7 +81,19 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private RoomController? ResolveStartingRoom()
         {
+            var roomId  = this.sceneEntryContext.ConsumeRoom();
             var entryId = this.sceneEntryContext.Consume();
+
+            if (roomId != null)
+            {
+                var room = RoomLookup.FindLoaded(roomId);
+                if (room != null)
+                {
+                    PlaceAtFirstArrival(room);
+                    return room;
+                }
+                Debug.LogError($"[RoomOrchestrator] Pending room '{roomId}' is not in this scene — starting in the default room.");
+            }
 
             if (entryId != null)
             {
@@ -90,28 +102,18 @@ namespace CrimsonDraft.Navigation.Rooms
                 var arrival = door != null ? door.GetComponent<DoorArrival>() : null;
                 var room    = door != null ? door.GetComponentInParent<RoomController>(true) : null;
 
-                if (arrival != null && arrival.ArrivalPoint != null && room != null)
+                if (door == null)
+                    Debug.LogError($"[RoomOrchestrator] No SceneDoorInteractable with entry '{entryId}' — starting in the default room.");
+                else if (arrival == null || arrival.ArrivalPoint == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') has no DoorArrival — starting in the default room.", door);
+                else if (room == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') is not inside a RoomController — starting in the default room.", door);
+                else
                 {
                     this.player.transform.SetPositionAndRotation(arrival.ArrivalPoint.position, arrival.ArrivalPoint.rotation);
                     arrival.ActivateCamera(this.zoneService);
                     return room;
                 }
-
-                // TEMPORARY until the door arrival migration has run: scenes still carry SceneSpawnPoint.
-                foreach (var sp in Object.FindObjectsByType<SceneSpawnPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                {
-                    if (sp.EntryPointId != entryId) continue;
-                    this.player.transform.SetPositionAndRotation(sp.transform.position, sp.transform.rotation);
-                    sp.ActivateCamera(this.zoneService);
-                    return sp.StartingRoom;
-                }
-
-                if (door == null)
-                    Debug.LogError($"[RoomOrchestrator] No SceneDoorInteractable with entry '{entryId}' — starting in the default room.");
-                else if (room == null)
-                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') is not inside a RoomController — starting in the default room.", door);
-                else
-                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') has no DoorArrival — starting in the default room.", door);
             }
 
             return this.context.StartingRoom;
@@ -151,28 +153,58 @@ namespace CrimsonDraft.Navigation.Rooms
             this.isTransitioning = false;
         }
 
-        public RoomController? CurrentRoom => this.currentRoom;
+        public RoomController? CurrentRoom     => this.currentRoom;
+        public bool            IsTransitioning => this.isTransitioning;
+
+        public void TeleportToRoom(RoomController room)
+        {
+            if (this.isTransitioning)
+            {
+                Debug.LogWarning($"[RoomOrchestrator] Teleport to '{room.RoomId}' ignored: a room transition is running.");
+                return;
+            }
+
+            foreach (var other in Object.FindObjectsByType<RoomController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (other != room) other.Deactivate();
+            room.Activate();
+
+            PlaceAtFirstArrival(room);
+            EnsureLiveCamera(room, this.player.transform.position);
+            this.currentRoom = room;
+            this.endedPublisher.Publish(new RoomTransitionedEvent(room));
+        }
+
+        // Debug teleport / pending room: the first door arrival of the room, else its origin.
+        private void PlaceAtFirstArrival(RoomController room)
+        {
+            var arrival = DoorArrivalLookup.FindFirstArrival(room);
+            if (arrival == null)
+            {
+                Debug.LogError($"[RoomOrchestrator] Room '{room.RoomId}' has no door arrival — placing the player at the room origin.", room);
+                this.player.transform.SetPositionAndRotation(room.transform.position, room.transform.rotation);
+                return;
+            }
+
+            this.player.transform.SetPositionAndRotation(arrival.ArrivalPoint!.position, arrival.ArrivalPoint.rotation);
+            arrival.ActivateCamera(this.zoneService);
+        }
 
         public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
         {
-            var rooms = Object.FindObjectsOfType<RoomController>(true);
-            RoomController? target = null;
+            var rooms  = Object.FindObjectsOfType<RoomController>(true);
+            var target = RoomLookup.Find(rooms, roomId);
 
-            foreach (var room in rooms)
-            {
-                if (room.RoomId == roomId)
-                {
-                    target = room;
-                    continue;
-                }
-                room.Deactivate();
-            }
-
+            // e.g. a save from before the room id migration: keep a playable room instead of
+            // switching every room off.
             if (target == null)
             {
-                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found.");
-                return;
+                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found — using the starting room.");
+                target = this.context.StartingRoom;
+                if (target == null) return;
             }
+
+            foreach (var room in rooms)
+                if (room != target) room.Deactivate();
 
             target.Activate();
             if (!TryActivateSavedCamera(target, cameraPath))
@@ -249,7 +281,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
                 if (trigger.Contains(position))
                 {
-                    var camera = trigger.ResolveCameraAt(position, null);
+                    var camera = trigger.ZoneCamera;
                     if (camera != null) return camera;
                 }
             }
@@ -264,14 +296,6 @@ namespace CrimsonDraft.Navigation.Rooms
             {
                 arrival.ActivateCamera(this.zoneService);
                 return arrival.ArrivalPoint;
-            }
-
-            // TEMPORARY until the door arrival migration has run: rooms still carry SpawnPoint.
-            var legacy = FindLegacySpawnPoint(destination, origin);
-            if (legacy != null)
-            {
-                legacy.ActivateCamera(this.zoneService);
-                return legacy.transform;
             }
 
             Debug.LogError($"[RoomOrchestrator] {problem} — placing the player at the room root.", destination);
@@ -297,14 +321,6 @@ namespace CrimsonDraft.Navigation.Rooms
                 return null;
             }
             return arrival;
-        }
-
-        // TEMPORARY until the door arrival migration has run; removed together with SpawnPoint.
-        internal static SpawnPoint? FindLegacySpawnPoint(RoomController destination, RoomController origin)
-        {
-            foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
-                if (sp.FromRoom == origin) return sp;
-            return null;
         }
     }
 }

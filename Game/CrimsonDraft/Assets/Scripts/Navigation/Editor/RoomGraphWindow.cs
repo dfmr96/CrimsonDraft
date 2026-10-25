@@ -84,7 +84,7 @@ namespace CrimsonDraft.Navigation.Editor
                 var fromRoom = door.GetComponentInParent<RoomController>(includeInactive: true);
                 if (fromRoom == null) continue;
 
-                var dest        = door.Destination;
+                var dest        = RoomLookup.Find(rooms, door.DestinationRoomId);
                 // Arriving in dest places the player at its door back to fromRoom.
                 var hasDoorBack = dest != null
                     && DoorArrivalLookup.FindArrivalDoor(dest, fromRoom, door.transform.position) != null;

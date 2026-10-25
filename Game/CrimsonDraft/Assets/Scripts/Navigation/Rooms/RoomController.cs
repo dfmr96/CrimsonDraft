@@ -16,7 +16,7 @@ namespace CrimsonDraft.Navigation.Rooms
             public Transform     spawnPoint = null!;
         }
 
-        [SerializeField] private string roomId = "";
+        [SerializeField, RoomIdDefinition] private string roomId = "";
         [SerializeField] private EnemySpawnEntry[] enemySpawns = Array.Empty<EnemySpawnEntry>();
 
         public string RoomId => this.roomId;

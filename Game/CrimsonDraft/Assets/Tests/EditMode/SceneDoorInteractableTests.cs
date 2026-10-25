@@ -213,6 +213,8 @@ namespace CrimsonDraft.Tests
                 this.TransitionCalled = true;
                 return UniTask.CompletedTask;
             }
+
+            public UniTask TeleportToFloorAsync(string from, string to, string roomId) => UniTask.CompletedTask;
         }
 
         private sealed class FakeDialogue : IDialogueService

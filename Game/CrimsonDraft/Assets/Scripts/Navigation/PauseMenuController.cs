@@ -28,6 +28,7 @@ namespace CrimsonDraft.Navigation
 
         private PauseState state = PauseState.Closed;
         private bool quitting;
+        private bool owner; // false for the duplicate instance (see PauseMenuView.TryClaimController)
 
         // True while the Video tab is up: gamma is live (suppression lifted) and the dimmed
         // backdrop is hidden so the brightness is judged on the actual scene.
@@ -54,6 +55,9 @@ namespace CrimsonDraft.Navigation
 
         void IInitializable.Initialize()
         {
+            if (!this.view.TryClaimController()) return;
+            this.owner = true;
+
             this.inputService.Pause.performed    += OnPauseToggle;
             this.inputService.UIBack.performed   += OnBack;
             this.inputService.UICancel.performed += OnBack;
@@ -62,10 +66,10 @@ namespace CrimsonDraft.Navigation
             this.view.OptionsButton.onClick.AddListener(() => { this.view.PlayConfirm(); OpenOptions(); });
             this.view.QuitButton.onClick.AddListener(()    => { this.view.PlayConfirm(); QuitToMenuAsync().Forget(); });
 
-            // Settings content is driven by OptionsTabController (Video / Control / Sound), the
-            // same way as the main menu's Options screen.
+            // Settings is driven by OptionsMenuNavigator (three buttons, then one tab's content),
+            // the same way as the main menu's Options screen.
             this.view.ControlsPanel.Setup(this.controlScheme, this.view.PlayCursor, this.view.PlayConfirm);
-            this.view.OptionsTabs.ActiveTabChanged += OnTabChanged;
+            this.view.OptionsNavigator.ContentChanged += OnContentChanged;
 
             InputSystem.onActionChange += OnActionChange;
 
@@ -107,20 +111,25 @@ namespace CrimsonDraft.Navigation
         private void OpenOptions()
         {
             this.state = PauseState.Options;
-            this.view.ShowOptions();
 
-            // The tab controller owns navigation from here -- nothing is selected in the EventSystem.
+            // The navigator owns the selection from here (Video / Control / Sound buttons).
             EventSystem.current.SetSelectedGameObject(null);
+            this.view.ShowSettings();
 
             // Always open on the mapping of the device in hand; the Keyboard/Gamepad row only
             // overrides it until Settings is reopened or the player switches device.
             this.view.ControlsPanel.SetDevice(this.usingGamepad);
-            this.view.OptionsTabs.Open(); // raises ActiveTabChanged(0) -> Video mode
+
+            // The Confirm that pressed Settings is still being dispatched this frame.
+            DeferredInputAction.Run(() =>
+            {
+                if (this.state == PauseState.Options) this.view.OptionsNavigator.Open();
+            });
         }
 
         private void CloseOptions()
         {
-            this.view.OptionsTabs.Close();
+            this.view.OptionsNavigator.Close();
             SetVideoMode(false);
 
             this.state = PauseState.Main;
@@ -128,7 +137,8 @@ namespace CrimsonDraft.Navigation
             EventSystem.current.SetSelectedGameObject(this.view.OptionsButton.gameObject);
         }
 
-        private void OnTabChanged(int tab)
+        // Video content up = live gamma on the real scene; the buttons / other tabs = back to normal.
+        private void OnContentChanged(int tab)
         {
             if (this.state != PauseState.Options) return;
             SetVideoMode(tab == 0);
@@ -192,12 +202,13 @@ namespace CrimsonDraft.Navigation
 
         private void OnBack(InputAction.CallbackContext _)
         {
-            if (this.state != PauseState.Closed)
+            if (this.state is PauseState.Main or PauseState.Options)
                 this.view.PlayCancel();
 
             switch (this.state)
             {
-                case PauseState.Options: CloseOptions(); break;
+                // Inside a tab's content Cancel only steps back to the three buttons.
+                case PauseState.Options: if (!this.view.OptionsNavigator.TryGoBack()) CloseOptions(); break;
                 case PauseState.Main:    Resume(); break;
                 // Closed: no-op.
             }
@@ -205,10 +216,12 @@ namespace CrimsonDraft.Navigation
 
         void IDisposable.Dispose()
         {
+            if (!this.owner) return;
+
             this.inputService.Pause.performed    -= OnPauseToggle;
             this.inputService.UIBack.performed   -= OnBack;
             this.inputService.UICancel.performed -= OnBack;
-            this.view.OptionsTabs.ActiveTabChanged -= OnTabChanged;
+            this.view.OptionsNavigator.ContentChanged -= OnContentChanged;
             InputSystem.onActionChange -= OnActionChange;
         }
     }

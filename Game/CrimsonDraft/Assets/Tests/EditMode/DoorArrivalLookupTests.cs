@@ -92,7 +92,7 @@ namespace CrimsonDraft.Tests
         public void ResolveArrival_returnsArrivalOfDoorBack()
         {
             var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
-            var arrival = back.gameObject.AddComponent<DoorArrival>();
+            var arrival = back.GetComponent<DoorArrival>();
             arrival.PlaceAtDefault(1f, Vector3.right);
 
             Assert.AreSame(arrival, RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero, out var problem));
@@ -108,39 +108,52 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ResolveArrival_doorNotMigrated_reportsMissingDoorArrival()
+        public void ResolveArrival_doorWithoutArrivalPoint_reportsMissingDoorArrival()
         {
-            MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            var back = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            var so = new SerializedObject(back.GetComponent<DoorArrival>());
+            so.FindProperty("arrivalPoint").objectReferenceValue = null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
             Assert.IsNull(RoomOrchestrator.ResolveArrival(this.destination, this.origin, Vector3.zero, out var problem));
             StringAssert.Contains("has no DoorArrival", problem);
         }
 
         [Test]
-        public void FindLegacySpawnPoint_returnsSpawnFromOrigin()
+        public void AddingADoor_addsItsDoorArrival()
         {
-            var spawnGo = new GameObject("Spawn");
-            spawnGo.transform.SetParent(this.destination.transform, false);
-            var spawn = spawnGo.AddComponent<SpawnPoint>();
-            var so = new SerializedObject(spawn);
-            so.FindProperty("fromRoom").objectReferenceValue = this.origin;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            Assert.AreSame(spawn, RoomOrchestrator.FindLegacySpawnPoint(this.destination, this.origin));
-            Assert.IsNull(RoomOrchestrator.FindLegacySpawnPoint(this.destination, this.other));
+            var door = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
+            Assert.IsNotNull(door.GetComponent<DoorArrival>(), "every door is where somebody arrives");
         }
 
         [Test]
-        public void AddingADoor_doesNotAddDoorArrivalByItself()
+        public void FindFirstArrival_skipsDoorsWithoutArrivalPoint_inHierarchyOrder()
         {
-            var door = MakeRoomDoor(this.destination, this.origin, Vector3.zero);
-            Assert.IsNull(door.GetComponent<DoorArrival>(), "nothing may be written to unmigrated prefabs/scenes");
+            var first  = MakeRoomDoor(this.destination, this.origin, Vector3.zero).GetComponent<DoorArrival>();
+            var second = MakeRoomDoor(this.destination, this.other, Vector3.zero).GetComponent<DoorArrival>();
+            var third  = MakeRoomDoor(this.destination, this.origin, Vector3.zero).GetComponent<DoorArrival>();
+            var so = new SerializedObject(first);
+            so.FindProperty("arrivalPoint").objectReferenceValue = null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            second.PlaceAtDefault(1f, Vector3.right);
+            third.PlaceAtDefault(1f, Vector3.right);
+
+            Assert.AreSame(second, DoorArrivalLookup.FindFirstArrival(this.destination));
         }
+
+        [Test]
+        public void FindFirstArrival_roomWithoutDoors_isNull()
+            => Assert.IsNull(DoorArrivalLookup.FindFirstArrival(this.other));
 
         private RoomController MakeRoom(string name)
         {
             var go = new GameObject(name);
             this.created.Add(go);
-            return go.AddComponent<RoomController>();
+            var room = go.AddComponent<RoomController>();
+            var so   = new SerializedObject(room);
+            so.FindProperty("roomId").stringValue = "Deck_T/" + name.ToUpperInvariant();
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return room;
         }
 
         private RoomDoorInteractable MakeRoomDoor(RoomController room, RoomController target, Vector3 position)
@@ -150,7 +163,7 @@ namespace CrimsonDraft.Tests
             go.transform.position = position;
             var door = go.AddComponent<RoomDoorInteractable>();
             var so = new SerializedObject(door);
-            so.FindProperty("destination").objectReferenceValue = target;
+            so.FindProperty("destinationRoomId").stringValue = target.RoomId;
             so.ApplyModifiedPropertiesWithoutUndo();
             return door;
         }

@@ -16,6 +16,8 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private TMP_Text       pressAnyButtonText = null!;
         [SerializeField] private CanvasGroup    introGroup         = null!; // Fades text + logo together.
         [SerializeField] private MainMenuSfxData? sfx;
+        [Tooltip("Fundido inicial desde negro: mientras dura, apretar un boton no hace nada.")]
+        [SerializeField] private SceneStartFade? startFade;
 
         [Header("Blink")]
         [Tooltip("Duracion de cada tramo del parpadeo (apagado->prendido o viceversa).")]
@@ -70,6 +72,15 @@ namespace CrimsonDraft.UI.MainMenu
         private void OnAnyButtonPressed()
         {
             if (this.confirmed) return;
+
+            // Still fading in from black: ignore the press and keep listening.
+            if (this.startFade != null && !this.startFade.Finished)
+            {
+                this.anyButtonSubscription?.Dispose();
+                this.anyButtonSubscription = InputSystem.onAnyButtonPress.CallOnce(_ => OnAnyButtonPressed());
+                return;
+            }
+
             this.confirmed = true;
 
             this.sfx?.PlayStart(gameObject);

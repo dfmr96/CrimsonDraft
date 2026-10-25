@@ -58,6 +58,8 @@ namespace CrimsonDraft.Tests
             public Vector3? PlayerPositionAtActivation { get; private set; }
             public RoomController? CurrentRoom => null;
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Vector3 departurePosition) => UniTask.CompletedTask;
+            public void TeleportToRoom(RoomController room) { }
+            public bool IsTransitioning => false;
             public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
             {
                 this.ActivatedRoomId            = roomId;

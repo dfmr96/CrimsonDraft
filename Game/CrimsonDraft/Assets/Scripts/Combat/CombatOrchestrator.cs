@@ -301,6 +301,18 @@ namespace CrimsonDraft.Combat
                 this.actionQueue.Enqueue(PendingAction.EnemyRecover(readySlots[i]));
         }
 
+        // Ends the encounter as a victory right now, the same way the last enemy dying does
+        // (Mercy survivors patched up, CombatEndedEvent published once). Also the debug menu's
+        // instant win, which skips the death animations SyncDeadEnemies waits for.
+        public void ForceVictory()
+        {
+            if (this.combatEnded) return;
+
+            this.combatEnded = true;
+            ReviveMercyOperatorsOnCombatEnd();
+            this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
+        }
+
         internal float AnimationLockRemaining => UnityEngine.Mathf.Max(0f, this.animationLockUntil - Time.time);
         internal float AnimationLockDuration  => this.animationLockDuration;
 
@@ -582,12 +594,8 @@ namespace CrimsonDraft.Combat
                 this.knownAliveEnemySlots.Remove(this.syncDeadBuf[i]);
             }
 
-            if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0 && !this.combatEnded)
-            {
-                this.combatEnded = true;
-                ReviveMercyOperatorsOnCombatEnd();
-                this.combatEndPublisher.Publish(new CombatEndedEvent { Victory = true });
-            }
+            if (this.syncDeadBuf.Count > 0 && this.knownAliveEnemySlots.Count == 0)
+                ForceVictory();
         }
 
         // Mercy (0 HP, still alive) is only a mid-combat threat window -- whoever survives

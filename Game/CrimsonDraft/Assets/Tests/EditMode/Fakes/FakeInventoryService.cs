@@ -87,6 +87,7 @@ namespace CrimsonDraft.Tests
         public InventoryItem? Held         => null;
         public int            HeldRotation => 0;
         public bool           HeldIsSplit  => false;
+        public bool           HeldIsSpawned => false;
         public event Action? HeldChanged { add { } remove { } }
         public event Action? ContentsChanged;
         public void RaiseContentsChanged() => ContentsChanged?.Invoke();
@@ -97,6 +98,7 @@ namespace CrimsonDraft.Tests
         public void       RotateHeld()                                      { }
         public DropResult TryDrop(ContainerId target, Vector2Int origin)    => DropResult.Rejected;
         public void       CancelHeld()                                      { }
+        public bool       TrySpawnHeld(InventoryItem item)                  => false;
 
         public bool TryCombine(InventoryItem a, InventoryItem b, out InventoryItem? result)
         {

@@ -18,6 +18,8 @@ namespace CrimsonDraft.UI.MainMenu
         [Tooltip("Barra de relleno (Bg_bar/Bar) -- se escala con el valor y se tiñe de blanco al seleccionarla.")]
         [SerializeField] private RectTransform fillBar = null!;
         [SerializeField] private Color selectedColor = Color.white;
+        [Tooltip("Rect bajo la barra donde se posa la tira de seleccion del menu.")]
+        [SerializeField] private RectTransform? selectorAnchor;
 
         [Tooltip("Imagen de calibracion (Gamma_Correction). Simula el gamma: su color pasa de negro (posicion 0) a blanco (ultima posicion) " +
                  "en pasos de gris iguales, uno por posicion de la barra. No depende del volumen global, que no alcanza a esta imagen " +
@@ -94,6 +96,8 @@ namespace CrimsonDraft.UI.MainMenu
         public bool RepeatsOnHold(int index) => true;
 
         public void Confirm(int index) { }
+
+        public RectTransform? GetSelectorAnchor(int index) => this.selectorAnchor;
 
         public void ShowOutline(int index)
         {

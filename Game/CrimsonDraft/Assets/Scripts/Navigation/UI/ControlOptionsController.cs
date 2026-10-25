@@ -27,6 +27,8 @@ namespace CrimsonDraft.Navigation.UI
         private sealed class Option
         {
             [SerializeField] public RectTransform root = null!;
+            [Tooltip("Rect bajo la letra donde se posa la tira de seleccion del menu (solo con Use Menu Selector).")]
+            [SerializeField] public RectTransform? selectorAnchor;
 
             [NonSerialized] public Vector3 baseScale;
             [NonSerialized] public TextMeshProUGUI? label;
@@ -63,6 +65,11 @@ namespace CrimsonDraft.Navigation.UI
         [SerializeField] private TextMeshProUGUI? description;
         [SerializeField, TextArea] private string modernDescription  = "Directional movement with natural, camera relative turning.";
         [SerializeField, TextArea] private string classicDescription = "Tank controls, the character rotates in place to turn.";
+
+        [Header("Menu selector (main menu)")]
+        [Tooltip("La tira de seleccion del menu marca el foco: se apagan la barra propia de cada fila y la del boton. El estado aplicado sigue en el color de las letras.")]
+        [SerializeField] private bool useMenuSelector;
+        [SerializeField] private RectTransform? startSelectorAnchor;
 
         [Header("Feel")]
         [Tooltip("Color de la barra y de la letra de la opción no aplicada (el verde de la UI).")]
@@ -121,7 +128,15 @@ namespace CrimsonDraft.Navigation.UI
             {
                 this.startBaseScale = this.startButton.transform.localScale;
                 this.startImage     = this.startButton.GetComponent<Image>();
-                if (this.startImage != null) this.startBaseColor = this.startImage.color;
+                if (this.startImage != null)
+                {
+                    this.startBaseColor = this.startImage.color;
+                    if (this.useMenuSelector)
+                    {
+                        this.startBaseColor.a = 0f;
+                        this.startImage.color = this.startBaseColor;
+                    }
+                }
             }
             foreach (var row in this.rows)
             {
@@ -168,6 +183,14 @@ namespace CrimsonDraft.Navigation.UI
             RefreshHover();
         }
 
+        public RectTransform? GetSelectorAnchor(int index)
+        {
+            EnsureInitialized();
+            if (index == StartChannel) return this.startSelectorAnchor;
+            var row = this.rows[index];
+            return row.Get(row.cursor).selectorAnchor;
+        }
+
         public void HideOutlines()
         {
             EnsureInitialized();
@@ -186,6 +209,7 @@ namespace CrimsonDraft.Navigation.UI
             this.onCursorSfx();
             MoveBar(row, animate: true);
             RefreshDescription();
+            ApplyMapping();
             RefreshHover();
         }
 
@@ -229,9 +253,11 @@ namespace CrimsonDraft.Navigation.UI
                 this.description.text = this.scheme.cursor == 0 ? this.classicDescription : this.modernDescription;
         }
 
+        // The mapping shown follows the cursor, like the description does; Confirm only sets which
+        // device is actually in use (the label colors).
         private void ApplyMapping()
         {
-            bool isKeyboard = this.device.applied == 0;
+            bool isKeyboard = this.device.cursor == 0;
             if (this.keyboardMapping != null) this.keyboardMapping.SetActive(isKeyboard);
             if (this.gamepadMapping != null)  this.gamepadMapping.SetActive(!isKeyboard);
         }
@@ -265,7 +291,9 @@ namespace CrimsonDraft.Navigation.UI
         // The bar stays green wherever it is; the toggle state lives in the labels.
         private void TintBar(Row row)
         {
-            row.barImage.color = this.hoverColor;
+            var barColor = this.hoverColor;
+            if (this.useMenuSelector) barColor.a = 0f;
+            row.barImage.color = barColor;
             TintLabel(row.left,  row.applied == 0);
             TintLabel(row.right, row.applied == 1);
         }
@@ -290,7 +318,7 @@ namespace CrimsonDraft.Navigation.UI
                 ScaleTo(this.startButton.transform, this.startBaseScale, on);
 
                 // Same cue as the title buttons: the button's bar goes white while hovered.
-                if (this.startImage != null)
+                if (this.startImage != null && !this.useMenuSelector)
                     this.startImage.DOColor(on ? this.confirmedColor : this.startBaseColor, this.scaleDuration)
                         .SetTarget(this.startButton.transform)
                         .SetUpdate(true);

@@ -41,6 +41,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private RoomController        startingRoom         = null!;
         [SerializeField] private MapDataSet            mapDataSet           = null!;
         [SerializeField] private ItemDatabase          itemDatabase         = null!;
+        [SerializeField] private RoomCatalog?          roomCatalog;
         [SerializeField] private SaveSlotListView      saveSlotListView     = null!;
         [SerializeField] private OperatorCorpseSettings corpseSettings      = null!;
 
@@ -145,12 +146,12 @@ namespace CrimsonDraft.Navigation
                 });
 
             builder.RegisterComponentInHierarchy<PauseMenuView>();
-            // The pause menu's Settings tabs reuse the main menu's Options components; they sit
+            // The pause menu's Settings reuses the main menu's Options components; they sit
             // under PauseMenuView rather than being registered themselves, so inject them here.
             builder.RegisterBuildCallback(resolver =>
             {
                 var pauseView = resolver.Resolve<PauseMenuView>();
-                resolver.Inject(pauseView.OptionsTabs);
+                resolver.Inject(pauseView.OptionsNavigator);
                 resolver.Inject(pauseView.GammaPanel);
                 resolver.Inject(pauseView.SoundPanel);
             });
@@ -243,6 +244,11 @@ namespace CrimsonDraft.Navigation
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<DebugWorldOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
+            if (this.roomCatalog != null)
+            {
+                builder.RegisterInstance(this.roomCatalog);
+                builder.Register<DebugRoomTeleport>(Lifetime.Singleton).AsImplementedInterfaces();
+            }
 #endif
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));

@@ -14,6 +14,9 @@ namespace CrimsonDraft.Inventory
 
         private Dictionary<string, ItemData>? lookup;
 
+        /// <summary>Every registered item in asset order, empty entries skipped.</summary>
+        public IReadOnlyList<ItemData> AllItems => Array.FindAll(this.allItems, data => data != null);
+
         public bool TryGetById(string itemId, out ItemData item)
         {
             this.lookup ??= BuildLookup();

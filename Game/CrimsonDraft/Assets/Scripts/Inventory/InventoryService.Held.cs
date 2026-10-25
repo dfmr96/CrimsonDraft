@@ -13,9 +13,25 @@ namespace CrimsonDraft.Inventory
 
         public event Action? HeldChanged;
 
-        public InventoryItem? Held         => this.held;
-        public int            HeldRotation { get; private set; }
-        public bool           HeldIsSplit  => this.heldReturn?.SplitSource != null;
+        public InventoryItem? Held          => this.held;
+        public int            HeldRotation  { get; private set; }
+        public bool           HeldIsSplit   => this.heldReturn?.SplitSource != null;
+
+        // A held item that came from nowhere (the debug item spawner): it has no spot to go
+        // back to, so it only drops on free cells and cancelling it throws it away.
+        public bool           HeldIsSpawned { get; private set; }
+
+        public bool TrySpawnHeld(InventoryItem item)
+        {
+            if (this.held != null && !this.HeldIsSpawned) return false;
+
+            this.held          = item;
+            this.heldReturn    = null;
+            this.HeldRotation  = 0;
+            this.HeldIsSpawned = true;
+            this.HeldChanged?.Invoke();
+            return true;
+        }
 
         public bool TryPickUp(InventoryItem item)
         {
@@ -64,7 +80,7 @@ namespace CrimsonDraft.Inventory
 
         public DropResult TryDrop(ContainerId target, Vector2Int origin)
         {
-            if (this.held == null || this.heldReturn == null) return DropResult.Rejected;
+            if (this.held == null || (this.heldReturn == null && !this.HeldIsSpawned)) return DropResult.Rejected;
             if (!IsAccessible(target)) return DropResult.Rejected;
 
             var container = GetContainer(target);
@@ -80,7 +96,7 @@ namespace CrimsonDraft.Inventory
                 return DropResult.Placed;
             }
 
-            if (overlapping.Count > 1 || this.heldReturn.SplitSource != null) return DropResult.Rejected;
+            if (overlapping.Count > 1 || this.heldReturn == null || this.heldReturn.SplitSource != null) return DropResult.Rejected;
             var displaced = overlapping.First();
             if (displaced.IsEquipped) return DropResult.Rejected;
 
@@ -89,6 +105,11 @@ namespace CrimsonDraft.Inventory
 
         public void CancelHeld()
         {
+            if (this.HeldIsSpawned)
+            {
+                ClearHeld();
+                return;
+            }
             if (this.held == null || this.heldReturn == null) return;
             var item = this.held;
             var spot = this.heldReturn;
@@ -137,17 +158,19 @@ namespace CrimsonDraft.Inventory
 
         private void SetHeld(InventoryItem item, int rotation, HeldReturn spot)
         {
-            this.held         = item;
-            this.HeldRotation = rotation;
-            this.heldReturn   = spot;
+            this.held          = item;
+            this.HeldRotation  = rotation;
+            this.heldReturn    = spot;
+            this.HeldIsSpawned = false;
             this.HeldChanged?.Invoke();
         }
 
         private void ClearHeld()
         {
-            this.held         = null;
-            this.heldReturn   = null;
-            this.HeldRotation = 0;
+            this.held          = null;
+            this.heldReturn    = null;
+            this.HeldRotation  = 0;
+            this.HeldIsSpawned = false;
             this.HeldChanged?.Invoke();
         }
 

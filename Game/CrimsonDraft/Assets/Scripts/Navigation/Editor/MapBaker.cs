@@ -157,8 +157,8 @@ namespace CrimsonDraft.Navigation.Editor
             if (string.IsNullOrWhiteSpace(doorId) || room == null || string.IsNullOrWhiteSpace(room.RoomId))
                 return null;
 
-            var destination = marker.GetComponent<RoomDoorInteractable>()?.Destination;
-            return new MapDoorEnd(doorId!, room.RoomId, destination != null ? destination.RoomId : null);
+            var destinationId = marker.GetComponent<RoomDoorInteractable>()?.DestinationRoomId;
+            return new MapDoorEnd(doorId!, room.RoomId, string.IsNullOrEmpty(destinationId) ? null : destinationId);
         }
 
         // An excluded half that finds no drawn half reveals nothing on the map, so say so.

@@ -115,5 +115,65 @@ namespace CrimsonDraft.Tests.EditMode
 
             Assert.AreEqual("b", ran);
         }
+
+        [Test]
+        public void Choice_CyclesAndWraps()
+        {
+            var entry = DebugMenuEntry.Choice("g", "Teleport", () => new[] { "a", "b", "c" }, _ => { });
+
+            Assert.IsTrue(entry.IsChoice);
+            Assert.AreEqual("a", entry.CurrentOption);
+            entry.Cycle(-1);
+            Assert.AreEqual("c", entry.CurrentOption);
+            entry.Cycle(1);
+            Assert.AreEqual("a", entry.CurrentOption);
+        }
+
+        [Test]
+        public void Choice_ActivateRunsWithCurrentOption()
+        {
+            string ran = "";
+            var entry = DebugMenuEntry.Choice("g", "Teleport", () => new[] { "a", "b" }, option => ran = option);
+            this.registry.Register(entry);
+            var selection = new DebugMenuSelection(this.registry);
+
+            selection.CycleCurrent(1);
+            selection.ActivateCurrent();
+
+            Assert.AreEqual("b", ran);
+        }
+
+        [Test]
+        public void Choice_KeepsItsOptionWhenTheListChanges()
+        {
+            var options = new System.Collections.Generic.List<string> { "a", "b" };
+            var entry   = DebugMenuEntry.Choice("g", "x", () => options, _ => { });
+            entry.Cycle(1);
+
+            options.Insert(0, "first");
+
+            Assert.AreEqual("b", entry.CurrentOption);
+        }
+
+        [Test]
+        public void Choice_EmptyOptions_RendersNoneAndActivateDoesNothing()
+        {
+            bool ran  = false;
+            var entry = DebugMenuEntry.Choice("g", "Teleport", () => new string[0], _ => ran = true);
+
+            entry.Cycle(1);
+            entry.Activate();
+
+            Assert.IsNull(entry.CurrentOption);
+            Assert.IsFalse(ran);
+            StringAssert.Contains("Teleport: (none)", DebugMenuController.Format(new[] { entry }, 0));
+        }
+
+        [Test]
+        public void Format_RendersChoiceWithArrows()
+        {
+            var entry = DebugMenuEntry.Choice("g", "Teleport", () => new[] { "Deck_B/KITCHEN" }, _ => { });
+            StringAssert.Contains("Teleport: < Deck_B/KITCHEN >", DebugMenuController.Format(new[] { entry }, 0));
+        }
     }
 }

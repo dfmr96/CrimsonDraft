@@ -33,8 +33,8 @@ namespace CrimsonDraft.UI.MainMenu
             });
             builder.RegisterComponentInHierarchy<NewGameNavigator>();
             builder.RegisterComponentInHierarchy<MainMenuController>();
-            builder.RegisterComponentInHierarchy<MainMenuCameraTravel>();
-            builder.RegisterComponentInHierarchy<OptionsTabController>();
+            builder.RegisterComponentInHierarchy<MainMenuPanelNavigator>();
+            builder.RegisterComponentInHierarchy<OptionsMenuNavigator>();
             builder.RegisterComponentInHierarchy<OptionsMenuController>();
             builder.RegisterBuildCallback(resolver =>
             {

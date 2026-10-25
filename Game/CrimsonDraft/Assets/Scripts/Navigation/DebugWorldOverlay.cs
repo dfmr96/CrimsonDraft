@@ -99,12 +99,6 @@ namespace CrimsonDraft.Navigation
                 this.wallBuffer.Clear();
                 trigger.GetWallQuads(this.wallBuffer);
                 foreach (var wall in this.wallBuffer) Line(wall[0], wall[1]); // bottom edge of each wall = floor outline
-
-                if (!trigger.UseTwoSidedSwitch) continue;
-                float margin = Mathf.Max(0f, trigger.SideMargin);
-                DrawFloorLine(trigger.GetDividerQuad(-margin), color);
-                DrawFloorLine(trigger.GetDividerQuad(margin), color);
-                DrawFloorLine(trigger.GetDividerQuad(0f), Color.white);
             }
         }
 
@@ -131,13 +125,6 @@ namespace CrimsonDraft.Navigation
                 GL.Vertex(center + new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)) * radius);
                 GL.Vertex(center + new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1)) * radius);
             }
-        }
-
-        // A divider quad's first two points are its floor edge.
-        private void DrawFloorLine(Vector3[] quad, Color color)
-        {
-            GL.Color(color);
-            Line(quad[0], quad[1]);
         }
 
         private void Line(Vector3 a, Vector3 b)

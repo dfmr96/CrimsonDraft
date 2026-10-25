@@ -8,7 +8,9 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting;
 using VContainer.Unity;
+using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.DebugMenu;
+using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Enemy;
@@ -25,6 +27,8 @@ namespace CrimsonDraft.Navigation
     //        a real trigger (milestone, story event) is hooked up.
     //  UI camera gating -- toggles UI/preview camera gating (UiCameraAutoToggle.GatingEnabled) to A/B its
     //        performance against the original always-on cameras.
+    //  Reveal all maps -- marks every deck of the MapDataSet as known, the same effect picking up its map has,
+    //        so the MAP tab draws every floor including unvisited rooms (no map item added, no pickup consumed).
     public sealed class NavigationDebugKeys : IInitializable, IDisposable
     {
         private const string Group = "Navigation";
@@ -35,6 +39,8 @@ namespace CrimsonDraft.Navigation
         private readonly OperatorCorpseBootstrap corpses;
         private readonly EnemyNavAgent[]         enemies;
         private readonly PlayerController        player;
+        private readonly MapDataSet              maps;
+        private readonly KnownMapsRegistry       knownMaps;
 
         [Preserve]
         public NavigationDebugKeys(
@@ -43,7 +49,9 @@ namespace CrimsonDraft.Navigation
             IInventoryService       inventory,
             OperatorCorpseBootstrap corpses,
             EnemyNavAgent[]         enemies,
-            PlayerController        player)
+            PlayerController        player,
+            MapDataSet              maps,
+            KnownMapsRegistry       knownMaps)
         {
             this.menu      = menu;
             this.roster    = roster;
@@ -51,6 +59,21 @@ namespace CrimsonDraft.Navigation
             this.corpses   = corpses;
             this.enemies   = enemies;
             this.player    = player;
+            this.maps      = maps;
+            this.knownMaps = knownMaps;
+        }
+
+        // Returns how many decks were not known before.
+        internal static int RevealMaps(IEnumerable<MapData?> maps, KnownMapsRegistry knownMaps)
+        {
+            int revealed = 0;
+            foreach (var map in maps)
+            {
+                if (map == null || knownMaps.IsKnown(map.SceneName)) continue;
+                knownMaps.MarkKnown(map.SceneName);
+                revealed++;
+            }
+            return revealed;
         }
 
         // Never the last survivor: killing them in navigation would leave no one to play.
@@ -84,6 +107,7 @@ namespace CrimsonDraft.Navigation
                 this.menu.Register(DebugMenuEntry.Action(Group, "Revive nearest enemy corpse", ReviveNearestCorpse)),
                 this.menu.Register(DebugMenuEntry.Toggle(Group, "UI camera gating",
                     () => UiCameraAutoToggle.GatingEnabled, SetCameraGating)),
+                this.menu.Register(DebugMenuEntry.Action(Group, "Reveal all maps", RevealAllMaps)),
             };
         }
 
@@ -114,6 +138,12 @@ namespace CrimsonDraft.Navigation
             this.inventory.ReleaseDeadOperatorWeapons();
             this.corpses.RecordNewDeaths();
             Debug.Log($"[NavigationDebugKeys] Killed operator {slot}.");
+        }
+
+        private void RevealAllMaps()
+        {
+            int revealed = RevealMaps(this.maps.Maps, this.knownMaps);
+            Debug.Log($"[NavigationDebugKeys] Revealed {revealed} map(s); every deck is now known.");
         }
 
         private void ReviveNearestCorpse()

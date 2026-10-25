@@ -62,5 +62,21 @@ namespace CrimsonDraft.Navigation.Rooms
             this.inputService.SwitchToGameplay();
             this.isTransitioning = false;
         }
+
+        public async UniTask TeleportToFloorAsync(string fromScene, string toScene, string roomId)
+        {
+            if (this.isTransitioning) return;
+            this.isTransitioning = true;
+
+            this.inputService.SwitchToDoorTransition();
+            this.sceneEntryContext.SetPendingRoom(roomId);
+
+            await SceneManager.UnloadSceneAsync(fromScene).ToUniTask();
+            await SceneManager.LoadSceneAsync(toScene, LoadSceneMode.Additive).ToUniTask();
+            SceneManager.SetActiveScene(SceneManager.GetSceneByName(toScene));
+
+            this.inputService.SwitchToGameplay();
+            this.isTransitioning = false;
+        }
     }
 }

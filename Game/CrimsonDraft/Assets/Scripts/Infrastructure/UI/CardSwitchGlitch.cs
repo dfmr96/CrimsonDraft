@@ -24,6 +24,8 @@ namespace CrimsonDraft.UI
         [SerializeField, Min(0.01f)] private float rampUpDuration   = 0.12f;
         [SerializeField, Min(0.01f)] private float rampDownDuration = 0.2f;
         [SerializeField, Min(1f)]    private float seedRate         = 24f;
+        [Tooltip("How strong the distortion gets at its peak (1 = full, the inventory's look). Lower for a subtler refresh.")]
+        [SerializeField, Range(0f, 1f)] private float peakAmount = 1f;
         [Tooltip("Whole-card alpha flicker at the peak, 0 = off.")]
         [SerializeField, Range(0f, 1f)] private float peakFlicker = 0.35f;
 
@@ -133,7 +135,7 @@ namespace CrimsonDraft.UI
             {
                 var mat = this.fxMats[i];
                 if (mat == null) continue;
-                mat.SetFloat(GlitchAmountId, amount);
+                mat.SetFloat(GlitchAmountId, amount * this.peakAmount);
                 mat.SetFloat(GlitchSeedId, seed + i * 0.37f);
             }
 

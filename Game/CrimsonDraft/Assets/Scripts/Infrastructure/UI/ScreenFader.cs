@@ -18,7 +18,8 @@ namespace CrimsonDraft.Infrastructure.UI
         private const float LoadFadeDuration    = 1f;   // Slow fade to/from black around a scene load, so it actually reads.
         private const float LoadingViewFade     = 0.7f; // Loading screen fading in over the black / out into it.
         private const float MinLoadingDuration  = 3f; // Floor so the loading screen never just flashes on a fast/cached load.
-        private const string LoadingSceneName   = "Loading"; // Near-empty scene swapped in while the real one loads.
+        private const float MaxAnimationStep   = 1f / 20f; // A load hitch advances a fade by at most this, so it is never skipped.
+        private const string LoadingSceneName  = "Loading"; // Near-empty scene swapped in while the real one loads.
         private const string MainMenuSceneName = "MainMenu";
 
         private CanvasGroup? canvasGroup;
@@ -88,47 +89,56 @@ namespace CrimsonDraft.Infrastructure.UI
         /// and the dot animation plus MinLoadingDuration floor keep the screen visibly alive
         /// even when the load itself is nearly instant.
         /// </summary>
-        public async UniTask LoadSceneAsync(string sceneName)
+        /// <param name="fadeOutDuration">How long the fade to black takes before the load starts; the
+        /// main menu passes a long one so the way into the game reads as a slow fade.</param>
+        public async UniTask LoadSceneAsync(string sceneName, float fadeOutDuration = LoadFadeDuration)
         {
             if (this.isLoadingScene) return;
             this.isLoadingScene = true;
 
             try
             {
-                await FadeOutAsync(LoadFadeDuration);
-                float elapsed = 0f;
-                var showTask = this.loadingScreen.ShowAsync(LoadingViewFade);
-
+                await FadeOutAsync(fadeOutDuration);
                 // Swap to a near-empty scene first so the outgoing (heavy) scene is released
                 // before the destination starts loading, instead of both sitting in memory at
                 // once. The loading view itself is a persistent prefab, so the scene is empty.
+                // It happens while the screen is still solid black and before the loading view
+                // starts fading in: tearing the old scene down stalls the frames, which used to
+                // freeze that fade half-way and leave the screen dimmed for a while.
                 if (Application.CanStreamedLevelBeLoaded(LoadingSceneName))
                 {
                     var swap = SceneManager.LoadSceneAsync(LoadingSceneName, LoadSceneMode.Single);
                     while (swap != null && !swap.isDone)
-                    {
-                        elapsed += Time.unscaledDeltaTime;
-                        this.loadingScreen.UpdateLabel(elapsed);
                         await UniTask.Yield(PlayerLoopTiming.Update);
-                    }
+
+                    // The first frame after a scene swap carries the teardown hitch; let it pass.
+                    await UniTask.Yield(PlayerLoopTiming.Update);
                 }
+
+                // The loading view always fades in completely, stays at least MinLoadingDuration and
+                // always fades out completely, however fast the scene is ready: the destination only
+                // starts loading once the fade-in is over, and is only activated after the fade-out.
+                await this.loadingScreen.ShowAsync(LoadingViewFade);
 
                 var operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
                 operation.allowSceneActivation = false;
 
+                float elapsed = 0f;
                 while (operation.progress < 0.9f || elapsed < MinLoadingDuration)
                 {
-                    elapsed += Time.unscaledDeltaTime;
+                    elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxAnimationStep);
                     this.loadingScreen.UpdateLabel(elapsed);
                     await UniTask.Yield(PlayerLoopTiming.Update);
                 }
 
-                await showTask;
                 await this.loadingScreen.HideAsync(LoadingViewFade);
 
                 operation.allowSceneActivation = true;
                 await operation.ToUniTask();
 
+                // The activation frame carries the hitch of the new scene; let it pass so the
+                // fade-in that follows is not eaten by it.
+                await UniTask.Yield(PlayerLoopTiming.Update);
                 await FadeInAsync(LoadFadeDuration);
             }
             finally
@@ -190,7 +200,7 @@ namespace CrimsonDraft.Infrastructure.UI
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxAnimationStep);
                 this.canvasGroup.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
