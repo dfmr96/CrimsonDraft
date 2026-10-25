@@ -81,7 +81,19 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private RoomController? ResolveStartingRoom()
         {
+            var roomId  = this.sceneEntryContext.ConsumeRoom();
             var entryId = this.sceneEntryContext.Consume();
+
+            if (roomId != null)
+            {
+                var room = RoomLookup.FindLoaded(roomId);
+                if (room != null)
+                {
+                    PlaceAtFirstArrival(room);
+                    return room;
+                }
+                Debug.LogError($"[RoomOrchestrator] Pending room '{roomId}' is not in this scene — starting in the default room.");
+            }
 
             if (entryId != null)
             {
@@ -142,6 +154,39 @@ namespace CrimsonDraft.Navigation.Rooms
         }
 
         public RoomController? CurrentRoom => this.currentRoom;
+
+        public void TeleportToRoom(RoomController room)
+        {
+            if (this.isTransitioning)
+            {
+                Debug.LogWarning($"[RoomOrchestrator] Teleport to '{room.RoomId}' ignored: a room transition is running.");
+                return;
+            }
+
+            foreach (var other in Object.FindObjectsByType<RoomController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (other != room) other.Deactivate();
+            room.Activate();
+
+            PlaceAtFirstArrival(room);
+            EnsureLiveCamera(room, this.player.transform.position);
+            this.currentRoom = room;
+            this.endedPublisher.Publish(new RoomTransitionedEvent(room));
+        }
+
+        // Debug teleport / pending room: the first door arrival of the room, else its origin.
+        private void PlaceAtFirstArrival(RoomController room)
+        {
+            var arrival = DoorArrivalLookup.FindFirstArrival(room);
+            if (arrival == null)
+            {
+                Debug.LogError($"[RoomOrchestrator] Room '{room.RoomId}' has no door arrival — placing the player at the room origin.", room);
+                this.player.transform.SetPositionAndRotation(room.transform.position, room.transform.rotation);
+                return;
+            }
+
+            this.player.transform.SetPositionAndRotation(arrival.ArrivalPoint!.position, arrival.ArrivalPoint.rotation);
+            arrival.ActivateCamera(this.zoneService);
+        }
 
         public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
         {

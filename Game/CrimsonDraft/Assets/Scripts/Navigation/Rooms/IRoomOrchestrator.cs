@@ -14,5 +14,8 @@ namespace CrimsonDraft.Navigation.Rooms
         /// shot to show, as a transform path under the room; without it, or if it no longer
         /// resolves, the room picks its shot from the player's current position.</summary>
         void ActivateRoomImmediate(string roomId, string? cameraPath = null);
+        /// <summary>Debug teleport within the loaded deck: activates <paramref name="room"/>, puts the player at
+        /// its first door arrival and counts as entering it (RoomTransitionedEvent).</summary>
+        void TeleportToRoom(RoomController room);
     }
 }

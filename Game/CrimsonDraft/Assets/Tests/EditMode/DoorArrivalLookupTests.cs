@@ -126,6 +126,25 @@ namespace CrimsonDraft.Tests
             Assert.IsNotNull(door.GetComponent<DoorArrival>(), "every door is where somebody arrives");
         }
 
+        [Test]
+        public void FindFirstArrival_skipsDoorsWithoutArrivalPoint_inHierarchyOrder()
+        {
+            var first  = MakeRoomDoor(this.destination, this.origin, Vector3.zero).GetComponent<DoorArrival>();
+            var second = MakeRoomDoor(this.destination, this.other, Vector3.zero).GetComponent<DoorArrival>();
+            var third  = MakeRoomDoor(this.destination, this.origin, Vector3.zero).GetComponent<DoorArrival>();
+            var so = new SerializedObject(first);
+            so.FindProperty("arrivalPoint").objectReferenceValue = null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            second.PlaceAtDefault(1f, Vector3.right);
+            third.PlaceAtDefault(1f, Vector3.right);
+
+            Assert.AreSame(second, DoorArrivalLookup.FindFirstArrival(this.destination));
+        }
+
+        [Test]
+        public void FindFirstArrival_roomWithoutDoors_isNull()
+            => Assert.IsNull(DoorArrivalLookup.FindFirstArrival(this.other));
+
         private RoomController MakeRoom(string name)
         {
             var go = new GameObject(name);

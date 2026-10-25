@@ -31,6 +31,15 @@ namespace CrimsonDraft.Navigation.Rooms
             return best;
         }
 
+        /// <summary>Where a jump straight into <paramref name="room"/> lands (debug teleport): the first door
+        /// arrival with an arrival point, in hierarchy order.</summary>
+        public static DoorArrival? FindFirstArrival(RoomController room)
+        {
+            foreach (var arrival in room.GetComponentsInChildren<DoorArrival>(true))
+                if (arrival.ArrivalPoint != null) return arrival;
+            return null;
+        }
+
         /// <summary>The scene door other scenes arrive through with <paramref name="entryPointId"/>; the first one
         /// when several share it.</summary>
         public static SceneDoorInteractable? FindEntryDoor(IEnumerable<SceneDoorInteractable> doors, string entryPointId)

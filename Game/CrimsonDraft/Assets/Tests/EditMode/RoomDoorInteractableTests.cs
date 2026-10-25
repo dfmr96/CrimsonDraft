@@ -408,6 +408,7 @@ namespace CrimsonDraft.Tests
             }
 
             public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
+            public void TeleportToRoom(RoomController room) { }
         }
 
         private sealed class FakeDialogue : IDialogueService

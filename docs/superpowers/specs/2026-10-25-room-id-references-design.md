@@ -175,3 +175,5 @@ of date with the scenes.
 - How the cycling debug-menu entry renders its value.
 - Whether the cross-deck teleport reuses `FloorTransitionService` with a "room" entry or a
   separate path, as long as the player ends in the right room at the first door's arrival.
+
+**Status (2026-10-25):** implemented on `feat/camera-zone-editor` (plan `docs/superpowers/plans/2026-10-25-room-id-references.md`). The catalog stores no "first door": it is computed on arrival, when the target scene is loaded.

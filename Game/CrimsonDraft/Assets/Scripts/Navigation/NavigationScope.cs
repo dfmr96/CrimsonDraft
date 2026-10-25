@@ -41,6 +41,7 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private RoomController        startingRoom         = null!;
         [SerializeField] private MapDataSet            mapDataSet           = null!;
         [SerializeField] private ItemDatabase          itemDatabase         = null!;
+        [SerializeField] private RoomCatalog?          roomCatalog;
         [SerializeField] private SaveSlotListView      saveSlotListView     = null!;
         [SerializeField] private OperatorCorpseSettings corpseSettings      = null!;
 
@@ -243,6 +244,11 @@ namespace CrimsonDraft.Navigation
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<DebugWorldOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
+            if (this.roomCatalog != null)
+            {
+                builder.RegisterInstance(this.roomCatalog);
+                builder.Register<DebugRoomTeleport>(Lifetime.Singleton).AsImplementedInterfaces();
+            }
 #endif
 
             builder.RegisterInstance(new DoorCache(this.cachedRoomDoors, this.cachedSceneDoors));
