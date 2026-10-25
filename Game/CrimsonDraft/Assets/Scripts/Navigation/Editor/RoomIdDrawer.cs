@@ -53,7 +53,7 @@ namespace CrimsonDraft.Navigation.Editor
         private static float Line => EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-            => Line * 3f + (Problem(property) != null ? RoomPickers.WarningHeight : 0f);
+            => Line * 4f + (Problem(property) != null ? RoomPickers.WarningHeight : 0f);
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
@@ -64,12 +64,13 @@ namespace CrimsonDraft.Navigation.Editor
             }
 
             float h       = EditorGUIUtility.singleLineHeight;
-            var deckLine  = new Rect(position.x, position.y, position.width, h);
-            var nameLine  = new Rect(position.x, position.y + Line, position.width, h);
-            var idLine    = new Rect(position.x, position.y + Line * 2f, position.width, h);
+            var labelLine = new Rect(position.x, position.y, position.width, h);
+            var deckLine  = new Rect(position.x, position.y + Line, position.width, h);
+            var nameLine  = new Rect(position.x, position.y + Line * 2f, position.width, h);
+            var idLine    = new Rect(position.x, position.y + Line * 3f, position.width, h);
 
             label = EditorGUI.BeginProperty(position, label, property);
-            EditorGUI.LabelField(deckLine, label);
+            EditorGUI.LabelField(labelLine, label);
 
             using (new EditorGUI.IndentLevelScope())
             using (new EditorGUI.DisabledScope(property.hasMultipleDifferentValues))
@@ -80,7 +81,7 @@ namespace CrimsonDraft.Navigation.Editor
                 var name    = RoomIds.RoomPartOf(current);
 
                 EditorGUI.BeginChangeCheck();
-                int deckIndex = EditorGUI.Popup(new Rect(deckLine.x, deckLine.y, deckLine.width, h), "Deck", decks.IndexOf(deck), decks.ToArray());
+                int deckIndex = EditorGUI.Popup(deckLine, "Deck", decks.IndexOf(deck), decks.ToArray());
                 var newName   = EditorGUI.DelayedTextField(nameLine, "Name", name);
                 if (EditorGUI.EndChangeCheck())
                     property.stringValue = RoomIds.Compose(decks[Math.Max(0, deckIndex)], newName);
