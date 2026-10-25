@@ -45,18 +45,15 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void Of_keepsArrivalCamerasOfDoorsAndSpawns()
+        public void Of_keepsArrivalCamerasOfDoors()
         {
             var room = Make("Room").AddComponent<RoomController>();
             var cameras = Make("Cameras", room.transform);
             var doorCam = Make("DoorArrivalCam", cameras.transform).AddComponent<CinemachineCamera>();
-            var spawnCam = Make("SpawnCam", cameras.transform).AddComponent<CinemachineCamera>();
             var arrival = Make("Door", room.transform).AddComponent<DoorArrival>();
             Set(arrival, "arrivalCamera", doorCam);
-            var spawn = Make("Spawn", room.transform).AddComponent<SpawnPoint>();
-            Set(spawn, "camera", spawnCam);
 
-            CollectionAssert.AreEquivalent(new[] { doorCam, spawnCam }, ZoneCameras.Of(room));
+            CollectionAssert.AreEquivalent(new[] { doorCam }, ZoneCameras.Of(room));
         }
 
         private sealed class FakeInspectable : MonoBehaviour

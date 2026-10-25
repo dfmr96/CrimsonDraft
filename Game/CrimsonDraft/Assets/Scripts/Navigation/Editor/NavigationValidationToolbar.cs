@@ -42,17 +42,15 @@ namespace CrimsonDraft.Navigation.Editor
             var roomDoors  = Object.FindObjectsOfType<RoomDoorInteractable>(includeInactive: true);
             var sceneDoors = Object.FindObjectsOfType<SceneDoorInteractable>(includeInactive: true);
 
-            // Every door is where somebody arrives: it needs its arrival point. Until the migration has
-            // run none have one, so report a single line instead of one per door.
-            var withoutArrival = roomDoors.Cast<Component>().Concat(sceneDoors)
-                .Where(d => d.GetComponent<DoorArrival>() == null || d.GetComponent<DoorArrival>().ArrivalPoint == null)
-                .ToArray();
-            if (withoutArrival.Length > 0)
+            // Every door is where somebody arrives: it needs its arrival point.
+            foreach (var door in roomDoors.Cast<Component>().Concat(sceneDoors))
             {
-                Debug.LogWarning($"[NavValidation] {withoutArrival.Length} door(s) have no DoorArrival (e.g. '{withoutArrival[0].name}'). " +
-                                 "Run CrimsonDraft > Doors > Migrate Spawn Points To Door Arrivals, or Migrate Doors in the Camera Zone Viewer.",
-                                 withoutArrival[0]);
-                issues++;
+                var arrival = door.GetComponent<DoorArrival>();
+                if (arrival == null || arrival.ArrivalPoint == null)
+                {
+                    Debug.LogWarning($"[NavValidation] Door '{door.name}' has no DoorArrival arrival point.", door);
+                    issues++;
+                }
             }
 
             // Crossing S -> D places the player at D's door back to S; without one the runtime logs an error.

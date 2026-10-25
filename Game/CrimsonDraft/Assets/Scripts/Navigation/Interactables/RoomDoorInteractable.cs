@@ -11,6 +11,7 @@ using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
+    [RequireComponent(typeof(DoorArrival))]
     public sealed class RoomDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable, IAnimatedInteractable
     {
         private const string OpenedNodeName = "door_opened_feedback";

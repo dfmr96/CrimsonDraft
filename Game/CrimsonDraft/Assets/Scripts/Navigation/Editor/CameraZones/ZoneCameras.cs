@@ -28,7 +28,7 @@ namespace CrimsonDraft.Navigation.Editor
                 // Zones and arrival points point at zone cameras; anything else (puzzles, save stations)
                 // points at its own inspection shot.
                 if (component == null || component is FixedCameraZoneTrigger || component is CinemachineCamera
-                    || component is DoorArrival || component is SpawnPoint || component is SceneSpawnPoint) continue;
+                    || component is DoorArrival) continue;
                 var property = new SerializedObject(component).GetIterator();
                 while (property.Next(true))
                     if (property.propertyType == SerializedPropertyType.ObjectReference

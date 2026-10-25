@@ -90,28 +90,18 @@ namespace CrimsonDraft.Navigation.Rooms
                 var arrival = door != null ? door.GetComponent<DoorArrival>() : null;
                 var room    = door != null ? door.GetComponentInParent<RoomController>(true) : null;
 
-                if (arrival != null && arrival.ArrivalPoint != null && room != null)
+                if (door == null)
+                    Debug.LogError($"[RoomOrchestrator] No SceneDoorInteractable with entry '{entryId}' — starting in the default room.");
+                else if (arrival == null || arrival.ArrivalPoint == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') has no DoorArrival — starting in the default room.", door);
+                else if (room == null)
+                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') is not inside a RoomController — starting in the default room.", door);
+                else
                 {
                     this.player.transform.SetPositionAndRotation(arrival.ArrivalPoint.position, arrival.ArrivalPoint.rotation);
                     arrival.ActivateCamera(this.zoneService);
                     return room;
                 }
-
-                // TEMPORARY until the door arrival migration has run: scenes still carry SceneSpawnPoint.
-                foreach (var sp in Object.FindObjectsByType<SceneSpawnPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                {
-                    if (sp.EntryPointId != entryId) continue;
-                    this.player.transform.SetPositionAndRotation(sp.transform.position, sp.transform.rotation);
-                    sp.ActivateCamera(this.zoneService);
-                    return sp.StartingRoom;
-                }
-
-                if (door == null)
-                    Debug.LogError($"[RoomOrchestrator] No SceneDoorInteractable with entry '{entryId}' — starting in the default room.");
-                else if (room == null)
-                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') is not inside a RoomController — starting in the default room.", door);
-                else
-                    Debug.LogError($"[RoomOrchestrator] Entry door '{door.name}' ('{entryId}') has no DoorArrival — starting in the default room.", door);
             }
 
             return this.context.StartingRoom;
@@ -266,14 +256,6 @@ namespace CrimsonDraft.Navigation.Rooms
                 return arrival.ArrivalPoint;
             }
 
-            // TEMPORARY until the door arrival migration has run: rooms still carry SpawnPoint.
-            var legacy = FindLegacySpawnPoint(destination, origin);
-            if (legacy != null)
-            {
-                legacy.ActivateCamera(this.zoneService);
-                return legacy.transform;
-            }
-
             Debug.LogError($"[RoomOrchestrator] {problem} — placing the player at the room root.", destination);
             return null;
         }
@@ -297,14 +279,6 @@ namespace CrimsonDraft.Navigation.Rooms
                 return null;
             }
             return arrival;
-        }
-
-        // TEMPORARY until the door arrival migration has run; removed together with SpawnPoint.
-        internal static SpawnPoint? FindLegacySpawnPoint(RoomController destination, RoomController origin)
-        {
-            foreach (var sp in destination.GetComponentsInChildren<SpawnPoint>(includeInactive: true))
-                if (sp.FromRoom == origin) return sp;
-            return null;
         }
     }
 }

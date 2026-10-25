@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-23-door-arrival-points-design.md`
 
-> **Status:** Tasks 1–5 and Task 6 Step 1 done. Prefabs/scenes cannot be modified yet, so a transition period was added (see the spec): no `RequireComponent`, TEMPORARY fallback to `SpawnPoint`/`SceneSpawnPoint`, and a **Migrate Doors** button. Task 6 Steps 2–5 and Task 7 run once the data may be changed.
+> **Status:** Done. Tasks 1–5 and Task 6 Step 1 landed first with a transition period (see the spec); on 2026-10-25 the migration ran over every room prefab and production scene (82 arrivals, 66 cameras copied, 5 unmatched spawns: `Port_Stairs/SpawnPoint`, `Kitchen/DR_33`, `Kitchen/DR_187`, `Kitchen/DR_121`, `Radio/DR_30B`) and Task 7 removed the fallback, `SpawnPoint`, `SceneSpawnPoint`, the aligner, the migration and the **Migrate Doors** button, and restored `RequireComponent(DoorArrival)`.
 
 ## Global Constraints
 
