@@ -1,0 +1,132 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using CrimsonDraft.Navigation.Interactables;
+using CrimsonDraft.Navigation.Rooms;
+
+namespace CrimsonDraft.Navigation.Editor
+{
+    /// <summary>Room id picker: "None" plus every catalog room; "Deck_B/KITCHEN" shows as a Deck_B submenu.</summary>
+    [CustomPropertyDrawer(typeof(RoomIdAttribute))]
+    public sealed class RoomIdDrawer : PropertyDrawer
+    {
+        private const string None = "None";
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+            => EditorGUIUtility.singleLineHeight + (RoomPickers.IsUnknown(property.stringValue) ? RoomPickers.WarningHeight : 0f);
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            if (property.propertyType != SerializedPropertyType.String)
+            {
+                EditorGUI.LabelField(position, label.text, "[RoomId] needs a string field.");
+                return;
+            }
+
+            var line = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            property.stringValue = RoomPickers.RoomPopup(line, label, property.stringValue);
+
+            if (RoomPickers.IsUnknown(property.stringValue))
+                EditorGUI.HelpBox(new Rect(position.x, line.yMax + 2f, position.width, RoomPickers.WarningHeight - 4f),
+                    $"'{property.stringValue}' is not in the RoomCatalog.", MessageType.Warning);
+        }
+    }
+
+    /// <summary>Unlock target picker: the room, then one of that room's doors.</summary>
+    [CustomPropertyDrawer(typeof(DoorRef))]
+    public sealed class DoorRefDrawer : PropertyDrawer
+    {
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+            => EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing;
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            var roomId = property.FindPropertyRelative("roomId");
+            var doorId = property.FindPropertyRelative("doorId");
+            float h    = EditorGUIUtility.singleLineHeight;
+
+            var roomLine = new Rect(position.x, position.y, position.width, h);
+            var doorLine = new Rect(position.x, roomLine.yMax + EditorGUIUtility.standardVerticalSpacing, position.width, h);
+
+            var room = RoomPickers.RoomPopup(roomLine, label, roomId.stringValue);
+            if (room != roomId.stringValue)
+            {
+                roomId.stringValue = room;
+                doorId.stringValue = "";
+            }
+
+            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(room)))
+            using (new EditorGUI.IndentLevelScope())
+            {
+                var doors   = RoomPickers.DoorIdsOf(room);
+                var options = new List<string> { "None" };
+                options.AddRange(doors);
+                if (!string.IsNullOrEmpty(doorId.stringValue) && !doors.Contains(doorId.stringValue))
+                    options.Add(doorId.stringValue + " (missing)");
+
+                int index = string.IsNullOrEmpty(doorId.stringValue) ? 0
+                    : Math.Max(0, options.FindIndex(o => o == doorId.stringValue || o == doorId.stringValue + " (missing)"));
+                int picked = EditorGUI.Popup(doorLine, "Door", index, options.ToArray());
+                if (picked != index)
+                    doorId.stringValue = picked == 0 ? "" : options[picked].Replace(" (missing)", "");
+            }
+        }
+    }
+
+    internal static class RoomPickers
+    {
+        public const float WarningHeight = 24f;
+
+        private static RoomCatalog? catalog;
+        private static Dictionary<string, List<string>>? doorsByRoom;
+
+        static RoomPickers() => EditorApplication.projectChanged += () =>
+        {
+            catalog     = null;
+            doorsByRoom = null;
+        };
+
+        private static RoomCatalog? Catalog => catalog != null ? catalog : catalog = RoomCatalogEditor.Find();
+
+        public static bool IsUnknown(string id)
+            => !string.IsNullOrEmpty(id) && Catalog != null && !Catalog.Contains(id);
+
+        public static string RoomPopup(Rect line, GUIContent label, string current)
+        {
+            var ids     = Catalog != null ? Catalog.Rooms.Select(r => r.RoomId).ToList() : new List<string>();
+            var options = new List<string> { "None" };
+            options.AddRange(ids);
+            if (!string.IsNullOrEmpty(current) && !ids.Contains(current)) options.Add(current);
+
+            int index  = string.IsNullOrEmpty(current) ? 0 : options.IndexOf(current);
+            int picked = EditorGUI.Popup(line, label, index, options.Select(o => new GUIContent(o)).ToArray());
+            return picked <= 0 ? "" : options[picked];
+        }
+
+        // Door ids of a room, read from the room prefabs (the room may live in an unloaded scene).
+        public static List<string> DoorIdsOf(string roomId)
+        {
+            if (string.IsNullOrEmpty(roomId)) return new List<string>();
+            doorsByRoom ??= BuildDoorIndex();
+            return doorsByRoom.TryGetValue(roomId, out var doors) ? doors : new List<string>();
+        }
+
+        private static Dictionary<string, List<string>> BuildDoorIndex()
+        {
+            var index = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/World" }))
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                var room   = prefab != null ? prefab.GetComponent<RoomController>() : null;
+                if (room == null || string.IsNullOrEmpty(room.RoomId)) continue;
+                index[room.RoomId] = room.GetComponentsInChildren<RoomDoorInteractable>(true)
+                    .Select(d => d.DoorId).Where(id => !string.IsNullOrEmpty(id)).Distinct().OrderBy(id => id).ToList();
+            }
+            return index;
+        }
+    }
+}

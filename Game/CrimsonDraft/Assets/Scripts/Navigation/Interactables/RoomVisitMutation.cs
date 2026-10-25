@@ -3,6 +3,7 @@
 using System;
 using UnityEngine;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Navigation.Rooms;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -15,7 +16,7 @@ namespace CrimsonDraft.Navigation.Interactables
     public sealed class RoomVisitMutation : MonoBehaviour
     {
         [SerializeField] private ItemSocketInteractable socket = null!;
-        [SerializeField] private string                 triggerRoomId = "Deck_C/ENERGY_ROOM";
+        [SerializeField, RoomId] private string         triggerRoomId = "Deck_C/ENERGY_ROOM";
         [Tooltip("Shown from the moment the item is inserted until the mutation happens.")]
         [SerializeField] private GameObject?            placedVisual;
         [Tooltip("Shown once the mutation has happened (e.g. the pickable KI_19).")]

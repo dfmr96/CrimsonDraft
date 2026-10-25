@@ -18,12 +18,8 @@ namespace CrimsonDraft.Navigation.Interactables
 
         [SerializeField] private string        doorId               = null!;
         [SerializeField] private DoorData      data                 = null!;
-        [SerializeField] private string        destinationRoomId    = "";
+        [SerializeField, RoomId] private string destinationRoomId = "";
         [SerializeField] private GameObject    doorTransitionPrefab = null!;
-
-        // Legacy object references, read only by RoomIdMigration; removed once it has run.
-        [SerializeField, HideInInspector] private RoomController?       destination;
-        [SerializeField, HideInInspector] private RoomDoorInteractable? unlocksOnCross;
         [SerializeField] private AK.Wwise.Event doorLockedEvent     = new();
 
         // Opt-in override for doors whose lock state is driven entirely by gameplay (e.g. the

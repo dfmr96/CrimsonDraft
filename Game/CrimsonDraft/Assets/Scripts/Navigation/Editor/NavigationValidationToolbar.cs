@@ -107,6 +107,34 @@ namespace CrimsonDraft.Navigation.Editor
                 }
             }
 
+            var catalog = RoomCatalogEditor.Find();
+            if (catalog == null)
+            {
+                Debug.LogWarning("[NavValidation] No RoomCatalog asset: create one (CrimsonDraft > Navigation > Room Catalog) and press Rebuild From Scenes.");
+                issues++;
+            }
+            else
+            {
+                foreach (var message in RoomIdValidation.Check(rooms, roomDoors, catalog))
+                {
+                    Debug.LogWarning("[NavValidation] " + message);
+                    issues++;
+                }
+
+                foreach (var guid in AssetDatabase.FindAssets("t:MapData"))
+                {
+                    var map     = AssetDatabase.LoadAssetAtPath<CrimsonDraft.Infrastructure.Map.MapData>(AssetDatabase.GUIDToAssetPath(guid));
+                    var unknown = map.Rooms.Select(r => r.RoomId)
+                        .Concat(map.Doors.SelectMany(d => d.OtherSides).Select(s => s.RoomId))
+                        .Where(id => !string.IsNullOrEmpty(id) && !catalog.Contains(id))
+                        .Distinct()
+                        .ToList();
+                    if (unknown.Count == 0) continue;
+                    Debug.LogWarning($"[NavValidation] {map.name} names rooms the catalog doesn't know: {string.Join(", ", unknown)}.", map);
+                    issues++;
+                }
+            }
+
             if (issues == 0)
                 Debug.Log("[NavValidation] All navigation references are set.");
             else
