@@ -52,11 +52,12 @@ namespace CrimsonDraft.Navigation
 
         void IDisposable.Dispose() => this.registration?.Dispose();
 
-        private void Teleport(string roomId)
+        internal void Teleport(string roomId)
         {
-            if (this.scenes.IsInCombat)
+            if (this.scenes.IsInCombat || this.rooms.IsTransitioning)
             {
-                Debug.LogWarning($"[DebugRoomTeleport] Teleport to '{roomId}' ignored during combat.");
+                // A deck swap mid door transition would leave the DoorTransition scene loaded and audio paused.
+                Debug.LogWarning($"[DebugRoomTeleport] Teleport to '{roomId}' ignored during combat or a door transition.");
                 return;
             }
             if (!this.catalog.TryGetScene(roomId, out var targetScene))

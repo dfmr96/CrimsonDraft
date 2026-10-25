@@ -363,6 +363,37 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void ActivateRoomImmediate_unknownRoom_keepsTheStartingRoomActive()
+        {
+            var context = ScriptableObject.CreateInstance<RoomTransitionContext>();
+            var (goA, roomA) = MakeRoom("RoomA", "Deck_T/A");
+            var (goB, _)     = MakeRoom("RoomB", "Deck_T/B");
+            context.SetStartingRoom(roomA);
+            var playerGo = new GameObject("Player");
+            var player   = playerGo.AddComponent<PlayerController>();
+
+            try
+            {
+                var orchestrator = MakeOrchestrator(player, context);
+                ((IInitializable)orchestrator).Initialize();
+
+                // A save from before the room id migration names "KITCHEN".
+                LogAssert.Expect(LogType.Warning, new Regex("KITCHEN"));
+                orchestrator.ActivateRoomImmediate("KITCHEN");
+
+                Assert.IsTrue(roomA.gameObject.activeSelf, "an unknown saved room must not leave every room off");
+                Assert.AreSame(roomA, orchestrator.CurrentRoom);
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(playerGo);
+                Object.DestroyImmediate(context);
+            }
+        }
+
+        [Test]
         public void TeleportToRoom_activatesRoom_placesPlayerAtFirstArrival_andPublishes()
         {
             var context = ScriptableObject.CreateInstance<RoomTransitionContext>();

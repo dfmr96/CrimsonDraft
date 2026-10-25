@@ -63,6 +63,7 @@ namespace CrimsonDraft.Tests
             public UniTask TransitionToRoomAsync(RoomController destination, GameObject doorPrefab, Vector3 departurePosition) => UniTask.CompletedTask;
             public void ActivateRoomImmediate(string roomId, string? cameraPath = null) { }
             public void TeleportToRoom(RoomController room) { }
+            public bool IsTransitioning => false;
         }
 
         private sealed class FakeSpawner : IOperatorCorpseSpawner

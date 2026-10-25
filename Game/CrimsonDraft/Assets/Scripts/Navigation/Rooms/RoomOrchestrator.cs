@@ -153,7 +153,8 @@ namespace CrimsonDraft.Navigation.Rooms
             this.isTransitioning = false;
         }
 
-        public RoomController? CurrentRoom => this.currentRoom;
+        public RoomController? CurrentRoom     => this.currentRoom;
+        public bool            IsTransitioning => this.isTransitioning;
 
         public void TeleportToRoom(RoomController room)
         {
@@ -190,24 +191,20 @@ namespace CrimsonDraft.Navigation.Rooms
 
         public void ActivateRoomImmediate(string roomId, string? cameraPath = null)
         {
-            var rooms = Object.FindObjectsOfType<RoomController>(true);
-            RoomController? target = null;
+            var rooms  = Object.FindObjectsOfType<RoomController>(true);
+            var target = RoomLookup.Find(rooms, roomId);
 
-            foreach (var room in rooms)
-            {
-                if (room.RoomId == roomId)
-                {
-                    target = room;
-                    continue;
-                }
-                room.Deactivate();
-            }
-
+            // e.g. a save from before the room id migration: keep a playable room instead of
+            // switching every room off.
             if (target == null)
             {
-                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found.");
-                return;
+                Debug.LogWarning($"[RoomOrchestrator] ActivateRoomImmediate: no room with id '{roomId}' found — using the starting room.");
+                target = this.context.StartingRoom;
+                if (target == null) return;
             }
+
+            foreach (var room in rooms)
+                if (room != target) room.Deactivate();
 
             target.Activate();
             if (!TryActivateSavedCamera(target, cameraPath))

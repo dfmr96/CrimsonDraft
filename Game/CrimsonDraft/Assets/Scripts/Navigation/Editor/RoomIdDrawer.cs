@@ -28,9 +28,18 @@ namespace CrimsonDraft.Navigation.Editor
             }
 
             var line = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            property.stringValue = RoomPickers.RoomPopup(line, label, property.stringValue);
 
-            if (RoomPickers.IsUnknown(property.stringValue))
+            // Only write on a real pick: drawing alone must never copy one object's value onto a
+            // multi-selection, and BeginProperty keeps the prefab override bold + Revert menu.
+            label = EditorGUI.BeginProperty(line, label, property);
+            EditorGUI.showMixedValue = property.hasMultipleDifferentValues;
+            EditorGUI.BeginChangeCheck();
+            var picked = RoomPickers.RoomPopup(line, label, property.stringValue);
+            if (EditorGUI.EndChangeCheck()) property.stringValue = picked;
+            EditorGUI.showMixedValue = false;
+            EditorGUI.EndProperty();
+
+            if (!property.hasMultipleDifferentValues && RoomPickers.IsUnknown(property.stringValue))
                 EditorGUI.HelpBox(new Rect(position.x, line.yMax + 2f, position.width, RoomPickers.WarningHeight - 4f),
                     $"'{property.stringValue}' is not in the RoomCatalog.", MessageType.Warning);
         }
@@ -52,16 +61,21 @@ namespace CrimsonDraft.Navigation.Editor
             var roomLine = new Rect(position.x, position.y, position.width, h);
             var doorLine = new Rect(position.x, roomLine.yMax + EditorGUIUtility.standardVerticalSpacing, position.width, h);
 
+            label = EditorGUI.BeginProperty(position, label, property);
+            EditorGUI.showMixedValue = roomId.hasMultipleDifferentValues;
+            EditorGUI.BeginChangeCheck();
             var room = RoomPickers.RoomPopup(roomLine, label, roomId.stringValue);
-            if (room != roomId.stringValue)
+            if (EditorGUI.EndChangeCheck())
             {
                 roomId.stringValue = room;
                 doorId.stringValue = "";
             }
+            room = roomId.stringValue;
 
-            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(room)))
+            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(room) || roomId.hasMultipleDifferentValues))
             using (new EditorGUI.IndentLevelScope())
             {
+                EditorGUI.showMixedValue = doorId.hasMultipleDifferentValues;
                 var doors   = RoomPickers.DoorIdsOf(room);
                 var options = new List<string> { "None" };
                 options.AddRange(doors);
@@ -74,6 +88,8 @@ namespace CrimsonDraft.Navigation.Editor
                 if (picked != index)
                     doorId.stringValue = picked == 0 ? "" : options[picked].Replace(" (missing)", "");
             }
+            EditorGUI.showMixedValue = false;
+            EditorGUI.EndProperty();
         }
     }
 
