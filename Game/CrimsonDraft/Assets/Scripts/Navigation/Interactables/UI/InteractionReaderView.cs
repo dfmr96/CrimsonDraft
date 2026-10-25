@@ -3,6 +3,7 @@
 using TMPro;
 using UnityEngine;
 using Yarn.Unity;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.Navigation.Interactables.UI
 {
@@ -21,9 +22,16 @@ namespace CrimsonDraft.Navigation.Interactables.UI
             this.bodyLabel.text  = DocumentMarkupFormatter.Format(pageText, this.markupPalette);
             this.prevHint.SetActive(hasPrev);
             this.nextHint.SetActive(hasNext);
+            UiCameraGate.Request(this);
             this.panel.SetActive(true);
         }
 
-        public void Hide() => this.panel.SetActive(false);
+        public void Hide()
+        {
+            this.panel.SetActive(false);
+            UiCameraGate.Release(this);
+        }
+
+        private void OnDestroy() => UiCameraGate.Release(this);
     }
 }

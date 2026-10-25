@@ -6,6 +6,7 @@ using MessagePipe;
 using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.Navigation.Dialogue
 {
@@ -76,6 +77,7 @@ namespace CrimsonDraft.Navigation.Dialogue
             }
 
             this.inputService.SwitchToDialogue();
+            UiCameraGate.Request(this);
             this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(true));
             _ = this.runner.StartDialogue(nodeName);
         }
@@ -93,6 +95,7 @@ namespace CrimsonDraft.Navigation.Dialogue
 
         private void OnDialogueComplete()
         {
+            UiCameraGate.Release(this);
             ReturnToPreviousInputContext();
             this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(false));
 

@@ -85,6 +85,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
 
         void OnDestroy()
         {
+            UiCameraGate.Release(this);
             UiCameraAutoToggle.GatingChanged -= SyncPreviewCamera;
         }
 
@@ -150,6 +151,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
                     SetLayerRecursively(this.currentInstance.transform, this.previewLayer);
             }
 
+            UiCameraGate.Request(this);
             this.root.SetActive(true);
             SyncPreviewCamera();
             FadeVolume(1f);
@@ -159,6 +161,7 @@ namespace CrimsonDraft.Navigation.Interactables.UI
         {
             ClearInstance();
             this.root.SetActive(false);
+            UiCameraGate.Release(this);
             SyncPreviewCamera();
             FadeVolume(0f);
         }
