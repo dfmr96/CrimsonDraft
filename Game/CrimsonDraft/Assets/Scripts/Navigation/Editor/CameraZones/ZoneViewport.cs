@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEditor;
 using UnityEngine;
@@ -24,7 +25,7 @@ namespace CrimsonDraft.Navigation.Editor
         public Texture? Texture => this.texture;
 
         /// <param name="setup">Places and configures the camera before it renders.</param>
-        /// <param name="unlit">URP material debug mode "Albedo": surfaces without lighting.</param>
+        /// <param name="unlit">Render the level with unlit stand-ins of its materials (no lighting).</param>
         public void Render(Vector2Int pixels, Action<Camera> setup, bool unlit)
         {
             if (this.texture == null || this.texture.width != pixels.x || this.texture.height != pixels.y)
@@ -41,12 +42,25 @@ namespace CrimsonDraft.Navigation.Editor
             view.aspect = (float)pixels.x / pixels.y;
             view.targetTexture = this.texture;
 
-            // The debug setting is global, so it is switched on only for this synchronous Render call.
-            var material = UniversalRenderPipelineDebugDisplaySettings.Instance.materialSettings;
-            var previousMode = material.materialDebugMode;
-            if (unlit) material.materialDebugMode = DebugMaterialMode.Albedo;
-            try { view.Render(); }
-            finally { material.materialDebugMode = previousMode; }
+            if (!unlit)
+            {
+                view.Render();
+                return;
+            }
+
+            // Unlit: the renderers in view wear unlit stand-ins of their materials for this synchronous
+            // render only (the PSX shaders ignore URP's debug modes and Unity's ambient light).
+            using (UnlitSwap.Begin(VisibleRenderers(view), this.unlitMaterials))
+                view.Render();
+        }
+
+        private readonly UnlitMaterialCache unlitMaterials = new UnlitMaterialCache();
+
+        private static IEnumerable<Renderer> VisibleRenderers(Camera view)
+        {
+            var planes = GeometryUtility.CalculateFrustumPlanes(view);
+            foreach (var renderer in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (renderer.enabled && GeometryUtility.TestPlanesAABB(planes, renderer.bounds)) yield return renderer;
         }
 
         /// <summary>Largest rect with the given aspect ratio that fits in <paramref name="area"/>, centred.</summary>
@@ -82,6 +96,7 @@ namespace CrimsonDraft.Navigation.Editor
             if (this.camera != null) UnityEngine.Object.DestroyImmediate(this.camera.gameObject);
             this.camera = null;
             this.ReleaseTexture();
+            this.unlitMaterials.Dispose();
         }
 
         private Camera EnsureCamera()

@@ -44,6 +44,7 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int planPixels;
         private Vector2Int viewPixels;
         private double lastRenderTime;
+        private bool unlit = true;
         private bool syncSceneView;
         private (CinemachineCamera? camera, Vector3 position, Quaternion rotation, float fov) lastSynced;
         private bool? legacySpawnsLeft;
@@ -113,9 +114,9 @@ namespace CrimsonDraft.Navigation.Editor
             if (this.syncSceneView) this.SyncSceneViewIfChanged(camera);
 
             if (this.viewMode != ViewMode.Plan && this.viewPixels.x >= 16 && this.viewPixels.y >= 16)
-                this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), unlit: false);
+                this.Viewport.Render(this.viewPixels, view => ZoneViewport.CopyLens(camera, view), this.unlit);
             if (this.viewMode != ViewMode.Camera && room != null && this.planPixels.x >= 16 && this.planPixels.y >= 16)
-                this.PlanViewport.Render(this.planPixels, view => this.SetupPlanCamera(view, room), unlit: false);
+                this.PlanViewport.Render(this.planPixels, view => this.SetupPlanCamera(view, room), this.unlit);
             this.Repaint();
         }
 
@@ -203,8 +204,12 @@ namespace CrimsonDraft.Navigation.Editor
                 }
 
                 this.viewMode = (ViewMode)GUILayout.Toolbar((int)this.viewMode, ViewModeLabels, EditorStyles.toolbarButton, GUILayout.Width(150f));
-                // The tool's own render is lit: unlit only exists inside the Scene view's render, so the
-                // Scene view is put where the camera is and keeps its own shading (e.g. lighting off).
+                // Unlit swaps the level's materials for unlit stand-ins during the tool's own renders.
+                // Look Through puts the Scene view on the camera instead, with the Scene view's own shading.
+                bool unlitBefore = this.unlit;
+                this.unlit = GUILayout.Toggle(this.unlit, new GUIContent("Unlit", "Show the level without lighting: unlit copies of its materials, only while this tool renders."),
+                    EditorStyles.toolbarButton, GUILayout.Width(48f));
+                if (this.unlit != unlitBefore) this.RequestRender();
                 using (new EditorGUI.DisabledScope(this.CurrentCamera == null))
                 {
                     if (GUILayout.Button(new GUIContent("Look Through", "Put the Scene view exactly where the selected camera is, to see it with the Scene view's own shading (lighting off)."),
