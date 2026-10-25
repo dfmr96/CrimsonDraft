@@ -350,55 +350,59 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             this.dividerEnd = new Vector2(1f, 0f);
         }
 
+        /// <summary>Zone gizmos only show for the room being worked on: when its RoomController is selected,
+        /// or while the zone itself is (to keep seeing it while editing it).</summary>
+        public static bool ShouldDrawGizmo(FixedCameraZoneTrigger zone, IEnumerable<GameObject> selection)
+        {
+            var room = zone.GetComponentInParent<CrimsonDraft.Navigation.Rooms.RoomController>(true);
+            foreach (var selected in selection)
+            {
+                if (selected == null) continue;
+                if (selected == zone.gameObject) return true;
+                if (room != null && selected == room.gameObject) return true;
+            }
+            return false;
+        }
+
+        // The floor plane of the zone: filled polygon and its outline, no walls, ceiling or name.
         private void OnDrawGizmos()
         {
             var shape = this.ActiveShape;
             if (shape.Polygon == null || shape.Polygon.Length < 3) return;
+            if (!ShouldDrawGizmo(this, UnityEditor.Selection.gameObjects)) return;
 
             var color = GizmoColorFor(this.zoneCamera);
             bool emphasized = UnityEditor.Selection.Contains(this.gameObject)
                 || (GizmoHighlightCamera != null
                     && (this.zoneCamera == GizmoHighlightCamera || this.positiveSideCamera == GizmoHighlightCamera));
 
-            var fills = new List<Vector3[]>();
-            this.GetCapTriangles(fills);
-            this.GetWallQuads(fills);
-            UnityEditor.Handles.color = new Color(color.r, color.g, color.b, emphasized ? 0.22f : 0.08f);
-            foreach (var face in fills) UnityEditor.Handles.DrawAAConvexPolygon(face);
+            var floor = new Vector3[shape.Polygon.Length];
+            for (int i = 0; i < floor.Length; i++) floor[i] = this.ToWorld(shape.Polygon[i], shape.MinHeight);
 
-            var walls = new List<Vector3[]>();
-            this.GetWallQuads(walls);
+            UnityEditor.Handles.color = new Color(color.r, color.g, color.b, emphasized ? 0.3f : 0.15f);
+            var triangles = CameraZonePolygon.Triangulate(shape.Polygon);
+            for (int i = 0; i + 2 < triangles.Count; i += 3)
+                UnityEditor.Handles.DrawAAConvexPolygon(floor[triangles[i]], floor[triangles[i + 1]], floor[triangles[i + 2]]);
+
             Gizmos.color = color;
-            foreach (var wall in walls)
-            {
-                Gizmos.DrawLine(wall[0], wall[1]);
-                Gizmos.DrawLine(wall[2], wall[3]);
-                Gizmos.DrawLine(wall[0], wall[3]);
-            }
-
-            var center = Vector3.zero;
-            foreach (var point in shape.Polygon) center += this.ToWorld(point, (shape.MinHeight + shape.MaxHeight) * 0.5f);
-            center /= shape.Polygon.Length;
-
-            var label = this.zoneCamera != null ? this.zoneCamera.name : "(no camera)";
-            if (this.useTwoSidedSwitch && this.positiveSideCamera != null) label += " | " + this.positiveSideCamera.name;
-            UnityEditor.Handles.color = color;
-            UnityEditor.Handles.Label(center, label);
+            for (int i = 0; i < floor.Length; i++) Gizmos.DrawLine(floor[i], floor[(i + 1) % floor.Length]);
 
             if (this.useTwoSidedSwitch)
             {
                 float margin = Mathf.Max(0f, this.sideMargin);
-                DrawQuadOutline(this.GetDividerQuad(-margin), GizmoColorFor(this.zoneCamera));
-                DrawQuadOutline(this.GetDividerQuad(margin), GizmoColorFor(this.positiveSideCamera));
-                DrawQuadOutline(this.GetDividerQuad(0f), Color.white);
+                DrawFloorEdge(this.GetDividerQuad(-margin), GizmoColorFor(this.zoneCamera));
+                DrawFloorEdge(this.GetDividerQuad(margin), GizmoColorFor(this.positiveSideCamera));
+                DrawFloorEdge(this.GetDividerQuad(0f), Color.white);
             }
         }
 
-        private static void DrawQuadOutline(Vector3[] quad, Color color)
+        // A divider quad's first two points are its floor edge.
+        private static void DrawFloorEdge(Vector3[] quad, Color color)
         {
             Gizmos.color = color;
-            for (int i = 0; i < 4; i++) Gizmos.DrawLine(quad[i], quad[(i + 1) % 4]);
+            Gizmos.DrawLine(quad[0], quad[1]);
         }
+
 #endif
     }
 }
