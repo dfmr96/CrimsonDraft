@@ -23,21 +23,21 @@ namespace CrimsonDraft.UI.MainMenu
 
         [Header("Botones (orden de aparicion)")]
         [SerializeField] private CanvasGroup[] buttons            = Array.Empty<CanvasGroup>();
-        [SerializeField] private float         buttonFadeDuration = 0.2f;
-        [SerializeField] private float         buttonStagger      = 0.12f;
+        [SerializeField] private float         buttonFadeDuration = 0.3f;
+        [SerializeField] private float         buttonStagger      = 0.22f;
         [SerializeField] private Selectable    firstSelected      = null!;
 
-        // Plays once, the first time the intro hands off to this menu. Later returns to this
-        // canvas (e.g. Back from the New Game submenu) just show the end state instantly --
-        // toggling the parent Title_canva re-fires OnEnable here even though this GameObject's
-        // own active flag never changed.
+        // The bar and logo flicker only play the first time the intro hands off to this menu. Later
+        // returns to this canvas (e.g. Back from a submenu) skip them, but the buttons still appear
+        // one by one, top to bottom -- toggling the parent Title_canva re-fires OnEnable here even
+        // though this GameObject's own active flag never changed.
         private bool hasRevealed;
 
         private void OnEnable()
         {
             if (this.hasRevealed)
             {
-                ShowRevealedInstantly();
+                RevealButtonsAgain();
                 return;
             }
 
@@ -61,21 +61,19 @@ namespace CrimsonDraft.UI.MainMenu
             reveal.AppendCallback(RevealButtons);
         }
 
-        private void ShowRevealedInstantly()
+        private void RevealButtonsAgain()
         {
             if (this.bar != null) this.bar.localScale = Vector3.one;
             if (this.smallLogo != null) SetAlpha(this.smallLogo, 1f);
 
             foreach (var group in this.buttons)
             {
-                group.alpha           = 1f;
-                group.interactable    = true;
-                group.blocksRaycasts  = true;
+                group.alpha          = 0f;
+                group.interactable   = true;
+                group.blocksRaycasts = false;
             }
 
-            var eventSystem = EventSystem.current;
-            if (eventSystem != null && this.firstSelected != null)
-                eventSystem.SetSelectedGameObject(this.firstSelected.gameObject);
+            RevealButtons();
         }
 
         private void OnDisable() => DOTween.Kill(this);
