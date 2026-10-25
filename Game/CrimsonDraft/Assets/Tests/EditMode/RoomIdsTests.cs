@@ -34,5 +34,18 @@ namespace CrimsonDraft.Tests
         [Test]
         public void DeckOfScene_dropsDevelopmentSuffix()
             => Assert.AreEqual("Deck_C", RoomIds.DeckOfScene("Deck_C_Development"));
+
+        [Test]
+        public void FindCollisions_reportsTwoLegacyIdsNormalizingToOne()
+        {
+            var collisions = RoomIds.FindCollisions(new[]
+            {
+                ("Deck_B", "HALLWAY B1"),
+                ("Deck_B", "HALLWAY_B1"),
+                ("Deck_C", "HALLWAY_B1"),
+            });
+
+            CollectionAssert.AreEqual(new[] { "Deck_B/HALLWAY_B1" }, collisions);
+        }
     }
 }

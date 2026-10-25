@@ -225,6 +225,37 @@ Transform:
   - {fileID: 9090586920189876556}
   m_Father: {fileID: 2798130506251528665}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &286687309038162877
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2068966288486823168}
+  m_Layer: 0
+  m_Name: ArrivalPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2068966288486823168
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286687309038162877}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0.90908974, y: 0.9090909, z: 0.013906414}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3342929076944637820}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &305943229263398791
 GameObject:
   m_ObjectHideFlags: 0
@@ -2985,7 +3016,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6eb348b9be7d1904c83811fe436d21fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
-  roomId: INTERROGATION ROOM
+  roomId: Deck_B/INTERROGATION_ROOM
   enemySpawns:
   - enemy: {fileID: 0}
     spawnPoint: {fileID: 0}
@@ -3829,6 +3860,7 @@ GameObject:
   - component: {fileID: 1128025471621734043}
   - component: {fileID: 1166594313356544461}
   - component: {fileID: 8063221669215139266}
+  - component: {fileID: 6790743017630134098}
   m_Layer: 8
   m_Name: DR_241B
   m_TagString: Untagged
@@ -3850,6 +3882,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7176232621108138713}
+  - {fileID: 2068966288486823168}
   m_Father: {fileID: 8511934229657782512}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!65 &1128025471621734043
@@ -3887,8 +3920,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.RoomDoorInteractable
   doorId: DR_241B
   data: {fileID: 11400000, guid: 0b7c674dd4ab9cc4a80484e38cb0a03b, type: 2}
-  destination: {fileID: 0}
+  destinationRoomId: Deck_B/HALLWAY_B1
   doorTransitionPrefab: {fileID: 1766850413181354858, guid: 0f696ed5f051adb47b2fd5a00796bc64, type: 3}
+  destination: {fileID: 0}
+  unlocksOnCross: {fileID: 0}
   doorLockedEvent:
     idInternal: 0
     valueGuidInternal: 
@@ -3898,7 +3933,9 @@ MonoBehaviour:
   mechanismLockedDialogue:
     project: {fileID: 0}
     nodeName: 
-  unlocksOnCross: {fileID: 0}
+  unlocksOnCrossRef:
+    roomId: 
+    doorId: 
   unlocksOnCrossDialogue:
     project: {fileID: 0}
     nodeName: 
@@ -3918,6 +3955,20 @@ MonoBehaviour:
   mapRotation: 0
   size: {x: 1, y: 0.25}
   excludeFromMap: 1
+--- !u!114 &6790743017630134098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3702538681459487987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7d348a25760e054484066148ecff98c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.DoorArrival
+  arrivalPoint: {fileID: 2068966288486823168}
+  arrivalCamera: {fileID: 6582538467043394998}
 --- !u!1 &3733904655222779402
 GameObject:
   m_ObjectHideFlags: 0
@@ -8944,6 +8995,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1602799262341132748, guid: 912b6ac18a3ba0f44af6954217a507d4, type: 3}
   m_PrefabInstance: {fileID: 3427703599309848135}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6582538467043394998 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8415109629163846641, guid: 912b6ac18a3ba0f44af6954217a507d4, type: 3}
+  m_PrefabInstance: {fileID: 3427703599309848135}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!1001 &4625018812346206366
 PrefabInstance:
   m_ObjectHideFlags: 0

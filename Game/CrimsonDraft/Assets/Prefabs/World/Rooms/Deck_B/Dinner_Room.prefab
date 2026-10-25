@@ -2555,7 +2555,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6eb348b9be7d1904c83811fe436d21fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Rooms.RoomController
-  roomId: DINNER_ROOM
+  roomId: Deck_B/DINNER_ROOM
   enemySpawns: []
 --- !u!1 &6536059661548862970
 GameObject:
@@ -4875,6 +4875,10 @@ PrefabInstance:
     - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
       propertyPath: doorId
       value: DR_32B
+      objectReference: {fileID: 0}
+    - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
+      propertyPath: destinationRoomId
+      value: Deck_B/KITCHEN
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -7487,6 +7491,18 @@ PrefabInstance:
     - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
       propertyPath: doorId
       value: DR_72B
+      objectReference: {fileID: 0}
+    - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
+      propertyPath: destinationRoomId
+      value: Deck_B/HALLWAY_U
+      objectReference: {fileID: 0}
+    - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
+      propertyPath: unlocksOnCrossRef.doorId
+      value: DR_0072
+      objectReference: {fileID: 0}
+    - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
+      propertyPath: unlocksOnCrossRef.roomId
+      value: Deck_B/HALLWAY_U
       objectReference: {fileID: 0}
     - target: {fileID: 8091008905293563169, guid: 2a6abb0d15378774a98127fafff2151a, type: 3}
       propertyPath: unlocksOnCrossDialogue.project

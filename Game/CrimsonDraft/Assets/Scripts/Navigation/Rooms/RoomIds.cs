@@ -36,6 +36,19 @@ namespace CrimsonDraft.Navigation.Rooms
             return deck + "/" + room;
         }
 
+        /// <summary>New ids that more than one room would get, so a migration can refuse to merge rooms.</summary>
+        public static IReadOnlyList<string> FindCollisions(IEnumerable<(string deck, string legacyId)> rooms)
+        {
+            var seen       = new HashSet<string>();
+            var collisions = new List<string>();
+            foreach (var (deck, legacyId) in rooms)
+            {
+                var id = Normalize(deck, legacyId);
+                if (!seen.Add(id) && !collisions.Contains(id)) collisions.Add(id);
+            }
+            return collisions;
+        }
+
         public static bool IsWellFormed(string id) => !string.IsNullOrEmpty(id) && WellFormed.IsMatch(id);
 
         public static string? DeckOf(string id)
