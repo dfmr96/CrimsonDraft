@@ -29,7 +29,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnEnable()
         {
-            // MainMenuCameraTravel toggles this panel via SetActive() on every visit, but the
+            // MainMenuPanelNavigator toggles this panel via SetActive() on every visit, but the
             // Slider's own m_Value only reflects whatever it was last left at (or its serialized
             // editor default) -- it never tracked Gamma set from the Options knob. Without this,
             // the handle could sit far from the real persisted value, so the first nudge here

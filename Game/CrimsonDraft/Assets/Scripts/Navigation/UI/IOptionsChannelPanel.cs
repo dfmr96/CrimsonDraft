@@ -26,5 +26,11 @@ namespace CrimsonDraft.Navigation.UI
 
         /// <summary>Confirm pressed while this channel is selected.</summary>
         void Confirm(int index);
+
+        /// <summary>
+        /// Rect the main menu's selection strip should glide to for this channel (a thin child
+        /// under the text or slider), or null when the panel has none -- the pause menu doesn't use one.
+        /// </summary>
+        UnityEngine.RectTransform? GetSelectorAnchor(int index) => null;
     }
 }

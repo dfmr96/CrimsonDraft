@@ -775,6 +775,124 @@
 							</ChildrenList>
 							<ObjectLists/>
 						</RandomSequenceContainer>
+						<Sound Name="Rain_menu" ID="{4578C270-87AA-41A0-A4CD-8035D44200F1}" ShortID="673840225">
+							<PropertyList>
+								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+								<Property Name="Volume" Type="Real64">
+									<ValueList>
+										<Value>15</Value>
+									</ValueList>
+								</Property>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="Rain_menu" ID="{BAB08F47-56BD-48D9-9049-78D8C676DFE2}">
+									<Language>SFX</Language>
+									<AudioFile>Rain_menu.wav</AudioFile>
+									<MediaIDList>
+										<MediaID ID="213612438"/>
+									</MediaIDList>
+								</AudioFileSource>
+							</ChildrenList>
+							<ObjectLists/>
+							<ActiveSourceList>
+								<ActiveSource Name="Rain_menu" ID="{BAB08F47-56BD-48D9-9049-78D8C676DFE2}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+						<Sound Name="Thunder_menu" ID="{81804694-81F7-4CA4-B4B1-08DC2218E4AE}" ShortID="307639189">
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="Thunder_menu" ID="{23D03151-C46E-4AAB-AA82-DB1062483E57}">
+									<PropertyList>
+										<Property Name="FadeOutDuration" Type="Real64" Value="0.6"/>
+										<Property Name="TrimEnd" Type="Real64" Value="3"/>
+									</PropertyList>
+									<Language>SFX</Language>
+									<AudioFile>Thunder_menu.wav</AudioFile>
+									<MediaIDList>
+										<MediaID ID="171847248"/>
+									</MediaIDList>
+								</AudioFileSource>
+							</ChildrenList>
+							<ObjectLists/>
+							<ActiveSourceList>
+								<ActiveSource Name="Thunder_menu" ID="{23D03151-C46E-4AAB-AA82-DB1062483E57}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+						<Sound Name="Storm_Start" ID="{BC9C31AB-7675-4A6C-9A7E-446DE87B9B34}" ShortID="136221995">
+							<PropertyList>
+								<Property Name="Volume" Type="Real64">
+									<ValueList>
+										<Value>-10</Value>
+									</ValueList>
+								</Property>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="START_SOUND" ID="{DB12E561-68E5-442C-ACC5-1FAC5421D022}">
+									<PropertyList>
+										<Property Name="FadeOutDuration" Type="Real64" Value="0.6"/>
+										<Property Name="TrimEnd" Type="Real64" Value="3"/>
+									</PropertyList>
+									<Language>SFX</Language>
+									<AudioFile>START_SOUND.wav</AudioFile>
+									<MediaIDList>
+										<MediaID ID="399514250"/>
+									</MediaIDList>
+								</AudioFileSource>
+							</ChildrenList>
+							<ObjectLists/>
+							<ActiveSourceList>
+								<ActiveSource Name="START_SOUND" ID="{DB12E561-68E5-442C-ACC5-1FAC5421D022}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
+						<Sound Name="Settings_music" ID="{FDD31A3A-9366-4B14-8F7E-23D1F2C54BAB}" ShortID="501748521">
+							<PropertyList>
+								<Property Name="IsLoopingEnabled" Type="bool" Value="True"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Conversion">
+									<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{0740159C-2135-4214-A587-646E658676CF}"/>
+								</Reference>
+								<Reference Name="OutputBus">
+									<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{17FC4104-153F-42DB-83E6-3E8EDDC8F12B}"/>
+								</Reference>
+							</ReferenceList>
+							<ChildrenList>
+								<AudioFileSource Name="Settings_music" ID="{35E8D0F5-41C4-40AD-AB1C-6CF52D9713C8}">
+									<Language>SFX</Language>
+									<AudioFile>Settings_music.wav</AudioFile>
+									<MediaIDList>
+										<MediaID ID="478489567"/>
+									</MediaIDList>
+								</AudioFileSource>
+							</ChildrenList>
+							<ObjectLists/>
+							<ActiveSourceList>
+								<ActiveSource Name="Settings_music" ID="{35E8D0F5-41C4-40AD-AB1C-6CF52D9713C8}" Platform="Linked"/>
+							</ActiveSourceList>
+						</Sound>
 					</ChildrenList>
 					<ObjectLists/>
 				</ActorMixer>

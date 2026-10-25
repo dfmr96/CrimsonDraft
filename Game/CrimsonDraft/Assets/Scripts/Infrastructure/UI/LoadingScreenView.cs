@@ -21,6 +21,7 @@ namespace CrimsonDraft.Infrastructure.UI
         }
 
         private const float DotInterval = 0.35f;
+        private const float MaxAnimationStep = 1f / 20f;
 
         [SerializeField] private GameObject root            = null!;
         [SerializeField] private TMP_Text   quoteText       = null!;
@@ -58,7 +59,7 @@ namespace CrimsonDraft.Infrastructure.UI
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxAnimationStep); // a hitch must not skip the fade
                 SetAlpha(Mathf.Lerp(from, to, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration))));
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }

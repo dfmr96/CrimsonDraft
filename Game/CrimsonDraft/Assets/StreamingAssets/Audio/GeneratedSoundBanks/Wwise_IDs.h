@@ -38,7 +38,11 @@ namespace AK
         static const AkUniqueID PLAY_UI_MAINMENU_KNOBLIMIT = 1350620445U;
         static const AkUniqueID PLAY_UI_MAINMENU_KNOBTICK = 1794575571U;
         static const AkUniqueID PLAY_UI_MAINMENU_PANELTRAVEL = 2987736382U;
+        static const AkUniqueID PLAY_UI_MAINMENU_RAIN = 3389128002U;
+        static const AkUniqueID PLAY_UI_MAINMENU_SETTINGS = 2796238535U;
         static const AkUniqueID PLAY_UI_MAINMENU_START = 907179948U;
+        static const AkUniqueID PLAY_UI_MAINMENU_STORMSTART = 1286944817U;
+        static const AkUniqueID PLAY_UI_MAINMENU_THUNDER = 4048404086U;
         static const AkUniqueID PLAY_UI_MAPOPEN = 2183478263U;
         static const AkUniqueID PLAY_UI_NOTE_PAGETURN = 1208818302U;
         static const AkUniqueID PLAY_UI_NOTE_PAPEROPEN = 1569393320U;

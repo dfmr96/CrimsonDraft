@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using CrimsonDraft.Infrastructure.UI;
 using TMPro;
 using UnityEngine;
 
@@ -26,6 +27,12 @@ namespace CrimsonDraft.Infrastructure.Save.UI
         [SerializeField] private TextMeshProUGUI confirmSaveNameLabel = null!;
         [SerializeField] private ManualSelectScale yesOption = null!;
         [SerializeField] private ManualSelectScale noOption = null!;
+
+        [Header("Selection strip (optional -- unset in the save room)")]
+        [Tooltip("Una sola tira que cicla entre slots y entre Yes/No. Vacio = solo la escala de ManualSelectScale.")]
+        [SerializeField] private SelectionCursor? selector;
+        [SerializeField] private RectTransform? yesAnchor;
+        [SerializeField] private RectTransform? noAnchor;
 
         [Header("Save room (optional -- unset on the main menu)")]
         [Tooltip("Confirm_section/Title. When set, it asks 'Save to this slot?' / 'Overwrite this save?' instead of keeping its authored text.")]
@@ -55,6 +62,9 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             int count = Mathf.Min(slots.Count, this.rows.Length);
             for (int i = 0; i < count; i++)
                 this.rows[i].Bind(slots[i], isSelected: i == cursorIndex);
+
+            if (this.selector != null && cursorIndex < count)
+                this.selector.FollowOrHide(this.rows[cursorIndex].SelectorAnchor);
         }
 
         public void ShowConfirm(SaveSlotSummary summary, string confirmVerb)
@@ -85,11 +95,13 @@ namespace CrimsonDraft.Infrastructure.Save.UI
             this.IsYesSelected = yesSelected;
             this.yesOption.SetSelected(yesSelected);
             this.noOption.SetSelected(!yesSelected);
+            this.selector?.FollowOrHide(yesSelected ? this.yesAnchor : this.noAnchor);
         }
 
         public void Hide()
         {
             HideSections();
+            this.selector?.SetVisible(false);
             if (this.toggleOwnGameObject) gameObject.SetActive(false);
         }
 

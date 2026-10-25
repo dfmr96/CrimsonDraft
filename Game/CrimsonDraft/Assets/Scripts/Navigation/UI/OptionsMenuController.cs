@@ -23,6 +23,8 @@ namespace CrimsonDraft.UI.MainMenu
             [SerializeField] public TextMeshProUGUI label      = null!;
             [SerializeField] public TextMeshProUGUI valueLabel = null!;
             [SerializeField] public Image?          underline;
+            [Tooltip("Rect bajo el canal donde se posa la tira de seleccion del menu.")]
+            [SerializeField] public RectTransform?  selectorAnchor;
 
             [NonSerialized] public Color labelColor;
             [NonSerialized] public Color valueColor;
@@ -94,6 +96,8 @@ namespace CrimsonDraft.UI.MainMenu
         public bool RepeatsOnHold(int index) => true;
 
         public void Confirm(int index) { }
+
+        public RectTransform? GetSelectorAnchor(int index) => this.channels[index].selectorAnchor;
 
         public void ShowOutline(int index)
         {
