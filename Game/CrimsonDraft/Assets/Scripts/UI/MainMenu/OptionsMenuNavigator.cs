@@ -1,6 +1,7 @@
 #nullable enable
 
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Navigation.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -38,6 +39,11 @@ namespace CrimsonDraft.UI.MainMenu
         [SerializeField] private GameObject buttonsRoot = null!;
         [Tooltip("Options_panel: se prende solo mientras hay una pestaña abierta.")]
         [SerializeField] private GameObject contentRoot = null!;
+
+        [Tooltip("Glitch de CRT (el mismo del Bio del inventario) que refresca la vista al pasar de los botones al contenido de una pestaña y al volver. Opcional.")]
+        [SerializeField] private CardSwitchGlitch? glitch;
+        [Tooltip("Tira de seleccion del contenido de las pestañas (Options_panel). Opcional.")]
+        [SerializeField] private SelectionCursor? selector;
 
         [Header("Hold-to-repeat (Left/Right on a channel)")]
         [SerializeField] private float initialRepeatDelay = 0.35f;
@@ -84,9 +90,15 @@ namespace CrimsonDraft.UI.MainMenu
         /// <summary>Shows level 1 (the three buttons) with the first one selected.</summary>
         public void Open()
         {
-            this.isOpen = true;
-            ShowButtons(0);
+            this.isOpen    = true;
+            this.inContent = false;
+            HideAllOutlines();
+            this.selector?.SetVisible(false);
+            ShowButtonsNow(0);
         }
+
+        // The view is being refreshed (glitch): the old content is still on screen until the peak.
+        private bool Switching => this.glitch != null && this.glitch.IsPlaying;
 
         public void Close()
         {
@@ -94,6 +106,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.inContent               = false;
             this.heldHorizontalDirection = 0;
             HideAllOutlines();
+            this.selector?.SetVisible(false);
         }
 
         /// <summary>Cancel pressed while Options is open. Returns true if it only went back from a
@@ -101,6 +114,7 @@ namespace CrimsonDraft.UI.MainMenu
         public bool TryGoBack()
         {
             if (!this.isOpen || !this.inContent) return false;
+            if (this.Switching) return true; // already going back / forth: swallow this Cancel
 
             this.sfx.PlayCancel(gameObject);
             this.heldHorizontalDirection = 0;
@@ -112,7 +126,22 @@ namespace CrimsonDraft.UI.MainMenu
         {
             this.inContent = false;
             HideAllOutlines();
+            this.selector?.SetVisible(false);
 
+            // Coming back from a tab's content: the view refreshes (glitch) and swaps at its peak.
+            if (this.glitch != null && this.contentRoot.activeSelf)
+            {
+                this.glitch.Play(() =>
+                {
+                    if (this.isOpen && !this.inContent) ShowButtonsNow(selectedTab);
+                });
+                return;
+            }
+            ShowButtonsNow(selectedTab);
+        }
+
+        private void ShowButtonsNow(int selectedTab)
+        {
             this.contentRoot.SetActive(false);
             this.buttonsRoot.SetActive(true);
             EventSystem.current?.SetSelectedGameObject(this.tabs[selectedTab].button.gameObject);
@@ -120,7 +149,7 @@ namespace CrimsonDraft.UI.MainMenu
 
         private void OnTabButtonPressed(int tab)
         {
-            if (!this.isOpen || this.inContent) return;
+            if (!this.isOpen || this.inContent || this.Switching) return;
             this.sfx.PlayDecide(gameObject);
 
             // Same reason as MainMenuPanelNavigator: don't let this Confirm also drive the content.
@@ -136,6 +165,22 @@ namespace CrimsonDraft.UI.MainMenu
             this.inContent = true;
 
             EventSystem.current?.SetSelectedGameObject(null);
+            this.selector?.SetVisible(false);
+
+            // The buttons view refreshes (glitch) and the tab's content takes over at its peak.
+            if (this.glitch != null)
+            {
+                this.glitch.Play(() =>
+                {
+                    if (this.isOpen && this.inContent) ShowContentNow(tab);
+                });
+                return;
+            }
+            ShowContentNow(tab);
+        }
+
+        private void ShowContentNow(int tab)
+        {
             this.buttonsRoot.SetActive(false);
             this.contentRoot.SetActive(true);
             for (int i = 0; i < this.tabs.Length; i++)
@@ -143,8 +188,16 @@ namespace CrimsonDraft.UI.MainMenu
 
             var panel = Panel(tab);
             this.contentIndex = NextSelectable(panel, -1, 1);
-            if (this.contentIndex >= 0) panel.ShowOutline(this.contentIndex);
+            if (this.contentIndex >= 0)
+            {
+                panel.ShowOutline(this.contentIndex);
+                this.selector?.FollowOrHide(panel.GetSelectorAnchor(this.contentIndex), snap: true);
+            }
         }
+
+        // The anchor can change without the channel changing (a Left/Right inside a Control row).
+        private void RefreshSelector() =>
+            this.selector?.FollowOrHide(Panel(this.activeTab).GetSelectorAnchor(this.contentIndex));
 
         private void HideAllOutlines()
         {
@@ -179,7 +232,7 @@ namespace CrimsonDraft.UI.MainMenu
         // Level 1 needs no handling here: the buttons are moved by the EventSystem selection.
         private void OnNavigate(InputAction.CallbackContext ctx)
         {
-            if (!this.isOpen || !this.inContent || this.contentIndex < 0) return;
+            if (!this.isOpen || !this.inContent || this.Switching || this.contentIndex < 0) return;
 
             var direction = ctx.ReadValue<Vector2>();
             var panel     = Panel(this.activeTab);
@@ -193,6 +246,7 @@ namespace CrimsonDraft.UI.MainMenu
                 this.contentIndex = next;
                 this.sfx.PlayCursor(gameObject);
                 panel.ShowOutline(this.contentIndex);
+                RefreshSelector();
                 return;
             }
 
@@ -204,14 +258,16 @@ namespace CrimsonDraft.UI.MainMenu
             }
 
             panel.Adjust(this.contentIndex, horizontalDelta);
+            RefreshSelector();
             this.heldHorizontalDirection = horizontalDelta;
             this.horizontalRepeatTimer   = this.initialRepeatDelay;
         }
 
         private void OnConfirm(InputAction.CallbackContext _)
         {
-            if (!this.isOpen || !this.inContent || this.contentIndex < 0) return;
+            if (!this.isOpen || !this.inContent || this.Switching || this.contentIndex < 0) return;
             Panel(this.activeTab).Confirm(this.contentIndex);
+            this.selector?.Flash();
         }
 
         // Next selectable channel from `from` stepping by `delta`, without wrapping; -1 if none.

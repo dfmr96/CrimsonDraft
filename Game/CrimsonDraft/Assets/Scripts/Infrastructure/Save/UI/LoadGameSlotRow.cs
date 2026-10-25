@@ -15,8 +15,13 @@ namespace CrimsonDraft.Infrastructure.Save.UI
     [RequireComponent(typeof(RectTransform), typeof(TextMeshProUGUI), typeof(ManualSelectScale))]
     public sealed class LoadGameSlotRow : MonoBehaviour
     {
+        [Tooltip("Rect bajo el texto donde se posa la tira de seleccion (si la vista tiene una). Su Image va apagada.")]
+        [SerializeField] private RectTransform? selectorAnchor;
+
         private TextMeshProUGUI label = null!;
         private ManualSelectScale scaler = null!;
+
+        public RectTransform? SelectorAnchor => this.selectorAnchor;
 
         private void Awake()
         {

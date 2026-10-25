@@ -2,6 +2,7 @@
 
 using CrimsonDraft.Navigation.UI;
 using CrimsonDraft.Infrastructure.Input;
+using CrimsonDraft.Infrastructure.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -36,6 +37,8 @@ namespace CrimsonDraft.UI.MainMenu
         [Tooltip("Texto del boton: dice 'Next' en el paso 1 y 'Start' en el paso 2.")]
         [SerializeField] private TextMeshProUGUI buttonLabel = null!;
         [SerializeField] private MainMenuController mainMenu = null!;
+        [Tooltip("Tira de seleccion de la pantalla New Game. Opcional.")]
+        [SerializeField] private SelectionCursor? selector;
         [SerializeField] private string nextText  = "Next";
         [SerializeField] private string startText = "Start";
 
@@ -47,9 +50,9 @@ namespace CrimsonDraft.UI.MainMenu
         private static readonly int[] OrderWithStart    = { 2, 0, 1 };
         private static readonly int[] OrderWithoutStart = { 0, 1 };
 
-        // Step 2 has only two stops: the gamma bar, then the button.
-        private const int GammaItem  = 0;
-        private const int StartItem  = 1;
+        // Step 2 has only two stops, top to bottom as laid out: the button, then the gamma bar.
+        private const int StartItem  = 0;
+        private const int GammaItem  = 1;
 
         private bool isOpen;
         private Step step;
@@ -92,6 +95,7 @@ namespace CrimsonDraft.UI.MainMenu
             this.isOpen = false;
             this.panel.HideOutlines();
             this.gammaPanel.HideOutlines();
+            this.selector?.SetVisible(false);
         }
 
         /// <summary>Cancel pressed while New Game is open. Returns true if it only went back from
@@ -118,25 +122,28 @@ namespace CrimsonDraft.UI.MainMenu
             {
                 this.position = System.Array.IndexOf(this.Order, 0); // start on the Classic/Modern row
                 this.panel.ShowOutline(this.Channel);
+                this.selector?.FollowOrHide(this.panel.GetSelectorAnchor(this.Channel), snap: true);
             }
             else
             {
                 this.position = GammaItem;
-                ShowGammaItem();
+                ShowGammaItem(snap: true);
             }
         }
 
-        private void ShowGammaItem()
+        private void ShowGammaItem(bool snap = false)
         {
             if (this.position == GammaItem)
             {
                 this.panel.HideOutlines();
                 this.gammaPanel.ShowOutline(0);
+                this.selector?.FollowOrHide(this.gammaPanel.GetSelectorAnchor(0), snap);
             }
             else
             {
                 this.gammaPanel.HideOutlines();
                 this.panel.ShowOutline(2); // the button's hover cue lives on the controls panel
+                this.selector?.FollowOrHide(this.panel.GetSelectorAnchor(2), snap);
             }
         }
 
@@ -154,7 +161,11 @@ namespace CrimsonDraft.UI.MainMenu
                 this.position = next;
                 this.sfx.PlayCursor(gameObject);
 
-                if (this.step == Step.Controls) this.panel.ShowOutline(this.Channel);
+                if (this.step == Step.Controls)
+                {
+                    this.panel.ShowOutline(this.Channel);
+                    this.selector?.FollowOrHide(this.panel.GetSelectorAnchor(this.Channel));
+                }
                 else ShowGammaItem();
                 return;
             }
@@ -162,13 +173,18 @@ namespace CrimsonDraft.UI.MainMenu
             int horizontal = direction.x > 0.5f ? 1 : direction.x < -0.5f ? -1 : 0;
             if (horizontal == 0) return;
 
-            if (this.step == Step.Controls) this.panel.Adjust(this.Channel, horizontal);
+            if (this.step == Step.Controls)
+            {
+                this.panel.Adjust(this.Channel, horizontal);
+                this.selector?.FollowOrHide(this.panel.GetSelectorAnchor(this.Channel));
+            }
             else if (this.position == GammaItem) this.gammaPanel.Adjust(0, horizontal);
         }
 
         private void OnConfirm(InputAction.CallbackContext _)
         {
             if (!this.isOpen) return;
+            this.selector?.Flash();
 
             if (this.step == Step.Controls)
                 this.panel.Confirm(this.Channel); // channel 2 invokes the button's onClick -> OnButtonPressed

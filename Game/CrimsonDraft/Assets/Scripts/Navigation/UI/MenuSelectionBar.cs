@@ -1,5 +1,6 @@
 #nullable enable
 
+using CrimsonDraft.Infrastructure.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -18,7 +19,7 @@ namespace CrimsonDraft.UI.MainMenu
     /// through <see cref="Follow"/> / <see cref="SetConfirmed"/> / <see cref="Flash"/>.
     /// </summary>
     [RequireComponent(typeof(Image))]
-    public sealed class MenuSelectionBar : MonoBehaviour
+    public sealed class MenuSelectionBar : SelectionCursor
     {
         [Header("Follow")]
         [Tooltip("Botones que la barra sigue por seleccion del EventSystem. Vacio = la maneja un controlador por codigo.")]
@@ -41,7 +42,8 @@ namespace CrimsonDraft.UI.MainMenu
         private CanvasGroup?   targetGroup;
         private bool           snapNext = true;
         private bool           confirmed;
-        private float          flash;      // 1 right after Flash(), decays to 0
+        private bool           visible = true;
+        private float          flash;     // 1 right after Flash(), decays to 0
         private float          whiteAmount;
         private float          alpha;
 
@@ -88,7 +90,21 @@ namespace CrimsonDraft.UI.MainMenu
         public void SetConfirmed(bool value) => this.confirmed = value;
 
         /// <summary>Brief white pulse that fades back to green.</summary>
-        public void Flash() => this.flash = 1f;
+        public override void Flash() => this.flash = 1f;
+
+        /// <summary>Fades the bar out/in. Coming back from hidden jumps to the target instead of
+        /// gliding from wherever it was left.</summary>
+        public override void SetVisible(bool value)
+        {
+            if (value && !this.visible) this.snapNext = true;
+            this.visible = value;
+        }
+
+        public override void FollowOrHide(RectTransform? anchor, bool snap = false)
+        {
+            SetVisible(anchor != null);
+            if (anchor != null) Follow(anchor, snap);
+        }
 
         private void LateUpdate()
         {
@@ -109,6 +125,8 @@ namespace CrimsonDraft.UI.MainMenu
                 }
                 targetAlpha = selected < 0 ? 0f : this.normalColor.a * (this.targetGroup != null ? this.targetGroup.alpha : 1f);
             }
+
+            if (!this.visible) targetAlpha = 0f;
 
             this.flash = Mathf.Max(0f, this.flash - dt / Mathf.Max(0.0001f, this.flashDuration));
 
