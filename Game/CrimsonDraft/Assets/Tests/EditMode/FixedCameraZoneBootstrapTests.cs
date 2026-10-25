@@ -51,25 +51,11 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ZoneNextToTwoSidedZone_doesNotStickToTheTwoSidedCamera()
-        {
-            var z1 = MakeCamera("Z1");
-            var z2 = MakeCamera("Z2");
-            var y = MakeCamera("Y");
-            var bootstrap = MakeBootstrap(MakeZone(-4, 0, z1, z2), MakeZone(0, 4, y));
-
-            var seen = Walk(bootstrap, -1f, -2f, -0.2f, 0.3f, 0.7f, 3f);
-
-            CollectionAssert.AreEqual(new[] { z1, z1, y, y, y }, seen);
-        }
-
-        [Test]
         public void InspectionShot_isNotReplacedByZones()
         {
             var z1 = MakeCamera("Z1");
-            var z2 = MakeCamera("Z2");
             var inspect = MakeCamera("Inspect");
-            var bootstrap = MakeBootstrap(MakeZone(-4, 0, z1, z2));
+            var bootstrap = MakeBootstrap(MakeZone(-4, 0, z1));
             Walk(bootstrap, -1f, -2f);
 
             this.service.ActivateInspectionShot(inspect);
@@ -100,7 +86,7 @@ namespace CrimsonDraft.Tests
 
         private CinemachineCamera MakeCamera(string name) => Track(new GameObject(name)).AddComponent<CinemachineCamera>();
 
-        private FixedCameraZoneTrigger MakeZone(float xMin, float xMax, CinemachineCamera camera, CinemachineCamera? positive = null)
+        private FixedCameraZoneTrigger MakeZone(float xMin, float xMax, CinemachineCamera camera)
         {
             var zone = Track(new GameObject("Zone " + camera.name)).AddComponent<FixedCameraZoneTrigger>();
             var so = new SerializedObject(zone);
@@ -113,13 +99,6 @@ namespace CrimsonDraft.Tests
             polygon.GetArrayElementAtIndex(3).vector2Value = new Vector2(xMax, -2);
             so.FindProperty("minHeight").floatValue = -1f;
             so.FindProperty("maxHeight").floatValue = 3f;
-            if (positive != null)
-            {
-                so.FindProperty("useTwoSidedSwitch").boolValue = true;
-                so.FindProperty("positiveSideCamera").objectReferenceValue = positive;
-                so.FindProperty("dividerStart").vector2Value = new Vector2(xMin, 0);
-                so.FindProperty("dividerEnd").vector2Value = new Vector2(xMax, 0);
-            }
             so.ApplyModifiedPropertiesWithoutUndo();
             return zone;
         }

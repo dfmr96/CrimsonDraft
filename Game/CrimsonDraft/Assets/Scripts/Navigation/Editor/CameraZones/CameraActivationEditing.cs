@@ -32,32 +32,31 @@ namespace CrimsonDraft.Navigation.Editor
             var go = new GameObject("FixedCameraZoneTrigger_" + camera.name);
             Undo.RegisterCreatedObjectUndo(go, "Create Camera Trigger");
             go.transform.SetParent(parent, false);
-            go.transform.SetPositionAndRotation(FloorPointFor(camera, room), Quaternion.identity);
+            var floor = FloorPointFor(camera, room);
+            go.transform.SetPositionAndRotation(floor, Quaternion.identity);
 
+            // The polygon lives in the parent's space: a 2x2 square around the floor point.
+            var center = parent.InverseTransformPoint(floor);
             var zone = go.AddComponent<FixedCameraZoneTrigger>();
             var so = new SerializedObject(zone);
             so.FindProperty("zoneCamera").objectReferenceValue = camera;
-            so.FindProperty("useTwoSidedSwitch").boolValue = false;
             var polygon = so.FindProperty("polygon");
             polygon.arraySize = 4;
-            polygon.GetArrayElementAtIndex(0).vector2Value = new Vector2(-1f, -1f);
-            polygon.GetArrayElementAtIndex(1).vector2Value = new Vector2(-1f, 1f);
-            polygon.GetArrayElementAtIndex(2).vector2Value = new Vector2(1f, 1f);
-            polygon.GetArrayElementAtIndex(3).vector2Value = new Vector2(1f, -1f);
-            so.FindProperty("minHeight").floatValue = -0.5f;
-            so.FindProperty("maxHeight").floatValue = 3f;
+            polygon.GetArrayElementAtIndex(0).vector2Value = new Vector2(center.x - 1f, center.z - 1f);
+            polygon.GetArrayElementAtIndex(1).vector2Value = new Vector2(center.x - 1f, center.z + 1f);
+            polygon.GetArrayElementAtIndex(2).vector2Value = new Vector2(center.x + 1f, center.z + 1f);
+            polygon.GetArrayElementAtIndex(3).vector2Value = new Vector2(center.x + 1f, center.z - 1f);
+            so.FindProperty("minHeight").floatValue = center.y - 0.5f;
+            so.FindProperty("maxHeight").floatValue = center.y + 3f;
             so.ApplyModifiedPropertiesWithoutUndo();
             return zone;
         }
 
-        /// <summary>Makes <paramref name="keep"/> the activation trigger of <paramref name="camera"/> only:
-        /// single-sided, no divider camera.</summary>
+        /// <summary>Makes <paramref name="keep"/> the activation trigger of <paramref name="camera"/>.</summary>
         public static void KeepOnly(FixedCameraZoneTrigger keep, CinemachineCamera camera)
         {
             var so = new SerializedObject(keep);
             so.FindProperty("zoneCamera").objectReferenceValue = camera;
-            so.FindProperty("useTwoSidedSwitch").boolValue = false;
-            so.FindProperty("positiveSideCamera").objectReferenceValue = null;
             so.ApplyModifiedProperties();
         }
 

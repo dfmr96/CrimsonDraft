@@ -43,10 +43,10 @@ namespace CrimsonDraft.Tests
 
             var zone = Track(CameraActivationEditing.CreateTrigger(camera, this.room));
 
-            Assert.That(Vector3.Distance(zone.transform.position, Origin + new Vector3(2f, 0f, 3f)), Is.LessThan(1e-3f));
             Assert.AreSame(camera, zone.ZoneCamera);
-            Assert.IsFalse(zone.UseTwoSidedSwitch);
-            CollectionAssert.AreEqual(new[] { new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1) }, zone.Polygon);
+            Assert.IsTrue(zone.Contains(Origin + new Vector3(2f, 0.5f, 3f)), "square around the look point");
+            Assert.IsTrue(zone.Contains(Origin + new Vector3(2.9f, 0.5f, 3.9f)));
+            Assert.IsFalse(zone.Contains(Origin + new Vector3(4f, 0.5f, 3f)), "2x2, not larger");
             Assert.AreEqual("Cameras", zone.transform.parent.name);
             Assert.AreSame(this.room.transform, zone.transform.parent.parent);
         }
@@ -65,8 +65,9 @@ namespace CrimsonDraft.Tests
 
             var zone = Track(CameraActivationEditing.CreateTrigger(camera, this.room));
 
-            Assert.That(zone.transform.position.y, Is.EqualTo(Origin.y).Within(1e-3f), "zone must sit on the floor, not on the wall");
-            Assert.That(zone.transform.position.z, Is.LessThan(Origin.z + 6f), "in front of the wall");
+            var center = zone.ToWorld(zone.Centroid, zone.MinHeight + 0.5f);
+            Assert.That(center.y, Is.EqualTo(Origin.y).Within(1e-3f), "zone must sit on the floor, not on the wall");
+            Assert.That(center.z, Is.LessThan(Origin.z + 6f), "in front of the wall");
         }
 
         [Test]
@@ -77,25 +78,22 @@ namespace CrimsonDraft.Tests
 
             var zone = Track(CameraActivationEditing.CreateTrigger(camera, this.room));
 
-            Assert.That(Vector3.Distance(zone.transform.position, Origin + new Vector3(0f, 3f, 0f)), Is.LessThan(1e-3f));
+            Assert.That(Vector3.Distance(zone.ToWorld(zone.Centroid, zone.MinHeight + 0.5f), Origin + new Vector3(0f, 3f, 0f)), Is.LessThan(1e-3f));
         }
 
         [Test]
-        public void KeepOnly_turnsTwoSidedIntoSingleForThatCamera()
+        public void KeepOnly_pointsTheZoneAtThatCamera()
         {
             var a = MakeCamera(Origin, Quaternion.identity);
             var b = MakeCamera(Origin, Quaternion.identity);
             var zone = Track(new GameObject("Zone")).AddComponent<FixedCameraZoneTrigger>();
             var so = new SerializedObject(zone);
             so.FindProperty("zoneCamera").objectReferenceValue = a;
-            so.FindProperty("useTwoSidedSwitch").boolValue = true;
-            so.FindProperty("positiveSideCamera").objectReferenceValue = b;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             CameraActivationEditing.KeepOnly(zone, b);
 
             Assert.AreSame(b, zone.ZoneCamera);
-            Assert.IsFalse(zone.UseTwoSidedSwitch);
             Assert.AreEqual(CameraActivationState.None, CameraActivation.For(a, new[] { zone }).State);
             Assert.AreEqual(CameraActivationState.Ok, CameraActivation.For(b, new[] { zone }).State);
         }

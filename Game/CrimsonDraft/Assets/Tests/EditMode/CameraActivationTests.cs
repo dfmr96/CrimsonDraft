@@ -50,32 +50,6 @@ namespace CrimsonDraft.Tests
             CollectionAssert.AreEquivalent(new[] { first, second }, status.Triggers);
         }
 
-        [Test]
-        public void For_onlyATwoSidedTrigger_isLegacy()
-        {
-            var cam = MakeCamera("A");
-            var zone = MakeZone(cam, MakeCamera("B"));
-            var status = CameraActivation.For(cam, new[] { zone });
-            Assert.AreEqual(CameraActivationState.Legacy, status.State);
-        }
-
-        [Test]
-        public void For_twoSidedAndNormalTrigger_isLegacyListingBoth()
-        {
-            var a = MakeCamera("A");
-            var b = MakeCamera("B");
-            var twoSided = MakeZone(a, b);
-            var normal = MakeZone(a);
-
-            var forA = CameraActivation.For(a, new[] { twoSided, normal });
-            Assert.AreEqual(CameraActivationState.Legacy, forA.State);
-            CollectionAssert.AreEquivalent(new[] { twoSided, normal }, forA.Triggers);
-
-            var forB = CameraActivation.For(b, new[] { twoSided, normal });
-            Assert.AreEqual(CameraActivationState.Legacy, forB.State);
-            CollectionAssert.AreEqual(new[] { twoSided }, forB.Triggers);
-        }
-
         private CinemachineCamera MakeCamera(string name)
         {
             var go = new GameObject(name);
@@ -83,18 +57,13 @@ namespace CrimsonDraft.Tests
             return go.AddComponent<CinemachineCamera>();
         }
 
-        private FixedCameraZoneTrigger MakeZone(CinemachineCamera camera, CinemachineCamera? positive = null)
+        private FixedCameraZoneTrigger MakeZone(CinemachineCamera camera)
         {
             var go = new GameObject("Zone");
             this.created.Add(go);
             var zone = go.AddComponent<FixedCameraZoneTrigger>();
             var so = new SerializedObject(zone);
             so.FindProperty("zoneCamera").objectReferenceValue = camera;
-            if (positive != null)
-            {
-                so.FindProperty("useTwoSidedSwitch").boolValue = true;
-                so.FindProperty("positiveSideCamera").objectReferenceValue = positive;
-            }
             so.ApplyModifiedPropertiesWithoutUndo();
             return zone;
         }

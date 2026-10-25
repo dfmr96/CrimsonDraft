@@ -218,18 +218,6 @@ namespace CrimsonDraft.Navigation.Editor
                 if (!this.cameraMode) this.StopFlying();
                 this.DrawFovField();
 
-                // Zones that still use their BoxCollider work, but can not be edited until converted.
-                var room = this.CurrentRoom;
-                var legacy = room == null ? System.Array.Empty<FixedCameraZoneTrigger>()
-                    : room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: true).Where(t => t.IsLegacyBox).ToArray();
-                if (legacy.Length > 0 && GUILayout.Button($"Convert {legacy.Length} box zone(s)", EditorStyles.toolbarButton))
-                {
-                    Undo.IncrementCurrentGroup();
-                    Undo.SetCurrentGroupName("Convert Camera Zones");
-                    foreach (var trigger in legacy) CameraZoneBoxMigration.Convert(trigger, useUndo: true);
-                    SceneView.RepaintAll();
-                }
-
                 GUILayout.FlexibleSpace();
 
                 using (new EditorGUI.DisabledScope(this.cameras.Length == 0))
@@ -318,8 +306,7 @@ namespace CrimsonDraft.Navigation.Editor
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        var name = trigger.UseTwoSidedSwitch ? trigger.name + " (2-sided)" : trigger.name;
-                        if (GUILayout.Button(name, EditorStyles.label, GUILayout.MinWidth(60f))) EditorGUIUtility.PingObject(trigger);
+                        if (GUILayout.Button(trigger.name, EditorStyles.label, GUILayout.MinWidth(60f))) EditorGUIUtility.PingObject(trigger);
                         if (status.State != CameraActivationState.Legacy) continue;
                         if (GUILayout.Button("Keep", EditorStyles.miniButtonLeft, GUILayout.Width(40f)))
                             EditorApplication.delayCall += () => { CameraActivationEditing.KeepOnly(trigger, camera); this.AfterEdit(trigger); };

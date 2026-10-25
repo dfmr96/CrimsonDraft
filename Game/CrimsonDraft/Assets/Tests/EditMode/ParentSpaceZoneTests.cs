@@ -25,7 +25,6 @@ namespace CrimsonDraft.Tests
             camera.transform.localRotation = Quaternion.Euler(40f, 30f, 0f);
             this.zone = camera.AddComponent<FixedCameraZoneTrigger>();
             var so = new SerializedObject(this.zone);
-            so.FindProperty("polygonInParentSpace").boolValue = true;
             so.FindProperty("minHeight").floatValue = 0f;
             so.FindProperty("maxHeight").floatValue = 2f;
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -82,9 +81,6 @@ namespace CrimsonDraft.Tests
             {
                 loose.transform.SetPositionAndRotation(new Vector3(50f, 5f, 0f), Quaternion.Euler(45f, 0f, 0f));
                 var z = loose.AddComponent<FixedCameraZoneTrigger>();
-                var so = new SerializedObject(z);
-                so.FindProperty("polygonInParentSpace").boolValue = true;
-                so.ApplyModifiedPropertiesWithoutUndo();
                 Assert.IsTrue(z.Contains(new Vector3(0.5f, 1f, 0.5f)));
             }
             finally

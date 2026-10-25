@@ -281,7 +281,7 @@ namespace CrimsonDraft.Navigation.Rooms
 
                 if (trigger.Contains(position))
                 {
-                    var camera = trigger.ResolveCameraAt(position, null);
+                    var camera = trigger.ZoneCamera;
                     if (camera != null) return camera;
                 }
             }
