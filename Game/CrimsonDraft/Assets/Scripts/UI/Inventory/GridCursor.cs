@@ -430,7 +430,7 @@ namespace CrimsonDraft.UI
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx.PlayCancel(this.gameObject);
-                this.contextMenu.Close();
+                if (!this.contextMenu.TryBackFromTargets()) this.contextMenu.Close();
                 return true;
             }
 

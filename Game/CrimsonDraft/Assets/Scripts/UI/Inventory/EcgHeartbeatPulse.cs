@@ -28,9 +28,14 @@ namespace CrimsonDraft.UI
         [SerializeField, Range(0f, 1f)] private float minValue = 0.12f;
         [SerializeField, Range(0f, 1f)] private float maxValue = 0.95f;
 
+        [Header("Heal Flash")]
+        [SerializeField] private Color healFlashColor = Color.white;
+        [SerializeField, Min(0.05f)] private float healFlashDuration = 0.6f;
+
         private Color baseColor;
         private float pulsePeriod;
         private float t;
+        private float healFlashUntil = float.NegativeInfinity;
 
         /// <summary>Un-pulsed color of the current health band (valid after <see cref="SetHealthState"/>).</summary>
         public Color BaseColor => this.baseColor;
@@ -52,6 +57,9 @@ namespace CrimsonDraft.UI
         }
 
         #endregion
+
+        /// <summary>White flash over the background that fades back into the pulse; played when the operator is healed.</summary>
+        public void FlashHeal() => this.healFlashUntil = Time.unscaledTime + this.healFlashDuration;
 
         #region Health State
 
@@ -79,6 +87,8 @@ namespace CrimsonDraft.UI
             var newS = Mathf.Clamp01(s - pulse * this.saturationSwing);
 
             var rgb = Color.HSVToRGB(h, newS, newV);
+            var flashT = Mathf.Clamp01((this.healFlashUntil - Time.unscaledTime) / this.healFlashDuration);
+            if (flashT > 0f) rgb = Color.Lerp(rgb, this.healFlashColor, flashT);
             rgb.a = this.backgroundImage.color.a;
             this.backgroundImage.color = rgb;
         }

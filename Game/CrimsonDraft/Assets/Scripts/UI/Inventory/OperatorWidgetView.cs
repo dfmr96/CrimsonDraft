@@ -138,6 +138,11 @@ namespace CrimsonDraft.UI
         public RectTransform    MeleeSlotRoot => (RectTransform)this.weaponSlot1Root.transform;
         public RectTransform?   MeleeIconRect => this.weaponSlot1Icon != null ? this.weaponSlot1Icon.rectTransform : null;
 
+        public void FlashHeal()
+        {
+            if (this.ecgPulse != null) this.ecgPulse.FlashHeal();
+        }
+
         public void SetEquippedWeapon(WeaponItem? weapon, int slotIndex)
         {
             if (slotIndex == 0 && this.weaponSlot0Root != null)
