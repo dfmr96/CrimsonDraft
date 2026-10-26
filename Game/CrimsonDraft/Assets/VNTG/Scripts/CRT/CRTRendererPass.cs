@@ -99,15 +99,21 @@ namespace ColbyO.VNTG.CRT
         }
 
 #if UNITY_6000_4_OR_NEWER
-        private (bool shouldRefresh, int interlaceOffset) ShouldRefresh(EntityId camID, CRTSettings settings)
+        private (bool shouldRefresh, int interlaceOffset, bool stale) ShouldRefresh(EntityId camID, CRTSettings settings)
 #else
-        private (bool shouldRefresh, int interlaceOffset) ShouldRefresh(int camID, CRTSettings settings)
+        private (bool shouldRefresh, int interlaceOffset, bool stale) ShouldRefresh(int camID, CRTSettings settings)
 #endif
         {
             if (!_cameraLastTimes.TryGetValue(camID, out CameraRefreshState state))
             {
-                state = new CameraRefreshState { accumulatedTime = 0f, interlaceOffset = 0 };
+                state = new CameraRefreshState { accumulatedTime = 0f, interlaceOffset = 0, lastRenderedFrame = -1 };
             }
+
+            // CrimsonDraft: a camera that was switched off (UI camera gating) still holds the frame it
+            // last drew; showing it on its first frames back flashes old UI. Refresh fully instead.
+            bool stale = CRTHistory.IsStale(state.lastRenderedFrame, Time.frameCount);
+            state.lastRenderedFrame = Time.frameCount;
+            if (stale) state.accumulatedTime = 0f;
 
             if (settings.UseMaxFPS.value)
             {
@@ -116,7 +122,7 @@ namespace ColbyO.VNTG.CRT
 
                 _cameraLastTimes[camID] = state;
 
-                return (true, state.interlaceOffset);
+                return (true, state.interlaceOffset, stale);
             }
 
             float refreshRate = settings.RefreshRate.value;
@@ -135,7 +141,7 @@ namespace ColbyO.VNTG.CRT
 
             _cameraLastTimes[camID] = state;
 
-            return (shouldRefresh, state.interlaceOffset);
+            return (shouldRefresh, state.interlaceOffset, stale);
         }
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -160,9 +166,9 @@ namespace ColbyO.VNTG.CRT
 #else
             int camID = cameraData.camera.GetInstanceID();
 #endif
-            (bool shouldRefresh, int interlaceOffset) = ShouldRefresh(camID, settings);
+            (bool shouldRefresh, int interlaceOffset, bool stale) = ShouldRefresh(camID, settings);
 
-            float forceRefresh = _historyBuffers.ContainsKey(camID) ? 0.0f : 1.0f;
+            float forceRefresh = stale || !_historyBuffers.ContainsKey(camID) ? 1.0f : 0.0f;
             RTHandle historyRT = GetHistoryBuffer(camID, cameraData, cameraData.cameraTargetDescriptor);
             TextureHandle historyHandle = renderGraph.ImportTexture(historyRT);
 
@@ -264,6 +270,7 @@ namespace ColbyO.VNTG.CRT
         {
             public float accumulatedTime;
             public int interlaceOffset;
+            public int lastRenderedFrame;
         }
 
         private class PassData

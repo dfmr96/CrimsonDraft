@@ -29,6 +29,7 @@ namespace CrimsonDraft.Infrastructure.UI
         public void Hide()
         {
             this.root.SetActive(false);
+            UiCameraGate.Release(this);
         }
 
         /// <summary>Shows the screen with an empty title, routed through the UI CRT camera so
@@ -36,6 +37,7 @@ namespace CrimsonDraft.Infrastructure.UI
         public void Show()
         {
             BindToUiCamera();
+            UiCameraGate.Request(this);
 
             this.titleText.maxVisibleCharacters = 0;
             this.root.SetActive(true);
@@ -90,9 +92,6 @@ namespace CrimsonDraft.Infrastructure.UI
             this.canvas.renderMode    = RenderMode.ScreenSpaceCamera;
             this.canvas.worldCamera   = uiCamera;
             this.canvas.planeDistance = 1f;
-
-            // Turn the camera on this frame rather than after its next canvas rescan.
-            if (uiCamera.TryGetComponent<UiCameraAutoToggle>(out var toggle)) toggle.Track(this.canvas);
         }
     }
 }

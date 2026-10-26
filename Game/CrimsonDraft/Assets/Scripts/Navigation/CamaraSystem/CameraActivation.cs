@@ -10,9 +10,9 @@ namespace CrimsonDraft.Navigation.CamaraSystem
     {
         /// <summary>No zone activates the camera.</summary>
         None,
-        /// <summary>Exactly one single-sided zone: the camera's activation polygon.</summary>
+        /// <summary>Exactly one zone: the camera's activation polygon.</summary>
         Ok,
-        /// <summary>Several zones, or a two-sided one: to be reduced to one by hand.</summary>
+        /// <summary>Several zones: to be reduced to one by hand.</summary>
         Legacy,
     }
 
@@ -35,7 +35,7 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         {
             var triggers = roomTriggers.Where(t => t != null && t.ReferencedCameras.Contains(camera)).ToArray();
             var state = triggers.Length == 0 ? CameraActivationState.None
-                : triggers.Length == 1 && !triggers[0].UseTwoSidedSwitch ? CameraActivationState.Ok
+                : triggers.Length == 1 ? CameraActivationState.Ok
                 : CameraActivationState.Legacy;
             return new CameraActivationStatus(state, triggers);
         }

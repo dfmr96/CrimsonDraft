@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.UI;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.UI.MainMenu;
@@ -118,6 +119,7 @@ namespace CrimsonDraft.Navigation.UI
         // between Main and Settings keeps it as it is.
         public void ShowMain()
         {
+            UiCameraGate.Request(this);
             this.root.SetActive(true);
             this.dimBackground.SetActive(true);
             this.screen.gameObject.SetActive(true);
@@ -137,6 +139,7 @@ namespace CrimsonDraft.Navigation.UI
         {
             SetVideoUiMode(false);
             this.root.SetActive(false);
+            UiCameraGate.Release(this);
             this.mainPanel.SetActive(false);
             this.screen.gameObject.SetActive(false);
             SetBackdropVisible(true);

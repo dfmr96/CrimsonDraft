@@ -8,31 +8,27 @@ using UnityEngine.UI;
 namespace CrimsonDraft.Infrastructure.UI
 {
     /// <summary>
-    /// Keeps a UI camera rendering only while some UI it draws is actually visible. The gameplay
+    /// Keeps a UI camera rendering only while some UI drawn by it is open. The gameplay
     /// "UI CRT Camera" is an Overlay stacked on the world camera and its renderer runs the CRT pass
     /// over the whole shared frame, so leaving it on with nothing to draw costs a full-screen pass
     /// and re-applies the CRT on top of the world camera's own.
+    /// Who needs it is told explicitly through <see cref="UiCameraGate"/>: each UI requests the camera
+    /// when it opens and releases it when it closes. In the editor and development builds a watchdog
+    /// warns about UI visible on this camera that nobody requested.
     /// </summary>
     [RequireComponent(typeof(Camera))]
-    [DefaultExecutionOrder(10000)] // after every UI script has shown/hidden its panels this frame
     public sealed class UiCameraAutoToggle : MonoBehaviour
     {
-        // Canvases come and go with scene loads and runtime instantiation; a periodic full rescan
-        // catches anything the scene events and Track() don't.
-        private const float RescanInterval = 1f;
-
         private static readonly List<UiCameraAutoToggle> instances = new();
 
-        private readonly List<Canvas> canvases = new();
         private Camera uiCamera = null!;
-        private float  nextRescan;
 
         /// <summary>Every managed UI camera, rendering or not -- Camera.allCameras skips disabled ones,
         /// so code that looks up "the camera that draws the UI layer" must include these.</summary>
         public static IReadOnlyList<UiCameraAutoToggle> Instances => instances;
 
         /// <summary>Master switch for rendering UI/preview cameras only while needed. False restores
-        /// the original always-on behaviour, for A/B performance comparisons (debug key F5).</summary>
+        /// the original always-on behaviour, for A/B performance comparisons (debug menu).</summary>
         public static bool GatingEnabled
         {
             get => gatingEnabled;
@@ -68,45 +64,45 @@ namespace CrimsonDraft.Infrastructure.UI
         void OnEnable()
         {
             instances.Add(this);
+            UiCameraGate.Changed += Apply;
+            GatingChanged        += Apply;
+            Apply();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             SceneManager.sceneLoaded   += OnSceneLoaded;
             SceneManager.sceneUnloaded += OnSceneUnloaded;
             Rescan();
+#endif
         }
 
         void OnDisable()
         {
             instances.Remove(this);
+            UiCameraGate.Changed -= Apply;
+            GatingChanged        -= Apply;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             SceneManager.sceneLoaded   -= OnSceneLoaded;
             SceneManager.sceneUnloaded -= OnSceneUnloaded;
+#endif
 
             // With the gate off, the camera goes back to always rendering, as authored.
             if (this.uiCamera != null) this.uiCamera.enabled = true;
         }
 
-        /// <summary>Tracks a canvas bound to this camera at runtime (e.g. a persistent view moved onto
-        /// the UI layer) so it shows on the same frame instead of after the next rescan.</summary>
-        public void Track(Canvas canvas)
+        private void Apply()
         {
-            if (!this.canvases.Contains(canvas)) this.canvases.Add(canvas);
-        }
-
-        void LateUpdate()
-        {
-            if (!GatingEnabled)
-            {
-                if (!this.uiCamera.enabled) this.uiCamera.enabled = true;
-                return;
-            }
-
-            if (Time.unscaledTime >= this.nextRescan) Rescan();
-
-            bool visible = HasVisibleContent(this.uiCamera, this.canvases);
-            if (this.uiCamera.enabled != visible) this.uiCamera.enabled = visible;
+            if (this.uiCamera == null) return;
+            bool render = !GatingEnabled || UiCameraGate.IsRequested;
+            if (this.uiCamera.enabled != render) this.uiCamera.enabled = render;
         }
 
         /// <summary>True when any active, non-transparent Graphic sits on one of
         /// <paramref name="canvases"/> whose root canvas is drawn by <paramref name="camera"/>.</summary>
         public static bool HasVisibleContent(Camera camera, IReadOnlyList<Canvas> canvases)
+            => FirstVisibleCanvas(camera, canvases) != null;
+
+        /// <summary>The first canvas from <paramref name="canvases"/> drawn by <paramref name="camera"/>
+        /// that shows something, or null.</summary>
+        public static Canvas? FirstVisibleCanvas(Camera camera, IReadOnlyList<Canvas> canvases)
         {
             for (int i = 0; i < canvases.Count; i++)
             {
@@ -118,9 +114,9 @@ namespace CrimsonDraft.Infrastructure.UI
 
                 var graphics = GraphicRegistry.GetGraphicsForCanvas(canvas);
                 for (int g = 0; g < graphics.Count; g++)
-                    if (IsVisible(graphics[g])) return true;
+                    if (IsVisible(graphics[g])) return canvas;
             }
-            return false;
+            return null;
         }
 
         // GetInheritedAlpha folds in every parent CanvasGroup, so panels faded out with a group
@@ -132,15 +128,38 @@ namespace CrimsonDraft.Infrastructure.UI
             && !graphic.canvasRenderer.cull
             && graphic.canvasRenderer.GetInheritedAlpha() > 0f;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // ---- Watchdog: UI on this camera that nobody requested would not show. ----
+
+        private const float WatchInterval = 1f;
+
+        private readonly List<Canvas> canvases = new();
+        private readonly HashSet<string> warned = new();
+        private float nextWatch;
+
+        void Update()
+        {
+            if (!GatingEnabled || Time.unscaledTime < this.nextWatch) return;
+            this.nextWatch = Time.unscaledTime + WatchInterval;
+            Rescan();
+            Apply(); // also catches an owner destroyed without releasing
+
+            if (UiCameraGate.IsRequested) return;
+            var canvas = FirstVisibleCanvas(this.uiCamera, this.canvases);
+            if (canvas == null || !this.warned.Add(canvas.name)) return;
+            Debug.LogWarning($"[UiCameraGate] '{canvas.name}' shows UI on '{this.name}' but nothing requested the camera, " +
+                             "so it is not drawn. Call UiCameraGate.Request/Release where that UI opens and closes.", canvas);
+        }
+
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Rescan();
 
         private void OnSceneUnloaded(Scene scene) => Rescan();
 
         private void Rescan()
         {
-            this.nextRescan = Time.unscaledTime + RescanInterval;
             this.canvases.Clear();
             this.canvases.AddRange(FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None));
         }
+#endif
     }
 }

@@ -66,12 +66,10 @@ namespace CrimsonDraft.Navigation.Editor
                 issues++;
             }
 
-            // One camera, one activation polygon: per room, cameras with none or with several / two-sided zones.
-            int twoSidedLeft = 0;
+            // One camera, one activation polygon: per room, cameras with none or with several zones.
             foreach (var room in Object.FindObjectsOfType<RoomController>(includeInactive: true))
             {
                 var triggers = room.GetComponentsInChildren<FixedCameraZoneTrigger>(true);
-                twoSidedLeft += triggers.Count(t => t.UseTwoSidedSwitch);
                 var statuses = ZoneCameras.Of(room)
                     .Select(c => (camera: c, state: CameraActivation.For(c, triggers).State)).ToArray();
                 var none = statuses.Where(s => s.state == CameraActivationState.None).ToArray();
@@ -80,11 +78,9 @@ namespace CrimsonDraft.Navigation.Editor
 
                 var first = none.Length > 0 ? none[0].camera : legacy[0].camera;
                 Debug.LogWarning($"[NavValidation] Room '{room.name}': {none.Length} camera(s) without activation trigger, " +
-                                 $"{legacy.Length} with several or two-sided (e.g. '{first.name}'). Fix them in the Camera Zone Viewer.", first);
+                                 $"{legacy.Length} with several (e.g. '{first.name}'). Fix them in the Camera Zone Viewer.", first);
                 issues++;
             }
-            if (twoSidedLeft > 0)
-                Debug.LogWarning($"[NavValidation] {twoSidedLeft} two-sided camera zone(s) left (legacy).");
 
             foreach (var group in sceneDoors.Where(d => !string.IsNullOrEmpty(d.EntryPointId)).GroupBy(d => d.EntryPointId))
             {

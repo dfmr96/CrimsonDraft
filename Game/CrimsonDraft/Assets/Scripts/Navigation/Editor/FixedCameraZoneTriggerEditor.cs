@@ -7,27 +7,13 @@ using CrimsonDraft.Navigation.CamaraSystem;
 namespace CrimsonDraft.Navigation.Editor
 {
     /// <summary>Scene-view handles for a camera zone: drag a polygon vertex (white cube) on the
-    /// floor plane, click a "+" between two vertices to split that edge, and, with the two-sided
-    /// switch on, drag the divider endpoints (yellow). Vertices can be removed from the array in
-    /// the inspector.</summary>
+    /// floor plane, click a "+" between two vertices to split that edge, drag the orange square to
+    /// move the whole zone. Vertices can be removed from the array in the inspector.</summary>
     [CustomEditor(typeof(FixedCameraZoneTrigger))]
     public sealed class FixedCameraZoneTriggerEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
-            var legacy = (FixedCameraZoneTrigger)this.target;
-            if (legacy.IsLegacyBox)
-            {
-                EditorGUILayout.HelpBox(
-                    "This zone still uses its BoxCollider: it works as the same rectangle, but the polygon fields below are ignored and it has no handles. Convert it to edit it.",
-                    MessageType.Warning);
-                if (GUILayout.Button("Convert Box To Polygon"))
-                {
-                    CameraZoneBoxMigration.Convert(legacy, useUndo: true);
-                    SceneView.RepaintAll();
-                }
-            }
-
             this.DrawDefaultInspector();
             EditorGUILayout.HelpBox(
                 "Select the object to edit the zone in the Scene view: drag the cubes to move vertices, click '+' on an edge to add one.",
@@ -37,7 +23,6 @@ namespace CrimsonDraft.Navigation.Editor
         private void OnSceneGUI()
         {
             var trigger = (FixedCameraZoneTrigger)this.target;
-            if (trigger.IsLegacyBox) return; // edits would be ignored while the BoxCollider defines the zone
             this.serializedObject.Update();
 
             var polygon = this.serializedObject.FindProperty("polygon");
@@ -58,7 +43,7 @@ namespace CrimsonDraft.Navigation.Editor
                 }
             }
 
-            // Orange handle at the centre moves the whole zone: outline and divider together.
+            // Orange handle at the centre moves the whole zone.
             Handles.color = new Color(1f, 0.55f, 0.1f);
             var centerWorld = trigger.ToWorld(trigger.Centroid, height);
             EditorGUI.BeginChangeCheck();
@@ -94,21 +79,10 @@ namespace CrimsonDraft.Navigation.Editor
                 polygon.GetArrayElementAtIndex(insertAfter + 1).vector2Value = insertPoint;
             }
 
-            if (this.serializedObject.FindProperty("useTwoSidedSwitch").boolValue)
-            {
-                Handles.color = Color.yellow;
-                this.DividerHandle(trigger, "dividerStart", height);
-                this.DividerHandle(trigger, "dividerEnd", height);
-
-                var start = trigger.ToWorld(this.serializedObject.FindProperty("dividerStart").vector2Value, height);
-                var end = trigger.ToWorld(this.serializedObject.FindProperty("dividerEnd").vector2Value, height);
-                Handles.DrawDottedLine(start, end, 4f);
-            }
-
             this.serializedObject.ApplyModifiedProperties();
         }
 
-        /// <summary>Shifts the whole zone (outline and divider) by a local-space XZ offset. Applies the change itself.</summary>
+        /// <summary>Shifts the whole zone outline by an XZ offset in its parent's space. Applies the change itself.</summary>
         internal static void Translate(SerializedObject serialized, Vector2 delta)
         {
             serialized.Update();
@@ -118,25 +92,10 @@ namespace CrimsonDraft.Navigation.Editor
                 var element = polygon.GetArrayElementAtIndex(i);
                 element.vector2Value += delta;
             }
-            serialized.FindProperty("dividerStart").vector2Value += delta;
-            serialized.FindProperty("dividerEnd").vector2Value += delta;
             serialized.ApplyModifiedProperties();
         }
 
-        private void DividerHandle(FixedCameraZoneTrigger trigger, string propertyName, float height)
-        {
-            var property = this.serializedObject.FindProperty(propertyName);
-            var world = trigger.ToWorld(property.vector2Value, height);
-
-            EditorGUI.BeginChangeCheck();
-            var moved = Slide(trigger, world);
-            if (!EditorGUI.EndChangeCheck()) return;
-
-            var local = trigger.ToLocal(moved);
-            property.vector2Value = new Vector2(local.x, local.z);
-        }
-
-        // Moves a point freely inside the zone's floor plane (its own space, or its parent's).
+        // Moves a point freely inside the zone's floor plane (its parent's space).
         private static Vector3 Slide(FixedCameraZoneTrigger trigger, Vector3 world) =>
             Handles.Slider2D(world, trigger.FrameUp, trigger.FrameRight, trigger.FrameForward,
                 HandleUtility.GetHandleSize(world) * 0.08f, Handles.CubeHandleCap, 0f);

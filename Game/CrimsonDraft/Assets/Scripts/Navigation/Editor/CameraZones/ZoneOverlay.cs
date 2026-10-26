@@ -29,7 +29,7 @@ namespace CrimsonDraft.Navigation.Editor
 
         // ---- Zone editing handles --------------------------------------------------------
 
-        private enum HandleKind { Vertex, Add, DividerStart, DividerEnd, Move }
+        private enum HandleKind { Vertex, Add, Move }
 
         private struct ZoneHandle
         {
@@ -107,7 +107,6 @@ namespace CrimsonDraft.Navigation.Editor
             var adds = new List<ZoneHandle>();
             foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
             {
-                if (trigger.IsLegacyBox) continue; // edits would be ignored while the BoxCollider defines the zone
                 var polygon = trigger.Polygon;
                 if (polygon == null) continue;
                 float height = trigger.MinHeight;
@@ -119,11 +118,6 @@ namespace CrimsonDraft.Navigation.Editor
                 }
                 if (polygon.Count >= 3)
                     TryAddHandle(moves, view, rect, trigger, HandleKind.Move, 0, trigger.ToWorld(trigger.Centroid, height));
-                if (trigger.UseTwoSidedSwitch)
-                {
-                    TryAddHandle(handles, view, rect, trigger, HandleKind.DividerStart, 0, trigger.ToWorld(trigger.DividerStart, height));
-                    TryAddHandle(handles, view, rect, trigger, HandleKind.DividerEnd, 0, trigger.ToWorld(trigger.DividerEnd, height));
-                }
             }
             handles.AddRange(moves);
             handles.AddRange(adds);
@@ -204,18 +198,8 @@ namespace CrimsonDraft.Navigation.Editor
             }
 
             var serialized = new SerializedObject(handle.Trigger);
-            switch (handle.Kind)
-            {
-                case HandleKind.Vertex:
-                    serialized.FindProperty("polygon").GetArrayElementAtIndex(handle.Index).vector2Value = point;
-                    break;
-                case HandleKind.DividerStart:
-                    serialized.FindProperty("dividerStart").vector2Value = point;
-                    break;
-                case HandleKind.DividerEnd:
-                    serialized.FindProperty("dividerEnd").vector2Value = point;
-                    break;
-            }
+            if (handle.Kind == HandleKind.Vertex)
+                serialized.FindProperty("polygon").GetArrayElementAtIndex(handle.Index).vector2Value = point;
             serialized.ApplyModifiedProperties();
             SceneView.RepaintAll();
         }
@@ -287,18 +271,6 @@ namespace CrimsonDraft.Navigation.Editor
 
                 for (int i = 0; i < floor.Length; i++)
                     overlay.DrawLine(floor[i], floor[(i + 1) % floor.Length], lineColor, emphasized ? 3f : 1.5f);
-
-                if (trigger.UseTwoSidedSwitch)
-                {
-                    float margin = Mathf.Max(0f, trigger.SideMargin);
-                    foreach (float offset in new[] { -margin, margin })
-                    {
-                        var edge = trigger.GetDividerQuad(offset);
-                        overlay.DrawLine(this.OnPlane(edge[0]), this.OnPlane(edge[1]), lineColor, 2f);
-                    }
-                    var divider = trigger.GetDividerQuad(0f);
-                    overlay.DrawLine(this.OnPlane(divider[0]), this.OnPlane(divider[1]), Color.white, 2f);
-                }
 
                 var anchor = Vector3.zero;
                 foreach (var point in floor) anchor += point;
