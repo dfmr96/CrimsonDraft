@@ -45,6 +45,7 @@ namespace CrimsonDraft.Navigation.Editor
         private Vector2Int viewPixels;
         private double lastRenderTime;
         private bool unlit = true;
+        private bool showFallback;
         private bool syncSceneView;
         private (CinemachineCamera? camera, Vector3 position, Quaternion rotation, float fov) lastSynced;
         private bool cameraMode;
@@ -205,6 +206,11 @@ namespace CrimsonDraft.Navigation.Editor
                 this.unlit = GUILayout.Toggle(this.unlit, new GUIContent("Unlit", "Show the level without lighting: unlit copies of its materials, only while this tool renders."),
                     EditorStyles.toolbarButton, GUILayout.Width(48f));
                 if (this.unlit != unlitBefore) this.RequestRender();
+                this.showFallback = GUILayout.Toggle(this.showFallback, new GUIContent("Fallback",
+                        "Show the room as if every zone with a completion gate had already completed: those zones stop firing, " +
+                        "and the floor they leave with no ordinary zone to switch back to a normal camera is painted red."),
+                    EditorStyles.toolbarButton, GUILayout.Width(62f));
+                this.Overlay.ShowFallback = this.showFallback;
                 using (new EditorGUI.DisabledScope(this.CurrentCamera == null))
                 {
                     if (GUILayout.Button(new GUIContent("Look Through", "Put the Scene view exactly where the selected camera is, to see it with the Scene view's own shading (lighting off)."),
@@ -242,6 +248,13 @@ namespace CrimsonDraft.Navigation.Editor
         private static readonly Color NoneColor = new Color(0.55f, 0.55f, 0.55f);
         private static readonly Color LegacyColor = new Color(1f, 0.6f, 0.15f);
 
+        // Same eye icons as the Hierarchy's scene visibility toggle.
+        private static GUIContent VisibleIcon => Icon("scenevis_visible_hover", "Hide this camera's zones");
+        private static GUIContent HiddenIcon  => Icon("scenevis_hidden_hover", "Show this camera's zones");
+        private static GUIContent Icon(string name, string tooltip) =>
+            new GUIContent(EditorGUIUtility.IconContent((EditorGUIUtility.isProSkin ? "d_" : "") + name).image, tooltip);
+        private static GUIStyle HiddenNameStyle => new GUIStyle(EditorStyles.label) { normal = { textColor = NoneColor } };
+
         // Camera list with each camera's activation status (green: one trigger, grey: none, orange:
         // several or two-sided), then the fix-up actions for the selected camera.
         private void DrawCameraList()
@@ -265,7 +278,19 @@ namespace CrimsonDraft.Navigation.Editor
                         EditorGUI.DrawRect(new Rect(rect.x, rect.y + 3f, 6f, rect.height - 6f), FixedCameraZoneTrigger.GizmoColorFor(camera));
                         var state = CameraActivation.For(camera, triggers).State;
                         EditorGUI.DrawRect(new Rect(rect.xMax - 12f, rect.y + 6f, 8f, 8f), StateColor(state));
-                        GUI.Label(new Rect(rect.x + 10f, rect.y, rect.width - 26f, rect.height), camera.name);
+
+                        // Eye: show / hide this camera's zones in both views (hidden ones can't be edited either).
+                        bool hidden = this.Overlay.HiddenCameras.Contains(camera);
+                        var eyeRect = new Rect(rect.xMax - 32f, rect.y + 2f, 16f, 16f);
+                        if (GUI.Button(eyeRect, hidden ? HiddenIcon : VisibleIcon, GUIStyle.none))
+                        {
+                            if (hidden) this.Overlay.HiddenCameras.Remove(camera);
+                            else this.Overlay.HiddenCameras.Add(camera);
+                            this.Repaint();
+                        }
+
+                        var nameStyle = hidden ? HiddenNameStyle : EditorStyles.label;
+                        GUI.Label(new Rect(rect.x + 10f, rect.y, rect.width - 46f, rect.height), camera.name, nameStyle);
                         if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
                         {
                             this.cameraIndex = i;
@@ -363,6 +388,20 @@ namespace CrimsonDraft.Navigation.Editor
             if (Event.current.type == EventType.Repaint && !room.gameObject.activeInHierarchy)
                 EditorGUI.HelpBox(new Rect(area.x, area.y, area.width, 32f),
                     "The room is inactive, so its geometry will not render.", MessageType.Warning);
+            else if (Event.current.type == EventType.Repaint && this.showFallback)
+                this.DrawFallbackLegend(room, area);
+        }
+
+        // Fallback view legend: whether the room is safe once its gated zones switch off.
+        private void DrawFallbackLegend(RoomController room, Rect area)
+        {
+            var zones = room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false);
+            int holes = ZoneFallbackCoverage.Holes(zones).Count;
+            float m2 = holes * ZoneFallbackCoverage.DefaultCellSize * ZoneFallbackCoverage.DefaultCellSize;
+            var (text, type) = holes == 0
+                ? ("Fallback: every zone with a completion gate is covered by an ordinary zone.", MessageType.Info)
+                : ($"Fallback: ~{m2:0.#} m² in red has no ordinary zone once its gate completes -- the camera would stay on the gated shot there.", MessageType.Warning);
+            EditorGUI.HelpBox(new Rect(area.x, area.y, area.width, 32f), text, type);
         }
 
         private void DrawCameraView(RoomController room, CinemachineCamera camera, Rect area, float planeY, int controlId)

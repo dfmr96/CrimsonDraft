@@ -27,6 +27,18 @@ namespace CrimsonDraft.Navigation.Editor
 
         public ZoneOverlay(System.Action repaint) => this.repaint = repaint;
 
+        /// <summary>"Fallback" view: zones with a completion gate are drawn as if already completed (outline
+        /// only) and the floor they leave with no ordinary zone to take over is painted red.</summary>
+        public bool ShowFallback { get; set; }
+
+        /// <summary>Cameras whose zones are hidden (eye toggle in the camera list): not drawn, not editable.</summary>
+        public HashSet<CinemachineCamera> HiddenCameras { get; } = new();
+
+        private bool IsHidden(FixedCameraZoneTrigger trigger) =>
+            trigger.ZoneCamera != null && this.HiddenCameras.Contains(trigger.ZoneCamera);
+
+        private static readonly Color HoleColor = new Color(0.95f, 0.15f, 0.15f);
+
         // ---- Zone editing handles --------------------------------------------------------
 
         private enum HandleKind { Vertex, Add, Move }
@@ -108,7 +120,7 @@ namespace CrimsonDraft.Navigation.Editor
             foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
             {
                 var polygon = trigger.Polygon;
-                if (polygon == null) continue;
+                if (polygon == null || this.IsHidden(trigger)) continue;
                 float height = trigger.MinHeight;
                 for (int i = 0; i < polygon.Count && polygon.Count >= 3; i++)
                 {
@@ -251,10 +263,12 @@ namespace CrimsonDraft.Navigation.Editor
             var playerPosition = this.player != null ? this.player.transform.position : (Vector3?)null;
 
             GUI.BeginClip(rect);
-            foreach (var trigger in room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false))
+            var triggers = room.GetComponentsInChildren<FixedCameraZoneTrigger>(includeInactive: false);
+            foreach (var trigger in triggers)
             {
                 var polygon = trigger.Polygon;
                 if (polygon == null || polygon.Count < 3) continue; // half-built trigger (tests, Reset)
+                if (this.IsHidden(trigger)) continue;
 
                 bool emphasized = current != null && trigger.ReferencedCameras.Contains(current);
                 bool playerInside = playerPosition.HasValue && trigger.Contains(playerPosition.Value);
@@ -264,10 +278,28 @@ namespace CrimsonDraft.Navigation.Editor
                 var floor = new Vector3[polygon.Count];
                 for (int i = 0; i < floor.Length; i++) floor[i] = this.OnPlane(trigger.ToWorld(polygon[i], trigger.MinHeight));
 
+                // Fallback view: a gated zone counts as completed -- it no longer fires, so only its outline.
+                if (this.ShowFallback && trigger.HasCompletionGate)
+                {
+                    var faded = new Color(color.r, color.g, color.b, 0.35f);
+                    for (int i = 0; i < floor.Length; i++)
+                        overlay.DrawLine(floor[i], floor[(i + 1) % floor.Length], faded, 1f);
+                    continue;
+                }
+
                 var triangles = CameraZonePolygon.Triangulate(polygon);
                 for (int i = 0; i + 2 < triangles.Count; i += 3)
                     overlay.Draw(new[] { floor[triangles[i]], floor[triangles[i + 1]], floor[triangles[i + 2]] },
                         color, emphasized ? 0.28f : 0.1f, 0f);
+
+                // Priority zone (completion gate still open): striped, so it reads apart from ordinary zones.
+                if (trigger.IsPriority)
+                {
+                    var stripe = new Color(color.r, color.g, color.b, emphasized ? 0.75f : 0.5f);
+                    foreach (var (a, b) in ZoneHatch.Segments(polygon))
+                        overlay.DrawLine(this.OnPlane(trigger.ToWorld(a, trigger.MinHeight)),
+                            this.OnPlane(trigger.ToWorld(b, trigger.MinHeight)), stripe, 1.25f);
+                }
 
                 for (int i = 0; i < floor.Length; i++)
                     overlay.DrawLine(floor[i], floor[(i + 1) % floor.Length], lineColor, emphasized ? 3f : 1.5f);
@@ -284,6 +316,14 @@ namespace CrimsonDraft.Navigation.Editor
                     GUI.Label(new Rect(p.x - 80f, p.y - 8f, 160f, 16f), LabelFor(trigger), style);
                 }
             }
+
+            if (this.ShowFallback)
+                foreach (var hole in ZoneFallbackCoverage.Holes(triggers))
+                {
+                    var cell = new Vector3[hole.Corners.Length];
+                    for (int i = 0; i < cell.Length; i++) cell[i] = this.OnPlane(hole.Corners[i]);
+                    overlay.Draw(cell, HoleColor, 0.45f, 0f);
+                }
 
             if (this.player != null)
             {
@@ -367,7 +407,8 @@ namespace CrimsonDraft.Navigation.Editor
         }
 
         private static string LabelFor(FixedCameraZoneTrigger trigger) =>
-            string.Join(" | ", trigger.ReferencedCameras.Select(c => c.name));
+            string.Join(" | ", trigger.ReferencedCameras.Select(c => c.name))
+            + (trigger.IsPriority ? "  [priority]" : "");
 
         /// <summary>Projects world-space convex polygons to the view rect, clipped to the near plane.</summary>
         internal readonly struct OverlayProjection

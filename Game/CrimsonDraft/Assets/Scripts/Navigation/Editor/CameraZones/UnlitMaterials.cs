@@ -69,14 +69,38 @@ namespace CrimsonDraft.Navigation.Editor
                 color = original.GetColor(property);
                 break;
             }
-            unlit.SetColor("_BaseColor", color);
 
-            // Keep cut-outs (fences, foliage) cut out; fully opaque texels are unaffected.
-            unlit.SetFloat("_AlphaClip", 1f);
-            unlit.SetFloat("_Cutoff", 0.5f);
-            unlit.EnableKeyword("_ALPHATEST_ON");
-            unlit.renderQueue = (int)RenderQueue.AlphaTest;
+            // Cut out only what the original cuts out (fences, foliage), at its own threshold. Many PSX props
+            // clip at threshold 0 with a colour alpha of 0, so nothing is cut in game; a fixed threshold here
+            // clipped those props away entirely. An original that doesn't clip ignores alpha, so does this.
+            if (UsesAlphaClip(original))
+            {
+                unlit.SetFloat("_AlphaClip", 1f);
+                unlit.SetFloat("_Cutoff", ClipThreshold(original));
+                unlit.EnableKeyword("_ALPHATEST_ON");
+                unlit.renderQueue = (int)RenderQueue.AlphaTest;
+            }
+            else
+            {
+                color.a = 1f;
+                unlit.SetFloat("_AlphaClip", 0f);
+                unlit.DisableKeyword("_ALPHATEST_ON");
+                unlit.renderQueue = (int)RenderQueue.Geometry;
+            }
+            unlit.SetColor("_BaseColor", color);
             return unlit;
+        }
+
+        private static bool UsesAlphaClip(Material material) =>
+            material.IsKeywordEnabled("_ALPHATEST_ON")
+            || (material.HasFloat("_AlphaClip") && material.GetFloat("_AlphaClip") > 0.5f);
+
+        // URP shaders use _Cutoff; the PSX shader graphs expose _AlphaClipThreshold.
+        private static float ClipThreshold(Material material)
+        {
+            if (material.HasFloat("_Cutoff")) return material.GetFloat("_Cutoff");
+            if (material.HasFloat("_AlphaClipThreshold")) return material.GetFloat("_AlphaClipThreshold");
+            return 0.5f;
         }
     }
 

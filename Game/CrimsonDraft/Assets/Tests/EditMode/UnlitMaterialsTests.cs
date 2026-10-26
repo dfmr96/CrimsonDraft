@@ -59,6 +59,60 @@ namespace CrimsonDraft.Tests
             Assert.AreSame(texture, unlit!.GetTexture("_BaseMap"));
         }
 
+        // Props like the Seaman Room 2 bed: PSX material with alpha clip on but _AlphaClipThreshold 0 and a
+        // _BaseColor alpha of 0. In game nothing is cut (alpha 0 >= threshold 0); a stand-in clipping at a
+        // fixed 0.5 cut the whole prop away. It must clip at the original's own threshold.
+        [Test]
+        public void UnlitFor_psxClipWithZeroThreshold_keepsThatThreshold()
+        {
+            var psx = Shader.Find("Shader Graphs/PSXDecay_URP");
+            Assume.That(psx != null, "project PSX shader");
+            var material = Track(new Material(psx));
+            material.SetFloat("_AlphaClip", 1f);
+            material.SetFloat("_AlphaClipThreshold", 0f);
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0f));
+
+            var unlit = this.cache.UnlitFor(material);
+
+            Assert.IsNotNull(unlit);
+            Assert.AreEqual(0f, unlit!.GetFloat("_Cutoff"));
+        }
+
+        // An original that doesn't clip at all ignores alpha in game: the stand-in neither clips nor
+        // carries a see-through colour.
+        [Test]
+        public void UnlitFor_opaqueOriginalWithZeroColorAlpha_isOpaque()
+        {
+            var lit = Track(new Material(Shader.Find("Universal Render Pipeline/Lit")));
+            lit.SetFloat("_AlphaClip", 0f);
+            lit.DisableKeyword("_ALPHATEST_ON");
+            lit.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0f));
+
+            var unlit = this.cache.UnlitFor(lit);
+
+            Assert.IsNotNull(unlit);
+            Assert.AreEqual(1f, unlit!.GetColor("_BaseColor").a);
+            Assert.IsFalse(unlit.IsKeywordEnabled("_ALPHATEST_ON"));
+        }
+
+        [Test]
+        public void UnlitFor_alphaClippedOriginal_keepsItsCutoutAndThreshold()
+        {
+            var lit = Track(new Material(Shader.Find("Universal Render Pipeline/Lit")));
+            lit.SetFloat("_AlphaClip", 1f);
+            lit.SetFloat("_Cutoff", 0.3f);
+            lit.EnableKeyword("_ALPHATEST_ON");
+            lit.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.8f));
+
+            var unlit = this.cache.UnlitFor(lit);
+
+            Assert.IsNotNull(unlit);
+            Assert.IsTrue(unlit!.IsKeywordEnabled("_ALPHATEST_ON"));
+            Assert.AreEqual(0.3f, unlit.GetFloat("_Cutoff"), 1e-4f);
+            Assert.AreEqual(0.8f, unlit.GetColor("_BaseColor").a, 1e-4f);
+        }
+
         [Test]
         public void UnlitFor_isCachedPerMaterial()
         {
