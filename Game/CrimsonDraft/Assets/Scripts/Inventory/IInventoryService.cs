@@ -16,6 +16,10 @@ namespace CrimsonDraft.Inventory
 
         bool TryAdd(ItemData data, int quantity = 0);
         bool TryAdd(ItemData data, ContainerId target, int quantity = 0);
+
+        // Where TryAdd(data, quantity) would put the item right now, or null when it would fail.
+        // Changes nothing -- used to show the player the spot before they decide to take it.
+        AddPreview? PreviewAdd(ItemData data, int quantity = 0);
         void Remove(InventoryItem item);
         bool TryRemove(string itemId);
         bool TryReplace(string itemId, ItemData replacement);

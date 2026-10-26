@@ -72,10 +72,25 @@ namespace CrimsonDraft.UI
             return new Vector2(x, y);
         }
 
+        // Item art is authored at 32px per cell regardless of the grid's cell size, so the
+        // icon never touches the cell borders -- it is centered inside the footprint instead.
+        public const float ItemCellSize = 32f;
+
+        public Vector2 ItemSize(Vector2Int baseGridSize) => new Vector2(baseGridSize.x, baseGridSize.y) * ItemCellSize;
+
+        // baseSize is the item's (unrotated) ItemSize.
         public Vector2 ItemLocalPosition(Vector2Int origin, int rotation, Vector2 baseSize)
         {
             var position = CellToLocal(origin);
             if (rotation == 1) position.x += baseSize.y;
+
+            // Footprint in cells (swapped when rotated) times the per-cell padding.
+            float pad = (this.cellSize - ItemCellSize) * 0.5f;
+            Vector2 cells = rotation == 1
+                ? new Vector2(baseSize.y, baseSize.x) / ItemCellSize
+                : baseSize / ItemCellSize;
+            position.x += cells.x * pad;
+            position.y -= cells.y * pad;
             return position;
         }
     }

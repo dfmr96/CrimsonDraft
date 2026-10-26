@@ -3621,6 +3621,7 @@ GameObject:
   - component: {fileID: 3321822253509376716}
   - component: {fileID: 1236312269883991516}
   - component: {fileID: 4668665264683875424}
+  - component: {fileID: 1485551794812157134}
   m_Layer: 14
   m_Name: PauseMenuCanvas
   m_TagString: Untagged
@@ -3746,6 +3747,27 @@ MonoBehaviour:
   videoHiddenBackdrop:
   - {fileID: 383591321996085867}
   - {fileID: 8097788694129103354}
+  pda: {fileID: 1485551794812157134}
+--- !u!114 &1485551794812157134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7332068433663450972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff12d03d324874e4f9e3b807cc533ae1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Infrastructure::CrimsonDraft.Infrastructure.UI.PdaDevice
+  pdaPrefab: {fileID: 908977274829638452, guid: 1788f4261b709614cb01ff987627f6b0, type: 3}
+  pdaLayerName: PDA
+  hingePosition: {x: 0, y: -0.64, z: 0.95}
+  modelEuler: {x: 0, y: 0, z: 90}
+  modelScale: 2.5
+  foldAngle: 90
+  openDuration: 0.45
+  closeDuration: 0.35
 --- !u!1 &7465905223817475519
 GameObject:
   m_ObjectHideFlags: 0

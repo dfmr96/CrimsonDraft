@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.UI;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.UI.MainMenu;
 
 namespace CrimsonDraft.Navigation.UI
@@ -74,6 +75,12 @@ namespace CrimsonDraft.Navigation.UI
         public GeneralMenuController GammaPanel => this.gammaPanel;
         public ControlOptionsController ControlsPanel => this.controlsPanel;
         public OptionsMenuController SoundPanel => this.soundPanel;
+
+        [Header("PDA")]
+        [Tooltip("El PDA que se despliega antes de que aparezca el menu y se pliega al cerrarlo. Opcional.")]
+        [SerializeField] private PdaDevice? pda;
+
+        public PdaDevice? Pda => this.pda;
 
         public GameObject FirstMainSelectable => this.resumeButton.gameObject;
 

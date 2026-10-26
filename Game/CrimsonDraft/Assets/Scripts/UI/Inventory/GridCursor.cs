@@ -33,6 +33,7 @@ namespace CrimsonDraft.UI
         private GridNavigator? navigator;
         private bool           inputBound;
         private bool           isCombineMode;
+        private bool           pickupHighlight; // the selector rests on a world pickup's item, not on the cursor's cell
         private bool           onMeleeSlot;
         private bool           onLogoSlot;
         private bool           transferMode;
@@ -44,6 +45,8 @@ namespace CrimsonDraft.UI
         public event Action<InventoryItemView>? OnCombineTargetConfirmed;
         public event Action?                    OnCombineCancelled;
         public event Action?                    OnCloseRequested;
+
+        public SelectorView Selector => this.selector;
 
         public bool IsCombineMode
         {
@@ -236,6 +239,7 @@ namespace CrimsonDraft.UI
 
         private void Refresh()
         {
+            if (this.pickupHighlight) return;
             if (this.navigator == null && (this.presenters == null || this.inventory == null)) return;
             if (this.onMeleeSlot || this.onLogoSlot || !this.selector.IsVisible) return;
 
@@ -430,21 +434,17 @@ namespace CrimsonDraft.UI
                 return true;
             }
 
-            if (this.onLogoSlot)
+            // The Bio page is a sub menu of the logo: Cancel closes it first and the cursor stays on the logo.
+            if (this.onLogoSlot && this.partyPanel != null && this.partyPanel.BioMode)
             {
-                // Cancel on the Bio page goes back to the inventory page first.
-                this.partyPanel?.SetBioMode(false);
-                ExitLogoSlot();
+                this.partyPanel.SetBioMode(false);
                 this.sfx.PlayCancel(this.gameObject);
                 return true;
             }
 
-            if (this.onMeleeSlot)
-            {
-                ExitMeleeSlot();
-                this.sfx.PlayCancel(this.gameObject);
-                return true;
-            }
+            // The logo and melee slots are just places the cursor can rest, not sub menus: Cancel there
+            // is not consumed, so TabManager moves up to the tab bar (the same as pressing Up there)
+            // and one more Cancel closes the inventory.
 
             if (this.isCombineMode)
             {
@@ -556,9 +556,29 @@ namespace CrimsonDraft.UI
             this.lastDir          = Vector2Int.zero;
             this.onMeleeSlot      = false;
             this.onLogoSlot       = false;
+            this.pickupHighlight  = false;
             this.partyPanel?.SetBioMode(false, animate: false);
             this.selector.SetVisible(true);
             Refresh();
+        }
+
+        /// <summary>
+        /// Parks the selector on an item drawn for a world pickup's "take it?" prompt (the ghost or the stack it
+        /// joins). The cursor's own cell is left alone and the selector stays there until
+        /// <see cref="ClearPickupHighlight"/>.
+        /// </summary>
+        public void ShowPickupHighlight(InventoryItemView view, InventoryGrid grid)
+        {
+            this.pickupHighlight = true;
+            this.selector.SetVisible(true);
+            this.selector.ShowAtCell(grid, view.GridOrigin, view, null, false, false);
+        }
+
+        public void ClearPickupHighlight()
+        {
+            if (!this.pickupHighlight) return;
+            this.pickupHighlight = false;
+            this.selector.SetVisible(false);
         }
 
         public void HideSelectorForTabBar()
@@ -617,7 +637,6 @@ namespace CrimsonDraft.UI
         private void ExitMeleeSlot()
         {
             this.onMeleeSlot = false;
-            this.selector.ClearMeleeHover();
             Refresh();
         }
 

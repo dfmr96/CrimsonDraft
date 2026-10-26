@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,6 +24,12 @@ namespace CrimsonDraft.UI
 
         [Header("Background watermark (text pages of an image doc)")]
         [SerializeField] private float backgroundImageAlpha = 0.06f;
+
+        [Header("Page turn")]
+        [Tooltip("Cuanto se desliza el texto (px) al pasar de pagina.")]
+        [SerializeField] private float swipeDistance = 70f;
+        [SerializeField] private float swipeOutDuration = 0.12f;
+        [SerializeField] private float swipeInDuration  = 0.2f;
 
         public bool IsOpen { get; private set; }
 
@@ -245,8 +253,73 @@ namespace CrimsonDraft.UI
                 this.pageLabel.text = total > 1 ? $"<{page:00}/{total:00}>" : string.Empty;
         }
 
+        // ── Page turn ────────────────────────────────────────────────────────
+
+        private Tween?  swipeTween;
+        private bool    swipeRestCaptured;
+        private Vector2 titleRest;
+        private Vector2 bodyRest;
+        private Vector2 bigTitleRest;
+
+        void EnsureSwipeRest()
+        {
+            if (this.swipeRestCaptured) return;
+            this.swipeRestCaptured = true;
+            this.titleRest = this.titleLabel.rectTransform.anchoredPosition;
+            this.bodyRest  = this.bodyLabel.rectTransform.anchoredPosition;
+            if (this.bigTitleLabel != null) this.bigTitleRest = this.bigTitleLabel.rectTransform.anchoredPosition;
+        }
+
+        void ApplySwipe(float offset, float alpha)
+        {
+            this.titleLabel.rectTransform.anchoredPosition = this.titleRest + new Vector2(offset, 0f);
+            this.titleLabel.alpha = alpha;
+            this.bodyLabel.rectTransform.anchoredPosition = this.bodyRest + new Vector2(offset, 0f);
+            this.bodyLabel.alpha = alpha;
+            if (this.bigTitleLabel != null)
+            {
+                this.bigTitleLabel.rectTransform.anchoredPosition = this.bigTitleRest + new Vector2(offset, 0f);
+                this.bigTitleLabel.alpha = alpha;
+            }
+        }
+
+        /// <summary>
+        /// Turns the page like a swipe: the text on screen slides away (to the left going forward, to the
+        /// right going back), <paramref name="showNewPage"/> then puts the new page up and it slides in from
+        /// the other side. Used for plain notes; a voice transcript never calls it.
+        /// </summary>
+        /// <param name="direction">+1 forward, -1 back.</param>
+        public void TurnPage(int direction, Action showNewPage)
+        {
+            EnsureSwipeRest();
+            this.swipeTween?.Kill();
+            ApplySwipe(0f, 1f);
+
+            if (!this.IsOpen || !this.panel.activeInHierarchy)
+            {
+                showNewPage();
+                return;
+            }
+
+            float dist = this.swipeDistance * Mathf.Sign(direction == 0 ? 1 : direction);
+
+            // Nothing slides away when the page on screen has no text (the scanned-page reveal): the new page
+            // just slides in.
+            bool textOnScreen = this.bodyLabel.gameObject.activeSelf
+                                || this.titleLabel.gameObject.activeSelf
+                                || (this.bigTitleLabel != null && this.bigTitleLabel.gameObject.activeSelf);
+            float outDuration = textOnScreen ? this.swipeOutDuration : 0.0001f;
+
+            this.swipeTween = DOTween.Sequence().SetUpdate(true).SetTarget(this)
+                .Append(DOVirtual.Float(0f, 1f, outDuration, v => ApplySwipe(-dist * v, 1f - v)).SetEase(Ease.InQuad))
+                .AppendCallback(() => showNewPage())
+                .Append(DOVirtual.Float(1f, 0f, this.swipeInDuration, v => ApplySwipe(dist * v, 1f - v)).SetEase(Ease.OutCubic))
+                .OnKill(() => ApplySwipe(0f, 1f));
+        }
+
         public void Hide()
         {
+            this.swipeTween?.Kill();
             this.panel.SetActive(false);
             SetChromeVisible(true);
             this.IsOpen = false;

@@ -51,6 +51,14 @@ namespace CrimsonDraft.Tests
         }
 
         public bool TryAdd(ItemData data, ContainerId target, int quantity = 0) => TryAdd(data, quantity);
+
+        public AddPreview? PreviewAdd(ItemData data, int quantity = 0)
+        {
+            if (!this.AddResult) return null;
+            foreach (var container in this.containers)
+                if (container.TryFindFreeCell(data.GridSize, out var origin)) return new AddPreview(container.Id, origin);
+            return null;
+        }
         public void Remove(InventoryItem item) => this.Removed.Add(item);
 
         public bool TryRemove(string itemId)

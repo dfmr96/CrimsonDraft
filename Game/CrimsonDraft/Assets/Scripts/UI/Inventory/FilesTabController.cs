@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using MessagePipe;
 using TMPro;
 using UnityEngine;
@@ -23,11 +24,17 @@ namespace CrimsonDraft.UI
     {
         [SerializeField] private NoteDatabase      database      = null!;
         [SerializeField] private NoteDetailView    detailView    = null!;
-        [SerializeField] private NoteGridCellView  cellPrefab    = null!;
-        [SerializeField] private NoteGrid          noteGrid      = null!;
-        [SerializeField] private RectTransform     selectorRect  = null!;
-        [SerializeField] private TMP_Text          categoryLabel = null!;
+        [SerializeField] private NoteListView      list          = null!;
         [SerializeField] private TMP_Text?         previewLabel;
+
+        [Header("Carousel")]
+        [Tooltip("Los 3 modelos 3D (uno por categoria) que se ciclan antes de entrar a la grilla.")]
+        [SerializeField] private NoteCarouselView? carousel;
+        [Tooltip("La ventana de la grilla de notas: es la que hace pop desde el modelo seleccionado.")]
+        [SerializeField] private RectTransform?    windowRoot;
+        [SerializeField] private float             windowPopDuration = 0.45f;
+        [SerializeField, Range(0f, 1f)] private float windowPopStartScale = 0.05f;
+        [SerializeField] private TMP_Text?         categoryLabel;
         [SerializeField] private GameObject?       prevArrow;
         [SerializeField] private GameObject?       nextArrow;
 
@@ -37,12 +44,13 @@ namespace CrimsonDraft.UI
         [SerializeField] private GameObject? nextArrowHighlight;
         [SerializeField] private float       arrowFlashTime = 0.12f;
 
-        // AddComponent<ManualSelectScale> onto prevArrow/nextArrow at runtime and built from the
-        // "<"/">" glyph TMP_Text (reusing categoryLabel's own font) -- both live only in the
-        // running scene instance, not the saved scene, so this feature doesn't depend on the
-        // scene being re-saved. See EnsureArrowFeedback.
+        // Press feedback on the arrows, added at runtime (see EnsureArrowFeedback).
         private ManualSelectScale? prevArrowScale;
         private ManualSelectScale? nextArrowScale;
+
+        [Header("List")]
+        [Tooltip("Lo que se ve en la lista en lugar del nombre de una nota que todavia no se encontro. Cada nota tiene su lugar fijo, en el orden de la base de datos.")]
+        [SerializeField] private string            missingNoteLabel = "????";
 
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
@@ -70,9 +78,6 @@ namespace CrimsonDraft.UI
         [Inject] private NoteRegistry                      noteRegistry         = null!;
 
         private IDisposable? noteSubscription;
-
-        private static readonly DocumentCategory[] Categories =
-            (DocumentCategory[])Enum.GetValues(typeof(DocumentCategory));
 
         // Yarn's own grammar rejects a bare '<' in line text, so TMP rich-text tags can't be
         // authored directly in .yarn source. Writers instead wrap damaged/stained characters
@@ -102,7 +107,7 @@ namespace CrimsonDraft.UI
             new(@"\[important\](.+?)\[/important\]",
                 System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-        const string ImportantTextColor = "#4E8A62";
+        const string ImportantTextColor = "#9A9F5C"; // the UI's olive
 
         static string ApplyImportantMarkup(string text) =>
             ImportantTextPattern.Replace(text, $"<color={ImportantTextColor}>$1</color>");
@@ -110,11 +115,30 @@ namespace CrimsonDraft.UI
         static string ApplyTextMarkup(string text) =>
             ApplyImportantMarkup(ApplyItalicMarkup(ApplyDamagedTextMarkup(text)));
 
-        private int categoryIndex;
+        // Order of the carousel (and of the models in NoteCarouselView): Voice Notes, Notes, Posters.
+        private static readonly DocumentCategory[] Categories =
+        {
+            DocumentCategory.VoiceNotes,
+            DocumentCategory.Notes,
+            DocumentCategory.Posters,
+        };
+
+        private enum Mode { Carousel, Window }
+        private Mode mode;
+
+        private int categoryIndex = 1;
         private int selectedIndex;
 
-        private readonly List<NoteGridCellView> cells         = new();
-        private          DocumentData[]         filteredNotes = Array.Empty<DocumentData>();
+        // The note window: pops out of the selected model and back into it.
+        private Tween?  windowTween;
+        private int     windowGeneration;
+        private bool    windowPoseCached;
+        private Vector3 windowRestPosition;
+        private Vector3 windowRestScale = Vector3.one;
+
+        // One fixed row per note of the open category, in the order of the database: a note keeps its
+        // place whether or not it has been found yet (its row reads "????" until then).
+        private          DocumentData[]         slots = Array.Empty<DocumentData>();
 
         private bool       holding;
         private Vector2Int lastDir;
@@ -181,9 +205,6 @@ namespace CrimsonDraft.UI
 
         public NoteDatabase Database => this.database;
 
-        private enum Focus { Carousel, Grid }
-        private Focus focus;
-
         // ── DI lifecycle ─────────────────────────────────────────────────────
 
         void IInitializable.Initialize()
@@ -204,30 +225,31 @@ namespace CrimsonDraft.UI
             // Open the canvas first so the whole hierarchy (GridCursor, etc.) gets its Awake()
             // call — TabManager.EnsureInitialized() below ends up calling ResetForOpen(), which
             // touches GridCursor.CurrentGrid and NREs if GridCursor hasn't awoken yet.
-            this.openCloseController.Open();
-
-            // Then force TabManager's first-time setup synchronously, in case Unity hasn't
-            // gotten around to calling its Start() yet — otherwise the deferred Start() would
-            // reset the active tab back to "Inventory" right after we switch to "Files".
-            this.tabManager.EnsureInitialized();
-            this.tabManager.ActivateTabByName("Files");
-            OpenCollected(doc);
+            this.openCloseController.Open(() =>
+            {
+                // Then force TabManager's first-time setup synchronously, in case Unity hasn't
+                // gotten around to calling its Start() yet — otherwise the deferred Start() would
+                // reset the active tab back to "Inventory" right after we switch to "Files".
+                this.tabManager.EnsureInitialized();
+                this.tabManager.ActivateTabByName("Files");
+                OpenCollected(doc);
+            });
         }
 
         /// <summary>Opens a note exactly as if the player had navigated to it by hand.</summary>
         public void OpenCollected(DocumentData doc)
         {
-            EnsureSelectorParented();
+            int cat = Array.IndexOf(Categories, doc.Category);
+            this.categoryIndex = cat >= 0 ? cat : 0;
+            this.carousel?.Select(this.categoryIndex, animated: false);
+            RefreshCategoryLabel();
 
-            int catIndex = Array.IndexOf(Categories, doc.Category);
-            this.categoryIndex = catIndex >= 0 ? catIndex : 0;
-            RefreshCategory();
+            OpenWindow(animated: false);
 
-            int idx = Array.IndexOf(this.filteredNotes, doc);
+            int idx = Array.IndexOf(this.slots, doc);
             if (idx >= 0)
             {
                 this.selectedIndex = idx;
-                SetFocus(Focus.Grid);
                 PlaceSelectorAt(this.selectedIndex);
             }
 
@@ -238,22 +260,7 @@ namespace CrimsonDraft.UI
 
         void Start()
         {
-            EnsureSelectorParented();
             EnsureArrowFeedback();
-        }
-
-        private bool selectorParented;
-
-        void EnsureSelectorParented()
-        {
-            if (this.selectorParented) return;
-            this.selectorParented = true;
-
-            if (this.selectorRect == null || this.noteGrid == null) return;
-            this.selectorRect.SetParent(this.noteGrid.transform, false);
-            this.selectorRect.anchorMin = new Vector2(0.5f, 0.5f);
-            this.selectorRect.anchorMax = new Vector2(0.5f, 0.5f);
-            this.selectorRect.pivot     = new Vector2(0f, 1f);
         }
 
         private bool arrowFeedbackReady;
@@ -280,7 +287,7 @@ namespace CrimsonDraft.UI
         // reference, so this glyph never needs anything assigned in the Inspector either.
         void EnsureArrowGlyph(GameObject? arrow, string glyph)
         {
-            if (arrow == null) return;
+            if (arrow == null || this.categoryLabel == null) return;
 
             const string GlyphName = "ArrowGlyph";
             Transform existing = arrow.transform.Find(GlyphName);
@@ -319,21 +326,23 @@ namespace CrimsonDraft.UI
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
 
-            this.categoryIndex   = 0;
+            this.mode            = Mode.Carousel;
+            this.categoryIndex   = Mathf.Clamp(this.categoryIndex, 0, Categories.Length - 1);
             this.selectedIndex   = 0;
             this.holding         = false;
             this.lastDir         = Vector2Int.zero;
-            this.wasTabBarActive = false;
+            this.wasTabBarActive = true;
 
-            this.selectorRect.gameObject.SetActive(false);
-            SetFocus(Focus.Carousel);
-
-            if (this.database != null)
-                RefreshCategory();
+            this.list.SetSelectionVisible(false);
+            ResetWindow();
+            this.carousel?.Select(this.categoryIndex, animated: false);
+            SetCarouselFocus(true);
+            RefreshCategoryLabel();
         }
 
         void OnDisable()
         {
+            this.windowTween?.Kill();
             StopVoiceTape();
             if (this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
@@ -350,12 +359,14 @@ namespace CrimsonDraft.UI
             bool tabBarNow = this.tabManager.IsTabBarActive;
             if (tabBarNow != this.wasTabBarActive)
             {
-                if (!tabBarNow)
-                {
-                    SetFocus(Focus.Carousel);
-                    this.selectorRect.gameObject.SetActive(false);
-                }
                 this.wasTabBarActive = tabBarNow;
+                if (tabBarNow)
+                {
+                    this.list.SetSelectionVisible(false);
+                    SetCarouselFocus(false);
+                }
+                else if (this.mode == Mode.Window) PlaceSelectorAt(this.selectedIndex);
+                else                               SetCarouselFocus(true);
             }
             if (tabBarNow) return;
 
@@ -578,10 +589,10 @@ namespace CrimsonDraft.UI
 
         void ProcessMove(Vector2Int dir)
         {
-            if (this.focus == Focus.Carousel)
+            if (this.mode == Mode.Carousel)
             {
-                // Carousel is the topmost row of this tab -- another Up from here goes into
-                // the tab bar, same as GridCursor exiting its grid from row 0.
+                // The carousel is the topmost row of this tab: Up goes into the tab bar, same as
+                // GridCursor exiting its grid from row 0.
                 if (dir.y > 0)
                 {
                     this.tabManager.EnterTabBar();
@@ -591,7 +602,7 @@ namespace CrimsonDraft.UI
             }
             else
             {
-                MoveGrid(dir);
+                MoveList(dir);
             }
 
             this.sfx?.PlayCursor(gameObject);
@@ -599,72 +610,27 @@ namespace CrimsonDraft.UI
 
         void MoveCarousel(Vector2Int dir)
         {
-            if (dir.y < 0)
-            {
-                if (this.filteredNotes.Length > 0)
-                {
-                    SetFocus(Focus.Grid);
-                    this.selectedIndex = 0;
-                    PlaceSelectorAt(this.selectedIndex);
-                }
-                return;
-            }
+            if (dir.x == 0) return;
 
-            // LEFT / RIGHT — change category + flash/push the pressed arrow
             this.categoryIndex = (this.categoryIndex + dir.x + Categories.Length) % Categories.Length;
+            this.carousel?.Select(this.categoryIndex, animated: true);
+            RefreshCategoryLabel();
+
             bool goingPrev = dir.x < 0;
             FlashArrowHighlight(goingPrev ? this.prevArrowHighlight : this.nextArrowHighlight);
             (goingPrev ? this.prevArrowScale : this.nextArrowScale)?.Punch();
-            RefreshCategory();
         }
 
-        void MoveGrid(Vector2Int dir)
+        void MoveList(Vector2Int dir)
         {
-            int col = this.selectedIndex % this.noteGrid.Columns;
-            int row = this.selectedIndex / this.noteGrid.Columns;
+            if (this.slots.Length == 0 || dir.y == 0) return;
 
-            if (dir.y > 0)
-            {
-                if (row == 0)
-                {
-                    SetFocus(Focus.Carousel);
-                    this.selectorRect.gameObject.SetActive(false);
-                }
-                else
-                {
-                    this.selectedIndex -= this.noteGrid.Columns;
-                    PlaceSelectorAt(this.selectedIndex);
-                }
-                return;
-            }
+            // Up/Down walk the list one row at a time; it stops at both ends.
+            int next = this.selectedIndex + (dir.y > 0 ? -1 : 1);
+            if (next < 0 || next >= this.slots.Length) return;
 
-            if (dir.y < 0)
-            {
-                int next = this.selectedIndex + this.noteGrid.Columns;
-                if (next < this.filteredNotes.Length)
-                {
-                    this.selectedIndex = next;
-                    PlaceSelectorAt(this.selectedIndex);
-                }
-                return;
-            }
-
-            if (dir.x > 0 && col < this.noteGrid.Columns - 1)
-            {
-                int next = this.selectedIndex + 1;
-                if (next < this.filteredNotes.Length)
-                {
-                    this.selectedIndex = next;
-                    PlaceSelectorAt(this.selectedIndex);
-                }
-                return;
-            }
-
-            if (dir.x < 0 && col > 0)
-            {
-                this.selectedIndex--;
-                PlaceSelectorAt(this.selectedIndex);
-            }
+            this.selectedIndex = next;
+            PlaceSelectorAt(this.selectedIndex);
         }
 
         // ── Input callbacks ──────────────────────────────────────────────────
@@ -699,11 +665,18 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            if (this.focus != Focus.Grid)       return;
-            if (this.filteredNotes.Length == 0) return;
+            if (this.mode == Mode.Carousel)
+            {
+                this.sfx?.PlayDecide(gameObject);
+                OpenWindow(animated: true);
+                return;
+            }
 
-            var doc = this.filteredNotes[this.selectedIndex];
-            if (!string.IsNullOrEmpty(doc.NoteId))
+            if (this.slots.Length == 0) return;
+
+            // A note that has not been found yet is only a placeholder: nothing to open.
+            var doc = this.slots[this.selectedIndex];
+            if (!string.IsNullOrEmpty(doc.NoteId) && this.noteRegistry.IsCollected(doc.NoteId))
             {
                 // Paper rustle for a note; a voice note is a cassette, its own tape sound starts
                 // once the transcript opens.
@@ -718,11 +691,22 @@ namespace CrimsonDraft.UI
         // back to entering the tab bar selector.
         public bool TryConsumeCancel()
         {
-            if (!this.detailView.IsOpen) return false;
+            if (this.detailView.IsOpen)
+            {
+                this.sfx?.PlayCancel(gameObject);
+                this.detailView.Hide();
+                return true;
+            }
 
-            this.sfx?.PlayCancel(gameObject);
-            this.detailView.Hide();
-            return true;
+            // The note window closes back into its model before Cancel leaves for the tab bar.
+            if (this.mode == Mode.Window)
+            {
+                this.sfx?.PlayCancel(gameObject);
+                CloseWindow();
+                return true;
+            }
+
+            return false;
         }
 
         void OpenNote(DocumentData doc)
@@ -867,7 +851,7 @@ namespace CrimsonDraft.UI
                 return;
             }
             PlayPageTurnSound();
-            ShowCurrentPage();
+            ShowPageTurned(+1);
         }
 
         void PreviousPage()
@@ -875,7 +859,14 @@ namespace CrimsonDraft.UI
             if (this.pageIndex <= 0) return;
             this.pageIndex--;
             PlayPageTurnSound();
-            ShowCurrentPage();
+            ShowPageTurned(-1);
+        }
+
+        // A plain note's page slides away and the next one slides in; a voice transcript just changes.
+        void ShowPageTurned(int direction)
+        {
+            if (this.isVoiceNote) ShowCurrentPage();
+            else                  this.detailView.TurnPage(direction, ShowCurrentPage);
         }
 
         // Paper rustle for turning the page of a normal note. Voice notes never play it: their
@@ -886,15 +877,43 @@ namespace CrimsonDraft.UI
             this.sfx?.PlayPageTurn(gameObject);
         }
 
-        // ── Focus / Highlights ────────────────────────────────────────────────
+        // ── Grid ─────────────────────────────────────────────────────────────
 
-        void SetFocus(Focus newFocus)
+        void RebuildList()
         {
-            this.focus = newFocus;
-            this.carouselHighlight?.SetActive(newFocus == Focus.Carousel);
-            if (newFocus == Focus.Carousel && this.previewLabel != null)
-                this.previewLabel.text = string.Empty;
+            // Every note of the open category gets its own row, in database order; gaps in the
+            // database list (unassigned entries) are skipped rather than left as holes.
+            var category = Categories[this.categoryIndex];
+            this.slots = this.database.Notes.Where(n => n != null && n.Category == category).ToArray();
+
+            var labels = new string[this.slots.Length];
+            var found  = new bool[this.slots.Length];
+            for (int i = 0; i < this.slots.Length; i++)
+            {
+                found[i]  = this.noteRegistry.IsCollected(this.slots[i].NoteId);
+                labels[i] = found[i] ? this.slots[i].Title : this.missingNoteLabel;
+            }
+
+            this.list.Bind(labels, found);
+            this.selectedIndex = Mathf.Clamp(this.selectedIndex, 0, Mathf.Max(0, this.slots.Length - 1));
         }
+
+        // ── Category / window ────────────────────────────────────────────────
+
+        void RefreshCategoryLabel()
+        {
+            if (this.categoryLabel != null) this.categoryLabel.text = DisplayName(Categories[this.categoryIndex]);
+        }
+
+        static string DisplayName(DocumentCategory cat) => cat switch
+        {
+            DocumentCategory.Notes      => "Notes",
+            DocumentCategory.VoiceNotes => "Voice Notes",
+            DocumentCategory.Posters    => "Posters",
+            _                           => cat.ToString()
+        };
+
+        void SetCarouselFocus(bool on) => this.carouselHighlight?.SetActive(on);
 
         void FlashArrowHighlight(GameObject? highlight)
         {
@@ -910,97 +929,156 @@ namespace CrimsonDraft.UI
             if (highlight != null) highlight.SetActive(false);
         }
 
-        // ── Category carousel ────────────────────────────────────────────────
-
-        void RefreshCategory()
+        void CacheWindowPose(RectTransform rect)
         {
-            var cat = Categories[this.categoryIndex];
-            this.categoryLabel.text = DisplayName(cat);
-            this.prevArrow?.SetActive(true);
-            this.nextArrow?.SetActive(true);
-
-            this.filteredNotes = this.database.Notes
-                .Where(n => n != null && n.Category == cat && this.noteRegistry.IsCollected(n.NoteId))
-                .ToArray();
-
-            RebuildGrid();
-
-            this.selectedIndex = 0;
-            if (this.focus == Focus.Grid && this.filteredNotes.Length > 0)
-                PlaceSelectorAt(this.selectedIndex);
-            else
-                this.selectorRect.gameObject.SetActive(false);
+            if (this.windowPoseCached) return;
+            this.windowRestPosition = rect.localPosition;
+            this.windowRestScale    = rect.localScale;
+            this.windowPoseCached   = true;
         }
 
-        static string DisplayName(DocumentCategory cat) => cat switch
+        // Window hidden, pose back to rest (tab enabled / interrupted close).
+        void ResetWindow()
         {
-            DocumentCategory.Notes      => "Notes",
-            DocumentCategory.VoiceNotes => "Voice Notes",
-            DocumentCategory.Posters    => "Posters",
-            _                           => cat.ToString()
-        };
+            this.windowGeneration++;
+            this.windowTween?.Kill();
+            this.carousel?.SetDimmed(false, instant: true);
+            if (this.windowRoot == null) return;
 
-        // ── Grid ─────────────────────────────────────────────────────────────
-
-        void RebuildGrid()
-        {
-            foreach (var c in this.cells)
-                if (c != null) Destroy(c.gameObject);
-            this.cells.Clear();
-
-            for (int i = 0; i < this.filteredNotes.Length; i++)
+            if (this.windowPoseCached)
             {
-                var cell = new Vector2Int(i % this.noteGrid.Columns, i / this.noteGrid.Columns);
-
-                var go   = Instantiate(this.cellPrefab, this.noteGrid.transform);
-                var view = go.GetComponent<NoteGridCellView>();
-                var rt   = go.GetComponent<RectTransform>();
-
-                rt.anchorMin        = new Vector2(0.5f, 0.5f);
-                rt.anchorMax        = new Vector2(0.5f, 0.5f);
-                rt.pivot            = new Vector2(0f, 1f);
-                rt.anchoredPosition = this.noteGrid.CellToLocal(cell);
-                rt.sizeDelta        = new Vector2(this.noteGrid.CellSize, this.noteGrid.CellSize);
-
-                view.Bind(this.filteredNotes[i]);
-                this.cells.Add(view);
+                this.windowRoot.localPosition = this.windowRestPosition;
+                this.windowRoot.localScale    = this.windowRestScale;
             }
+            this.windowRoot.gameObject.SetActive(false);
+        }
+
+        // The window's collapsed pose: centred on the selected model, tiny.
+        void ComputeWindowCollapsed(RectTransform rect, out Vector3 position, out Vector3 scale)
+        {
+            position = this.windowRestPosition;
+            scale    = this.windowRestScale * this.windowPopStartScale;
+            if (this.carousel != null && rect.parent != null && this.carousel.TryGetSelectedAnchor(out var world))
+            {
+                position   = rect.parent.InverseTransformPoint(world);
+                position.z = this.windowRestPosition.z;
+            }
+        }
+
+        void OpenWindow(bool animated)
+        {
+            this.mode = Mode.Window;
+            this.selectedIndex = 0;
+            RebuildList();
+            this.carousel?.SetDimmed(true);
+            SetCarouselFocus(false);
+
+            var rect = this.windowRoot;
+            if (rect == null)
+            {
+                PlaceSelectorAt(this.selectedIndex);
+                return;
+            }
+
+            this.windowGeneration++;
+            this.windowTween?.Kill();
+            CacheWindowPose(rect);
+            rect.gameObject.SetActive(true);
+            PlaceSelectorAt(this.selectedIndex);
+
+            if (!animated || !rect.gameObject.activeInHierarchy)
+            {
+                rect.localPosition = this.windowRestPosition;
+                rect.localScale    = this.windowRestScale;
+                return;
+            }
+
+            // One eased progress drives both position and scale: the window grows out of the model
+            // along a straight line (separate eases would make it grow first and then slide).
+            ComputeWindowCollapsed(rect, out var start, out var startScale);
+            rect.localPosition = start;
+            rect.localScale    = startScale;
+
+            this.windowTween = DOVirtual.Float(0f, 1f, this.windowPopDuration, v =>
+                {
+                    rect.localPosition = Vector3.LerpUnclamped(start, this.windowRestPosition, v);
+                    rect.localScale    = Vector3.LerpUnclamped(startScale, this.windowRestScale, v);
+                })
+                .SetEase(Ease.OutCubic).SetUpdate(true).SetTarget(this);
+        }
+
+        void CloseWindow()
+        {
+            if (this.mode != Mode.Window) return;
+            this.mode = Mode.Carousel;
+            this.list.SetSelectionVisible(false);
+            this.carousel?.SetDimmed(false);
+            SetCarouselFocus(true);
+
+            var rect = this.windowRoot;
+            if (rect == null) return;
+
+            int generation = ++this.windowGeneration;
+            this.windowTween?.Kill();
+
+            if (!this.windowPoseCached || !rect.gameObject.activeInHierarchy)
+            {
+                rect.gameObject.SetActive(false);
+                return;
+            }
+
+            Vector3 from      = rect.localPosition;
+            Vector3 fromScale = rect.localScale;
+            ComputeWindowCollapsed(rect, out var end, out var endScale);
+
+            this.windowTween = DOVirtual.Float(0f, 1f, this.windowPopDuration, v =>
+                {
+                    rect.localPosition = Vector3.LerpUnclamped(from, end, v);
+                    rect.localScale    = Vector3.LerpUnclamped(fromScale, endScale, v);
+                })
+                .SetEase(Ease.InCubic).SetUpdate(true).SetTarget(this)
+                .OnKill(() =>
+                {
+                    if (generation != this.windowGeneration) return;
+                    rect.gameObject.SetActive(false);
+                    rect.localPosition = this.windowRestPosition;
+                    rect.localScale    = this.windowRestScale;
+                });
         }
 
         // ── Selector ─────────────────────────────────────────────────────────
 
         void PlaceSelectorAt(int index)
         {
-            if (index < 0 || index >= this.cells.Count)
+            if (index < 0 || index >= this.slots.Length)
             {
-                this.selectorRect.gameObject.SetActive(false);
+                this.list.SetSelectionVisible(false);
                 return;
             }
 
-            var cell = new Vector2Int(index % this.noteGrid.Columns, index / this.noteGrid.Columns);
-
-            this.selectorRect.gameObject.SetActive(true);
-            this.selectorRect.anchoredPosition = this.noteGrid.CellToLocal(cell);
-            this.selectorRect.sizeDelta        = new Vector2(this.noteGrid.CellSize, this.noteGrid.CellSize);
-            this.selectorRect.SetAsLastSibling();
+            this.list.Select(index);
 
             if (this.previewLabel != null)
-                this.previewLabel.text = this.filteredNotes[index].Title;
+            {
+                int found = this.slots.Count(n => this.noteRegistry.IsCollected(n.NoteId));
+                this.previewLabel.text = $"{found}/{this.slots.Length}";
+            }
         }
 
         // ── Tab bar integration ───────────────────────────────────────────────
 
         public void HideSelectorForTabBar()
         {
-            this.selectorRect.gameObject.SetActive(false);
+            this.list.SetSelectionVisible(false);
             this.holding = false;
             this.lastDir = Vector2Int.zero;
         }
 
         public void ShowSelectorAfterTabBar()
         {
-            SetFocus(Focus.Carousel);
-            this.selectorRect.gameObject.SetActive(false);
+            if (this.mode == Mode.Window) PlaceSelectorAt(this.selectedIndex);
+            else                          this.list.SetSelectionVisible(false);
+            SetCarouselFocus(this.mode == Mode.Carousel);
         }
 
         // ── Input reading ────────────────────────────────────────────────────

@@ -41,6 +41,10 @@ namespace CrimsonDraft.UI
             if (FindFirstObjectByType<BeeperTabController>(FindObjectsInactive.Include) != null)
                 builder.RegisterComponentInHierarchy<BeeperTabController>();
 
+            // Opens the inventory behind a world pickup's "take it?" prompt and ghosts the item in its cell.
+            if (FindFirstObjectByType<PickupInventoryPreview>(FindObjectsInactive.Include) != null)
+                builder.RegisterComponentInHierarchy<PickupInventoryPreview>().AsImplementedInterfaces();
+
             builder.Register<InventoryPresenters>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.Register<InventoryHUDController>(Lifetime.Scoped).AsImplementedInterfaces();
         }

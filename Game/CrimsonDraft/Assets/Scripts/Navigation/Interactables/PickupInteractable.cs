@@ -9,6 +9,7 @@ using VContainer;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Dialogue;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -67,9 +68,14 @@ namespace CrimsonDraft.Navigation.Interactables
                 ? this.item.SecondaryName
                 : this.item.DisplayName;
 
-            context.PickupPreviewController.Show(this.item);
+            // Opens the inventory with the item ghosted where it would go, under the Inspect panel
+            // (model + prompt). A note that is only read (not also carried) goes nowhere in the
+            // inventory, so it keeps the plain world prompt.
+            bool inInventory = this.openNoteInstead == null || this.alsoAddItem;
+            if (inInventory) context.PickupPreviewController.Show(this.item);
+            IDialogueService dialogue = inInventory ? context.PickupPreviewController.Dialogue : context.PickupDialogueService;
 
-            context.PickupDialogueService.StartDialogue(
+            dialogue.StartDialogue(
                 PromptNode,
                 variables: new Dictionary<string, object>
                 {
@@ -78,7 +84,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 },
                 onComplete: () =>
                 {
-                    context.PickupPreviewController.Hide();
+                    if (inInventory) context.PickupPreviewController.Hide();
                     if (!pickupSucceeded)
                     {
                         onClosed?.Invoke();
@@ -103,7 +109,7 @@ namespace CrimsonDraft.Navigation.Interactables
                     {
                         pickupSucceeded = (this.openNoteInstead != null && !this.alsoAddItem)
                             || context.InventoryService.TryAdd(this.item);
-                        context.PickupDialogueService.SetVariable("$pickup_success", pickupSucceeded);
+                        dialogue.SetVariable("$pickup_success", pickupSucceeded);
                     }
                 });
         }

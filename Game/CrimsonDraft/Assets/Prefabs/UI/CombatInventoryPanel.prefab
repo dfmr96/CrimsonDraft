@@ -137,9 +137,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.MenuOption
   background: {fileID: 1089093264421756114}
   label: {fileID: 3327507473463040250}
+  selectedImage: {fileID: 0}
   colorNormal: {r: 1, g: 1, b: 1, a: 1}
   colorSelected: {r: 1, g: 1, b: 0, a: 0.9}
   colorDisabled: {r: 0.4, g: 0.4, b: 0.4, a: 0}
+  selectedScale: 1.1
   optionType: 2
 --- !u!1 &1195981388600556825
 GameObject:
@@ -515,7 +517,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 150, y: 150}
+  m_SizeDelta: {x: 162, y: 162}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1234447036469948952
 CanvasRenderer:
@@ -988,7 +990,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 150, y: 150}
+  m_SizeDelta: {x: 162, y: 162}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7340271748063507475
 CanvasRenderer:
@@ -1165,9 +1167,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.MenuOption
   background: {fileID: 4575242344920524429}
   label: {fileID: 6652528440427087912}
+  selectedImage: {fileID: 0}
   colorNormal: {r: 1, g: 1, b: 1, a: 1}
   colorSelected: {r: 1, g: 1, b: 0, a: 0.9}
   colorDisabled: {r: 0.4, g: 0.4, b: 0.4, a: 0}
+  selectedScale: 1.1
   optionType: 0
 --- !u!1 &5545306820572514858
 GameObject:
@@ -1457,9 +1461,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.MenuOption
   background: {fileID: 1680076558862100276}
   label: {fileID: 5091660994586008578}
+  selectedImage: {fileID: 0}
   colorNormal: {r: 1, g: 1, b: 1, a: 1}
   colorSelected: {r: 1, g: 1, b: 0, a: 0.9}
   colorDisabled: {r: 0.4, g: 0.4, b: 0.4, a: 0}
+  selectedScale: 1.1
   optionType: 1
 --- !u!1 &6742332339758671509
 GameObject:
@@ -1608,7 +1614,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 132, y: 132}
+  m_SizeDelta: {x: 144, y: 144}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3409728251567218120
 MonoBehaviour:
@@ -1625,6 +1631,12 @@ MonoBehaviour:
   columns: 4
   rows: 4
   gridBackground: {fileID: 7657307189703046087}
+  containerKind: 0
+  containerIndex: 0
+  left: {fileID: 0}
+  right: {fileID: 0}
+  up: {fileID: 0}
+  down: {fileID: 0}
 --- !u!1 &8235387046229368764
 GameObject:
   m_ObjectHideFlags: 0
@@ -1734,10 +1746,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 3785168550126022138}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 132, y: 132}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4330256789876859516
 CanvasRenderer:

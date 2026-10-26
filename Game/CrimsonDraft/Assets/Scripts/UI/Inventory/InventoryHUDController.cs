@@ -10,8 +10,6 @@ namespace CrimsonDraft.UI
 {
     public sealed class InventoryHUDController : IInitializable, System.IDisposable
     {
-        private static readonly Color ColorCombineSourceTint = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f);
-
         private readonly IInventoryService   inventory;
         private readonly InventoryPresenters presenters;
         private readonly GridCursor          cursor;
@@ -22,6 +20,7 @@ namespace CrimsonDraft.UI
         private readonly InventoryOpenCloseController openClose;
 
         private InventoryItem? combineSource;
+        private InventoryItem? pendingReveal; // a combine's result, hidden until the flying copy lands
 
         [Preserve]
         public InventoryHUDController(
@@ -151,40 +150,66 @@ namespace CrimsonDraft.UI
         {
             this.combineSource        = source.BoundItem;
             this.cursor.IsCombineMode = true;
-            source.SetTint(ColorCombineSourceTint);
+            this.cursor.Selector.MarkCombineSource(source);
         }
 
         private void ExitCombineMode()
         {
             if (this.combineSource != null)
-            {
-                var view = this.presenters.FindView(this.combineSource);
-                if (view != null) view.ResetTint();
-            }
+                this.cursor.Selector.ClearCombineSource(this.presenters.FindView(this.combineSource));
             this.combineSource        = null;
             this.cursor.IsCombineMode = false;
         }
 
+        // The grid re-renders its item views on every change: the red frame lives on the old view,
+        // and a combine's result stays hidden until the flying copy has reached it.
         private void ReapplyCombineTint(ContainerId _)
         {
+            if (this.pendingReveal != null)
+                this.presenters.FindView(this.pendingReveal)?.SetShown(false);
+
             if (this.combineSource == null) return;
             var view = this.presenters.FindView(this.combineSource);
-            if (view != null) view.SetTint(ColorCombineSourceTint);
+            if (view != null) this.cursor.Selector.MarkCombineSource(view);
+        }
+
+        private void RevealCombineResult(InventoryItem result)
+        {
+            if (this.pendingReveal != result) return;
+            this.pendingReveal = null;
+            this.presenters.FindView(result)?.SetShown(true);
         }
 
         private void HandleCombineConfirm(InventoryItemView target)
         {
             if (this.combineSource == null || target.BoundItem == this.combineSource) return;
 
-            var source = this.combineSource;
+            var source     = this.combineSource;
+            var sourceView = this.presenters.FindView(source);
+            // The copy that flies onto the target is made now, while the source's view still exists.
+            var flight = sourceView != null ? CombineFlyVisual.Begin(sourceView, target) : null;
             ExitCombineMode();
 
             if (!this.inventory.TryCombine(source, target.BoundItem, out var result))
             {
+                flight?.Cancel();
                 this.sfx.PlayInvalidAction(this.cursor.gameObject);
                 return;
             }
 
+            // A recipe's brand-new item shows up only once the flying copy has reached the target.
+            if (flight != null)
+            {
+                bool isNew = result != null && result != source && result != target.BoundItem;
+                if (isNew)
+                {
+                    var created        = result!;
+                    this.pendingReveal = created;
+                    this.presenters.FindView(created)?.SetShown(false);
+                    flight.Launch(() => RevealCombineResult(created));
+                }
+                else flight.Launch();
+            }
             this.sfx.PlayDecide(this.cursor.gameObject);
             if (result is WeaponItem weapon && weapon.IsEquipped)
                 this.partyPanel.GetWidget(weapon.EquippedBySlot)?.SetEquippedWeapon(weapon, weapon.EquippedWeaponSlot);

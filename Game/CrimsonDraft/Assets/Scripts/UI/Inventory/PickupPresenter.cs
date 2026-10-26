@@ -79,7 +79,7 @@ namespace CrimsonDraft.UI
 
         public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
         {
-            string text = ApplyMarkupColors(line.Text, ("item", "#4E8A62"), ("important", "#4E8A62"));
+            string text = ApplyMarkupColors(line.Text, ("item", HighlightColor), ("important", HighlightColor));
 
             if (!useTypewriterForLine)
             {
@@ -126,9 +126,12 @@ namespace CrimsonDraft.UI
             if (onSkip != null) inputService!.PickupConfirm.performed -= onSkip;
         }
 
-        // "important" is the green of the DialogueMarkupPalette (4E8A62); this presenter doesn't
-        // read the palette, so each marker it colors is listed by hand. Attributes are walked
-        // back to front so inserting tags doesn't shift the positions still to be processed.
+        // The UI's olive, same as the "important" / "item" markers of the DialogueMarkupPalette; this
+        // presenter doesn't read the palette, so each marker it colors is listed by hand.
+        private const string HighlightColor = "#9A9F5C";
+
+        // Attributes are walked back to front so inserting tags doesn't shift the positions still
+        // to be processed.
         private static string ApplyMarkupColors(MarkupParseResult markup, params (string marker, string color)[] colors)
         {
             var text = markup.Text;
