@@ -18,7 +18,8 @@ namespace CrimsonDraft.Navigation
     {
         private const string MainMenuSceneName = "MainMenu";
 
-        private enum PauseState { Closed, Main, Options }
+        // Opening / Closing: the PDA is unfolding or folding away and the menu itself is not up -- no input.
+        private enum PauseState { Closed, Opening, Main, Options, Closing }
 
         private readonly IInputService            inputService;
         private readonly PauseMenuView            view;
@@ -88,9 +89,23 @@ namespace CrimsonDraft.Navigation
 
         private void Open()
         {
-            this.state = PauseState.Main;
             Time.timeScale = 0f;
             this.inputService.SwitchToUI();
+
+            // The PDA turns on first; the menu appears once it has unfolded.
+            var pda = this.view.Pda;
+            if (pda != null)
+            {
+                this.state = PauseState.Opening;
+                pda.Show(ShowMenu);
+                return;
+            }
+            ShowMenu();
+        }
+
+        private void ShowMenu()
+        {
+            this.state = PauseState.Main;
             this.view.ShowMain();
             EventSystem.current.SetSelectedGameObject(this.view.FirstMainSelectable);
             this.graphicsSettings.PushGammaSuppression();
@@ -99,13 +114,27 @@ namespace CrimsonDraft.Navigation
 
         private void Resume()
         {
-            this.state = PauseState.Closed;
-            Time.timeScale = 1f;
-            this.inputService.SwitchToGameplay();
             this.view.HideAll();
             EventSystem.current.SetSelectedGameObject(null);
             this.graphicsSettings.PopGammaSuppression();
             this.view.FadeInventoryVolume(false);
+
+            // The menu is gone; the PDA folds away and only then does the game carry on.
+            var pda = this.view.Pda;
+            if (pda != null)
+            {
+                this.state = PauseState.Closing;
+                pda.Hide(FinishResume);
+                return;
+            }
+            FinishResume();
+        }
+
+        private void FinishResume()
+        {
+            this.state = PauseState.Closed;
+            Time.timeScale = 1f;
+            this.inputService.SwitchToGameplay();
         }
 
         private void OpenOptions()
