@@ -12,6 +12,7 @@ using UnityEngine.Rendering;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Navigation.Enemy;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.UI;
 using CrimsonDraft.Navigation.UI;
 
@@ -474,6 +475,8 @@ namespace CrimsonDraft.Navigation.Radio
 
         private void SetVisible(bool visible)
         {
+            if (visible) UiCameraGate.Request(this);
+            else         UiCameraGate.Release(this);
             this.canvas.enabled = visible;
             this.gameObject.SetActive(visible);
 

@@ -2,6 +2,7 @@
 
 using UnityEngine;
 using VContainer;
+using CrimsonDraft.Infrastructure.UI;
 
 namespace CrimsonDraft.Navigation.Radio
 {
@@ -64,6 +65,7 @@ namespace CrimsonDraft.Navigation.Radio
         {
             StopRinging();
             SetUiOnlyPass(false);
+            UiCameraGate.Release(this);
             if (this.service == null) return;
 
             this.service.PendingChanged  -= Refresh;
@@ -80,6 +82,9 @@ namespace CrimsonDraft.Navigation.Radio
             bool visible = this.lastRinging && !this.inventoryOpen;
             this.icon.SetActive(visible);
             SetUiOnlyPass(visible);
+            bool ownPass = this.uiCamera != null && this.uiComposite != null;
+            if (visible && !ownPass) UiCameraGate.Request(this);
+            else                     UiCameraGate.Release(this);
 
             if (visible && !this.ringing) StartRinging();
             else if (!visible && this.ringing) StopRinging();
