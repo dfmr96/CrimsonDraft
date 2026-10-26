@@ -239,25 +239,39 @@ namespace CrimsonDraft.UI
             {
                 this.pendingPrompt = null;
 
-                if (readyPrompt.RequiredItem == null)
+                if (!readyPrompt.AsksBeforeActivating)
                 {
-                    // No item to ask about -- activates unconditionally (e.g. a book that just
+                    // Nothing to ask -- activates unconditionally (e.g. a book that just
                     // opens itself once examined).
                     ActivateHotspot(readyPrompt).Forget();
                     return;
                 }
 
                 this.itemDescription.text = string.Empty; // prompt panel shares this text's rect
-                this.inspectDialogueService.StartDialogue(
-                    readyPrompt.Dialogue.nodeName ?? string.Empty,
-                    variables: new Dictionary<string, object>
-                    {
-                        ["$item_name"] = readyPrompt.RequiredItem.DisplayName
-                    },
-                    commands: new Dictionary<string, Action>
-                    {
-                        ["use_required_item"] = () => UseRequiredItem(readyPrompt)
-                    });
+                if (readyPrompt.RequiredItem != null)
+                {
+                    this.inspectDialogueService.StartDialogue(
+                        readyPrompt.Dialogue.nodeName ?? string.Empty,
+                        variables: new Dictionary<string, object>
+                        {
+                            ["$item_name"] = readyPrompt.RequiredItem.DisplayName
+                        },
+                        commands: new Dictionary<string, Action>
+                        {
+                            ["use_required_item"] = () => UseRequiredItem(readyPrompt)
+                        });
+                }
+                else
+                {
+                    // No item to spend ("Open it?"): the prompt's "Yes" branch just activates.
+                    this.inspectDialogueService.StartDialogue(
+                        readyPrompt.Dialogue.nodeName ?? string.Empty,
+                        variables: new Dictionary<string, object>(),
+                        commands: new Dictionary<string, Action>
+                        {
+                            ["open_hotspot"] = () => ActivateHotspot(readyPrompt).Forget()
+                        });
+                }
                 return;
             }
 

@@ -135,6 +135,12 @@ namespace CrimsonDraft.Inventory
         public readonly HotspotReward?    Reward;
         public readonly AnimationClip?    RewardAnimationClip;
 
+        // Whether InspectPanel shows the Yes/No Dialogue before activating. Always with a
+        // RequiredItem ("Use the key?" -- Resolve only builds those with a valid prompt); without
+        // one, only if the hotspot has its own prompt ("Open it?"). A hotspot with neither (a
+        // book that opens itself) activates straight after its flavor text.
+        public bool AsksBeforeActivating => this.RequiredItem != null || (this.Dialogue != null && this.Dialogue.IsValid);
+
         public ExaminePrompt(
             DialogueReference flavorDialogue, DialogueReference dialogue, ItemData? requiredItem, UnityEvent? onUsed,
             Transform? activationTransform, HotspotReward? reward, AnimationClip? rewardAnimationClip)

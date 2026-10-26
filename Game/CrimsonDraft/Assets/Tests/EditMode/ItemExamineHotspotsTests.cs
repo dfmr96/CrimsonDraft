@@ -238,6 +238,66 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void Resolve_noRequiredItem_noPromptDialogue_doesNotAskBeforeActivating()
+        {
+            // A book that just opens itself once examined (KI_13): no Yes/No in between.
+            var collider = new GameObject().AddComponent<BoxCollider>();
+            var hotspot = new ItemExamineHotspots.Hotspot
+            {
+                collider = collider,
+                dialogue = new DialogueReference { nodeName = "book_flavor" },
+                reward   = MakeItemReward(MakeItemData("note_reward"), new DialogueReference()),
+            };
+            var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
+
+            var result = comp.Resolve(collider, new FakeInventoryService());
+
+            Assert.IsNotNull(result!.Value.Prompt);
+            Assert.IsFalse(result.Value.Prompt!.Value.AsksBeforeActivating);
+        }
+
+        [Test]
+        public void Resolve_noRequiredItem_validPromptDialogue_asksBeforeActivating()
+        {
+            // A case that asks "Open it?" without needing any item to open.
+            var collider = new GameObject().AddComponent<BoxCollider>();
+            var prompt   = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" };
+            var hotspot = new ItemExamineHotspots.Hotspot
+            {
+                collider       = collider,
+                dialogue       = new DialogueReference { nodeName = "case_flavor" },
+                promptDialogue = prompt,
+                reward         = MakeItemReward(MakeItemData("reward_item"), new DialogueReference()),
+            };
+            var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
+
+            var result = comp.Resolve(collider, new FakeInventoryService()); // nothing required
+
+            Assert.IsNotNull(result!.Value.Prompt);
+            Assert.IsNull(result.Value.Prompt!.Value.RequiredItem);
+            Assert.AreSame(prompt, result.Value.Prompt!.Value.Dialogue);
+            Assert.IsTrue(result.Value.Prompt!.Value.AsksBeforeActivating);
+        }
+
+        [Test]
+        public void Resolve_requiredItemPresent_validPrompt_asksBeforeActivating()
+        {
+            var collider = new GameObject().AddComponent<BoxCollider>();
+            var hotspot = new ItemExamineHotspots.Hotspot
+            {
+                collider       = collider,
+                dialogue       = new DialogueReference { nodeName = "locked_node" },
+                requiredItem   = MakeItemData("small_key"),
+                promptDialogue = new DialogueReference { project = MakeYarnProjectStandIn(), nodeName = "examine_placeholder" },
+            };
+            var comp = MakeHotspots(new[] { hotspot }, new DialogueReference { nodeName = "default_node" });
+
+            var result = comp.Resolve(collider, new FakeInventoryService("small_key"));
+
+            Assert.IsTrue(result!.Value.Prompt!.Value.AsksBeforeActivating);
+        }
+
+        [Test]
         public void Resolve_requiredItemAbsent_fallsBackToText()
         {
             var collider     = new GameObject().AddComponent<BoxCollider>();
