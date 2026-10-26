@@ -57,11 +57,6 @@ namespace CrimsonDraft.Navigation
         [SerializeField] private InMemoryVariableStorage? radioStorage;
         [SerializeField] private RadioCastData?           radioCast;
 
-        // Explicit reference instead of RegisterComponentInHierarchy<PickupPreviewView>() --
-        // InspectPanel's ModelPreviewGroup also has a PickupPreviewView, and a scene-wide
-        // type scan would resolve that one instead since it sits earlier in the hierarchy.
-        [SerializeField] private PickupPreviewView       pickupPreviewView = null!;
-
         [SerializeField] private RoomDoorInteractable[]  cachedRoomDoors      = System.Array.Empty<RoomDoorInteractable>();
         [SerializeField] private SceneDoorInteractable[] cachedSceneDoors     = System.Array.Empty<SceneDoorInteractable>();
         [SerializeField] private PickupInteractable[]    cachedPickups        = System.Array.Empty<PickupInteractable>();
@@ -179,7 +174,6 @@ namespace CrimsonDraft.Navigation
             builder.RegisterInstance(this.saveSlotListView);
             builder.Register<SaveController>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
 
-            builder.RegisterInstance(this.pickupPreviewView);
             builder.Register<PickupPreviewController>(Lifetime.Scoped).AsSelf();
 
             // ── Room transition ──────────────────────────────────────────────
@@ -199,6 +193,8 @@ namespace CrimsonDraft.Navigation
             builder.RegisterMessageBroker<NoteCollectedEvent>(msgOptions);
             builder.RegisterMessageBroker<DialogueActiveChangedEvent>(msgOptions);
             builder.RegisterMessageBroker<StorageOpenRequestedEvent>(msgOptions);
+            builder.RegisterMessageBroker<PickupPreviewStartedEvent>(msgOptions);
+            builder.RegisterMessageBroker<PickupPreviewEndedEvent>(msgOptions);
 
             builder.Register<RoomOrchestrator>(Lifetime.Singleton)
                    .AsSelf()

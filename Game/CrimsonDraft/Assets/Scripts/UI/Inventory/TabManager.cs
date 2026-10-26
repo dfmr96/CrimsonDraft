@@ -2,6 +2,7 @@
 
 using System;
 using MessagePipe;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
@@ -11,6 +12,7 @@ using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Infrastructure.Events;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Infrastructure.Save.UI;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
@@ -31,6 +33,14 @@ namespace CrimsonDraft.UI
         [SerializeField] private GridCursor          gridCursor         = null!;
         [SerializeField] private FilesTabController? filesTab;
 
+        [Header("Selection")]
+        [Tooltip("Una sola tira que se desliza bajo el tab elegido (la misma de los demas menus). Con la barra de tabs activa sigue al tab enfocado; si no, descansa bajo el tab abierto.")]
+        [SerializeField] private SelectionCursor? tabSelector;
+        [Tooltip("Texto del tab elegido.")]
+        [SerializeField] private Color selectedTextColor = Color.white;
+        [Tooltip("Texto de los demas tabs (el olive de la UI).")]
+        [SerializeField] private Color idleTextColor = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f);
+
         [Header("Navigation Feel")]
         [SerializeField] private float initialRepeatDelay = 0.4f;
         [SerializeField] private float repeatInterval     = 0.1f;
@@ -45,6 +55,14 @@ namespace CrimsonDraft.UI
         // AddComponent<ManualSelectScale> at runtime rather than requiring it wired in the
         // Inspector, so the hover/press feedback doesn't depend on scene serialization.
         private ManualSelectScale?[] tabIconScales = System.Array.Empty<ManualSelectScale?>();
+
+        // Built at runtime like tabIconScales: each button's label, and the rect under it where the
+        // sliding strip rests.
+        private TMP_Text?[]      tabLabels  = System.Array.Empty<TMP_Text?>();
+        // The label (not the button) grows while the cursor is on the tab bar: the strip copies the size of
+        // the button, so scaling the button itself would push the strip past its edges.
+        private ManualSelectScale?[] tabLabelScales = System.Array.Empty<ManualSelectScale?>();
+        private RectTransform?[] tabAnchors = System.Array.Empty<RectTransform?>();
 
         // Locked out of the tab bar (button hidden, not reachable via LEFT/RIGHT) unless a living
         // operator carries the beeper item. Dropping it in storage or leaving it on a dead
@@ -155,6 +173,7 @@ namespace CrimsonDraft.UI
                 this.gridCursor = GetComponentInChildren<GridCursor>(true);
 
             EnsureTabIconScales();
+            EnsureTabHighlight();
             ApplyTabBarSpacing();
 
             this.currentIndex = this.startingTab;
@@ -315,6 +334,72 @@ namespace CrimsonDraft.UI
             }
         }
 
+        // Finds each button's label and gives it a thin rect along its bottom edge for the strip to rest
+        // on. The anchor is a child of the button but the buttons are never scaled for selection (the
+        // strip would copy that scale), only punched when a tab opens.
+        void EnsureTabHighlight()
+        {
+            this.tabLabels      = new TMP_Text?[this.tabFocusHighlights.Length];
+            this.tabAnchors     = new RectTransform?[this.tabFocusHighlights.Length];
+            this.tabLabelScales = new ManualSelectScale?[this.tabFocusHighlights.Length];
+
+            for (int i = 0; i < this.tabFocusHighlights.Length; i++)
+            {
+                if (this.tabFocusHighlights[i] == null) continue;
+                Transform? btnRoot = this.tabFocusHighlights[i].transform.parent;
+                if (btnRoot == null) continue;
+
+                this.tabLabels[i] = btnRoot.GetComponentInChildren<TMP_Text>(true);
+                if (this.tabLabels[i] != null)
+                {
+                    var label = this.tabLabels[i]!.gameObject;
+                    this.tabLabelScales[i] = label.GetComponent<ManualSelectScale>() ?? label.AddComponent<ManualSelectScale>();
+                }
+
+                const string AnchorName = "TabSelectionAnchor";
+                var existing = btnRoot.Find(AnchorName) as RectTransform;
+                if (existing == null)
+                {
+                    var go = new GameObject(AnchorName, typeof(RectTransform));
+                    existing = (RectTransform)go.transform;
+                    existing.SetParent(btnRoot, false);
+                    existing.anchorMin        = new Vector2(0f, 0f);
+                    existing.anchorMax        = new Vector2(1f, 0f);
+                    existing.pivot            = new Vector2(0.5f, 0f);
+                    existing.anchoredPosition = Vector2.zero;
+                    existing.sizeDelta        = new Vector2(0f, 3f);
+                }
+                this.tabAnchors[i] = existing;
+
+                // The old per-tab frame and "current tab" fill are replaced by the strip.
+                this.tabFocusHighlights[i].SetActive(false);
+            }
+
+            if (this.tabIndicators != null)
+                foreach (var indicator in this.tabIndicators)
+                    if (indicator != null) indicator.SetActive(false);
+        }
+
+        // The tab the strip and the white text belong to: the focused one while the tab bar has the
+        // cursor, the open one otherwise.
+        void RefreshTabHighlight(bool snap = false)
+        {
+            int selected = this.tabBarActive ? this.focusedTabIndex : this.currentIndex;
+
+            for (int i = 0; i < this.tabLabels.Length; i++)
+            {
+                if (this.tabLabels[i] != null)
+                    this.tabLabels[i]!.color = i == selected ? this.selectedTextColor : this.idleTextColor;
+
+                // Bigger only while the cursor is on the tab bar, so it reads as "you are on the tabs now".
+                this.tabLabelScales[i]?.SetSelected(this.tabBarActive && i == selected);
+            }
+
+            if (this.tabSelector == null) return;
+            RectTransform? anchor = selected >= 0 && selected < this.tabAnchors.Length ? this.tabAnchors[selected] : null;
+            this.tabSelector.FollowOrHide(anchor, snap);
+        }
+
         // Widens the gap between tab buttons by shifting some of the row's existing width
         // budget from cellSize into spacing, so the row's total width -- and therefore the
         // panel it has to fit in -- doesn't change. Reads the GridLayoutGroup two levels above
@@ -372,33 +457,16 @@ namespace CrimsonDraft.UI
             return false;
         }
 
-        void RefreshIndicators()
-        {
-            if (this.tabIndicators == null) return;
-            for (int i = 0; i < this.tabIndicators.Length; i++)
-                if (this.tabIndicators[i] != null)
-                    this.tabIndicators[i].SetActive(i == this.currentIndex);
-        }
+        // The open tab is shown by the strip and the white label now (see RefreshTabHighlight).
+        void RefreshIndicators() => RefreshTabHighlight();
 
         public void SetTabBarFocus(int index)
         {
-            for (int i = 0; i < this.tabFocusHighlights.Length; i++)
-                if (this.tabFocusHighlights[i] != null)
-                    this.tabFocusHighlights[i].SetActive(i == index);
-
-            for (int i = 0; i < this.tabIconScales.Length; i++)
-                if (this.tabIconScales[i] != null)
-                    this.tabIconScales[i].SetSelected(i == index);
+            this.focusedTabIndex = index;
+            RefreshTabHighlight();
         }
 
-        public void ClearTabBarFocus()
-        {
-            foreach (var h in this.tabFocusHighlights)
-                if (h != null) h.SetActive(false);
-
-            foreach (var s in this.tabIconScales)
-                if (s != null) s.SetSelected(false);
-        }
+        public void ClearTabBarFocus() => RefreshTabHighlight();
 
         // ── Input Reading ────────────────────────────────────────────────────
 

@@ -81,6 +81,71 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
+        public void PreviewAdd_reportsTheCellTryAddWouldUse_andChangesNothing()
+        {
+            var s       = Service();
+            s.TryAdd(Sized(Consumable(), 2, 2));
+            var data    = Sized(Consumable(), 2, 1);
+            int changes = 0;
+            Op(s, 0).Changed += () => changes++;
+
+            var preview = s.PreviewAdd(data);
+
+            Assert.IsTrue(preview.HasValue);
+            Assert.AreEqual(0, changes);
+            Assert.AreEqual(1, Op(s, 0).Count);
+
+            Assert.IsTrue(s.TryAdd(data));
+            var placed = Op(s, 0).Placements.Single(p => p.Item.Data == data);
+            Assert.AreEqual(preview!.Value.Container, ContainerId.Operator(0));
+            Assert.AreEqual(placed.Origin, preview.Value.Origin);
+            Assert.IsNull(preview.Value.MergeTarget);
+        }
+
+        [Test]
+        public void PreviewAdd_whenFull_isNull()
+        {
+            var s = Service(operators: 1);
+            s.TryAdd(Sized(Consumable(), 4, 4));
+            Assert.IsNull(s.PreviewAdd(Consumable()));
+        }
+
+        [Test]
+        public void PreviewAdd_skipsFullOperator()
+        {
+            var s = Service();
+            s.TryAdd(Sized(Consumable(), 4, 4));
+            Assert.AreEqual(ContainerId.Operator(1), s.PreviewAdd(Consumable())!.Value.Container);
+        }
+
+        [Test]
+        public void PreviewAdd_stackThatFitsInAnExistingStack_pointsAtThatStack()
+        {
+            var s    = Service(operators: 1);
+            var ammo = Ammo(defaultQuantity: 10, maxStack: 30);
+            s.TryAdd(ammo);
+
+            var preview = s.PreviewAdd(ammo, quantity: 5)!.Value;
+
+            Assert.AreSame(Only(Op(s, 0)), preview.MergeTarget);
+            Assert.AreEqual(Op(s, 0).Placements.Single().Origin, preview.Origin);
+            Assert.AreEqual(10, Only(Op(s, 0)).Quantity);
+        }
+
+        [Test]
+        public void PreviewAdd_stackOverflow_landsOnAFreeCell()
+        {
+            var s    = Service(operators: 1);
+            var ammo = Ammo(defaultQuantity: 25, maxStack: 30);
+            s.TryAdd(ammo);
+
+            var preview = s.PreviewAdd(ammo, quantity: 10)!.Value;
+
+            Assert.IsNull(preview.MergeTarget);
+            Assert.AreNotEqual(Op(s, 0).Placements.Single().Origin, preview.Origin);
+        }
+
+        [Test]
         public void TryAdd_toTarget_onlyUsesThatContainer()
         {
             var s = Service();

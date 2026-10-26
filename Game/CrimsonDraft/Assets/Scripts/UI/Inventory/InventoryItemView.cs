@@ -39,7 +39,7 @@ namespace CrimsonDraft.UI
             this.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
 
             var baseSize = placement.Item.Data.GridSize;
-            this.rectTransform.sizeDelta        = new Vector2(baseSize.x * grid.CellSize, baseSize.y * grid.CellSize);
+            this.rectTransform.sizeDelta        = grid.ItemSize(baseSize);
             this.rectTransform.localEulerAngles = new Vector3(0f, 0f, -placement.Rotation * 90f);
             this.RestPosition                   = grid.ItemLocalPosition(placement.Origin, placement.Rotation, this.rectTransform.sizeDelta);
             this.rectTransform.anchoredPosition = this.RestPosition;
@@ -54,6 +54,17 @@ namespace CrimsonDraft.UI
             this.gameObject.name = this.Data.DisplayName;
             ResetTint();
             RefreshQuantity();
+        }
+
+        // Invisible but still laid out and selectable (a combine's result waits for the item flying onto it).
+        public void SetShown(bool shown)
+        {
+            if (!TryGetComponent(out CanvasGroup group))
+            {
+                if (shown) return;
+                group = this.gameObject.AddComponent<CanvasGroup>();
+            }
+            group.alpha = shown ? 1f : 0f;
         }
 
         public void SetTint(Color color) => this.icon.color = color;

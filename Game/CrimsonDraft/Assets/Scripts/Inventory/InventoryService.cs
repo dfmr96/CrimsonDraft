@@ -45,6 +45,17 @@ namespace CrimsonDraft.Inventory
         public bool TryAdd(ItemData data, ContainerId target, int quantity = 0) =>
             TryAddTo(new[] { GetContainer(target) }, data, quantity);
 
+        public AddPreview? PreviewAdd(ItemData data, int quantity = 0)
+        {
+            if (data is AmmoBoxData ammo)
+            {
+                var containers = EnsureContainers();
+                foreach (int slot in ArmedOperatorSlots(ammo))
+                    if (PreviewAddTo(new[] { containers[slot] }, data, quantity) is { } armed) return armed;
+            }
+            return PreviewAddTo(CarriedContainers().ToArray(), data, quantity);
+        }
+
         public void Remove(InventoryItem item)
         {
             var container = FindContainerObjectOf(item)
@@ -126,6 +137,14 @@ namespace CrimsonDraft.Inventory
         private bool TryAddToArmedOperators(AmmoBoxData ammo, int quantity)
         {
             var containers = EnsureContainers();
+            foreach (int slot in ArmedOperatorSlots(ammo))
+                if (TryAddTo(new[] { containers[slot] }, ammo, quantity)) return true;
+            return false;
+        }
+
+        private IEnumerable<int> ArmedOperatorSlots(AmmoBoxData ammo)
+        {
+            var containers = EnsureContainers();
 
             IEnumerable<WeaponItem> ArmedWith(int slot) => containers[slot].Placements
                 .Select(p => p.Item).OfType<WeaponItem>()
@@ -136,14 +155,34 @@ namespace CrimsonDraft.Inventory
                 + containers[slot].Placements.Select(p => p.Item).OfType<AmmoBoxItem>()
                     .Where(b => b.Data.Caliber == ammo.Caliber).Sum(b => b.Quantity);
 
-            var candidates = Enumerable.Range(0, containers.Length)
+            return Enumerable.Range(0, containers.Length)
                 .Where(slot => IsCarried(ContainerId.Operator(slot)) && ArmedWith(slot).Any())
                 .OrderBy(RoundsHeld)
                 .ThenBy(slot => slot);
+        }
 
-            foreach (int slot in candidates)
-                if (TryAddTo(new[] { containers[slot] }, ammo, quantity)) return true;
-            return false;
+        // Same decisions as TryAddTo, minus the writes.
+        private static AddPreview? PreviewAddTo(IReadOnlyList<ItemContainer> candidates, ItemData data, int quantity)
+        {
+            if (!data.Stackable)
+                return TryFindFreeCell(candidates, data.GridSize, out var target, out var origin)
+                    ? new AddPreview(target!.Id, origin)
+                    : (AddPreview?)null;
+
+            int remaining = quantity > 0 ? quantity : data is AmmoBoxData ammo ? ammo.DefaultQuantity : 1;
+            var stacks = candidates
+                .SelectMany(c => c.Placements.Select(p => (container: c, placement: p)))
+                .Where(s => s.placement.Item.Data.ItemId == data.ItemId && s.placement.Item.Quantity < data.MaxStack)
+                .ToList();
+
+            int stackSpace = stacks.Sum(s => data.MaxStack - s.placement.Item.Quantity);
+            if (remaining > stackSpace)
+                return TryFindFreeCell(candidates, data.GridSize, out var overflowTarget, out var overflowOrigin)
+                    ? new AddPreview(overflowTarget!.Id, overflowOrigin)
+                    : (AddPreview?)null;
+
+            var first = stacks[0];
+            return new AddPreview(first.container.Id, first.placement.Origin, first.placement.Item);
         }
 
         private bool TryAddTo(IReadOnlyList<ItemContainer> candidates, ItemData data, int quantity)
