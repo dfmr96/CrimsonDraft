@@ -12,11 +12,17 @@ namespace CrimsonDraft.UI
         [SerializeField] private Image     iconImage  = null!;
         [SerializeField] private TMP_Text? titleLabel;
 
-        public void Bind(DocumentData doc)
+        /// <summary>
+        /// A found note shows its own icon and title; one that has not been found yet keeps its place
+        /// in the grid with <paramref name="missingIcon"/> and no title.
+        /// </summary>
+        public void Bind(DocumentData doc, bool collected, Sprite? missingIcon)
         {
-            this.iconImage.enabled = doc.Icon != null;
-            if (doc.Icon != null) this.iconImage.sprite = doc.Icon;
-            if (this.titleLabel != null) this.titleLabel.text = doc.Title;
+            Sprite? icon = collected ? doc.Icon : missingIcon;
+
+            this.iconImage.enabled = icon != null;
+            if (icon != null) this.iconImage.sprite = icon;
+            if (this.titleLabel != null) this.titleLabel.text = collected ? doc.Title : string.Empty;
         }
     }
 }
