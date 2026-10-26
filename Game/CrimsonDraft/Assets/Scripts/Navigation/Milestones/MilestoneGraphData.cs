@@ -4,13 +4,24 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Navigation.Gates;
 using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.Navigation.Milestones
 {
     public enum EdgeStyle { Solid, Dashed }
 
-    public enum MilestoneTriggerKind { None, PickupCollected, ItemHeld, SocketCompleted, DoorUnlocked, NoteRead, PuzzleSolved }
+    // Serialized as numbers: never renumber. 3 (SocketCompleted) and 6 (PuzzleSolved) were folded into
+    // GateCompleted; MilestoneTrigger.UpgradeLegacy converts graphs still holding them.
+    public enum MilestoneTriggerKind
+    {
+        None            = 0,
+        PickupCollected = 1,
+        ItemHeld        = 2,
+        DoorUnlocked    = 4,
+        NoteRead        = 5,
+        GateCompleted   = 7,
+    }
 
     [Serializable]
     public sealed class MilestoneLane
@@ -24,9 +35,29 @@ namespace CrimsonDraft.Navigation.Milestones
     public sealed class MilestoneTrigger
     {
         public MilestoneTriggerKind kind;
-        public string        targetId = "";   // pickupId / socketId / doorId / puzzleId
+        public string        targetId = "";   // pickupId / doorId / gate id (GateIds: "socket:x", "puzzle:x", "radio:x")
         public ItemData?     item;            // ItemHeld
         public DocumentData? note;            // NoteRead
+
+        private const int LegacySocketCompleted = 3;
+        private const int LegacyPuzzleSolved    = 6;
+
+        /// <summary>Turns a pre-gates SocketCompleted / PuzzleSolved trigger into GateCompleted with the
+        /// matching gate id. Returns whether anything changed.</summary>
+        public bool UpgradeLegacy()
+        {
+            switch ((int)this.kind)
+            {
+                case LegacySocketCompleted: this.targetId = Prefixed(GateIds.Socket); break;
+                case LegacyPuzzleSolved:    this.targetId = Prefixed(GateIds.Puzzle); break;
+                default:                    return false;
+            }
+            this.kind = MilestoneTriggerKind.GateCompleted;
+            return true;
+        }
+
+        private string Prefixed(Func<string, string> gateId) =>
+            string.IsNullOrEmpty(this.targetId) ? "" : gateId(this.targetId);
     }
 
     [Serializable]

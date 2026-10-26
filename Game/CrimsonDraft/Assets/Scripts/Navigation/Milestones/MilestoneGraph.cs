@@ -9,7 +9,7 @@ namespace CrimsonDraft.Navigation.Milestones
     // One progression diagram (an area or act). Edited in Tools > CrimsonDraft > Milestone Graph;
     // read at runtime by MilestoneTracker. Node ids are what saves store -- never reuse or edit them.
     [CreateAssetMenu(menuName = "CrimsonDraft/Milestone Graph", fileName = "Milestones")]
-    public sealed class MilestoneGraph : ScriptableObject
+    public sealed class MilestoneGraph : ScriptableObject, ISerializationCallbackReceiver
     {
         [SerializeField] private List<MilestoneLane>  lanes  = new();
         [SerializeField] private List<MilestoneNode>  nodes  = new();
@@ -44,5 +44,15 @@ namespace CrimsonDraft.Navigation.Milestones
         public MilestoneNode? FindNode(string nodeId) => this.nodes.Find(n => n.id == nodeId);
 
         public MilestoneLane? FindLane(string laneId) => this.lanes.Find(l => l.id == laneId);
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+
+        // Old graphs may still hold SocketCompleted / PuzzleSolved triggers: upgrade them as they load,
+        // so runtime and the editor only ever see GateCompleted. The asset is rewritten on its next save.
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            foreach (var node in this.nodes)
+                node.trigger?.UpgradeLegacy();
+        }
     }
 }

@@ -61,9 +61,8 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                     break;
                 }
                 case MilestoneTriggerKind.PickupCollected:
-                case MilestoneTriggerKind.SocketCompleted:
                 case MilestoneTriggerKind.DoorUnlocked:
-                case MilestoneTriggerKind.PuzzleSolved:
+                case MilestoneTriggerKind.GateCompleted:
                 {
                     var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
                     // Delayed: validated (and undoable) once per committed id, not per keystroke.

@@ -84,9 +84,8 @@ namespace CrimsonDraft.Navigation.Editor.Milestones
                 case MilestoneTriggerKind.NoteRead when t.note == null:
                     return "No asset assigned";
                 case MilestoneTriggerKind.PickupCollected:
-                case MilestoneTriggerKind.SocketCompleted:
                 case MilestoneTriggerKind.DoorUnlocked:
-                case MilestoneTriggerKind.PuzzleSolved:
+                case MilestoneTriggerKind.GateCompleted:
                     if (!this.owner.Validation.SceneHas(t.kind, t.targetId)) return "Id not found in open scenes";
                     break;
             }
