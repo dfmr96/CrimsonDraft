@@ -2,6 +2,7 @@
 
 using DG.Tweening;
 using UnityEngine;
+using CrimsonDraft.Infrastructure;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -20,10 +21,17 @@ namespace CrimsonDraft.Navigation.Interactables
 
         private Vector3    closedLocalPosition;
         private Quaternion closedLocalRotation;
+        private bool       hasClosedPose;
         private bool       isOpen;
 
-        void Awake()
+        void Awake() => CaptureClosedPose();
+
+        // Also on first use: a save restore can call Open() during scene setup, before this Awake runs
+        // (the DI scope builds earlier), and must still measure from the authored closed pose.
+        private void CaptureClosedPose()
         {
+            if (this.hasClosedPose) return;
+            this.hasClosedPose       = true;
             this.closedLocalPosition = transform.localPosition;
             this.closedLocalRotation = transform.localRotation;
         }
@@ -31,11 +39,10 @@ namespace CrimsonDraft.Navigation.Interactables
         public void Open()
         {
             if (this.isOpen) return;
+            CaptureClosedPose();
             this.isOpen = true;
-
-            transform.DOKill();
-            transform.DOLocalMove(this.closedLocalPosition + this.openLocalOffset, this.duration).SetEase(this.ease);
-            transform.DOLocalRotateQuaternion(this.closedLocalRotation * Quaternion.Euler(this.openLocalRotationOffset), this.duration).SetEase(this.ease);
+            MoveTo(this.closedLocalPosition + this.openLocalOffset,
+                   this.closedLocalRotation * Quaternion.Euler(this.openLocalRotationOffset));
         }
 
         // Not wired to anything by default -- lets the same component be reused on a drawer
@@ -43,17 +50,29 @@ namespace CrimsonDraft.Navigation.Interactables
         public void Close()
         {
             if (!this.isOpen) return;
+            CaptureClosedPose();
             this.isOpen = false;
+            MoveTo(this.closedLocalPosition, this.closedLocalRotation);
+        }
 
+        // Slides there -- or, while a save is being restored (WorldRestore), is simply already there.
+        private void MoveTo(Vector3 localPosition, Quaternion localRotation)
+        {
             transform.DOKill();
-            transform.DOLocalMove(this.closedLocalPosition, this.duration).SetEase(this.ease);
-            transform.DOLocalRotateQuaternion(this.closedLocalRotation, this.duration).SetEase(this.ease);
+            if (WorldRestore.IsActive)
+            {
+                transform.localPosition = localPosition;
+                transform.localRotation = localRotation;
+                return;
+            }
+            transform.DOLocalMove(localPosition, this.duration).SetEase(this.ease);
+            transform.DOLocalRotateQuaternion(localRotation, this.duration).SetEase(this.ease);
         }
 
 #if UNITY_EDITOR
         void OnDrawGizmosSelected()
         {
-            Vector3 closed = Application.isPlaying ? this.closedLocalPosition : transform.localPosition;
+            Vector3 closed = this.hasClosedPose ? this.closedLocalPosition : transform.localPosition;
             Vector3 openWorld = transform.parent != null
                 ? transform.parent.TransformPoint(closed + this.openLocalOffset)
                 : closed + this.openLocalOffset;

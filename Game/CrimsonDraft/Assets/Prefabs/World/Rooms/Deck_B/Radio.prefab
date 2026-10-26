@@ -418,10 +418,11 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 706654067683882401}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 3179105558875279055}
+        m_TargetAssemblyTypeName: CrimsonDraft.Navigation.Interactables.PickupInteractable,
+          CrimsonDraft.Navigation
+        m_MethodName: Reveal
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -430,6 +431,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+  gateId: radio_room_safe
   oneShot: 1
 --- !u!65 &8529111993050167586
 BoxCollider:
@@ -3732,11 +3734,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 44a7208a65055ea4ba39a11989446338, type: 3}
---- !u!1 &706654067683882401 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1883683684786892683, guid: 44a7208a65055ea4ba39a11989446338, type: 3}
+--- !u!114 &3179105558875279055 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4608530266169873637, guid: 44a7208a65055ea4ba39a11989446338, type: 3}
   m_PrefabInstance: {fileID: 1435164445889927722}
   m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78083f88052d4de4eadfabecbd9ebc46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.PickupInteractable
 --- !u!4 &7370472544405471622 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8476785839551339436, guid: 44a7208a65055ea4ba39a11989446338, type: 3}

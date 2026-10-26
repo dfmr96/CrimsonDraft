@@ -56,6 +56,14 @@ namespace CrimsonDraft.Navigation.Interactables
         public bool       IsCollected => this.pickupRegistry != null && this.pickupRegistry.IsCollected(this.pickupId);
         public UnityEvent OnPickedUp => this.onPickedUp;
 
+        /// <summary>Shows a pickup that starts hidden (behind a safe, a drawer...) unless it was already
+        /// taken. Wire reveals to this rather than GameObject.SetActive(true): those effects replay when a
+        /// save loads, and must not bring back an item the player already has.</summary>
+        public void Reveal()
+        {
+            if (!this.IsCollected) gameObject.SetActive(true);
+        }
+
         public void Interact(InteractionContext context) => Interact(context, null);
 
         // onClosed runs after the prompt closes whether or not the item was taken (and after

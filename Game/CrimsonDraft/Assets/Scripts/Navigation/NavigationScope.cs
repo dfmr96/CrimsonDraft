@@ -355,6 +355,13 @@ namespace CrimsonDraft.Navigation
             this.cachedBeeperReceivers = FindObjectsByType<BeeperReceiverInteractable>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             UnityEditor.EditorUtility.SetDirty(this);
+
+            // Every receiver is a gate: without a unique id it can't be saved or waited on.
+            foreach (var receiver in this.cachedBeeperReceivers)
+                if (!GateIds.TryParse(receiver.GateId, out _, out _))
+                    Debug.LogWarning($"[NavigationScope] Beeper receiver '{receiver.name}' has no gate id; it won't be saved.", receiver);
+            foreach (var duplicate in this.cachedBeeperReceivers.GroupBy(r => r.GateId).Where(g => g.Count() > 1))
+                Debug.LogWarning($"[NavigationScope] {duplicate.Count()} beeper receivers share {duplicate.Key}; give each its own gate id.", duplicate.First());
         }
 
         [Button("Cache Scene Item Sockets")]
