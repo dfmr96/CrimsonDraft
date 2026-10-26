@@ -1,16 +1,20 @@
 #nullable enable
 
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting;
 using VContainer.Unity;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Interactables;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
 {
     public sealed class InventoryHUDController : IInitializable, System.IDisposable
     {
         private readonly IInventoryService   inventory;
+        private readonly IOperatorRoster     roster;
         private readonly InventoryPresenters presenters;
         private readonly GridCursor          cursor;
         private readonly ItemContextMenu     contextMenu;
@@ -25,6 +29,7 @@ namespace CrimsonDraft.UI
         [Preserve]
         public InventoryHUDController(
             IInventoryService   inventory,
+            IOperatorRoster     roster,
             InventoryPresenters presenters,
             GridCursor          cursor,
             ItemContextMenu     contextMenu,
@@ -34,6 +39,7 @@ namespace CrimsonDraft.UI
             InventoryOpenCloseController openClose)
         {
             this.inventory         = inventory;
+            this.roster            = roster;
             this.presenters        = presenters;
             this.cursor            = cursor;
             this.contextMenu       = contextMenu;
@@ -46,6 +52,7 @@ namespace CrimsonDraft.UI
         public void Initialize()
         {
             this.contextMenu.OnUseRequested      += HandleUse;
+            this.contextMenu.OnUseOnRequested    += HandleUseOn;
             this.contextMenu.OnCombineRequested  += EnterCombineMode;
             this.contextMenu.OnSplitRequested    += HandleSplit;
             this.cursor.OnCellConfirmed          += OpenContextMenu;
@@ -57,6 +64,7 @@ namespace CrimsonDraft.UI
         public void Dispose()
         {
             this.contextMenu.OnUseRequested      -= HandleUse;
+            this.contextMenu.OnUseOnRequested    -= HandleUseOn;
             this.contextMenu.OnCombineRequested  -= EnterCombineMode;
             this.contextMenu.OnSplitRequested    -= HandleSplit;
             this.cursor.OnCellConfirmed          -= OpenContextMenu;
@@ -68,14 +76,16 @@ namespace CrimsonDraft.UI
         private void OpenContextMenu(InventoryItemView view)
         {
             var data = view.Data;
+            var healTargets = data is ConsumableData ? BuildHealTargets() : null;
             var options = new ContextMenuOptions
             {
                 CanCombine = data.Combinable,
                 CanEquip   = data.ItemType == ItemType.Weapon,
-                CanUse     = (data is ConsumableData consumable && consumable.HealAmount > 0)
+                CanUse     = (data is ConsumableData consumable && consumable.HealAmount > 0 && healTargets!.Any(t => t.Enabled))
                           || data.ItemType == ItemType.SocketItem,
                 CanSplit   = data.ItemType == ItemType.AmmoBox && this.inventory.CanSplit(view.BoundItem),
                 CanInspect = true,
+                UseTargets = healTargets,
             };
             this.contextMenu.Open(view, options);
         }
@@ -116,12 +126,39 @@ namespace CrimsonDraft.UI
             if (item.Data is ConsumableData)
             {
                 if (OperatorOf(item) is not int operatorSlot) return;
-                this.inventory.TryUseConsumable(item, operatorSlot);
-                this.partyPanel.Refresh();
+                UseConsumableOn(item, operatorSlot);
                 return;
             }
 
             this.inventory.TryUseKey(item.Data.ItemId);
+        }
+
+        // The context menu's operator list: every present operator is listed; only a living one can be picked,
+        // a dead one shows up dimmed.
+        private IReadOnlyList<UseTarget> BuildHealTargets()
+        {
+            var targets = new List<UseTarget>();
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                var op = this.roster[i];
+                if (!op.IsPresent) continue;
+                targets.Add(new UseTarget(i, op.Data?.CombatName ?? $"OP {i + 1}", op.IsAlive));
+            }
+            return targets;
+        }
+
+        private void HandleUseOn(InventoryItemView view, int operatorSlot) => UseConsumableOn(view.BoundItem, operatorSlot);
+
+        private void UseConsumableOn(InventoryItem item, int operatorSlot)
+        {
+            if (!this.inventory.TryUseConsumable(item, operatorSlot))
+            {
+                this.sfx.PlayInvalidAction(this.cursor.gameObject);
+                return;
+            }
+
+            this.partyPanel.Refresh();
+            this.partyPanel.GetWidget(operatorSlot)?.FlashHeal();
         }
 
         private void ToggleEquip(WeaponItem weapon)

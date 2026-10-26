@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using UnityEngine;
 using CrimsonDraft.Inventory;
 
@@ -14,6 +15,13 @@ namespace CrimsonDraft.UI
 
         private static readonly int[] DefaultSelectionPriority = { 0, 2, 1 };
 
+        private readonly List<MenuOption> pool = new();
+        private string[]          defaultLabels = null!;
+        private int               visibleCount;
+        private IReadOnlyList<UseTarget>? useTargets;
+        private bool              targetMode;
+        private Vector2           actionSize; // the menu's authored size, restored after the operator list
+        private bool[]            actionDisabled = System.Array.Empty<bool>(); // the action buttons' state while the operator list is up
         private int               selectedIndex = 0;
         private bool              isOpen        = false;
         private bool              currentCanSplit;
@@ -24,6 +32,7 @@ namespace CrimsonDraft.UI
         public bool IsOpen => this.isOpen;
         public System.Action? OnClose;
         public System.Action<InventoryItemView>? OnUseRequested;
+        public System.Action<InventoryItemView, int>? OnUseOnRequested; // item, operator slot
         public System.Action<InventoryItemView>? OnCombineRequested;
         public System.Action<InventoryItemView>? OnSplitRequested;
 
@@ -33,6 +42,11 @@ namespace CrimsonDraft.UI
 
             if (this.canvasGroup == null)
                 this.canvasGroup = GetComponent<CanvasGroup>();
+
+            this.actionSize = this.rectTransform.sizeDelta;
+            this.pool.AddRange(this.options);
+            this.defaultLabels = new string[this.options.Length];
+            for (int i = 0; i < this.options.Length; i++) this.defaultLabels[i] = this.options[i].Label;
 
             this.isOpen = false;
             Hide();
@@ -44,6 +58,8 @@ namespace CrimsonDraft.UI
             this.currentMeleeItem = null;
             this.isOpen          = true;
             this.currentCanSplit = options.CanSplit;
+            this.useTargets      = options.CanUse ? options.UseTargets : null;
+            ShowActionOptions();
 
             this.options[0].SetDisabled(!options.CanEquip && !options.CanUse && !options.CanSplit);
             this.options[1].SetDisabled(!options.CanInspect);
@@ -81,6 +97,8 @@ namespace CrimsonDraft.UI
             this.currentMeleeItem = meleeData;
             this.isOpen           = true;
             this.currentCanSplit  = false;
+            this.useTargets       = null;
+            ShowActionOptions();
 
             this.options[0].SetDisabled(true);
             this.options[1].SetDisabled(false);
@@ -96,14 +114,15 @@ namespace CrimsonDraft.UI
 
         public void Close()
         {
-            this.isOpen = false;
+            this.isOpen     = false;
+            this.targetMode = false;
             Hide();
             OnClose?.Invoke();
         }
 
         public void NavigateMenu(int dir)
         {
-            int count = this.options.Length;
+            int count = this.visibleCount;
             int next  = this.selectedIndex;
 
             // dir comes from Vector2Int.up/down (y = +1 / -1), but options are laid out
@@ -114,7 +133,7 @@ namespace CrimsonDraft.UI
             for (int i = 1; i <= count; i++)
             {
                 next = (this.selectedIndex - dir * i + count) % count;
-                if (!this.options[next].IsDisabled) break;
+                if (!this.pool[next].IsDisabled) break;
             }
 
             this.selectedIndex = next;
@@ -124,19 +143,103 @@ namespace CrimsonDraft.UI
         public void ConfirmSelection()
         {
             if (!this.isOpen) return;
+            if (this.targetMode) { ConfirmTarget(); return; }
             ExecuteOption(this.options[this.selectedIndex].Type);
+        }
+
+        // Cancel while choosing the operator goes back to the item's own actions instead of closing everything.
+        public bool TryBackFromTargets()
+        {
+            if (!this.isOpen || !this.targetMode || this.currentItem == null) return false;
+
+            var item = this.currentItem;
+            this.targetMode = false;
+            ShowActionOptions();
+            for (int i = 0; i < this.options.Length; i++) this.options[i].SetDisabled(this.actionDisabled[i]);
+            this.options[0].SetLabel("Use");
+            this.selectedIndex = 0;
+            PositionNextToItem(item);
+            RefreshVisuals();
+            return true;
+        }
+
+        void ConfirmTarget()
+        {
+            var item = this.currentItem;
+            var target = this.useTargets![this.selectedIndex];
+            Close();
+            if (item != null && target.Enabled) OnUseOnRequested?.Invoke(item, target.Slot);
+        }
+
+        // "Use" on an item with operator targets: the same buttons now list the operators.
+        void EnterTargetMode()
+        {
+            var targets = this.useTargets!;
+            this.targetMode = true;
+
+            this.actionDisabled = new bool[this.options.Length];
+            for (int i = 0; i < this.options.Length; i++) this.actionDisabled[i] = this.options[i].IsDisabled;
+
+            while (this.pool.Count < targets.Count)
+            {
+                var clone = Instantiate(this.options[0], this.options[0].transform.parent);
+                this.pool.Add(clone);
+            }
+
+            for (int i = 0; i < this.pool.Count; i++)
+            {
+                bool used = i < targets.Count;
+                this.pool[i].gameObject.SetActive(used);
+                if (!used) continue;
+                this.pool[i].SetLabel(targets[i].Label);
+                this.pool[i].SetDisabled(!targets[i].Enabled);
+                this.pool[i].SetDimmed(!targets[i].Enabled);
+            }
+
+            // The menu has a fixed size sized for its three actions: give every operator the same row height
+            // and widen it for the longest name, otherwise the rows get squeezed to nothing.
+            float rowHeight = this.actionSize.y / this.options.Length;
+            float width     = this.actionSize.x;
+            for (int i = 0; i < targets.Count; i++)
+                width = Mathf.Max(width, this.pool[i].GetPreferredLabelWidth(targets[i].Label) + 8f);
+            this.rectTransform.sizeDelta = new Vector2(width, rowHeight * targets.Count);
+
+            this.visibleCount  = targets.Count;
+            this.selectedIndex = 0;
+            for (int i = 0; i < targets.Count; i++)
+                if (targets[i].Enabled) { this.selectedIndex = i; break; }
+
+            if (this.currentItem != null) PositionNextToItem(this.currentItem);
+            RefreshVisuals();
+        }
+
+        // Back to the item's own actions (Use / Inspect / Combine): the original buttons, with their
+        // authored labels; any buttons cloned for the operator list are hidden.
+        void ShowActionOptions()
+        {
+            for (int i = 0; i < this.pool.Count; i++)
+            {
+                bool original = i < this.options.Length;
+                this.pool[i].gameObject.SetActive(original);
+                this.pool[i].SetDimmed(false);
+                if (original) this.pool[i].SetLabel(this.defaultLabels[i]);
+            }
+            this.rectTransform.sizeDelta = this.actionSize;
+            this.visibleCount = this.options.Length;
         }
 
         void ExecuteOption(MenuOption.OptionType type)
         {
             var item      = this.currentItem;
             var meleeData = this.currentMeleeItem;
-            Close();
+            bool toTargets = type == MenuOption.OptionType.Use && item != null && this.useTargets != null;
+            if (!toTargets) Close();
 
             switch (type)
             {
                 case MenuOption.OptionType.Use:
                     if (item == null) break;
+                    if (this.useTargets != null) { EnterTargetMode(); return; }
                     if (this.currentCanSplit) OnSplitRequested?.Invoke(item);
                     else                       OnUseRequested?.Invoke(item);
                     break;
@@ -202,8 +305,8 @@ namespace CrimsonDraft.UI
 
         void RefreshVisuals()
         {
-            for (int i = 0; i < this.options.Length; i++)
-                this.options[i].SetState(i == this.selectedIndex && !this.options[i].IsDisabled);
+            for (int i = 0; i < this.visibleCount; i++)
+                this.pool[i].SetState(i == this.selectedIndex && !this.pool[i].IsDisabled);
         }
 
         void Show()
