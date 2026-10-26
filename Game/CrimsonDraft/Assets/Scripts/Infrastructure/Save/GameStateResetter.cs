@@ -38,6 +38,7 @@ namespace CrimsonDraft.Infrastructure.Save
             this.world.Pushables.ClearAll();
             this.world.Milestones.ClearAll();
             this.world.Puzzles.ClearAll();
+            this.world.Gates.ClearAll();
             this.inventoryState.ClearAll();
             this.rosterHealth.ClearAll();
             this.playtimeTracker.Reset();

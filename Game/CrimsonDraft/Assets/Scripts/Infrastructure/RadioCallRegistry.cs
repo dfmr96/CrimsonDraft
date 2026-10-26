@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine.Scripting;
 
@@ -16,8 +17,14 @@ namespace CrimsonDraft.Infrastructure
         [Preserve]
         public RadioCallRegistry() { }
 
-        public bool IsHeard(string nodeName)  => this.heard.Contains(nodeName);
-        public void SetHeard(string nodeName) => this.heard.Add(nodeName);
+        public event Action? Changed;
+
+        public bool IsHeard(string nodeName) => this.heard.Contains(nodeName);
+
+        public void SetHeard(string nodeName)
+        {
+            if (this.heard.Add(nodeName)) Changed?.Invoke();
+        }
 
         public IReadOnlyCollection<string> HeardIds => this.heard;
 

@@ -114,6 +114,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public List<PushableStateEntry> pushables          = new List<PushableStateEntry>();
         public List<string>             completedMilestoneIds = new List<string>();
         public List<string>             solvedPuzzleIds       = new List<string>();
+        public List<string>             completedGateIds      = new List<string>();
         public List<InventorySlotEntry> inventorySlots     = new List<InventorySlotEntry>();
         public List<InventoryItemEntry> inventoryItems     = new List<InventoryItemEntry>();
         public int[]                    operatorHp         = Array.Empty<int>();

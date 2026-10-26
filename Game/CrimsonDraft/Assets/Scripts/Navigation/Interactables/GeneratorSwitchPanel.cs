@@ -12,6 +12,7 @@ using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.UI;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Rendering.Outline;
+using CrimsonDraft.Navigation.Gates;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -130,6 +131,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
         // Same id as its own "#solved" key, so one string names this generator everywhere.
         public string PuzzleId => this.solvedId;
+        public string GateId => GateIds.Puzzle(this.PuzzleId);
         public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
 
         [Inject]
@@ -160,7 +162,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.isSolved    = true;
             this.isVerifying = true;
             // Saves from before PuzzleStateRegistry only have the "#solved" key; report it so a
-            // PuzzleSolved milestone still completes (PuzzleBootstrap has bound us by Start).
+            // milestone waiting on this puzzle gate still completes (PuzzleBootstrap has bound us by Start).
             this.puzzleStates?.SetSolved(this.solvedId);
             if (this.leverHandle != null)
             {

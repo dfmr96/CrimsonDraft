@@ -57,9 +57,10 @@ namespace CrimsonDraft.Navigation
             if (data == null) return;
 
             // First, so anything raised while the rest restores (e.g. inventory ContentsChanged)
-            // already sees the loaded milestones and puzzles.
+            // already sees the loaded milestones, puzzles and gates.
             this.world.Milestones.LoadState(data.completedMilestoneIds ?? new List<string>());
             this.world.Puzzles.LoadState(data.solvedPuzzleIds ?? new List<string>());
+            this.world.Gates.LoadState(data.completedGateIds ?? new List<string>());
 
             ApplyDoors(data);
             ApplyRooms(data);

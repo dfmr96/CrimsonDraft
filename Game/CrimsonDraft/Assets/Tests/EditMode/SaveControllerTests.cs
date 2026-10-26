@@ -116,7 +116,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             world.Doors.SetUnlocked("door-1");
             world.Rooms.MarkVisited("room-1");
             world.Pickups.SetCollected("pickup-1");
@@ -130,6 +130,7 @@ namespace CrimsonDraft.Tests
             world.Pushables.Record("crate-1", new Vector3(4f, 0f, 5f));
             world.Milestones.Complete("m1");
             world.Puzzles.SetSolved("p1");
+            world.Gates.SetCompleted("g1");
 
             var weaponData = MakeWeaponData("weapon-1");
             var weaponItem = new WeaponItem(weaponData);
@@ -184,6 +185,7 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), data.pushables[0].position);
                 CollectionAssert.AreEqual(new[] { "m1" }, data.completedMilestoneIds);
                 CollectionAssert.AreEqual(new[] { "p1" }, data.solvedPuzzleIds);
+                CollectionAssert.AreEqual(new[] { "g1" }, data.completedGateIds);
                 Assert.AreEqual(1, data.operatorCorpses.Count);
                 Assert.AreEqual(0, data.operatorCorpses[0].slotIndex);
                 Assert.AreEqual("room-1", data.operatorCorpses[0].roomId);
@@ -254,7 +256,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             var playerGo    = new GameObject("Player");
             var player      = playerGo.AddComponent<PlayerController>();
             var view        = MakeView();

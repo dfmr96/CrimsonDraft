@@ -103,7 +103,7 @@ namespace CrimsonDraft.Tests
             var world       = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -135,7 +135,7 @@ namespace CrimsonDraft.Tests
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
                 new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(),
-                new MilestoneRegistry(), new PuzzleStateRegistry());
+                new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
 
@@ -147,6 +147,7 @@ namespace CrimsonDraft.Tests
                 Assert.DoesNotThrow(() => ((IInitializable)loader).Initialize());
                 Assert.AreEqual(0, world.Milestones.CompletedIds.Count);
                 Assert.AreEqual(0, world.Puzzles.SolvedIds.Count);
+                Assert.AreEqual(0, world.Gates.CompletedIds.Count);
             }
             finally
             {
@@ -195,6 +196,7 @@ namespace CrimsonDraft.Tests
                     },
                     completedMilestoneIds = new List<string> { "m1" },
                     solvedPuzzleIds       = new List<string> { "p1" },
+                    completedGateIds      = new List<string> { "g1" },
                     operatorHp         = new[] { 80 },
                     inventorySlots     = new List<InventorySlotEntry>
                     {
@@ -208,7 +210,7 @@ namespace CrimsonDraft.Tests
             var world = new WorldStateRegistries(
                 new DoorStateRegistry(), new RoomStateRegistry(), new PickupRegistry(),
                 new NoteRegistry(), new KnownMapsRegistry(), new EnemyStateRegistry(), new OperatorCorpseRegistry(),
-                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+                new ItemSocketStateRegistry(), new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             var playerGo = new GameObject("Player");
             var player   = playerGo.AddComponent<PlayerController>();
             roomOrch.Player = player.transform;
@@ -237,6 +239,7 @@ namespace CrimsonDraft.Tests
                 Assert.AreEqual(new Vector3(4f, 0f, 5f), cratePosition);
                 Assert.IsTrue(world.Milestones.IsCompleted("m1"));
                 Assert.IsTrue(world.Puzzles.IsSolved("p1"));
+                Assert.IsTrue(world.Gates.IsCompleted("g1"));
                 CollectionAssert.AreEqual(new[] { 80 }, roster.RestoredHp);
                 Assert.AreEqual("room-2", roomOrch.ActivatedRoomId);
                 Assert.AreEqual(new Vector3(1f, 2f, 3f), player.transform.position);

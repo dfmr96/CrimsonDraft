@@ -17,6 +17,7 @@ using CrimsonDraft.Navigation.CamaraSystem;
 using CrimsonDraft.Navigation.Map;
 using CrimsonDraft.Navigation.Milestones;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.Navigation.Gates;
 using CrimsonDraft.Navigation.Interactables;
 using CrimsonDraft.Navigation.Interactables.UI;
 using CrimsonDraft.Navigation.Player;
@@ -266,6 +267,9 @@ namespace CrimsonDraft.Navigation
 
             builder.RegisterInstance(this.cachedPuzzles.OfType<IPuzzle>().ToArray());
             builder.Register<PuzzleBootstrap>(Lifetime.Singleton).AsImplementedInterfaces();
+
+            // Completion of sockets / puzzles / radio calls behind one id, read by milestones and camera zones.
+            builder.Register<GateStateService>(Lifetime.Singleton).As<IGateStates>();
 
             // After SaveGameLoader, so the tracker's first pass sees the loaded state.
             builder.RegisterInstance(this.cachedMilestoneGraphs);

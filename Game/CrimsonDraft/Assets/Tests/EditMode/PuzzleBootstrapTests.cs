@@ -14,6 +14,7 @@ namespace CrimsonDraft.Tests
         private sealed class FakePuzzle : IPuzzle
         {
             public string PuzzleId => "fake";
+            public string GateId => "puzzle:fake";
             public PuzzleStateRegistry? Bound;
             public void BindPuzzleState(PuzzleStateRegistry registry) => this.Bound = registry;
         }

@@ -19,7 +19,7 @@ namespace CrimsonDraft.Tests
             var enemies   = new EnemyStateRegistry();
             var operatorCorpses = new OperatorCorpseRegistry();
             var itemSockets = new ItemSocketStateRegistry();
-            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets, new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry());
+            var world     = new WorldStateRegistries(doors, rooms, pickups, notes, knownMaps, enemies, operatorCorpses, itemSockets, new RadioCallRegistry(), new PushableStateRegistry(), new MilestoneRegistry(), new PuzzleStateRegistry(), new GateRegistry());
             var inventoryState = new InventoryStateRegistry();
             var rosterHealth   = new RosterHealthRegistry();
 
@@ -34,6 +34,7 @@ namespace CrimsonDraft.Tests
             world.Pushables.Record("crate-a", UnityEngine.Vector3.one);
             world.Milestones.Complete("m1");
             world.Puzzles.SetSolved("p1");
+            world.Gates.SetCompleted("g1");
             inventoryState.Save(new System.Collections.Generic.List<CrimsonDraft.Infrastructure.Save.InventoryItemEntry>());
             rosterHealth.Save(new[] { 100 });
 
@@ -51,6 +52,7 @@ namespace CrimsonDraft.Tests
             Assert.IsFalse(world.Pushables.TryGet("crate-a", out _));
             Assert.IsFalse(world.Milestones.IsCompleted("m1"));
             Assert.IsFalse(world.Puzzles.IsSolved("p1"));
+            Assert.IsFalse(world.Gates.IsCompleted("g1"));
             Assert.IsFalse(inventoryState.HasSavedState);
             Assert.IsFalse(rosterHealth.HasSavedState);
         }

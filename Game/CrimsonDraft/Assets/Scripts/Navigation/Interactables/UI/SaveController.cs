@@ -315,6 +315,7 @@ namespace CrimsonDraft.Navigation.Interactables
 
             data.completedMilestoneIds.AddRange(this.world.Milestones.CompletedIds);
             data.solvedPuzzleIds.AddRange(this.world.Puzzles.SolvedIds);
+            data.completedGateIds.AddRange(this.world.Gates.CompletedIds);
 
             data.inventoryItems.AddRange(InventorySerializer.Capture(this.inventoryService));
 

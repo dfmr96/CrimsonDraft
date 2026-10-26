@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 namespace CrimsonDraft.Infrastructure.Save
 {
     /// <summary>
-    /// Bundles the twelve cross-scene world-state registries that Save/Load and New-Game-reset
-    /// all need together, so consumers don't carry twelve separate constructor parameters.
+    /// Bundles the cross-scene world-state registries that Save/Load and New-Game-reset all need
+    /// together, so consumers don't carry a dozen separate constructor parameters.
     /// </summary>
     public sealed class WorldStateRegistries
     {
@@ -22,6 +22,7 @@ namespace CrimsonDraft.Infrastructure.Save
         public readonly PushableStateRegistry   Pushables;
         public readonly MilestoneRegistry       Milestones;
         public readonly PuzzleStateRegistry     Puzzles;
+        public readonly GateRegistry            Gates;
 
         [Preserve]
         public WorldStateRegistries(
@@ -36,11 +37,13 @@ namespace CrimsonDraft.Infrastructure.Save
             RadioCallRegistry       radioCalls,
             PushableStateRegistry   pushables,
             MilestoneRegistry       milestones,
-            PuzzleStateRegistry     puzzles)
+            PuzzleStateRegistry     puzzles,
+            GateRegistry            gates)
         {
             Pushables       = pushables;
             Milestones      = milestones;
             Puzzles         = puzzles;
+            Gates           = gates;
             RadioCalls      = radioCalls;
             Doors           = doors;
             Rooms           = rooms;

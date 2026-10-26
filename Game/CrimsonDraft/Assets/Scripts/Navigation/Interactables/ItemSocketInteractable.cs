@@ -9,10 +9,11 @@ using Yarn.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
+using CrimsonDraft.Navigation.Gates;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
-    public sealed class ItemSocketInteractable : MonoBehaviour, IInteractable
+    public sealed class ItemSocketInteractable : MonoBehaviour, IInteractable, IGate
     {
         // Cross-scene/save identity for this socket -- must be unique per ItemSocketInteractable
         // instance in the project, same convention as PickupInteractable.pickupId.
@@ -30,6 +31,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private ItemSocketStateRegistry registry = null!;
 
         public string SocketId => this.socketId;
+        public string GateId => GateIds.Socket(this.socketId);
 
         public bool IsActivated { get; private set; }
 
@@ -59,6 +61,10 @@ namespace CrimsonDraft.Navigation.Interactables
         private bool NeedsTurn => FollowUp != null && !this.IsTurned;
         private string TurnedKey => this.socketId + "#turned";
 
+        /// <summary>Registry key flagged once the socket is <see cref="IsCompleted"/>, so GateStateService can
+        /// tell completion -- which depends on whether this socket has a valve -- without the scene loaded.</summary>
+        public static string CompletedKey(string socketId) => socketId + "#completed";
+
         // Called by the follow-up once the player has turned the handle. Persisted next to the
         // inserted flags so it survives scene changes and saves.
         public void MarkTurned()
@@ -67,6 +73,15 @@ namespace CrimsonDraft.Navigation.Interactables
             this.registry.SetInserted(TurnedKey, new[] { true });
             if (this.blockingCollider != null)
                 this.blockingCollider.enabled = false;
+            RecordCompletion();
+        }
+
+        private void RecordCompletion()
+        {
+            if (!this.IsCompleted) return;
+            var key = CompletedKey(this.socketId);
+            if (this.registry.GetInserted(key).Length == 0)
+                this.registry.SetInserted(key, new[] { true });
         }
 
         // Lets other scripts (e.g. GeneratorSwitchPanel) subscribe in code instead of only via
@@ -125,7 +140,10 @@ namespace CrimsonDraft.Navigation.Interactables
             this.IsTurned = turned.Length > 0 && turned[0];
 
             if (IsComplete())
+            {
                 ApplyActivatedState();
+                RecordCompletion(); // backfills saves made before sockets recorded completion
+            }
         }
 
         public bool CanInsert(ItemData item)
@@ -172,6 +190,7 @@ namespace CrimsonDraft.Navigation.Interactables
                 if (complete)
                 {
                     ApplyActivatedState();
+                    RecordCompletion();
                     this.onActivated.Invoke();
 
                     // No dialogue service means no dialogue to wait for.

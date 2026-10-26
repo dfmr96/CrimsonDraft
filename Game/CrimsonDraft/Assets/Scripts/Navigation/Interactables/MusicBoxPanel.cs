@@ -10,6 +10,7 @@ using UnityEngine.InputSystem;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Rendering.Outline;
+using CrimsonDraft.Navigation.Gates;
 
 namespace CrimsonDraft.Navigation.Interactables
 {
@@ -111,6 +112,7 @@ namespace CrimsonDraft.Navigation.Interactables
         private PuzzleStateRegistry? puzzleStates;
 
         public string PuzzleId => this.puzzleId;
+        public string GateId => GateIds.Puzzle(this.PuzzleId);
         public void BindPuzzleState(PuzzleStateRegistry registry) => this.puzzleStates = registry;
 
         private int DollStop => this.socketCount;
