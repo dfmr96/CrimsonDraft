@@ -2,9 +2,9 @@
 
 using System.Linq;
 using System.Reflection;
-using CrimsonDraft.Infrastructure;
 using CrimsonDraft.Navigation.CamaraSystem;
-using CrimsonDraft.Navigation.Interactables;
+using CrimsonDraft.Navigation.Gates;
+using CrimsonDraft.Navigation.Milestones;
 using NUnit.Framework;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -28,8 +28,15 @@ namespace CrimsonDraft.Tests
             SetField("zoneCamera", this.a);
         }
 
+        private readonly System.Collections.Generic.List<Object> createdAssets = new();
+
         [TearDown]
-        public void TearDown() => Object.DestroyImmediate(this.root);
+        public void TearDown()
+        {
+            Object.DestroyImmediate(this.root);
+            foreach (var asset in this.createdAssets) Object.DestroyImmediate(asset);
+            this.createdAssets.Clear();
+        }
 
         [Test]
         public void ReferencedCameras_isTheZoneCameraOnly()
@@ -112,22 +119,22 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void SolvedPuzzle_stopsTheZoneFromCuttingToItsCamera()
+        public void CompletedGate_stopsTheZoneFromCuttingToItsCamera()
         {
-            var puzzle = this.root.AddComponent<FakePuzzle>();
-            SetField("completeWhenPuzzle", puzzle);
-            var registry = new PuzzleStateRegistry();
+            var gate = AddGate("puzzle:valves");
+            SetField("completeWhenGates", new MonoBehaviour[] { gate });
+            var gates = new FakeGateStates();
             var service = new FakeZoneService();
-            this.trigger.Construct(service, registry);
+            this.trigger.Construct(service, gates);
 
             Assert.IsFalse(this.trigger.IsCompleted);
             this.trigger.Evaluate(new Vector3(0, 1, 0));
             Assert.AreSame(this.a, service.CurrentZoneCamera);
 
-            registry.SetSolved(FakePuzzle.Id);
+            gates.Complete("puzzle:valves");
             Assert.IsTrue(this.trigger.IsCompleted);
 
-            // Solved while the player is inside: the camera stays, nothing cuts back or away.
+            // Completed while the player is inside: the camera stays, nothing cuts back or away.
             service.Force(this.b);
             this.trigger.Evaluate(new Vector3(0.1f, 1, 0));
             Assert.AreSame(this.b, service.CurrentZoneCamera);
@@ -139,17 +146,139 @@ namespace CrimsonDraft.Tests
         }
 
         [Test]
-        public void ZoneWithoutAGate_isNeverCompleted()
+        public void EveryGate_mustBeComplete()
         {
-            this.trigger.Construct(new FakeZoneService(), new PuzzleStateRegistry());
+            // Any mix of kinds: a socket, a puzzle and a radio call all count as gates.
+            SetField("completeWhenGates", new MonoBehaviour[]
+            {
+                AddGate("socket:fuse"), AddGate("puzzle:valves"), AddGate("radio:radio_01"),
+            });
+            var gates = new FakeGateStates();
+            this.trigger.Construct(new FakeZoneService(), gates);
+
+            gates.Complete("socket:fuse");
+            gates.Complete("radio:radio_01");
+            Assert.IsFalse(this.trigger.IsCompleted, "puzzle still open");
+
+            gates.Complete("puzzle:valves");
+            Assert.IsTrue(this.trigger.IsCompleted);
+        }
+
+        [Test]
+        public void GateWithoutGateStates_isNotCompleted()
+        {
+            SetField("completeWhenGates", new MonoBehaviour[] { AddGate("puzzle:valves") });
+            this.trigger.Construct(new FakeZoneService());
             Assert.IsFalse(this.trigger.IsCompleted);
         }
 
-        private sealed class FakePuzzle : MonoBehaviour, IPuzzle
+        [Test]
+        public void EmptyGateSlots_areIgnored()
         {
-            public const string Id = "fake-puzzle";
-            public string PuzzleId => Id;
-            public void BindPuzzleState(PuzzleStateRegistry registry) { }
+            SetField("completeWhenGates", new MonoBehaviour[] { null! });
+            this.trigger.Construct(new FakeZoneService(), new FakeGateStates());
+            Assert.IsFalse(this.trigger.IsCompleted, "an empty slot is not a gate, so the zone is ungated");
+        }
+
+        [Test]
+        public void ZoneWithoutAGate_isNeverCompleted()
+        {
+            this.trigger.Construct(new FakeZoneService(), new FakeGateStates(), new FakeMilestoneService());
+            Assert.IsFalse(this.trigger.IsCompleted);
+        }
+
+        [Test]
+        public void CompletedMilestone_stopsTheZoneFromCuttingToItsCamera()
+        {
+            var milestone = MakeMilestone("power-restored");
+            SetField("completeWhenMilestone", milestone);
+            var milestones = new FakeMilestoneService();
+            var service = new FakeZoneService();
+            this.trigger.Construct(service, new FakeGateStates(), milestones);
+
+            Assert.IsFalse(this.trigger.IsCompleted);
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreSame(this.a, service.CurrentZoneCamera);
+
+            milestones.Complete("power-restored");
+            Assert.IsTrue(this.trigger.IsCompleted);
+
+            // Same as the gates: leaving and coming back no longer fires it.
+            service.Force(this.b);
+            this.trigger.Evaluate(new Vector3(50, 1, 0));
+            this.trigger.Evaluate(new Vector3(0, 1, 0));
+            Assert.AreSame(this.b, service.CurrentZoneCamera);
+        }
+
+        [Test]
+        public void MilestoneAndGate_bothMustBeDone()
+        {
+            SetField("completeWhenGates", new MonoBehaviour[] { AddGate("puzzle:valves") });
+            SetField("completeWhenMilestone", MakeMilestone("power-restored"));
+            var gates = new FakeGateStates();
+            var milestones = new FakeMilestoneService();
+            this.trigger.Construct(new FakeZoneService(), gates, milestones);
+
+            milestones.Complete("power-restored");
+            Assert.IsFalse(this.trigger.IsCompleted, "gate still open");
+
+            gates.Complete("puzzle:valves");
+            Assert.IsTrue(this.trigger.IsCompleted);
+        }
+
+        [Test]
+        public void MilestoneGate_withoutAMilestoneService_isNotCompleted()
+        {
+            // No service to ask: keep firing rather than silently switching the zone off.
+            SetField("completeWhenMilestone", MakeMilestone("power-restored"));
+            this.trigger.Construct(new FakeZoneService(), new FakeGateStates());
+            Assert.IsFalse(this.trigger.IsCompleted);
+        }
+
+        private FakeGate AddGate(string gateId)
+        {
+            var gate = new GameObject(gateId).AddComponent<FakeGate>();
+            gate.transform.SetParent(this.root.transform);
+            gate.Id = gateId;
+            return gate;
+        }
+
+        private MilestoneRef MakeMilestone(string nodeId)
+        {
+            var graph = ScriptableObject.CreateInstance<MilestoneGraph>();
+            this.createdAssets.Add(graph);
+            return new MilestoneRef(graph, nodeId);
+        }
+
+        private sealed class FakeGate : MonoBehaviour, IGate
+        {
+            public string Id = "";
+            public string GateId => this.Id;
+        }
+
+        private sealed class FakeGateStates : IGateStates
+        {
+            private readonly System.Collections.Generic.HashSet<string> done = new();
+            public event System.Action? Changed;
+            public bool IsCompleted(string gateId) => this.done.Contains(gateId);
+            public void Complete(string gateId)
+            {
+                this.done.Add(gateId);
+                this.Changed?.Invoke();
+            }
+        }
+
+        private sealed class FakeMilestoneService : IMilestoneService
+        {
+            private readonly System.Collections.Generic.HashSet<string> done = new();
+            public event System.Action<MilestoneRef>? Completed;
+            public bool IsCompleted(MilestoneRef milestone) => this.done.Contains(milestone.nodeId);
+            public bool IsCompleted(string milestoneId) => this.done.Contains(milestoneId);
+            public void Complete(string nodeId)
+            {
+                this.done.Add(nodeId);
+                this.Completed?.Invoke(new MilestoneRef(null, nodeId));
+            }
         }
 
         private sealed class FakeZoneService : IFixedCameraZoneService

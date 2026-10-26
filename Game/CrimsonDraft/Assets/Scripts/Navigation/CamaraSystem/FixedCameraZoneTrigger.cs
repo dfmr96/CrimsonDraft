@@ -1,10 +1,11 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEngine;
-using CrimsonDraft.Infrastructure;
-using CrimsonDraft.Navigation.Interactables;
+using CrimsonDraft.Navigation.Gates;
+using CrimsonDraft.Navigation.Milestones;
 
 namespace CrimsonDraft.Navigation.CamaraSystem
 {
@@ -26,13 +27,14 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         [SerializeField] private float maxHeight = 3f;
 
         [Header("Completion gate (optional)")]
-        [Tooltip("Once every socket / puzzle referenced here is complete, this zone stops cutting to its camera. A camera already showing stays until the player leaves the zone.")]
-        [SerializeField] private ItemSocketInteractable? completeWhenSocket;
-        [Tooltip("Component implementing IPuzzle (PuzzleInteractable, GeneratorSwitchPanel, MusicBoxPanel...). Complete once it is solved.")]
-        [SerializeField] private MonoBehaviour? completeWhenPuzzle;
+        [Tooltip("Once every gate and the milestone referenced here are complete, this zone stops cutting to its camera. A camera already showing stays until the player leaves the zone.")]
+        [SerializeField] private MonoBehaviour[] completeWhenGates = Array.Empty<MonoBehaviour>();
+        [Tooltip("Complete once this milestone is reached.")]
+        [SerializeField] private MilestoneRef completeWhenMilestone;
 
         private IFixedCameraZoneService? zoneService;
-        private PuzzleStateRegistry? puzzleStates;
+        private IGateStates? gateStates;
+        private IMilestoneService? milestones;
         private bool playerInside;
 
         public CinemachineCamera ZoneCamera => this.zoneCamera;
@@ -59,32 +61,55 @@ namespace CrimsonDraft.Navigation.CamaraSystem
             }
         }
 
-        public void Construct(IFixedCameraZoneService zoneService, PuzzleStateRegistry? puzzleStates = null)
+        public void Construct(
+            IFixedCameraZoneService zoneService, IGateStates? gateStates = null, IMilestoneService? milestones = null)
         {
             this.zoneService = zoneService;
-            this.puzzleStates = puzzleStates;
+            this.gateStates = gateStates;
+            this.milestones = milestones;
         }
 
         /// <summary>True when the zone has a completion gate and everything it waits for is done. A completed
-        /// zone no longer fires; without any gate this is always false.</summary>
+        /// zone no longer fires; without any gate this is always false. Missing services count as not done,
+        /// so a misconfigured zone keeps firing instead of silently switching off.</summary>
         public bool IsCompleted
         {
             get
             {
                 bool gated = false;
-                if (this.completeWhenSocket != null)
+                foreach (var entry in this.completeWhenGates)
                 {
+                    if (entry is not IGate gate) continue;
                     gated = true;
-                    if (!this.completeWhenSocket.IsCompleted) return false;
+                    if (this.gateStates == null || !this.gateStates.IsCompleted(gate.GateId)) return false;
                 }
-                if (this.completeWhenPuzzle is IPuzzle puzzle)
+                if (this.completeWhenMilestone.IsValid)
                 {
                     gated = true;
-                    if (this.puzzleStates == null || !this.puzzleStates.IsSolved(puzzle.PuzzleId)) return false;
+                    if (this.milestones == null || !this.milestones.IsCompleted(this.completeWhenMilestone)) return false;
                 }
                 return gated;
             }
         }
+
+        /// <summary>True when the zone has a completion gate at all (gates or a milestone), done or not.</summary>
+        public bool HasCompletionGate
+        {
+            get
+            {
+                if (this.completeWhenMilestone.IsValid) return true;
+                foreach (var entry in this.completeWhenGates)
+                    if (entry is IGate) return true;
+                return false;
+            }
+        }
+
+        /// <summary>A gated zone still waiting on its gate: while the player stands in it, it holds the camera
+        /// over any ordinary zone it overlaps (see FixedCameraZoneBootstrap).</summary>
+        public bool IsPriority => this.HasCompletionGate && !this.IsCompleted;
+
+        /// <summary>Whether the player point was inside on the last <see cref="Track"/>.</summary>
+        public bool IsPlayerInside => this.playerInside;
 
         /// <summary>True when the world position is inside the polygon and within the height range.</summary>
         public bool Contains(Vector3 worldPosition)
@@ -97,14 +122,22 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         /// <summary>Called every frame with the player position. Fires on entering the polygon.</summary>
         public void Evaluate(Vector3 playerPosition)
         {
+            if (this.Track(playerPosition) && !this.IsCompleted) this.Activate();
+        }
+
+        /// <summary>Updates whether the player is inside; true on the frame they enter.</summary>
+        public bool Track(Vector3 playerPosition)
+        {
             // The player point, not the body: a body overlapping two zones near their border keeps
             // the one it came from "inside", so walking back would never cut back to it.
             bool inside = this.Contains(playerPosition);
             bool entered = inside && !this.playerInside;
             this.playerInside = inside;
-
-            if (entered && !this.IsCompleted) this.TryActivate();
+            return entered;
         }
+
+        /// <summary>Cuts to this zone's camera unless it is already the live one.</summary>
+        public void Activate() => this.TryActivate();
 
         private void OnDisable()
         {
@@ -194,10 +227,14 @@ namespace CrimsonDraft.Navigation.CamaraSystem
 
         private void OnValidate()
         {
-            if (this.completeWhenPuzzle != null && this.completeWhenPuzzle is not IPuzzle)
+            // Unity can't serialize an interface array: drop anything dragged in that isn't a gate
+            // (socket, puzzle, radio zone...). Empty slots are left alone while being filled in.
+            for (int i = 0; i < this.completeWhenGates.Length; i++)
             {
-                Debug.LogWarning($"[FixedCameraZoneTrigger] '{this.completeWhenPuzzle.name}' does not implement IPuzzle; the completion gate is ignored.", this);
-                this.completeWhenPuzzle = null;
+                var entry = this.completeWhenGates[i];
+                if (entry == null || entry is IGate) continue;
+                Debug.LogWarning($"[FixedCameraZoneTrigger] '{entry.GetType().Name}' on '{entry.name}' is not a gate (IGate); removed from the completion gate.", this);
+                this.completeWhenGates[i] = null!;
             }
         }
 

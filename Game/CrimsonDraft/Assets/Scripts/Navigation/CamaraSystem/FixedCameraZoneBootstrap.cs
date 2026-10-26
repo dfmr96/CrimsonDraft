@@ -1,7 +1,9 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Linq;
-using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Navigation.Gates;
+using CrimsonDraft.Navigation.Milestones;
 using CrimsonDraft.Navigation.Player;
 using CrimsonDraft.Navigation.Rooms;
 using Unity.Cinemachine;
@@ -15,38 +17,84 @@ namespace CrimsonDraft.Navigation.CamaraSystem
         private readonly FixedCameraZoneTrigger[] triggers;
         private readonly IFixedCameraZoneService  zoneService;
         private readonly PlayerController         player;
-        private readonly PuzzleStateRegistry      puzzleStates;
+        private readonly IGateStates              gateStates;
+        private readonly IMilestoneService        milestones;
+
+        private readonly List<FixedCameraZoneTrigger> entered = new();
+        // The priority zone that currently holds the camera, until the player leaves it.
+        private FixedCameraZoneTrigger? holder;
 
         [Preserve]
         public FixedCameraZoneBootstrap(
             FixedCameraZoneTrigger[] triggers, IFixedCameraZoneService zoneService, PlayerController player,
-            PuzzleStateRegistry puzzleStates)
+            IGateStates gateStates, IMilestoneService milestones)
         {
             this.triggers    = triggers;
             this.zoneService = zoneService;
             this.player      = player;
-            this.puzzleStates = puzzleStates;
+            this.gateStates  = gateStates;
+            this.milestones  = milestones;
         }
 
         // Zones are polygons tested here, not physics triggers: a hidden room's zones are skipped
         // so only the room the player is in can cut the camera.
+        //
+        // Ordinary zones cut when the player enters them. A priority zone (completion gate still open)
+        // overrides that: while the player stands in one it holds the camera, even inside ordinary
+        // zones it overlaps; on leaving it, the camera goes back to the ordinary zone the player is in
+        // (that zone was never "entered" again, so nothing else would cut back).
         void ITickable.Tick()
         {
             // Inspection shots temporarily own the camera; navigation zones must
             // not replace them while the player remains inside a two-sided zone.
             if (this.zoneService.CurrentZoneCamera != this.zoneService.GameplayZoneCamera) return;
             var position = this.player.transform.position;
+
+            this.entered.Clear();
+            FixedCameraZoneTrigger? priority = null;
             foreach (var trigger in this.triggers)
             {
-                if (trigger == null || !trigger.isActiveAndEnabled) continue;
-                trigger.Evaluate(position);
+                if (!IsLive(trigger)) continue;
+                if (trigger.Track(position)) this.entered.Add(trigger);
+                if (priority == null && trigger.IsPlayerInside && trigger.IsPriority) priority = trigger;
+            }
+
+            if (priority != null)
+            {
+                this.holder = priority;
+                priority.Activate();
+                return;
+            }
+
+            if (this.holder != null)
+            {
+                // Completed while the player is still inside: its camera stays until they step out.
+                if (IsLive(this.holder) && this.holder.IsPlayerInside) return;
+                this.holder = null;
+                HandBack();
+                return;
+            }
+
+            foreach (var trigger in this.entered)
+                if (!trigger.IsCompleted) trigger.Activate();
+        }
+
+        private void HandBack()
+        {
+            foreach (var trigger in this.triggers)
+            {
+                if (!IsLive(trigger) || !trigger.IsPlayerInside || trigger.IsCompleted) continue;
+                trigger.Activate();
+                return;
             }
         }
+
+        private static bool IsLive(FixedCameraZoneTrigger? trigger) => trigger != null && trigger.isActiveAndEnabled;
 
         void IInitializable.Initialize()
         {
             foreach (var trigger in this.triggers)
-                trigger.Construct(this.zoneService, this.puzzleStates);
+                trigger.Construct(this.zoneService, this.gateStates, this.milestones);
 
             // A room can hold several zone cameras, but only one may be enabled at a time
             // or Cinemachine can't tell which one to show, and this service can only ever
