@@ -13,6 +13,7 @@ namespace CrimsonDraft.Rendering.Lighting
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         [SerializeField] private Light     targetLight = null!;
+        [SerializeField] private Light[]   additionalLights = System.Array.Empty<Light>(); // p.ej. un point light de relleno junto al spot
         [SerializeField] private Renderer? emissiveRenderer;
         [SerializeField] private int       emissiveMaterialIndex;
 
@@ -29,6 +30,7 @@ namespace CrimsonDraft.Rendering.Lighting
         private MaterialPropertyBlock? block;
         private Color baseEmission;
         private float baseIntensity;
+        private float[] additionalBaseIntensities = System.Array.Empty<float>();
         private float noiseSeed;
 
         private float nextBurstTime;
@@ -40,6 +42,11 @@ namespace CrimsonDraft.Rendering.Lighting
         {
             this.baseIntensity = this.targetLight.intensity;
             this.noiseSeed     = Random.value * 100f;
+
+            this.additionalBaseIntensities = new float[this.additionalLights.Length];
+            for (int i = 0; i < this.additionalLights.Length; i++)
+                if (this.additionalLights[i] != null)
+                    this.additionalBaseIntensities[i] = this.additionalLights[i].intensity;
 
             if (this.emissiveRenderer != null)
             {
@@ -85,6 +92,10 @@ namespace CrimsonDraft.Rendering.Lighting
         private void Apply(float factor)
         {
             this.targetLight.intensity = this.baseIntensity * factor;
+
+            for (int i = 0; i < this.additionalLights.Length; i++)
+                if (this.additionalLights[i] != null)
+                    this.additionalLights[i].intensity = this.additionalBaseIntensities[i] * factor;
 
             if (this.block == null || this.emissiveRenderer == null) return;
             this.emissiveRenderer.GetPropertyBlock(this.block, this.emissiveMaterialIndex);
