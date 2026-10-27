@@ -90,12 +90,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.CamaraSystem.FixedCameraZoneTrigger
   zoneCamera: {fileID: 8415109629163846641}
   polygon:
-  - {x: -5.1449585, y: -7.1424103}
-  - {x: -5.285858, y: -2.7433138}
-  - {x: -0.35088348, y: -2.770091}
-  - {x: -0.35504913, y: -4.6648893}
-  - {x: -0.39822006, y: -6.959841}
+  - {x: -1, y: -1}
+  - {x: -1, y: 1}
+  - {x: 1, y: 1}
+  - {x: 1, y: -1}
   minHeight: -0.5
   maxHeight: 3
-  completeWhenSocket: {fileID: 0}
-  completeWhenPuzzle: {fileID: 0}
+  completeWhenGates: []
+  completeWhenMilestone:
+    graph: {fileID: 0}
+    nodeId: 
