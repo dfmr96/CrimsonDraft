@@ -31,7 +31,21 @@ namespace CrimsonDraft.UI
         private bool disabled;
         private bool dimmed;
 
+        [Tooltip("Rect bajo el que se desliza la barra de seleccion. Vacio = el texto.")]
+        [SerializeField] private RectTransform? barAnchor;
+
         public OptionType Type => optionType;
+
+        // The background is optional: a menu that marks the selection with a shared bar has no per-option image.
+        private void SetBackground(Color color)
+        {
+            if (this.background != null) this.background.color = color;
+        }
+
+        public RectTransform BarAnchor =>
+            this.barAnchor != null ? this.barAnchor
+            : this.label != null   ? (RectTransform)this.label.transform
+            : (RectTransform)this.transform;
 
         public float GetPreferredLabelWidth(string text) =>
             this.label != null ? this.label.GetPreferredValues(text).x : 0f;
@@ -59,12 +73,23 @@ namespace CrimsonDraft.UI
 
         public bool IsDisabled => disabled;
 
-        public void SetState(bool selected)
+        // decorate = false when a shared selection bar marks the current option: no scale-up, no selected image.
+        public void SetState(bool selected, bool decorate = true)
         {
+            // With the shared selection bar the option only styles its text: `background` is the whole menu's
+            // frame (shared by every option), so it must not be recoloured per selection.
+            if (!decorate)
+            {
+                if (label != null) label.color = !disabled ? Color.white : this.dimmed ? this.colorDimmedLabel : colorDisabled;
+                if (this.selectedImage != null) this.selectedImage.SetActive(false);
+                this.transform.localScale = Vector3.one;
+                return;
+            }
+
             if (disabled)
             {
-                background.color = this.dimmed ? this.colorDimmedBackground : colorDisabled;
-                label.color      = this.dimmed ? this.colorDimmedLabel      : colorDisabled;
+                SetBackground(this.dimmed ? this.colorDimmedBackground : colorDisabled);
+                if (label != null) label.color = this.dimmed ? this.colorDimmedLabel      : colorDisabled;
                 // selectedImage is optional -- `?.` doesn't safely no-op on an unassigned
                 // UnityEngine.Object reference (it throws UnassignedReferenceException
                 // instead of skipping the call the way it does for a real null), so this
@@ -74,8 +99,8 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            background.color = selected ? colorSelected : colorNormal;
-            label.color      = Color.white;
+            SetBackground(selected ? colorSelected : colorNormal);
+            if (label != null) label.color = Color.white;
             if (this.selectedImage != null) this.selectedImage.SetActive(selected);
             this.transform.localScale = selected ? Vector3.one * this.selectedScale : Vector3.one;
         }
