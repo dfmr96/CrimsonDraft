@@ -14,6 +14,9 @@ namespace CrimsonDraft.UI
         [SerializeField] private int columns = 4;
         [SerializeField] private int rows    = 4;
 
+        [Tooltip("Pixels per cell. 0 = the grid's width divided by its columns. A background with 1px lines shared between cells (141px for 4 cells) needs 35 here, not 141 / 4.")]
+        [SerializeField] private float cellSizeOverride;
+
         [Header("Visual")]
         [SerializeField] private Image? gridBackground;
 
@@ -48,10 +51,12 @@ namespace CrimsonDraft.UI
         void Awake()
         {
             this.rectTransform = GetComponent<RectTransform>();
-            this.cellSize      = this.rectTransform.rect.width / this.columns;
+            this.cellSize      = this.cellSizeOverride > 0f
+                ? this.cellSizeOverride
+                : this.rectTransform.rect.width / this.columns;
 
+            // The background keeps the type it was authored with (Tiled for the storage, Simple for a one-piece grid sprite).
             if (this.gridBackground == null) return;
-            this.gridBackground.type                    = Image.Type.Tiled;
             this.gridBackground.pixelsPerUnitMultiplier = 1f;
         }
 
