@@ -1,5 +1,8 @@
 // Lo-Fi Stroke: TextMeshPro bitmap shader for indexed fonts baked by CrimsonDraft > Fonts > Lo-Fi Stroke Baker.
-// The atlas stores a palette index per pixel (alpha = index / 15): 0 background, 1-3 fill, 4-7 smoothing, 8 border.
+// The atlas stores a palette index per pixel (alpha = index / 15): 0 background, 1-3 fill, 4-7 smoothing, 8 border,
+// 9 drop shadow and 10 soft halo (only the "Soft Shadow" bake style writes these two). The shadow uses the border
+// colour (ramp 8) and the halo the first smoothing colour (ramp 4), each scaled by its own alpha property, so
+// exact ramps and tints keep working without extra palette columns.
 // Exact ramps: if the vertex colour matches a key colour of _PaletteTex (column 0 of each row, gamma values),
 // that row's 8 hand-picked colours (columns 1-8) are used. Otherwise the index is looked up in the _Ramp1-8
 // ramp and multiplied by the vertex colour (tint), so any <color> tag or Yarn markup colour still recolours
@@ -18,6 +21,9 @@ Properties {
 	_Ramp6              ("Ramp 6 (smoothing)", Color)   = (0.361, 0.361, 0.345, 1)
 	_Ramp7              ("Ramp 7 (smoothing)", Color)   = (0.251, 0.251, 0.251, 1)
 	_Ramp8              ("Ramp 8 (border)", Color)      = (0.220, 0.188, 0.282, 1)
+
+	_ShadowAlpha        ("Shadow alpha (index 9)", Range(0, 1)) = 0.75
+	_SoftAlpha          ("Soft halo alpha (index 10)", Range(0, 1)) = 0.3
 
 	_PaletteTex         ("Exact ramps (9x16, linear, col 0 = key)", 2D) = "black" {}
 	_PaletteRows        ("Exact ramp rows", Float) = 0
@@ -97,6 +103,8 @@ SubShader{
 		uniform fixed4		_Ramp1, _Ramp2, _Ramp3, _Ramp4, _Ramp5, _Ramp6, _Ramp7, _Ramp8;
 		uniform sampler2D	_PaletteTex;
 		uniform float		_PaletteRows;
+		uniform float		_ShadowAlpha;
+		uniform float		_SoftAlpha;
 		uniform float		_KeyTolerance;
 
 		// Exact sRGB transfer functions (UnityCG's GammaToLinearSpace is an approximation, off by up to ~3/255).
@@ -166,16 +174,19 @@ SubShader{
 		{
 			int index = (int)round(tex2D(_MainTex, IN.texcoord0).a * 15.0);
 
-			fixed3 ramp[9] = { fixed3(0, 0, 0), _Ramp1.rgb, _Ramp2.rgb, _Ramp3.rgb, _Ramp4.rgb,
-			                   _Ramp5.rgb, _Ramp6.rgb, _Ramp7.rgb, _Ramp8.rgb };
-			int i = clamp(index, 0, 8);
-			fixed4 color = fixed4(ramp[i] * IN.color.rgb, index > 0 ? IN.color.a : 0);
+			// Index 9 (shadow) borrows the border colour and 10 (soft halo) the first smoothing colour.
+			fixed3 ramp[11] = { fixed3(0, 0, 0), _Ramp1.rgb, _Ramp2.rgb, _Ramp3.rgb, _Ramp4.rgb,
+			                    _Ramp5.rgb, _Ramp6.rgb, _Ramp7.rgb, _Ramp8.rgb, _Ramp8.rgb, _Ramp4.rgb };
+			int i = clamp(index, 0, 10);
+			float alphaScale = i == 9 ? _ShadowAlpha : (i == 10 ? _SoftAlpha : 1.0);
+			fixed4 color = fixed4(ramp[i] * IN.color.rgb, index > 0 ? IN.color.a * alphaScale : 0);
 
 			// Exact ramp: every vertex of a character carries the same row, so rounding is enough.
 			float row = round(IN.paletteRow);
 			if (row >= 0 && i > 0)
 			{
-				float3 exact = tex2D(_PaletteTex, float2((i + 0.5) / PALETTE_COLUMNS, (row + 0.5) / PALETTE_HEIGHT)).rgb;
+				int column = i == 9 ? 8 : (i == 10 ? 4 : i);
+				float3 exact = tex2D(_PaletteTex, float2((column + 0.5) / PALETTE_COLUMNS, (row + 0.5) / PALETTE_HEIGHT)).rgb;
 				color.rgb = IsGammaSpace() ? exact : SrgbToLinear(exact);
 			}
 
