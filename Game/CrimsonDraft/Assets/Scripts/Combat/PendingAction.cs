@@ -31,8 +31,9 @@ namespace CrimsonDraft.Combat
         public static PendingAction Shoot(int operatorSlot) =>
             new PendingAction(PendingActionType.Shoot, operatorSlot);
 
-        public static PendingAction UseItem(int operatorSlot, InventoryItem? item) =>
-            new PendingAction(PendingActionType.UseItem, operatorSlot, item: item);
+        // targetOperatorSlot < 0 means "the acting operator" (also what a reload, item == null, uses).
+        public static PendingAction UseItem(int operatorSlot, InventoryItem? item, int targetOperatorSlot = -1) =>
+            new PendingAction(PendingActionType.UseItem, operatorSlot, item: item, targetOperatorSlot: targetOperatorSlot);
 
         public static PendingAction EnemyAttack(int enemySlot, int targetOperatorSlot, int damage) =>
             new PendingAction(PendingActionType.EnemyAttack, enemySlot,

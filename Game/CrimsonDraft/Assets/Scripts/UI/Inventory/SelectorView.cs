@@ -9,10 +9,10 @@ namespace CrimsonDraft.UI
     {
         // Resting cursor: the UI's olive. The "hover" child lights up olive over an item and green while
         // an item is held.
-        private static readonly Color ColorSelector = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f);
+        internal static readonly Color ColorSelector = new Color(154f / 255f, 159f / 255f, 92f / 255f, 1f);
         private static readonly Color ColorHold     = ColorSelector; // holding / picking a combine target: same olive
 
-        private static readonly Color ColorCombineSource = new Color(1f, 0.15f, 0.15f, 1f);
+        internal static readonly Color ColorCombineSource = new Color(1f, 0.15f, 0.15f, 1f);
 
         private const string HoverChildName   = "hover";
         private const string CombineMarkerName = "combineSource";
@@ -155,7 +155,9 @@ namespace CrimsonDraft.UI
         /// Draws a red cursor-style frame around the item that started a combine. It is a child of the
         /// item's view, so it follows it and disappears with it when the grid re-renders.
         /// </summary>
-        public void MarkCombineSource(InventoryItemView view)
+        public void MarkCombineSource(InventoryItemView view) => MarkCombineSource(view, this.selectorSpriteNormal);
+
+        public static void MarkCombineSource(InventoryItemView view, Sprite? sprite)
         {
             var rt     = (RectTransform)view.transform;
             var marker = rt.Find(CombineMarkerName) as RectTransform;
@@ -166,7 +168,7 @@ namespace CrimsonDraft.UI
                 marker.SetParent(rt, false);
 
                 var img            = go.GetComponent<Image>();
-                img.sprite         = this.selectorSpriteNormal;
+                img.sprite         = sprite;
                 img.type           = UnityEngine.UI.Image.Type.Sliced;
                 img.color          = ColorCombineSource;
                 img.raycastTarget  = false;
@@ -184,11 +186,13 @@ namespace CrimsonDraft.UI
             marker.SetAsLastSibling();
         }
 
-        public void ClearCombineSource(InventoryItemView? view)
+        public void ClearCombineSource(InventoryItemView? view) => ClearCombineMarker(view);
+
+        public static void ClearCombineMarker(InventoryItemView? view)
         {
             if (view == null) return;
             var marker = view.transform.Find(CombineMarkerName);
-            if (marker != null) Destroy(marker.gameObject);
+            if (marker != null) Object.Destroy(marker.gameObject);
         }
 
         private Image Image() => this.selectorImage ??= this.selectorRect.GetComponent<Image>();

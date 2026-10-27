@@ -250,6 +250,7 @@ namespace CrimsonDraft.UI
             ExitStorageMode();
             // Still scaled to zero here, so the cursor coming back is never seen.
             if (this.pickupMode) this.cursor.ShowSelectorAfterTabBar();
+            ExitStorageMode();
             this.canvasRoot.SetActive(false);
             UiCameraGate.Release(this);
             this.transform.localScale = this.openScale;

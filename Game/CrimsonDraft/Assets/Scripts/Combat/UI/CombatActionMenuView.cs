@@ -41,13 +41,23 @@ namespace CrimsonDraft.Combat
         private Image selectorMarkImage = null!;
         private RectTransform? selectorFollowTarget;
 
+        [Header("Inventory Lift")]
+        [Tooltip("Canvas units the operator strip grows taller while the combat inventory is open: the inventory frame height (151.7) plus the 3px gap under the cards and the 3px border, minus what the cards do not follow.")]
+        [SerializeField] private float inventoryExtraHeight = 154.7f;
+        [SerializeField] private float inventoryLiftDuration = 0.2f;
+
         [Header("Weapon Icon")]
         [SerializeField] private float weaponIconCellSize = 32f; // px per GridSize unit (1×1 = 32px)
 
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
+        private readonly HashSet<int> missingOperators = new();
+        [Tooltip("Icon shown on the card of a slot with no operator (silhouette).")]
+        [SerializeField] private Sprite? missingIcon;
+        [SerializeField, Range(0f, 1f)] private float missingOverlayAlpha = 0.65f;
         private int      focusedOperatorIndex = -1;
+        private int      lastPresentFocus     = -1;
         private readonly Dictionary<int, string>                 pendingNameByOperator  = new();
         private readonly Dictionary<int, (int current, int max)> pendingAmmoByOperator  = new();
         private readonly Dictionary<int, (float hpRatio, bool isAlive)> pendingHealthByOperator = new();
@@ -61,6 +71,7 @@ namespace CrimsonDraft.Combat
 
         private void Awake()
         {
+            this.EnsureOperatorsWired();
             var le = this.selectorMark.GetComponent<LayoutElement>();
             if (le == null) le = this.selectorMark.gameObject.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
@@ -98,6 +109,14 @@ namespace CrimsonDraft.Combat
                 this.selectedHandlers[i] = () =>
                 {
                     if (this.isMasterDimmed) return;
+                    if (this.missingOperators.Contains(index))
+                    {
+                        // Never lands on an absent slot: hand the focus back to the previous card.
+                        if (this.lastPresentFocus >= 0)
+                            this.FocusOperator(this.lastPresentFocus);
+                        return;
+                    }
+                    this.lastPresentFocus = index;
                     this.SetFocusedOperatorIndex(index);
                     this.MoveSelector(index);
                     this.OnOperatorFocused?.Invoke(index);
@@ -114,6 +133,10 @@ namespace CrimsonDraft.Combat
             this.selectorMark.DOKill();
             this.selectorMarkImage?.DOKill();
             this.selectorFollowTarget = null;
+            if (this.inventoryLifted && this.inventoryLiftTarget != null)
+                this.inventoryLiftTarget.sizeDelta = new Vector2(this.inventoryLiftTarget.sizeDelta.x, this.inventoryRestHeight);
+            this.inventoryLiftTarget?.DOKill();
+            this.inventoryLifted = false;
 
             for (int i = 0; i < this.operators.Length; i++)
             {
@@ -142,6 +165,83 @@ namespace CrimsonDraft.Combat
         #endregion
 
         #region Private
+
+        // The OperatorOverview cards get deleted/duplicated while tuning the layout, which leaves the
+        // serialized 'operators' array with holes and the left/right navigation pointing at destroyed
+        // cards. Rebuild both from whatever cards are actually under the operators group, in order.
+        private void EnsureOperatorsWired()
+        {
+            if (this.operatorsGroup == null) return;
+
+            var found = this.operatorsGroup.GetComponentsInChildren<ActionMenuItem>(true);
+            bool valid = found.Length == this.operators.Length;
+            for (int i = 0; valid && i < found.Length; i++)
+                valid = this.operators[i] == found[i];
+
+            if (!valid)
+                this.operators = found;
+
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                var nav = this.operators[i].navigation;
+                nav.mode          = Navigation.Mode.Explicit;
+                nav.selectOnLeft  = i > 0 ? this.operators[i - 1] : null;
+                nav.selectOnRight = i < this.operators.Length - 1 ? this.operators[i + 1] : null;
+                this.operators[i].navigation = nav;
+            }
+        }
+
+        private RectTransform? inventoryLiftTarget;
+        private float          inventoryRestHeight;
+        private bool           inventoryLifted;
+
+        // Makes the operator strip taller (it is pinned at the bottom, so it grows upward and its
+        // top-pinned cards ride up with it), leaving room below the cards for the combat inventory;
+        // lowering plays the same animation backwards.
+        public void SetInventoryLift(bool lifted, Action? onComplete = null)
+        {
+            if (this.operatorsGroup == null) { onComplete?.Invoke(); return; }
+
+            if (this.inventoryLiftTarget == null)
+            {
+                this.inventoryLiftTarget = this.operatorsGroup.transform.parent as RectTransform;
+                if (this.inventoryLiftTarget == null) { onComplete?.Invoke(); return; }
+            }
+
+            var target = this.inventoryLiftTarget;
+
+            if (this.inventoryLifted == lifted)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            target.DOKill();
+            this.inventoryLifted = lifted;
+
+            if (!lifted)
+            {
+                target.DOSizeDelta(new Vector2(target.sizeDelta.x, this.inventoryRestHeight), this.inventoryLiftDuration)
+                    .SetEase(Ease.InQuad)
+                    .SetUpdate(true)
+                    .OnComplete(() => onComplete?.Invoke());
+                return;
+            }
+
+            this.inventoryRestHeight = target.sizeDelta.y;
+
+            // Authored in canvas units; the strip may be scaled relative to the canvas.
+            var root         = target.GetComponentInParent<Canvas>().rootCanvas.transform;
+            float localScale = Mathf.Max(target.lossyScale.y, 0.0001f) / Mathf.Max(root.lossyScale.y, 0.0001f);
+            float fullHeight = this.inventoryRestHeight + this.inventoryExtraHeight / localScale;
+
+            target.DOSizeDelta(new Vector2(target.sizeDelta.x, fullHeight), this.inventoryLiftDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true)
+                .OnComplete(() => onComplete?.Invoke());
+        }
+
+        public void RestoreOperatorFocus(int index) => this.SetFocusedOperatorIndex(index);
 
         private void MoveSelector(int index) =>
             MoveSelectorTo(this.GetOperatorOverviewRect(index));
@@ -467,7 +567,7 @@ namespace CrimsonDraft.Combat
         // Pushed every frame from CombatOrchestrator as the operator's ATB gauge ticks
         // toward ready; purely visual, no gameplay state lives here.
         public void SetOperatorGauge(int index, float gauge01) =>
-            this.GetOperatorGaugeBar(index)?.SetGauge01(gauge01);
+            this.GetOperatorGaugeBar(index)?.SetGauge01(this.missingOperators.Contains(index) ? 0f : gauge01);
 
         private OperatorGaugeBar? GetOperatorGaugeBar(int index)
         {
@@ -476,35 +576,29 @@ namespace CrimsonDraft.Combat
             return overview == null ? null : overview.GetComponentInChildren<OperatorGaugeBar>(true);
         }
 
-        // Grows/shrinks the operator card's own border to make room for the command
-        // panel above it, instead of the command panel having its own separate frame.
-        public void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null)
-        {
-            var panel = this.GetOperatorBorderPanel(index);
-            if (panel == null)
-            {
-                onComplete?.Invoke();
-                return;
-            }
-
-            panel.SetExpanded(expanded, onComplete);
-        }
-
-        private OperatorBorderPanel? GetOperatorBorderPanel(int index)
-        {
-            if (index < 0 || index >= this.operators.Length) return null;
-            var overview = this.operators[index].transform.parent;
-            return overview == null ? null : overview.GetComponentInChildren<OperatorBorderPanel>(true);
-        }
-
         public RectTransform GetOperatorAnchor(int index) =>
             this.GetOperatorOverviewRect(index);
 
         public RectTransform GetOperatorRect(int index) =>
             (RectTransform)this.operators[index].transform;
 
-        public RectTransform GetOperatorOverviewRect(int index) =>
-            (RectTransform)this.operators[index].transform.parent;
+        // The "Visual" root keeps its original 130x72 footprint, while the card's art
+        // (Black_BG) is what actually covers the portrait/ECG/weapon layout -- the command
+        // panel and the selector box must hug that, not the stale root rect.
+        public IReadOnlyList<RectTransform> GetOperatorOverviewRects()
+        {
+            var rects = new RectTransform[this.operators.Length];
+            for (int i = 0; i < rects.Length; i++)
+                rects[i] = this.GetOperatorOverviewRect(i);
+            return rects;
+        }
+
+        public RectTransform GetOperatorOverviewRect(int index)
+        {
+            var visual = (RectTransform)this.operators[index].transform.parent;
+            var cardBounds = visual.Find("Black_BG") as RectTransform;
+            return cardBounds != null ? cardBounds : visual;
+        }
 
         public void SetDimmed(bool dimmed)
         {
@@ -532,10 +626,16 @@ namespace CrimsonDraft.Combat
         {
             if (index < 0 || index >= this.operators.Length) return;
             var item = this.operators[index];
+            if (this.missingOperators.Contains(index)) return; // stays locked and dim, see SetOperatorMissing
             item.interactable = !dimmed;
 
             var nav  = item.navigation;
-            nav.mode = dimmed ? Navigation.Mode.None : Navigation.Mode.Automatic;
+            nav.mode = dimmed ? Navigation.Mode.None : Navigation.Mode.Explicit;
+            if (!dimmed)
+            {
+                nav.selectOnLeft  = this.NextPresentOperator(index, -1);
+                nav.selectOnRight = this.NextPresentOperator(index, +1);
+            }
             item.navigation = nav;
 
             if (!dimmed && EventSystem.current != null)
@@ -569,6 +669,7 @@ namespace CrimsonDraft.Combat
 
         public void SetOperatorName(int index, string name)
         {
+            if (this.missingOperators.Contains(index)) name = "????";
             this.pendingNameByOperator[index] = name;
 
             if (index < 0 || index >= this.operatorNameLabels.Length)
@@ -599,6 +700,7 @@ namespace CrimsonDraft.Combat
 
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)
         {
+            if (this.missingOperators.Contains(index)) return;
             this.pendingAmmoByOperator[index] = (currentAmmo, maxAmmo);
 
             if (index < 0 || index >= this.operatorAmmoLabels.Length)
@@ -640,9 +742,146 @@ namespace CrimsonDraft.Combat
             label.text = $"{current}/{max}";
         }
 
+        public int OperatorSlotCount => this.operators.Length;
+
+        // Slot with no operator: silhouette icon, "????" name, flatline ECG with "MIA", no weapon/ammo, empty turn
+        // bar, and a dark overlay over the whole card. Never focusable.
+        public void SetOperatorMissing(int index, bool missing)
+        {
+            if (index < 0 || index >= this.operators.Length) return;
+
+            if (missing) this.missingOperators.Add(index);
+            else         this.missingOperators.Remove(index);
+
+            var item = this.operators[index];
+            item.interactable = !missing;
+
+            // Left/right links are explicit, so neighbours would still land on it: route them around the card.
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                if (this.missingOperators.Contains(i)) continue;
+                var nav = this.operators[i].navigation;
+                if (nav.mode != Navigation.Mode.Explicit) continue;
+                nav.selectOnLeft  = this.NextPresentOperator(i, -1);
+                nav.selectOnRight = this.NextPresentOperator(i, +1);
+                this.operators[i].navigation = nav;
+            }
+
+            var visual = item.transform.parent;
+            if (visual == null) return;
+
+            if (index < this.operatorEcgAnimators.Length && this.operatorEcgAnimators[index] != null)
+                this.operatorEcgAnimators[index].enabled = !missing;
+
+            // Alpha 0 (not SetActive): nothing of the placeholder art may show.
+            foreach (var partName in MissingHiddenParts)
+                SetPartHidden(visual.Find(partName), missing);
+
+            var iconImage = visual.Find("Icon")?.GetComponent<Image>();
+            if (iconImage != null)
+            {
+                if (missing)
+                {
+                    if (!this.originalIcons.ContainsKey(index)) this.originalIcons[index] = iconImage.sprite;
+                    if (this.missingIcon != null) iconImage.sprite = this.missingIcon;
+                    iconImage.preserveAspect = true;
+                }
+                else if (this.originalIcons.Remove(index, out var original))
+                {
+                    iconImage.sprite = original;
+                }
+            }
+
+            if (missing)
+            {
+                const string unknownName = "????";
+                this.pendingNameByOperator[index] = unknownName;
+                if (index < this.operatorNameLabels.Length && this.operatorNameLabels[index] != null)
+                    this.operatorNameLabels[index].text = unknownName;
+
+                if (index < this.operatorAmmoLabels.Length && this.operatorAmmoLabels[index] != null)
+                    this.operatorAmmoLabels[index].text = string.Empty;
+                if (index < this.operatorWeaponIcons.Length && this.operatorWeaponIcons[index] != null)
+                    this.operatorWeaponIcons[index].enabled = false;
+                this.pendingAmmoByOperator.Remove(index);
+                this.pendingWeaponByOperator.Remove(index);
+
+                this.SetOperatorTurnOrder(index, -1);
+                this.GetOperatorGaugeBar(index)?.SetGauge01(0f);
+
+                // The ECG is switched off (animator stopped, trace and glow hidden); the status readout says MIA.
+                var status = visual.Find("ECG_BG/CDG_Status")?.GetComponent<TMP_Text>();
+                if (status != null) status.text = "MIA";
+            }
+
+            // The card is dimmed by a dark frame on top (like a dead operator's inventory), not by fading it.
+            var overlay = visual.Find(MissingOverlayName) as RectTransform;
+            if (overlay == null && missing)
+            {
+                var go = new GameObject(MissingOverlayName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                overlay = (RectTransform)go.transform;
+                overlay.SetParent(visual, false);
+                var bounds = visual.Find("Black_BG") as RectTransform;
+                if (bounds != null)
+                {
+                    overlay.anchorMin = bounds.anchorMin;
+                    overlay.anchorMax = bounds.anchorMax;
+                    overlay.pivot     = bounds.pivot;
+                    overlay.offsetMin = bounds.offsetMin;
+                    overlay.offsetMax = bounds.offsetMax;
+                }
+                else
+                {
+                    overlay.anchorMin = Vector2.zero;
+                    overlay.anchorMax = Vector2.one;
+                    overlay.offsetMin = overlay.offsetMax = Vector2.zero;
+                }
+                var overlayImage = go.GetComponent<Image>();
+                overlayImage.color         = new Color(0f, 0f, 0f, this.missingOverlayAlpha);
+                overlayImage.raycastTarget = false;
+            }
+            if (overlay != null)
+            {
+                overlay.gameObject.SetActive(missing);
+                overlay.SetAsLastSibling();
+            }
+
+            var group = visual.GetComponent<CanvasGroup>();
+            if (group == null) group = visual.gameObject.AddComponent<CanvasGroup>();
+            group.DOKill();
+            group.alpha = 1f;
+
+            if (!missing)
+            {
+                if (this.pendingHealthByOperator.TryGetValue(index, out var health))
+                    this.SetOperatorHealth(index, health.hpRatio, health.isAlive);
+                this.ApplyPendingNameLabels();
+            }
+        }
+
+        private const string MissingOverlayName = "MissingOverlay";
+        private static readonly string[] MissingHiddenParts = { "Weapon", "WeaponAmmo", "Action", "ECG_BG/ECG_move", "ECG_BG/Effect" };
+        private readonly Dictionary<int, Sprite?> originalIcons = new();
+
+        private static void SetPartHidden(Transform? part, bool hidden)
+        {
+            if (part == null) return;
+            var group = part.GetComponent<CanvasGroup>();
+            if (group == null) group = part.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = hidden ? 0f : 1f;
+        }
+
+        private ActionMenuItem? NextPresentOperator(int from, int step)
+        {
+            for (int i = from + step; i >= 0 && i < this.operators.Length; i += step)
+                if (!this.missingOperators.Contains(i)) return this.operators[i];
+            return null;
+        }
+
         public void SetOperatorHealth(int index, float hpRatio, bool isAlive)
         {
             this.pendingHealthByOperator[index] = (hpRatio, isAlive);
+            if (this.missingOperators.Contains(index)) return;
 
             if (index < 0 || index >= this.operatorEcgAnimators.Length)
                 return;
@@ -662,6 +901,12 @@ namespace CrimsonDraft.Combat
 
         // Same fire-and-forget shot as the shake above, but on the ECG line's own CRT-static
         // burst -- reuses the array SetOperatorHealth already indexes into, no extra wiring.
+        public void PlayOperatorHealFlash(int index)
+        {
+            if (index < 0 || index >= this.operatorEcgAnimators.Length) return;
+            this.operatorEcgAnimators[index]?.FlashHeal();
+        }
+
         public void PlayOperatorDamageGlitch(int index)
         {
             if (index < 0 || index >= this.operatorEcgAnimators.Length) return;
@@ -680,7 +925,7 @@ namespace CrimsonDraft.Combat
             foreach (var kvp in this.pendingHealthByOperator)
             {
                 int index = kvp.Key;
-                if (index < 0 || index >= this.operatorEcgAnimators.Length)
+                if (index < 0 || index >= this.operatorEcgAnimators.Length || this.missingOperators.Contains(index))
                     continue;
 
                 var animator = this.operatorEcgAnimators[index];
@@ -766,6 +1011,7 @@ namespace CrimsonDraft.Combat
         // CombatOrchestrator.RefreshTurnOrderLabels.
         public void SetOperatorTurnOrder(int index, int position)
         {
+            if (this.missingOperators.Contains(index)) position = -1;
             this.pendingTurnOrderByOperator[index] = position;
 
             if (index < 0 || index >= this.operatorTurnOrderLabels.Length)

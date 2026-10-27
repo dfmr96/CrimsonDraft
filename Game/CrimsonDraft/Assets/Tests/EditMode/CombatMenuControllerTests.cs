@@ -923,14 +923,16 @@ namespace CrimsonDraft.Tests
             public void SetOperatorActionPending(int index, bool pending) => this.ActionPendingByIndex[index] = pending;
             public readonly Dictionary<int, int> TurnOrderByIndex = new();
             public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
-            // Synchronous, like the real card's animation eventually completing —
-            // keeps existing tests' flow (which expect the reveal to have happened by
-            // the time Enter() returns) working without needing to await anything.
-            public void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
+            public void SetInventoryLift(bool lifted, System.Action? onComplete = null) => onComplete?.Invoke();
+            public void RestoreOperatorFocus(int index) { }
+            public IReadOnlyList<RectTransform> GetOperatorOverviewRects() => System.Array.Empty<RectTransform>();
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
+            public void SetOperatorMissing(int index, bool missing) { }
+            public void PlayOperatorHealFlash(int index) { }
+            public int OperatorSlotCount => 0;
             public int  FocusedOperatorIndex { get; set; } = -1;
             public bool IsOperatorFocused(int index) => this.FocusedOperatorIndex == index;
             public RectTransform GetOperatorAnchor(int index) =>
@@ -972,17 +974,18 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeCombatInventoryView : ICombatInventoryView
         {
-            public event Action<InventoryItem?>? OnItemUsed;
+            public event Action<InventoryItem?, int>? OnItemUsed;
             public event Action?      OnCancelled;
             public bool IsVisible             { get; private set; }
             public int  LastShownOperatorSlot { get; private set; } = -1;
-            public void Show(int operatorSlot, RectTransform operatorOverviewRect)
+            public void Show(int operatorSlot, IReadOnlyList<RectTransform> operatorCardRects)
             {
                 this.LastShownOperatorSlot = operatorSlot;
                 this.IsVisible             = true;
             }
             public void Hide()                          => this.IsVisible = false;
-            public void RaiseOnItemUsed(InventoryItem? item) => this.OnItemUsed?.Invoke(item);
+            public void Close(Action onComplete)        { this.IsVisible = false; onComplete(); }
+            public void RaiseOnItemUsed(InventoryItem? item, int targetSlot = -1) => this.OnItemUsed?.Invoke(item, targetSlot);
             public void RaiseOnCancelled()               => this.OnCancelled?.Invoke();
         }
 

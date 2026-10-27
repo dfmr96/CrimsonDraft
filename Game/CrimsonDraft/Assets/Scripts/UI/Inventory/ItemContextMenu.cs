@@ -1,7 +1,9 @@
 #nullable enable
 
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 
 namespace CrimsonDraft.UI
@@ -12,6 +14,14 @@ namespace CrimsonDraft.UI
         [SerializeField] private CanvasGroup  canvasGroup  = null!;
         [SerializeField] private MenuOption[] options      = null!; // 0=Use, 1=Inspect, 2=Combine
         [SerializeField] private InspectPanel inspectPanel = null!;
+
+        [Header("Selection")]
+        [Tooltip("Barra que se desliza bajo el texto de la opcion actual (la misma que usa la pausa). Vacio = cada opcion se marca sola, como antes.")]
+        [SerializeField] private SelectionCursor? selector;
+
+        [Header("Open Animation")]
+        [Tooltip("El menu se abre en X desde 0 hasta su ancho, creciendo desde el lado pegado al objeto.")]
+        [SerializeField] private float openDuration = 0.12f;
 
         private static readonly int[] DefaultSelectionPriority = { 0, 2, 1 };
 
@@ -28,6 +38,8 @@ namespace CrimsonDraft.UI
         private InventoryItemView? currentItem;
         private MeleeWeaponData?   currentMeleeItem;
         private RectTransform     rectTransform = null!;
+        private Tween?            openTween;
+        private bool              opening;
 
         public bool IsOpen => this.isOpen;
         public System.Action? OnClose;
@@ -84,8 +96,9 @@ namespace CrimsonDraft.UI
             }
 
             PositionNextToItem(item);
-            RefreshVisuals();
+            RefreshVisuals(snapSelector: true);
             Show();
+            PlayOpenAnimation();
         }
 
         // For items with no InventoryItemView -- e.g. a permanently-equipped melee weapon,
@@ -108,12 +121,14 @@ namespace CrimsonDraft.UI
             this.selectedIndex = 1; // Inspect is the only enabled option
 
             PositionNextToRect(anchor);
-            RefreshVisuals();
+            RefreshVisuals(snapSelector: true);
             Show();
+            PlayOpenAnimation();
         }
 
         public void Close()
         {
+            StopOpenAnimation();
             this.isOpen     = false;
             this.targetMode = false;
             Hide();
@@ -159,7 +174,7 @@ namespace CrimsonDraft.UI
             this.options[0].SetLabel("Use");
             this.selectedIndex = 0;
             PositionNextToItem(item);
-            RefreshVisuals();
+            RefreshVisuals(snapSelector: true);
             return true;
         }
 
@@ -210,7 +225,7 @@ namespace CrimsonDraft.UI
                 if (targets[i].Enabled) { this.selectedIndex = i; break; }
 
             if (this.currentItem != null) PositionNextToItem(this.currentItem);
-            RefreshVisuals();
+            RefreshVisuals(snapSelector: true);
         }
 
         // Back to the item's own actions (Use / Inspect / Combine): the original buttons, with their
@@ -263,6 +278,8 @@ namespace CrimsonDraft.UI
 
         void PositionNextToRect(RectTransform itemRT)
         {
+            StopOpenAnimation();
+
             Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
             Camera cam = (rootCanvas != null && rootCanvas.renderMode == RenderMode.ScreenSpaceCamera)
                 ? rootCanvas.worldCamera : null;
@@ -303,10 +320,53 @@ namespace CrimsonDraft.UI
             }
         }
 
-        void RefreshVisuals()
+        void RefreshVisuals(bool snapSelector = false)
         {
+            bool bar = this.selector != null;
             for (int i = 0; i < this.visibleCount; i++)
-                this.pool[i].SetState(i == this.selectedIndex && !this.pool[i].IsDisabled);
+                this.pool[i].SetState(i == this.selectedIndex && !this.pool[i].IsDisabled, decorate: !bar);
+
+            if (!bar) return;
+            var current = this.selectedIndex < this.visibleCount ? this.pool[this.selectedIndex] : null;
+            this.selector!.FollowOrHide(current != null && !current.IsDisabled ? current.BarAnchor : null, snapSelector);
+        }
+
+        // The menu "switches on": it starts with X scaled to 0 and opens to full width. The rect's pivot is
+        // already on the side glued to the item (PositionNextToRect flips it to the right edge when the menu
+        // opens leftwards), so scaling about the pivot always grows it away from the item.
+        void PlayOpenAnimation()
+        {
+            StopOpenAnimation();
+            if (this.openDuration <= 0f) return;
+
+            this.opening = true;
+            var scale = this.rectTransform.localScale;
+            scale.x = 0f;
+            this.rectTransform.localScale = scale;
+
+            this.openTween = this.rectTransform.DOScaleX(1f, this.openDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true)
+                .OnComplete(() => this.opening = false);
+        }
+
+        void StopOpenAnimation()
+        {
+            this.openTween?.Kill();
+            this.openTween = null;
+            this.opening   = false;
+
+            // Measuring/positioning (and the next open) always start from the real size.
+            var scale = this.rectTransform.localScale;
+            scale.x = 1f;
+            this.rectTransform.localScale = scale;
+        }
+
+        // The bar reads the options' world rects, which are still growing during the open animation.
+        void LateUpdate()
+        {
+            if (this.opening && this.isOpen)
+                RefreshVisuals(snapSelector: true);
         }
 
         void Show()
@@ -318,6 +378,7 @@ namespace CrimsonDraft.UI
 
         void Hide()
         {
+            if (this.selector != null) this.selector.SetVisible(false);
             this.canvasGroup.alpha          = 0f;
             this.canvasGroup.interactable   = false;
             this.canvasGroup.blocksRaycasts = false;

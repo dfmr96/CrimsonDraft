@@ -1282,7 +1282,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 144, y: 144}
+  m_SizeDelta: {x: 141, y: 141}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &8915566870308294004
 MonoBehaviour:
@@ -1298,6 +1298,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CrimsonDraft.UI::CrimsonDraft.UI.InventoryGrid
   columns: 4
   rows: 4
+  cellSizeOverride: 35
   gridBackground: {fileID: 5642098032537604707}
   containerKind: 0
   containerIndex: 0
@@ -1500,15 +1501,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.42745098, g: 0.42745098, b: 0.42745098, a: 1}
+  m_Color: {r: 0.427, g: 0.427, b: 0.427, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -738941473, guid: 7c5295aa0663ddf4da065f7d564e7112, type: 3}
-  m_Type: 2
+  m_Sprite: {fileID: 275299541, guid: 7c5295aa0663ddf4da065f7d564e7112, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1620,6 +1621,8 @@ MonoBehaviour:
   saturationSwing: 0.1
   minValue: 0.5
   maxValue: 0.9
+  healFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  healFlashDuration: 0.6
 --- !u!1 &6212723417343838995
 GameObject:
   m_ObjectHideFlags: 0
@@ -1732,6 +1735,8 @@ MonoBehaviour:
   effectColorSevere: {r: 0.7117647, g: 0.5019608, b: 0.28235295, a: 0.55}
   effectColorMercy: {r: 0.73333335, g: 0.44705883, b: 0.26666668, a: 0.55}
   statusLabel: {fileID: 0}
+  healFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  healFlashDuration: 0.6
   glitchDuration: 0.35
   glitchJitterAmount: 6
   glitchMinAlpha: 0.15
