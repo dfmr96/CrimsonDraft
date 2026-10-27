@@ -163,6 +163,7 @@ namespace CrimsonDraft.Combat
         private float  shakeIntensity01; // 0 = full HP, 1 = 0 HP
         private float  shakeSeedV; // per-QTE seed for the heartbeat's per-beat punch direction
         private Vector3 basePanelLocalPos;
+        private bool    hasBasePanelLocalPos; // false until Show() captures it -- before that the panel keeps its authored position
         private Vector3 panelBaseScale = Vector3.one;
         private bool   panelScaleCaptured;
         [SerializeField] private float panelScaleDuration = 0.2f; // open/close Y-scale animation
@@ -282,6 +283,7 @@ namespace CrimsonDraft.Combat
             this.pendingSlashPoints = new List<(GameObject, bool)>();
             this.countPhase = CountPhase.Done;
             this.basePanelLocalPos = this.transform.localPosition;
+            this.hasBasePanelLocalPos = true;
             this.shakeSeedV = UnityEngine.Random.Range(0f, 1000f);
             this.StartVerticalOscillation();
             this.phase = AimPhase.VerticalAiming;
@@ -381,7 +383,8 @@ namespace CrimsonDraft.Combat
             this.horizontalSelector.rectTransform.DOKill();
             this.verticalTween   = null;
             this.horizontalTween = null;
-            this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
+            if (this.hasBasePanelLocalPos)
+                this.transform.localPosition = this.basePanelLocalPos; // undo any in-progress shake before Show() recaptures it next time
             this.ClearTotalFeedback();
             this.sequenceVersion++;
             this.ResetDamageCounter();
@@ -550,6 +553,8 @@ namespace CrimsonDraft.Combat
         // so it never drifts and always resolves back to the same anchor between beats.
         private void Update()
         {
+            if (!this.hasBasePanelLocalPos) return;
+
             var rt = (RectTransform)this.transform;
             bool activePhase = this.phase == AimPhase.VerticalAiming || this.phase == AimPhase.HorizontalAiming;
 
