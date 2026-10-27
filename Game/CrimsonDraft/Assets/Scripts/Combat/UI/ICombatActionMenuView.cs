@@ -27,6 +27,8 @@ namespace CrimsonDraft.Combat
         void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo);
         void SetOperatorHealth(int index, float hpRatio, bool isAlive);
         void SetOperatorName(int index, string name);
+        // Squad logo on the card; null keeps whatever the prefab already shows (same rule as the inventory card).
+        void SetOperatorLogo(int index, Sprite? logo);
         void PlayOperatorDamageShake(int index);
         void PlayOperatorDamageGlitch(int index);
         void PlayOperatorHealFlash(int index);

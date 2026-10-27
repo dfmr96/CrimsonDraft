@@ -43,8 +43,17 @@ namespace CrimsonDraft.Combat
         [SerializeField, Range(0f, 1f)] private float openStartScale = 0.5f;
         [SerializeField] private float openDuration = 0.15f;
 
+        [Header("Tactical Swap")]
+        [SerializeField] private float closeDuration = 0.15f;
+
         // The card's focus bounce is still moving when the panel opens, so the panel keeps tracking the card's top edge.
         private RectTransform? followTarget;
+
+        // The operator card's "Tactical" strip (ATB bar) is what the panel grows out of: it is hidden while the
+        // panel is open and comes back once the panel has collapsed to its size again.
+        private RectTransform? tactical;
+        private CanvasGroup?   tacticalGroup;
+        private const string   TacticalName = "Tactical";
 
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
@@ -57,9 +66,10 @@ namespace CrimsonDraft.Combat
 
         public RectTransform PanelRect => (RectTransform)this.transform;
 
-        // Panel pivot is bottom-center — this aligns that pivot point to the top-center
-        // of the operator's card, so the panel sits directly above it with a shared edge
-        // (unrelated to how tall the panel currently is mid-unfurl).
+        // Panel pivot is bottom-center — with a Tactical strip on the card this aligns that pivot to the strip's
+        // bottom-center (the panel takes its place); without one, to the top-center of the operator's card, so
+        // the panel sits directly above it with a shared edge (unrelated to how tall the panel currently is
+        // mid-unfurl).
         public void RepositionTo(RectTransform operatorRect)
         {
             this.followTarget = operatorRect;
@@ -67,10 +77,14 @@ namespace CrimsonDraft.Combat
             var panel   = (RectTransform)this.transform;
             var hudRoot = (RectTransform)this.transform.parent;
 
+            var strip = FindTactical(operatorRect);
             var corners = new Vector3[4];
-            operatorRect.GetWorldCorners(corners);
-            var topCenter = (corners[1] + corners[2]) * 0.5f; // 1=TL, 2=TR
-            var localPos  = hudRoot.InverseTransformPoint(topCenter);
+            (strip != null ? strip : operatorRect).GetWorldCorners(corners);
+            // 0=BL, 1=TL, 2=TR, 3=BR
+            var anchorPoint = strip != null
+                ? (corners[0] + corners[3]) * 0.5f
+                : (corners[1] + corners[2]) * 0.5f;
+            var localPos = hudRoot.InverseTransformPoint(anchorPoint);
 
             panel.localPosition = new Vector3(localPos.x + this.offset.x, localPos.y + this.offset.y, 0f);
         }
@@ -78,16 +92,25 @@ namespace CrimsonDraft.Combat
         // Positions/activates with its content hidden; call RevealContent() to fade it in.
         public void Show(RectTransform operatorRect)
         {
+            this.RestoreTactical();
             RepositionTo(operatorRect);
 
             this.contentGroup?.DOKill();
-            if (this.contentGroup != null) this.contentGroup.alpha = 0f;
+            if (this.contentGroup != null)
+            {
+                this.contentGroup.alpha          = 0f;
+                this.contentGroup.interactable   = true;
+                this.contentGroup.blocksRaycasts = true;
+            }
 
             this.gameObject.SetActive(true);
 
-            // Pivot is bottom-center, so it opens like a window growing out of the card's top edge.
+            // Pivot is bottom-center, so it opens like a window growing out of the Tactical strip (or the
+            // card's top edge when there is none).
+            this.tactical = FindTactical(operatorRect);
             this.transform.DOKill();
-            this.transform.localScale = Vector3.one * this.openStartScale;
+            this.transform.localScale = this.ComputeCollapsedScale();
+            this.SetTacticalHidden(true);
             this.transform.DOScale(Vector3.one, this.openDuration).SetEase(Ease.OutQuad).SetUpdate(true);
         }
 
@@ -153,7 +176,6 @@ namespace CrimsonDraft.Combat
 
         public void Hide()
         {
-            this.followTarget = null;
             if (this.dimmingOverlay != null)
             {
                 this.dimmingOverlay.DOKill();
@@ -166,12 +188,83 @@ namespace CrimsonDraft.Combat
             // tweens keep running on an inactive target otherwise).
             this.contentGroup?.DOKill();
             if (this.contentGroup != null)
-                this.contentGroup.alpha = 0f;
+            {
+                this.contentGroup.alpha          = 0f;
+                this.contentGroup.interactable   = false;
+                this.contentGroup.blocksRaycasts = false;
+            }
 
             this.transform.DOKill();
-            this.transform.localScale = Vector3.one;
 
+            // Nothing on screen to animate (already hidden, or no Tactical strip to collapse into): close at once.
+            if (!this.gameObject.activeInHierarchy || this.tactical == null)
+            {
+                this.FinishHide();
+                return;
+            }
+
+            // Collapses back into the Tactical strip, which reappears once it has the panel's old spot again.
+            this.transform.DOScale(this.ComputeCollapsedScale(), Mathf.Max(0.01f, this.closeDuration))
+                .SetEase(Ease.InQuad)
+                .SetUpdate(true)
+                .OnComplete(this.FinishHide);
+        }
+
+        private void FinishHide()
+        {
+            this.followTarget = null;
+            this.transform.DOKill();
+            this.transform.localScale = Vector3.one;
+            this.RestoreTactical();
             this.gameObject.SetActive(false);
+        }
+
+        // The "Tactical" sibling of the operator card's Visual: operatorRect is the card art (Visual/Black_BG).
+        private static RectTransform? FindTactical(RectTransform operatorRect)
+        {
+            for (var t = operatorRect.parent; t != null; t = t.parent)
+            {
+                if (t.Find(TacticalName) is RectTransform strip)
+                    return strip;
+            }
+            return null;
+        }
+
+        // Panel scale at which it exactly covers the Tactical strip (the unfurl starts and the collapse ends there).
+        private Vector3 ComputeCollapsedScale()
+        {
+            if (this.tactical == null)
+                return Vector3.one * this.openStartScale;
+
+            var panel   = (RectTransform)this.transform;
+            var hudRoot = (RectTransform)this.transform.parent;
+            var corners = new Vector3[4];
+            this.tactical.GetWorldCorners(corners);
+            var bl = hudRoot.InverseTransformPoint(corners[0]);
+            var tr = hudRoot.InverseTransformPoint(corners[2]);
+
+            var size = panel.rect.size;
+            float sx = size.x > 0f ? Mathf.Abs(tr.x - bl.x) / size.x : this.openStartScale;
+            float sy = size.y > 0f ? Mathf.Abs(tr.y - bl.y) / size.y : this.openStartScale;
+            return new Vector3(Mathf.Clamp(sx, 0.05f, 1.5f), Mathf.Clamp(sy, 0.05f, 1.5f), 1f);
+        }
+
+        private void SetTacticalHidden(bool hidden)
+        {
+            if (this.tactical == null) return;
+            if (this.tacticalGroup == null)
+            {
+                this.tacticalGroup = this.tactical.GetComponent<CanvasGroup>();
+                if (this.tacticalGroup == null) this.tacticalGroup = this.tactical.gameObject.AddComponent<CanvasGroup>();
+            }
+            this.tacticalGroup.alpha = hidden ? 0f : 1f;
+        }
+
+        private void RestoreTactical()
+        {
+            this.SetTacticalHidden(false);
+            this.tactical      = null;
+            this.tacticalGroup = null;
         }
 
         #endregion

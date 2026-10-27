@@ -125,7 +125,10 @@ namespace CrimsonDraft.Combat
         private void SyncAllOperatorNames()
         {
             for (int i = 0; i < this.roster.Count; i++)
+            {
                 this.menuView.SetOperatorName(i, this.roster[i].Data?.CombatName ?? string.Empty);
+                this.menuView.SetOperatorLogo(i, this.roster[i].Data?.Logo);
+            }
         }
 
         private void SyncAllOperatorAmmo()

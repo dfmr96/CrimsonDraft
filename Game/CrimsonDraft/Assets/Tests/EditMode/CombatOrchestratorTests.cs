@@ -287,6 +287,7 @@ namespace CrimsonDraft.Tests
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) { }
             public void SetOperatorHealth(int index, float hpRatio, bool isAlive) { }
             public void SetOperatorName(int index, string name) { }
+            public void SetOperatorLogo(int index, Sprite? logo) { }
             public void PlayOperatorDamageShake(int index) { }
             public void PlayOperatorDamageGlitch(int index) { }
             public void SetOperatorActionPending(int index, bool pending) { }

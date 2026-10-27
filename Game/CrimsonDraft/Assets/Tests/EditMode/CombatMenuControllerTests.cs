@@ -905,6 +905,7 @@ namespace CrimsonDraft.Tests
             private readonly Dictionary<int, string> nameByOperator = new();
             public void SetOperatorName(int index, string name) =>
                 this.nameByOperator[index] = name;
+            public void SetOperatorLogo(int index, Sprite? logo) { }
             public bool TryGetName(int index, out string name) =>
                 this.nameByOperator.TryGetValue(index, out name);
             public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo) =>

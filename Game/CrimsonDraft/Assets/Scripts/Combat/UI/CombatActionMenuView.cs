@@ -36,10 +36,13 @@ namespace CrimsonDraft.Combat
         [SerializeField] private float pulseDuration = 0.6f;
         [SerializeField] private float pulseMinAlpha = 0.55f;
         [SerializeField] private Vector2 selectorPadding = new(8f, 8f);
+        [Tooltip("Selector padding when it sits on an operator card (extra size over the card art, split evenly on both sides): 8 = 4 per side, tuned by eye so the visible frame sits 2px outside the card art.")]
+        [SerializeField] private Vector2 cardSelectorPadding = new(8f, 8f);
         [SerializeField] private float resizeDuration = 0.12f;
 
         private Image selectorMarkImage = null!;
         private RectTransform? selectorFollowTarget;
+        private Vector2        selectorFollowPadding;
 
         [Header("Inventory Lift")]
         [Tooltip("Canvas units the operator strip grows taller while the combat inventory is open: the inventory frame height (151.7) plus the 3px gap under the cards and the 3px border, minus what the cards do not follow.")]
@@ -49,10 +52,16 @@ namespace CrimsonDraft.Combat
         [Header("Weapon Icon")]
         [SerializeField] private float weaponIconCellSize = 32f; // px per GridSize unit (1×1 = 32px)
 
+        [Header("Ammo Colors")]
+        [SerializeField] private Color ammoFullColor    = new(0.247f, 0.663f, 1f, 1f);                       // #3FA9FF
+        [SerializeField] private Color ammoPartialColor = new(0.6039216f, 0.62352943f, 0.36078432f, 1f);     // olive, same as the card tint
+        [SerializeField] private Color ammoEmptyColor   = new(1f, 0.231f, 0.231f, 1f);                       // #FF3B3B
+
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private bool     isMasterDimmed;
         private readonly HashSet<int> missingOperators = new();
+        private readonly HashSet<int> dimmedOperators   = new(); // not ready: unselectable and skipped while navigating
         [Tooltip("Icon shown on the card of a slot with no operator (silhouette).")]
         [SerializeField] private Sprite? missingIcon;
         [SerializeField, Range(0f, 1f)] private float missingOverlayAlpha = 0.65f;
@@ -160,6 +169,12 @@ namespace CrimsonDraft.Combat
             var parentRect   = (RectTransform)this.selectorMark.parent;
             Vector3 localPos = parentRect.InverseTransformPoint(this.selectorFollowTarget.position);
             this.selectorMark.localPosition = new Vector3(localPos.x, localPos.y, 0f);
+
+            // The size is only tweened once, when the selector moves: if the canvas scale or the card layout
+            // settles afterwards (or the tween ran under slow-mo) it would stay at a stale size, so after the
+            // tween it keeps matching the target every frame.
+            if (!DOTween.IsTweening(this.selectorMark))
+                this.selectorMark.sizeDelta = this.ComputeSelectorSize(this.selectorFollowTarget, this.selectorFollowPadding);
         }
 
         #endregion
@@ -459,7 +474,7 @@ namespace CrimsonDraft.Combat
                 if (overview == null)
                     continue;
 
-                var actionNode = overview.Find("Action");
+                var actionNode = overview.parent?.Find("Tactical/Action"); // Tactical is the card root's child, next to Visual
                 if (actionNode == null)
                     continue;
 
@@ -500,7 +515,7 @@ namespace CrimsonDraft.Combat
                 if (overview == null)
                     continue;
 
-                var turnOrderNode = overview.Find("Action/turn-order");
+                var turnOrderNode = overview.parent?.Find("Tactical/Action/turn-order");
                 if (turnOrderNode == null)
                     continue;
 
@@ -573,7 +588,8 @@ namespace CrimsonDraft.Combat
         {
             if (index < 0 || index >= this.operators.Length) return null;
             var overview = this.operators[index].transform.parent;
-            return overview == null ? null : overview.GetComponentInChildren<OperatorGaugeBar>(true);
+            // The ATB bar lives in the card root's Tactical strip, not under Visual.
+            return overview == null || overview.parent == null ? null : overview.parent.GetComponentInChildren<OperatorGaugeBar>(true);
         }
 
         public RectTransform GetOperatorAnchor(int index) =>
@@ -596,7 +612,7 @@ namespace CrimsonDraft.Combat
         public RectTransform GetOperatorOverviewRect(int index)
         {
             var visual = (RectTransform)this.operators[index].transform.parent;
-            var cardBounds = visual.Find("Black_BG") as RectTransform;
+            var cardBounds = visual.Find(CardArtName) as RectTransform;
             return cardBounds != null ? cardBounds : visual;
         }
 
@@ -628,15 +644,11 @@ namespace CrimsonDraft.Combat
             var item = this.operators[index];
             if (this.missingOperators.Contains(index)) return; // stays locked and dim, see SetOperatorMissing
             item.interactable = !dimmed;
+            if (dimmed) this.dimmedOperators.Add(index);
+            else        this.dimmedOperators.Remove(index);
 
-            var nav  = item.navigation;
-            nav.mode = dimmed ? Navigation.Mode.None : Navigation.Mode.Explicit;
-            if (!dimmed)
-            {
-                nav.selectOnLeft  = this.NextPresentOperator(index, -1);
-                nav.selectOnRight = this.NextPresentOperator(index, +1);
-            }
-            item.navigation = nav;
+            // The neighbours' links must skip this card too (or stop skipping it), not just its own.
+            this.RefreshOperatorNavigation();
 
             if (!dimmed && EventSystem.current != null)
             {
@@ -698,6 +710,16 @@ namespace CrimsonDraft.Combat
             }
         }
 
+        public void SetOperatorLogo(int index, Sprite? logo)
+        {
+            if (logo == null || index < 0 || index >= this.operators.Length) return;
+
+            // "Logo" is a child of Visual (the parent of the ActionMenuItem), so it moves with the focus bounce.
+            var visual = this.operators[index].transform.parent;
+            var image = visual != null ? visual.Find("Logo")?.GetComponent<Image>() : null;
+            if (image != null) image.sprite = logo;
+        }
+
         public void SetOperatorAmmo(int index, int currentAmmo, int maxAmmo)
         {
             if (this.missingOperators.Contains(index)) return;
@@ -729,17 +751,17 @@ namespace CrimsonDraft.Combat
             }
         }
 
-        private static void ApplyAmmoLabel(TMP_Text label, int currentAmmo, int maxAmmo)
+        // Only the rounds left are shown (no "/max"): blue when the magazine is full, red when empty,
+        // olive in between.
+        private void ApplyAmmoLabel(TMP_Text label, int currentAmmo, int maxAmmo)
         {
             int current = Mathf.Max(0, currentAmmo);
-            int max = Mathf.Max(1, maxAmmo);
-            if (current == 0)
-            {
-                label.text = $"<color=#FF3B3B>0</color>/{max}";
-                return;
-            }
+            int max     = Mathf.Max(1, maxAmmo);
 
-            label.text = $"{current}/{max}";
+            label.text  = current.ToString();
+            label.color = current == 0 ? this.ammoEmptyColor
+                : current >= max       ? this.ammoFullColor
+                :                        this.ammoPartialColor;
         }
 
         public int OperatorSlotCount => this.operators.Length;
@@ -757,15 +779,7 @@ namespace CrimsonDraft.Combat
             item.interactable = !missing;
 
             // Left/right links are explicit, so neighbours would still land on it: route them around the card.
-            for (int i = 0; i < this.operators.Length; i++)
-            {
-                if (this.missingOperators.Contains(i)) continue;
-                var nav = this.operators[i].navigation;
-                if (nav.mode != Navigation.Mode.Explicit) continue;
-                nav.selectOnLeft  = this.NextPresentOperator(i, -1);
-                nav.selectOnRight = this.NextPresentOperator(i, +1);
-                this.operators[i].navigation = nav;
-            }
+            this.RefreshOperatorNavigation();
 
             var visual = item.transform.parent;
             if (visual == null) return;
@@ -776,6 +790,8 @@ namespace CrimsonDraft.Combat
             // Alpha 0 (not SetActive): nothing of the placeholder art may show.
             foreach (var partName in MissingHiddenParts)
                 SetPartHidden(visual.Find(partName), missing);
+            SetPartHidden(visual.parent?.Find("Tactical/Action"), missing);
+            SetPartHidden(visual.Find("Logo"), missing);
 
             var iconImage = visual.Find("Icon")?.GetComponent<Image>();
             if (iconImage != null)
@@ -860,7 +876,7 @@ namespace CrimsonDraft.Combat
         }
 
         private const string MissingOverlayName = "MissingOverlay";
-        private static readonly string[] MissingHiddenParts = { "Weapon", "WeaponAmmo", "Action", "ECG_BG/ECG_move", "ECG_BG/Effect" };
+        private static readonly string[] MissingHiddenParts = { "Weapon", "WeaponAmmo", "ECG_BG/ECG_move", "ECG_BG/Effect" };
         private readonly Dictionary<int, Sprite?> originalIcons = new();
 
         private static void SetPartHidden(Transform? part, bool hidden)
@@ -871,11 +887,35 @@ namespace CrimsonDraft.Combat
             group.alpha = hidden ? 0f : 1f;
         }
 
+        // Next card in that direction the player can actually land on: present and ready. A card that is not
+        // ready used to stay reachable through the explicit links (Selectable.Navigate only checks IsActive), and
+        // since it has no links of its own the cursor got stuck on it.
         private ActionMenuItem? NextPresentOperator(int from, int step)
         {
             for (int i = from + step; i >= 0 && i < this.operators.Length; i += step)
-                if (!this.missingOperators.Contains(i)) return this.operators[i];
+                if (!this.missingOperators.Contains(i) && !this.dimmedOperators.Contains(i)) return this.operators[i];
             return null;
+        }
+
+        // Ready cards link left/right to the next ready card; cards that are not ready are not navigable at all.
+        private void RefreshOperatorNavigation()
+        {
+            for (int i = 0; i < this.operators.Length; i++)
+            {
+                if (this.missingOperators.Contains(i)) continue;
+                var nav = this.operators[i].navigation;
+                if (this.dimmedOperators.Contains(i))
+                {
+                    nav.mode = Navigation.Mode.None;
+                }
+                else
+                {
+                    nav.mode          = Navigation.Mode.Explicit;
+                    nav.selectOnLeft  = this.NextPresentOperator(i, -1);
+                    nav.selectOnRight = this.NextPresentOperator(i, +1);
+                }
+                this.operators[i].navigation = nav;
+            }
         }
 
         public void SetOperatorHealth(int index, float hpRatio, bool isAlive)
@@ -1059,25 +1099,35 @@ namespace CrimsonDraft.Combat
         // anchor is treated as "the rect to cover", not just a point — the selector box
         // resizes to hug it (roster cards, command rows, and item rows are all different
         // sizes) instead of staying pinned at whatever size it last had.
+        private const string CardArtName = "Black_BG"; // GetOperatorOverviewRect: the card's art, what the selector hugs
+
+        private Vector2 ComputeSelectorSize(RectTransform anchor, Vector2 padding)
+        {
+            // Measured in the selector's own local space. This canvas' world scale is tiny (~7e-5), so dividing a
+            // world distance by lossyScale (clamped to 1e-4) made the box come out ~27% too small.
+            var corners = new Vector3[4];
+            anchor.GetWorldCorners(corners);
+            Vector3 bottomLeft = this.selectorMark.InverseTransformPoint(corners[0]);
+            Vector3 topRight   = this.selectorMark.InverseTransformPoint(corners[2]);
+            return new Vector2(
+                Mathf.Abs(topRight.x - bottomLeft.x) + padding.x,
+                Mathf.Abs(topRight.y - bottomLeft.y) + padding.y);
+        }
+
         public void MoveSelectorTo(RectTransform anchor)
         {
             this.selectorMark.gameObject.SetActive(true);
             this.selectorMark.DOKill();
             this.selectorMarkImage?.DOKill();
-            this.selectorFollowTarget = anchor;
+            this.selectorFollowTarget  = anchor;
+            this.selectorFollowPadding = anchor.name == CardArtName ? this.cardSelectorPadding : this.selectorPadding;
 
             var parentRect   = (RectTransform)this.selectorMark.parent;
             Vector3 localPos = parentRect.InverseTransformPoint(anchor.position);
             this.selectorMark.localPosition = new Vector3(localPos.x, localPos.y, 0f);
 
-            var corners = new Vector3[4];
-            anchor.GetWorldCorners(corners);
-            float worldWidth  = Vector3.Distance(corners[0], corners[3]);
-            float worldHeight = Vector3.Distance(corners[0], corners[1]);
-            Vector3 selectorScale = this.selectorMark.lossyScale;
-            float targetWidth  = worldWidth  / Mathf.Max(selectorScale.x, 0.0001f) + this.selectorPadding.x;
-            float targetHeight = worldHeight / Mathf.Max(selectorScale.y, 0.0001f) + this.selectorPadding.y;
-            this.selectorMark.DOSizeDelta(new Vector2(targetWidth, targetHeight), this.resizeDuration);
+            this.selectorMark.DOSizeDelta(this.ComputeSelectorSize(anchor, this.selectorFollowPadding), this.resizeDuration)
+                .SetUpdate(true); // unscaled: combat opens in slow-mo and the box must not lag behind the card
 
             if (this.selectorMarkImage == null) return;
 
