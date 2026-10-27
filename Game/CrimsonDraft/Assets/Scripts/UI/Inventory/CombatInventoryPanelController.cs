@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -11,13 +13,23 @@ using CrimsonDraft.Audio;
 using CrimsonDraft.Combat;
 using CrimsonDraft.Infrastructure.Input;
 using CrimsonDraft.Inventory;
+using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.UI
 {
     [RequireComponent(typeof(CanvasGroup))]
     public sealed class CombatInventoryPanelController : MonoBehaviour, ICombatInventoryView
     {
-        [SerializeField] private InventoryGrid     grid           = null!;
+        // One inventory per operator, each under its own card. Only the acting operator's is
+        // interactive (it gets the cursor); the others are shown dimmed, as read-only context.
+        [Serializable]
+        private sealed class OperatorGridSlot
+        {
+            public RectTransform root = null!;
+            public InventoryGrid grid = null!;
+        }
+
+        [SerializeField] private OperatorGridSlot[] slots         = Array.Empty<OperatorGridSlot>();
         [SerializeField] private InventoryItemView itemViewPrefab = null!;
         [SerializeField] private ItemContextMenu   contextMenu    = null!;
         [SerializeField] private RectTransform     selectorRect   = null!;
@@ -29,6 +41,8 @@ namespace CrimsonDraft.UI
         [Header("Selector Sprites")]
         [SerializeField] private Sprite? selectorSpriteNormal;
         [SerializeField] private Sprite? selectorSpriteHold; // shown while selecting a combine target
+        [Tooltip("Frame drawn over the cursor while it is on an item (same 'hover' as the exploration inventory).")]
+        [SerializeField] private Sprite? selectorHoverSprite;
 
         // Plays on the selector when an item is used/combined. Its clip should end with an
         // Animation Event calling SelectorAnimationRelay.OnUseAnimationComplete.
@@ -36,11 +50,24 @@ namespace CrimsonDraft.UI
         [SerializeField] private Animator? selectorAnimator;
         [SerializeField] private float     useAnimationTimeout = 1.5f; // safety net if the event never fires
 
+        [Header("Open Animation")]
+        [SerializeField, Range(0f, 1f)] private float openStartScale = 0.5f;
+        [SerializeField] private float openDuration = 0.18f;
+        [SerializeField] private float closeDuration = 0.12f;
+
+        [Header("Dimming")]
+        [SerializeField, Range(0f, 1f)] private float inactiveAlpha = 0.35f;
+        [Tooltip("Canvas units between the bottom of the operator cards and the top of each inventory frame.")]
+        [SerializeField] private float cardGap = 3f;
+        [Tooltip("Inventory of a slot with no operator (MIA): much dimmer than the other operators' ones.")]
+        [SerializeField, Range(0f, 1f)] private float missingAlpha = 0.15f;
+
         [Inject] private IInventoryService inventoryService = null!;
+        [Inject] private IOperatorRoster   roster           = null!;
         [Inject] private IInputService     inputService     = null!;
         [Inject] private CombatSfxData     sfx              = null!;
 
-        public event Action<InventoryItem?>? OnItemUsed;
+        public event Action<InventoryItem?, int>? OnItemUsed; // item (null = reload), target operator slot
         public event Action?      OnCancelled;
 
         private int        operatorSlot;
@@ -57,17 +84,27 @@ namespace CrimsonDraft.UI
         private InspectPanel? inspectPanel;
         private bool        inputBound;
 
-        private ContainerGridPresenter? presenter;
+        private ContainerGridPresenter?[] presenters = Array.Empty<ContainerGridPresenter?>();
+        private float[] slotLocalY = Array.Empty<float>();
+        private Vector3[] slotRestPos = Array.Empty<Vector3>();
+        private Vector3[] slotPivot   = Array.Empty<Vector3>(); // top-center of each frame, in the slot's parent space
 
-        private static readonly Color ColorSelectorNormal     = Color.white;
-        private static readonly Color ColorSelectorOnItem     = Color.yellow;
-        private static readonly Color ColorCombineSourceTint  = new Color(154f / 255f, 159f / 255f, 92f / 255f, 0.9f); // #9A9F5C
+        private ContainerGridPresenter? presenter =>
+            this.operatorSlot >= 0 && this.operatorSlot < this.presenters.Length ? this.presenters[this.operatorSlot] : null;
+        private InventoryGrid? ActiveGrid =>
+            this.operatorSlot >= 0 && this.operatorSlot < this.slots.Length ? this.slots[this.operatorSlot].grid : null;
+
+        private Image? hoverImage;
         private static readonly int   UseTriggerHash          = Animator.StringToHash("Use");
 
         void Awake()
         {
             this.canvasGroup   = GetComponent<CanvasGroup>();
             this.selectorImage = this.selectorRect.GetComponentInChildren<Image>();
+            this.hoverImage    = CreateHover();
+            this.slotLocalY    = this.slots.Select(x => x.root.localPosition.y).ToArray();
+            this.slotRestPos   = new Vector3[this.slots.Length];
+            this.slotPivot     = new Vector3[this.slots.Length];
             if (this.selectorAnimator != null)
             {
                 var relay = this.selectorAnimator.GetComponent<SelectorAnimationRelay>();
@@ -111,6 +148,7 @@ namespace CrimsonDraft.UI
             if (this.contextMenu != null)
             {
                 this.contextMenu.OnUseRequested     += HandleUse;
+                this.contextMenu.OnUseOnRequested   += HandleUseOn;
                 this.contextMenu.OnCombineRequested += HandleCombine;
             }
             this.inputBound = true;
@@ -126,6 +164,7 @@ namespace CrimsonDraft.UI
             if (this.contextMenu != null)
             {
                 this.contextMenu.OnUseRequested     -= HandleUse;
+                this.contextMenu.OnUseOnRequested   -= HandleUseOn;
                 this.contextMenu.OnCombineRequested -= HandleCombine;
             }
             this.inputBound = false;
@@ -154,7 +193,7 @@ namespace CrimsonDraft.UI
 
         // ── ICombatInventoryView ─────────────────────────────────────────────
 
-        public void Show(int opSlot, RectTransform operatorOverviewRect)
+        public void Show(int opSlot, IReadOnlyList<RectTransform> operatorCardRects)
         {
             this.operatorSlot      = opSlot;
             this.currentCell       = Vector2Int.zero;
@@ -162,33 +201,152 @@ namespace CrimsonDraft.UI
             this.isActive          = true;
             this.pendingCombineAmmo = null;
 
-            RepositionToOperator(operatorOverviewRect);
-            BindGrid(opSlot);
+            PositionSlots(operatorCardRects);
+            PlayOpenAnimation();
+            BindGrids();
             SetVisible(true);
+
+            // The one selector is shared: it lives inside whichever grid is the interactive one.
+            this.selectorRect.SetParent(ActiveGrid!.transform, false);
+            this.selectorRect.SetAsLastSibling();
             UpdateSelector();
         }
 
-        // Keeps the panel's configured Y, but centers it horizontally on the
-        // selected operator's overview panel.
-        private void RepositionToOperator(RectTransform operatorOverviewRect)
+        // Each slot is centered horizontally under its operator's card, with its frame's top edge a fixed gap below
+        // the cards' bottom edge (the strip has just grown, so the authored Y no longer lines up).
+        private void PositionSlots(IReadOnlyList<RectTransform> operatorCardRects)
         {
-            var panel   = (RectTransform)this.transform;
-            var hudRoot = (RectTransform)this.transform.parent;
+            // The acting card may still be easing down from its focus lift, so take the lowest bottom edge as the real one.
+            float cardBottom = float.MaxValue;
+            var   corners4   = new Vector3[4];
+            for (int i = 0; i < operatorCardRects.Count; i++)
+            {
+                operatorCardRects[i].GetWorldCorners(corners4);
+                cardBottom = Mathf.Min(cardBottom, corners4[0].y);
+            }
+            for (int i = 0; i < this.slots.Length; i++)
+            {
+                var root = this.slots[i].root;
+                // A slot without an operator (MIA) still shows its empty inventory, heavily dimmed and untouchable.
+                bool shown = i < operatorCardRects.Count;
+                root.gameObject.SetActive(shown);
+                if (!shown) continue;
 
-            var corners = new Vector3[4];
-            operatorOverviewRect.GetWorldCorners(corners);
-            var center   = (corners[0] + corners[2]) * 0.5f;
-            var localPos = hudRoot.InverseTransformPoint(center);
+                root.DOKill();
+                root.localScale = Vector3.one;
 
-            float pivotCorrX = (panel.pivot.x - 0.5f) * panel.rect.width;
-            panel.localPosition = new Vector3(
-                localPos.x + pivotCorrX,
-                panel.localPosition.y,
-                panel.localPosition.z);
+                var corners = new Vector3[4];
+                operatorCardRects[i].GetWorldCorners(corners);
+                var worldCenter = (corners[0] + corners[2]) * 0.5f;
+
+                // Local space on purpose: a ScreenSpaceCamera canvas only settles its scale after Awake,
+                // so a world-space Y captured at startup would be wrong by the time this runs.
+                float localX = root.parent.InverseTransformPoint(worldCenter).x;
+                root.localPosition = new Vector3(localX, this.slotLocalY[i], 0f);
+
+                if (root.childCount > 0)
+                {
+                    float canvasScale = root.GetComponentInParent<Canvas>().rootCanvas.transform.lossyScale.y;
+                    var   frame       = (RectTransform)root.GetChild(0);
+                    frame.GetWorldCorners(corners4);
+                    float deltaWorld  = (cardBottom - this.cardGap * canvasScale) - corners4[1].y;
+                    var   pos         = root.localPosition;
+                    pos.y += root.parent.InverseTransformVector(new Vector3(0f, deltaWorld, 0f)).y;
+                    root.localPosition = pos;
+                }
+
+                this.slotRestPos[i] = root.localPosition;
+
+                if (!root.TryGetComponent(out CanvasGroup group)) group = root.gameObject.AddComponent<CanvasGroup>();
+                bool missing = !IsSlotPresent(i);
+                group.alpha          = missing ? this.missingAlpha : i == this.operatorSlot ? 1f : this.inactiveAlpha;
+                group.interactable   = !missing;
+                group.blocksRaycasts = !missing;
+            }
+        }
+
+        // Each inventory starts small and grows to full size, scaling about the top-center of its frame
+        // (the edge glued to its card) so it reads as a window opening out of the card.
+        private void PlayOpenAnimation()
+        {
+            for (int i = 0; i < this.slots.Length; i++)
+            {
+                var root = this.slots[i].root;
+                root.DOKill();
+                if (!root.gameObject.activeSelf || root.childCount == 0) continue;
+
+                var parent  = (RectTransform)root.parent;
+                var frame   = (RectTransform)root.GetChild(0);
+                var corners = new Vector3[4];
+                frame.GetWorldCorners(corners);
+                Vector3 pivot = parent.InverseTransformPoint((corners[1] + corners[2]) * 0.5f);
+                this.slotPivot[i] = pivot;
+
+                Vector3 basePos = this.slotRestPos[i];
+                float   start   = this.openStartScale;
+
+                void Apply(float scale)
+                {
+                    root.localScale    = Vector3.one * scale;
+                    root.localPosition = pivot + (basePos - pivot) * scale;
+                }
+
+                Apply(start);
+                DOVirtual.Float(start, 1f, this.openDuration, Apply)
+                    .SetEase(Ease.OutQuad).SetUpdate(true).SetTarget(root);
+            }
+        }
+
+        private Tween? closeCall;
+
+        // The opening animation backwards: each inventory shrinks back toward the edge glued to its card,
+        // then everything hides and onComplete fires.
+        public void Close(Action onComplete)
+        {
+            this.isActive           = false;
+            this.pendingCombineAmmo = null;
+            if (this.contextMenu != null && this.contextMenu.IsOpen) this.contextMenu.Close();
+            if (this.inspectPanel != null && this.inspectPanel.IsOpen) this.inspectPanel.Close();
+
+            for (int i = 0; i < this.slots.Length; i++)
+            {
+                var root = this.slots[i].root;
+                root.DOKill();
+                if (!root.gameObject.activeSelf || root.childCount == 0) continue;
+
+                // Pivot/rest position were captured when opening, so closing mid-open still shrinks about the same point.
+                Vector3 pivot   = this.slotPivot[i];
+                Vector3 basePos = this.slotRestPos[i];
+                float   end     = this.openStartScale;
+
+                DOVirtual.Float(root.localScale.x, end, this.closeDuration, scale =>
+                    {
+                        root.localScale    = Vector3.one * scale;
+                        root.localPosition = pivot + (basePos - pivot) * scale;
+                    })
+                    .SetEase(Ease.InQuad).SetUpdate(true).SetTarget(root);
+            }
+
+            this.closeCall?.Kill();
+            this.closeCall = DOVirtual.DelayedCall(this.closeDuration, () =>
+            {
+                this.closeCall = null;
+                Hide();
+                onComplete();
+            }, ignoreTimeScale: true);
         }
 
         public void Hide()
         {
+            this.closeCall?.Kill();
+            this.closeCall = null;
+
+            foreach (var slot in this.slots)
+            {
+                slot.root.DOKill();
+                slot.root.localScale = Vector3.one;
+            }
+
             this.isActive              = false;
             this.pendingCombineAmmo    = null;
             this.combineSourceView     = null;
@@ -198,29 +356,66 @@ namespace CrimsonDraft.UI
                 this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen)
                 this.inspectPanel.Close();
-            UnbindGrid();
+            UnbindGrids();
             SetVisible(false);
         }
 
         // ── Grid binding ─────────────────────────────────────────────────────
 
-        private void BindGrid(int opSlot)
+        private void BindGrids()
         {
-            UnbindGrid();
-            this.presenter = new ContainerGridPresenter(
-                this.inventoryService.GetContainer(ContainerId.Operator(opSlot)), this.grid, this.itemViewPrefab);
-            this.presenter.Rendered += UpdateSelector;
+            UnbindGrids();
+            this.presenters = new ContainerGridPresenter?[this.slots.Length];
+            for (int i = 0; i < this.slots.Length; i++)
+            {
+                if (!this.slots[i].root.gameObject.activeSelf || !IsSlotPresent(i)) continue;
+
+                var presenter = new ContainerGridPresenter(
+                    this.inventoryService.GetContainer(ContainerId.Operator(i)), this.slots[i].grid, this.itemViewPrefab);
+                if (i == this.operatorSlot) presenter.Rendered += UpdateSelector;
+                this.presenters[i] = presenter;
+            }
         }
 
-        private void UnbindGrid()
+        private bool IsSlotPresent(int i) => i < this.roster.Count && this.roster[i].IsPresent;
+
+        private void UnbindGrids()
         {
-            if (this.presenter == null) return;
-            this.presenter.Rendered -= UpdateSelector;
-            this.presenter.Dispose();
-            this.presenter = null;
+            for (int i = 0; i < this.presenters.Length; i++)
+            {
+                var presenter = this.presenters[i];
+                if (presenter == null) continue;
+                presenter.Rendered -= UpdateSelector;
+                presenter.Dispose();
+            }
+            this.presenters = Array.Empty<ContainerGridPresenter?>();
         }
 
         private InventoryItemView? ViewAtCursor() => this.presenter?.ViewAt(this.currentCell);
+
+        // The exploration cursor lights a "hover" frame over the item under it; built here because this
+        // selector is a wrapper with the Animator-driven image as its child.
+        private Image? CreateHover()
+        {
+            if (this.selectorHoverSprite == null) return null;
+
+            var go = new GameObject("hover", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(this.selectorImage.transform, false);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+
+            var image           = go.GetComponent<Image>();
+            image.sprite        = this.selectorHoverSprite;
+            image.type          = Image.Type.Sliced;
+            image.raycastTarget = false;
+            var color           = SelectorView.ColorSelector;
+            color.a             = 0.039f;
+            image.color         = color;
+            go.SetActive(false);
+            return image;
+        }
 
         // ── Navigation ───────────────────────────────────────────────────────
 
@@ -290,16 +485,18 @@ namespace CrimsonDraft.UI
             Vector2Int size   = placement?.Footprint ?? Vector2Int.one;
             Vector2Int origin = placement?.Origin    ?? this.currentCell;
 
+            // Same look as the exploration inventory: olive cursor, a hover frame over an item (or while a
+            // combine target is being picked), and the hold sprite for that picking.
             bool isCombining = this.pendingCombineAmmo != null;
-            this.selectorImage.color = isCombining ? Color.white
-                : under != null ? ColorSelectorOnItem
-                : ColorSelectorNormal;
+            this.selectorImage.color = SelectorView.ColorSelector;
+            if (this.hoverImage != null)
+                this.hoverImage.gameObject.SetActive(isCombining || under != null);
 
             if (this.selectorSpriteNormal != null && this.selectorSpriteHold != null)
                 this.selectorImage.sprite = isCombining ? this.selectorSpriteHold : this.selectorSpriteNormal;
 
-            this.selectorRect.anchoredPosition = this.grid.CellToLocal(origin);
-            this.selectorRect.sizeDelta        = new Vector2(size.x * this.grid.CellSize, size.y * this.grid.CellSize);
+            this.selectorRect.anchoredPosition = ActiveGrid!.CellToLocal(origin);
+            this.selectorRect.sizeDelta        = new Vector2(size.x * ActiveGrid!.CellSize, size.y * ActiveGrid!.CellSize);
         }
 
         // ── Input handlers ───────────────────────────────────────────────────
@@ -331,9 +528,11 @@ namespace CrimsonDraft.UI
             InventoryItemView? view = ViewAtCursor();
             if (view == null) return;
 
+            var healTargets = view.Data is ConsumableData ? BuildHealTargets() : null;
             var options = new ContextMenuOptions
             {
-                CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0,
+                CanUse     = view.Data is ConsumableData cd && cd.HealAmount > 0 && healTargets!.Any(t => t.Enabled),
+                UseTargets = healTargets,
                 CanCombine = view.Data.ItemType == ItemType.AmmoBox,
                 CanEquip   = false,
                 CanInspect = false,
@@ -362,7 +561,7 @@ namespace CrimsonDraft.UI
             if (this.contextMenu != null && this.contextMenu.IsOpen)
             {
                 this.sfx?.PlayCancel(gameObject);
-                this.contextMenu.Close();
+                if (!this.contextMenu.TryBackFromTargets()) this.contextMenu.Close();
                 return;
             }
             if (this.pendingCombineAmmo != null)
@@ -380,7 +579,28 @@ namespace CrimsonDraft.UI
         private void HandleUse(InventoryItemView view)
         {
             var item = view.BoundItem;
-            PlayUseFeedback(() => OnItemUsed?.Invoke(item));
+            int slot = this.operatorSlot;
+            PlayUseFeedback(() => OnItemUsed?.Invoke(item, slot));
+        }
+
+        // The context menu listed the operators; the item is applied to the one picked, not necessarily the acting one.
+        private void HandleUseOn(InventoryItemView view, int targetSlot)
+        {
+            var item = view.BoundItem;
+            PlayUseFeedback(() => OnItemUsed?.Invoke(item, targetSlot));
+        }
+
+        // Every present operator is listed; only a living one can be picked (same rule as the exploration inventory).
+        private IReadOnlyList<UseTarget> BuildHealTargets()
+        {
+            var targets = new List<UseTarget>();
+            for (int i = 0; i < this.roster.Count; i++)
+            {
+                var op = this.roster[i];
+                if (!op.IsPresent) continue;
+                targets.Add(new UseTarget(i, op.Data?.CombatName ?? $"OP {i + 1}", op.IsAlive));
+            }
+            return targets;
         }
 
         private void HandleCombine(InventoryItemView view)
@@ -388,22 +608,41 @@ namespace CrimsonDraft.UI
             if (view.BoundItem is not AmmoBoxItem ammo) return;
             this.pendingCombineAmmo = ammo;
             this.combineSourceView  = view;
-            view.SetTint(ColorCombineSourceTint);
+            SelectorView.MarkCombineSource(view, this.selectorSpriteNormal); // red frame on the item that goes
             UpdateSelector();
         }
 
         private void ExecuteReload()
         {
-            var ammo = this.pendingCombineAmmo!;
+            var ammo   = this.pendingCombineAmmo!;
+            var source = this.combineSourceView;
+            var target = ViewAtCursor();
+            int slot   = this.operatorSlot;
+
+            // The copy of the ammo that flies onto the weapon is made now, while both views still exist
+            // (the grid re-renders as soon as the reload goes through).
+            var flight = source != null && target != null ? CombineFlyVisual.Begin(source, target) : null;
+
             this.pendingCombineAmmo = null;
             RevertCombineSourceTint();
-            this.inventoryService.TryReload(ammo, this.operatorSlot);
-            PlayUseFeedback(() => OnItemUsed?.Invoke(null));
+            this.isActive = false;
+
+            if (!this.inventoryService.TryReload(ammo, slot))
+            {
+                flight?.Cancel();
+                this.isActive = true;
+                this.sfx?.PlayInvalidAction(gameObject);
+                UpdateSelector();
+                return;
+            }
+
+            if (flight == null) PlayUseFeedback(() => OnItemUsed?.Invoke(null, slot));
+            else                flight.Launch(() => PlayUseFeedback(() => OnItemUsed?.Invoke(null, slot)));
         }
 
         private void RevertCombineSourceTint()
         {
-            if (this.combineSourceView != null) this.combineSourceView.ResetTint();
+            SelectorView.ClearCombineMarker(this.combineSourceView);
             this.combineSourceView = null;
         }
 

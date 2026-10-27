@@ -974,17 +974,18 @@ namespace CrimsonDraft.Tests
 
         private sealed class FakeCombatInventoryView : ICombatInventoryView
         {
-            public event Action<InventoryItem?>? OnItemUsed;
+            public event Action<InventoryItem?, int>? OnItemUsed;
             public event Action?      OnCancelled;
             public bool IsVisible             { get; private set; }
             public int  LastShownOperatorSlot { get; private set; } = -1;
-            public void Show(int operatorSlot, RectTransform operatorOverviewRect)
+            public void Show(int operatorSlot, IReadOnlyList<RectTransform> operatorCardRects)
             {
                 this.LastShownOperatorSlot = operatorSlot;
                 this.IsVisible             = true;
             }
             public void Hide()                          => this.IsVisible = false;
-            public void RaiseOnItemUsed(InventoryItem? item) => this.OnItemUsed?.Invoke(item);
+            public void Close(Action onComplete)        { this.IsVisible = false; onComplete(); }
+            public void RaiseOnItemUsed(InventoryItem? item, int targetSlot = -1) => this.OnItemUsed?.Invoke(item, targetSlot);
             public void RaiseOnCancelled()               => this.OnCancelled?.Invoke();
         }
 
