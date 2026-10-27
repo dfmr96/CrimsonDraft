@@ -154,6 +154,7 @@ namespace CrimsonDraft.UI
 
             DOTween.Kill(this);
             this.isClosing = false;
+            ExitStorageMode(); // reopened while a storage close was still animating
             Time.timeScale = 0f;
             if (!this.pickupMode) this.inputService.SwitchToInventory();
 
@@ -177,6 +178,7 @@ namespace CrimsonDraft.UI
         private void ShowCanvas()
         {
             this.transform.localScale = new Vector3(this.openScale.x, 0f, this.openScale.z);
+            UiCameraGate.Request(this);
             this.canvasRoot.SetActive(true);
 
             // Activates the starting tab's root so GridCursor's lifecycle runs before it is used
@@ -218,13 +220,6 @@ namespace CrimsonDraft.UI
             this.isClosing = true;
 
             this.cursor.CancelAll();
-            if (this.storageMode)
-            {
-                this.storageMode = false;
-                this.cursor.ExitTransferMode();
-                if (this.storageWindow != null) this.storageWindow.Hide();
-                if (this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
-            }
             if (this.pickupMode && this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
             if (!this.pickupMode) this.sfxData.PlayCancel(this.gameObject);
             FadeVolume(0f);
@@ -239,11 +234,24 @@ namespace CrimsonDraft.UI
                 .OnComplete(FinishClose);
         }
 
+        // The storage window covers the party cards: tearing it down before the scale-out has finished
+        // shows the cards for the length of the close animation.
+        private void ExitStorageMode()
+        {
+            if (!this.storageMode) return;
+            this.storageMode = false;
+            this.cursor.ExitTransferMode();
+            if (this.storageWindow != null) this.storageWindow.Hide();
+            if (this.tabBarRoot != null) this.tabBarRoot.SetActive(true);
+        }
+
         private void FinishClose()
         {
             // Still scaled to zero here, so the cursor coming back is never seen.
             if (this.pickupMode) this.cursor.ShowSelectorAfterTabBar();
+            ExitStorageMode();
             this.canvasRoot.SetActive(false);
+            UiCameraGate.Release(this);
             this.transform.localScale = this.openScale;
 
             // The UI is gone; now the PDA folds away, and only then does the game carry on.
@@ -270,6 +278,7 @@ namespace CrimsonDraft.UI
         private void OnDestroy()
         {
             DOTween.Kill(this);
+            UiCameraGate.Release(this);
             if (this.isClosing) Time.timeScale = 1f;
             this.ditherFeature?.SetActive(true);
         }
