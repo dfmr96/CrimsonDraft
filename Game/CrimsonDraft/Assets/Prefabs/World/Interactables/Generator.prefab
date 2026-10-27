@@ -3619,6 +3619,8 @@ MonoBehaviour:
   rustedRow: 2
   rustedCol: 0
   fuseSocket: {fileID: 6149225026879636397}
+  revealOnSolved: {fileID: 0}
+  solvedId: generator_switch_panel
 --- !u!114 &6149225026879636397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3631,9 +3633,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ce2cc62a31fe2a42b225a1b0b4356d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CrimsonDraft.Navigation::CrimsonDraft.Navigation.Interactables.ItemSocketInteractable
+  socketId: 
   requiredItems:
   - {fileID: 11400000, guid: 8e5063f1dde5e324e88a54cfdfcd899a, type: 2}
   onActivated:
+    m_PersistentCalls:
+      m_Calls: []
+  onActivatedAfterDialogue:
     m_PersistentCalls:
       m_Calls: []
   dialogueReference:
