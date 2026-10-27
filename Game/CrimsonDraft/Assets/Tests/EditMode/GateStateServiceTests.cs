@@ -20,6 +20,8 @@ namespace CrimsonDraft.Tests
             Assert.AreEqual((GateKind.Radio, "radio_01_adrift"), (k3, id3));
             Assert.IsTrue(GateIds.TryParse(GateIds.Generic("seaman_room_2_safe"), out var k4, out var id4));
             Assert.AreEqual((GateKind.Generic, "seaman_room_2_safe"), (k4, id4));
+            Assert.IsTrue(GateIds.TryParse(GateIds.SocketSlot("office_jewelry_box_gems", 1), out var k5, out var id5));
+            Assert.AreEqual((GateKind.SocketSlot, "office_jewelry_box_gems#1"), (k5, id5));
         }
 
         [TestCase(null)]
@@ -65,6 +67,48 @@ namespace CrimsonDraft.Tests
 
             this.sockets.SetInserted(ItemSocketInteractable.CompletedKey("fuse"), new[] { true });
             Assert.IsTrue(this.gates.IsCompleted(GateIds.Socket("fuse")));
+        }
+
+        [Test]
+        public void SocketSlot_isCompleteOnceThatSlotIsFilled_whateverTheOthers()
+        {
+            // Two-gem socket with only the second gem (the yellow one) in.
+            this.sockets.SetInserted("gems", new[] { false, true });
+
+            Assert.IsTrue(this.gates.IsCompleted(GateIds.SocketSlot("gems", 1)));
+            Assert.IsFalse(this.gates.IsCompleted(GateIds.SocketSlot("gems", 0)));
+            Assert.IsFalse(this.gates.IsCompleted(GateIds.Socket("gems")), "the whole socket still waits for the other gem");
+        }
+
+        [TestCase(-1)]
+        [TestCase(2)]
+        [TestCase(99)]
+        public void SocketSlot_outOfRange_isNotComplete(int index)
+        {
+            this.sockets.SetInserted("gems", new[] { true, true });
+            Assert.IsFalse(this.gates.IsCompleted(GateIds.SocketSlot("gems", index)));
+        }
+
+        [Test]
+        public void SocketSlot_ofAnUnknownSocket_isNotComplete() =>
+            Assert.IsFalse(this.gates.IsCompleted(GateIds.SocketSlot("never_seen", 0)));
+
+        [Test]
+        public void SocketSlot_malformedIndex_isNotComplete()
+        {
+            this.sockets.SetInserted("gems", new[] { true });
+            Assert.IsFalse(this.gates.IsCompleted("slot:gems"));
+            Assert.IsFalse(this.gates.IsCompleted("slot:gems#x"));
+            Assert.IsFalse(this.gates.IsCompleted("slot:#0"));
+        }
+
+        [Test]
+        public void SocketSlot_doesNotMixWithTheSocketsHelperKeys()
+        {
+            // "<id>#completed" / "<id>#turned" live in the same registry; they are not slots.
+            this.sockets.SetInserted(ItemSocketInteractable.CompletedKey("gems"), new[] { true });
+            Assert.IsFalse(this.gates.IsCompleted("slot:gems#completed"));
+            Assert.IsFalse(this.gates.IsCompleted(GateIds.SocketSlot("gems", 0)));
         }
 
         [Test]

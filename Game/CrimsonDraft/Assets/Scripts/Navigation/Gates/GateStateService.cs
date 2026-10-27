@@ -41,15 +41,25 @@ namespace CrimsonDraft.Navigation.Gates
             return kind switch
             {
                 // The socket records completion itself (filled, and turned when it has a valve).
-                GateKind.Socket  => IsSet(this.sockets.GetInserted(ItemSocketInteractable.CompletedKey(id))),
-                GateKind.Puzzle  => this.puzzles.IsSolved(id),
-                GateKind.Radio   => this.radios.IsHeard(id),
-                GateKind.Generic => this.generic.IsCompleted(id),
-                _                => false,
+                GateKind.Socket     => IsSet(this.sockets.GetInserted(ItemSocketInteractable.CompletedKey(id))),
+                GateKind.Puzzle     => this.puzzles.IsSolved(id),
+                GateKind.Radio      => this.radios.IsHeard(id),
+                GateKind.Generic    => this.generic.IsCompleted(id),
+                GateKind.SocketSlot => IsSlotFilled(id),
+                _                   => false,
             };
         }
 
         private static bool IsSet(bool[] flag) => flag.Length > 0 && flag[0];
+
+        // id is "<socketId>#<slot index>": the slot's own flag in the socket's saved inserted[] array.
+        private bool IsSlotFilled(string id)
+        {
+            int split = id.LastIndexOf('#');
+            if (split <= 0 || !int.TryParse(id.Substring(split + 1), out int slot) || slot < 0) return false;
+            var inserted = this.sockets.GetInserted(id.Substring(0, split));
+            return slot < inserted.Length && inserted[slot];
+        }
 
         private void OnChanged() => Changed?.Invoke();
 
