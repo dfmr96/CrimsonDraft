@@ -18,5 +18,11 @@ namespace CrimsonDraft.Infrastructure.UI
 
         /// <summary>Brief white pulse that fades back to the normal color.</summary>
         public abstract void Flash();
+
+        /// <summary>
+        /// For the next <paramref name="seconds"/> the bar sticks to its item exactly instead of gliding after it
+        /// (used while the item itself is being animated, e.g. the blocked-move shake, so the bar moves with it).
+        /// </summary>
+        public virtual void HoldRigid(float seconds) { }
     }
 }

@@ -47,6 +47,10 @@ namespace CrimsonDraft.UI.MainMenu
         private float          whiteAmount;
         private float          alpha;
 
+        private Vector3        followPosition; // where the bar sits without the bump offset
+        private bool           hasFollowPosition;
+        private float          rigidUntil;     // unscaled time until which the bar sticks to its target
+
         private void Awake()
         {
             this.image = GetComponent<Image>();
@@ -99,6 +103,9 @@ namespace CrimsonDraft.UI.MainMenu
             if (value && !this.visible) this.snapNext = true;
             this.visible = value;
         }
+
+        public override void HoldRigid(float seconds) =>
+            this.rigidUntil = Mathf.Max(this.rigidUntil, Time.unscaledTime + Mathf.Max(0f, seconds));
 
         public override void FollowOrHide(RectTransform? anchor, bool snap = false)
         {
@@ -165,16 +172,25 @@ namespace CrimsonDraft.UI.MainMenu
                 (this.corners[3] - this.corners[0]).magnitude / Mathf.Max(0.0001f, scale.x),
                 (this.corners[1] - this.corners[0]).magnitude / Mathf.Max(0.0001f, scale.y));
 
-            if (this.snapNext)
+            if (this.snapNext || !this.hasFollowPosition)
             {
-                this.rect.position  = center;
+                this.followPosition    = center;
+                this.hasFollowPosition = true;
+                this.rect.sizeDelta    = size;
+            }
+            else if (Time.unscaledTime < this.rigidUntil)
+            {
+                this.followPosition = center;
                 this.rect.sizeDelta = size;
-                return;
+            }
+            else
+            {
+                float k = 1f - Mathf.Exp(-this.followSpeed * dt);
+                this.followPosition = Vector3.Lerp(this.followPosition, center, k);
+                this.rect.sizeDelta = Vector2.Lerp(this.rect.sizeDelta, size, k);
             }
 
-            float k = 1f - Mathf.Exp(-this.followSpeed * dt);
-            this.rect.position  = Vector3.Lerp(this.rect.position, center, k);
-            this.rect.sizeDelta = Vector2.Lerp(this.rect.sizeDelta, size, k);
+            this.rect.position = this.followPosition;
         }
     }
 }

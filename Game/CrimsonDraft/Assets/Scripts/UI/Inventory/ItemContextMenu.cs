@@ -23,6 +23,21 @@ namespace CrimsonDraft.UI
         [Tooltip("El menu se abre en X desde 0 hasta su ancho, creciendo desde el lado pegado al objeto.")]
         [SerializeField] private float openDuration = 0.12f;
 
+        [Header("Blocked Move")]
+        [Tooltip("Cuando se intenta moverse y no se puede: el boton actual avanza esta fraccion de la distancia hasta la opcion vecina y vuelve.")]
+        [SerializeField, Range(0.05f, 0.5f)] private float bumpTravel = 0.25f;
+        [SerializeField] private float bumpDuration = 0.26f;
+        [Tooltip("Cuantas veces tiembla de lado a lado durante el gesto.")]
+        [SerializeField] private int   bumpShakes = 3;
+        [Tooltip("Amplitud del temblor lateral, como fraccion del recorrido de la ida.")]
+        [SerializeField] private float bumpShakeAmount = 0.3f;
+
+        [Header("Passing Between Options")]
+        [Tooltip("Al pasar de una opcion a otra, la nueva avanza esta fraccion de la distancia entre filas y vuelve (muy leve, en armonia con el temblor de 'no se puede').")]
+        [SerializeField, Range(0f, 0.3f)] private float passTravel = 0.1f;
+        [SerializeField] private float passDuration = 0.14f;
+        [SerializeField] private float passShakeAmount = 0.2f;
+
         private static readonly int[] DefaultSelectionPriority = { 0, 2, 1 };
 
         private readonly List<MenuOption> pool = new();
@@ -40,6 +55,9 @@ namespace CrimsonDraft.UI
         private RectTransform     rectTransform = null!;
         private Tween?            openTween;
         private bool              opening;
+        private Tween?            bumpTween;
+        private RectTransform?    bumpRect;
+        private Vector2           bumpRestPosition;
 
         public bool IsOpen => this.isOpen;
         public System.Action? OnClose;
@@ -128,6 +146,7 @@ namespace CrimsonDraft.UI
 
         public void Close()
         {
+            StopBump();
             StopOpenAnimation();
             this.isOpen     = false;
             this.targetMode = false;
@@ -137,6 +156,8 @@ namespace CrimsonDraft.UI
 
         public void NavigateMenu(int dir)
         {
+            if (dir == 0) return;
+
             int count = this.visibleCount;
             int next  = this.selectedIndex;
 
@@ -145,14 +166,129 @@ namespace CrimsonDraft.UI
             // index. Without the negation this stepped backwards (e.g. Use -> Combine ->
             // Inspect instead of Use -> Inspect -> Combine), which only looked "roughly
             // right" when the skipped-disabled-option logic happened to mask it.
-            for (int i = 1; i <= count; i++)
+            // The list does not wrap: past either end (or with only disabled options left that way) the
+            // cursor stays put and BumpBlocked shows that it tried.
+            for (int candidate = this.selectedIndex - dir; candidate >= 0 && candidate < count; candidate -= dir)
             {
-                next = (this.selectedIndex - dir * i + count) % count;
-                if (!this.pool[next].IsDisabled) break;
+                if (this.pool[candidate].IsDisabled) continue;
+                next = candidate;
+                break;
             }
 
+            if (next == this.selectedIndex)
+            {
+                BumpBlocked(dir);
+                return;
+            }
+
+            int previous = this.selectedIndex;
+            StopBump();
             this.selectedIndex = next;
             RefreshVisuals();
+            PlayPass(previous, next);
+        }
+
+        // The newly selected button nudges a little in the direction of travel and settles back, as if the cursor
+        // brushed past it. Much smaller than the blocked-move shake, and the bar is left to glide on its own.
+        void PlayPass(int from, int to)
+        {
+            if (this.passTravel <= 0f || from == to || to < 0 || to >= this.visibleCount || from >= this.visibleCount) return;
+
+            Vector3 worldStep = (this.pool[to].BarAnchor.position - this.pool[from].BarAnchor.position) / Mathf.Abs(to - from);
+            StartOptionMotion(this.pool[to], worldStep * this.passTravel, this.passDuration, 1, this.passShakeAmount, holdBar: false);
+        }
+
+        // The current button tries to move toward the option the player pressed toward (even a disabled one) and
+        // gives up: it goes a fraction of the way there, wobbles and comes back, with the selection bar riding on
+        // it. At either end of the list, where there is no such neighbour, it goes toward the space where it would be.
+        void BumpBlocked(int dir)
+        {
+            if (this.selectedIndex >= this.visibleCount) return;
+
+            var option  = this.pool[this.selectedIndex];
+            var current = option.BarAnchor;
+            int ahead   = this.selectedIndex - dir; // options grow downward, dir>0 is "up" (see NavigateMenu)
+            int behind  = this.selectedIndex + dir;
+
+            Vector3 worldStep;
+            if (ahead >= 0 && ahead < this.visibleCount)
+            {
+                worldStep = this.pool[ahead].BarAnchor.position - current.position;
+            }
+            else if (behind >= 0 && behind < this.visibleCount)
+            {
+                worldStep = current.position - this.pool[behind].BarAnchor.position;
+            }
+            else
+            {
+                var corners = new Vector3[4];
+                current.GetWorldCorners(corners);
+                worldStep = current.up * (dir * (corners[1] - corners[0]).magnitude);
+            }
+
+            StartOptionMotion(option, worldStep * this.bumpTravel, this.bumpDuration, this.bumpShakes, this.bumpShakeAmount, holdBar: true);
+        }
+
+        // Moves the option's button out along worldStep and back (with a wobble), then rests it exactly where it was.
+        // holdBar: the selection bar sticks to the button during the motion instead of gliding after it.
+        void StartOptionMotion(MenuOption option, Vector3 worldStep, float duration, int shakes, float shakeAmount, bool holdBar)
+        {
+            StopBump();
+
+            var rect   = (RectTransform)option.transform;
+            var parent = rect.parent;
+            Vector3 local3 = parent != null ? parent.InverseTransformVector(worldStep) : worldStep;
+            Vector2 step   = new Vector2(local3.x, local3.y);
+
+            this.bumpRect         = rect;
+            this.bumpRestPosition = rect.anchoredPosition;
+            if (holdBar) this.selector?.HoldRigid(duration);
+
+            this.bumpTween = DOVirtual.Float(0f, 1f, Mathf.Max(0.01f, duration), t =>
+                {
+                    if (this.bumpRect != null)
+                        this.bumpRect.anchoredPosition = this.bumpRestPosition + EvaluateBump(t, step, shakes, shakeAmount);
+                })
+                .SetEase(Ease.Linear)
+                .SetUpdate(true)
+                .OnComplete(StopBump)
+                .OnKill(RestoreBumpRect);
+        }
+
+        // Forward to the step and back (first ~40% out, the rest in), with a side-to-side wobble that dies out.
+        Vector2 EvaluateBump(float t, Vector2 step, int shakes, float shakeAmount)
+        {
+            const float outFraction = 0.4f;
+            float travel;
+            if (t < outFraction)
+            {
+                float go = 1f - t / outFraction;
+                travel = 1f - go * go;     // ease out: fast at first, slows as it reaches the end of the step
+            }
+            else
+            {
+                float back = (t - outFraction) / (1f - outFraction);
+                travel = 1f - back * back; // ease in: starts slow, speeds up on the way back
+            }
+
+            float shake = Mathf.Sin(t * Mathf.PI * 2f * Mathf.Max(1, shakes)) * (1f - t);
+            return step * travel + Vector2.right * (step.magnitude * shakeAmount * shake);
+        }
+
+        // Always puts the button back exactly where it rested, however the gesture ended.
+        void StopBump()
+        {
+            var tween = this.bumpTween;
+            this.bumpTween = null;
+            tween?.Kill();
+            RestoreBumpRect();
+        }
+
+        void RestoreBumpRect()
+        {
+            if (this.bumpRect == null) return;
+            this.bumpRect.anchoredPosition = this.bumpRestPosition;
+            this.bumpRect = null;
         }
 
         public void ConfirmSelection()
@@ -189,6 +325,7 @@ namespace CrimsonDraft.UI
         // "Use" on an item with operator targets: the same buttons now list the operators.
         void EnterTargetMode()
         {
+            StopBump();
             var targets = this.useTargets!;
             this.targetMode = true;
 
@@ -232,6 +369,7 @@ namespace CrimsonDraft.UI
         // authored labels; any buttons cloned for the operator list are hidden.
         void ShowActionOptions()
         {
+            StopBump();
             for (int i = 0; i < this.pool.Count; i++)
             {
                 bool original = i < this.options.Length;
