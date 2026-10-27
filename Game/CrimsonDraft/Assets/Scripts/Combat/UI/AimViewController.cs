@@ -721,12 +721,41 @@ namespace CrimsonDraft.Combat
             var marker = Instantiate(this.shotMarkerPrefab, this.aimSpace);
             if (isMiss && this.missMarkerSprite != null && marker.TryGetComponent<Image>(out var markerImage))
                 markerImage.sprite = this.missMarkerSprite;
-            ((RectTransform)marker.transform).localPosition = new Vector3(
-                Mathf.Round(localPos.x),
-                Mathf.Round(localPos.y),
-                0f);
+            ((RectTransform)marker.transform).localPosition = this.SnapToSilhouettePixel(localPos);
             this.RaiseFeedbackTexts();
             return marker;
+        }
+
+        // The silhouette is drawn scaled (a texel is ~0.83 local units wide), so a marker rounded to whole
+        // aimSpace units lands between its pixels. The marker goes to the centre of the silhouette texel the
+        // shot samples instead -- the same texel ResolveZone reads, so what is drawn is what was hit.
+        private Vector3 SnapToSilhouettePixel(Vector2 localPos)
+        {
+            var fallback = new Vector3(Mathf.Round(localPos.x), Mathf.Round(localPos.y), 0f);
+            if (this.silhouetteImage == null || this.silhouetteImage.sprite == null) return fallback;
+            if (!this.TryGetSilhouetteUv(localPos, out float u, out float v)) return fallback;
+
+            // A shot off the silhouette's rect (a miss) has no texel: UVs are clamped, so it would be dragged onto the edge.
+            var silBounds = this.silhouetteImage.rectTransform;
+            var raw       = silBounds.InverseTransformPoint(this.aimSpace.TransformPoint(new Vector3(localPos.x, localPos.y, 0f)));
+            if (!silBounds.rect.Contains(new Vector2(raw.x, raw.y))) return fallback;
+
+            var   spriteRect = this.silhouetteImage.sprite.rect;
+            float cols = spriteRect.width, rows = spriteRect.height;
+            if (cols < 2f || rows < 2f) return fallback;
+
+            // Same index mapping as TryMapUvToSpritePixel, then that texel's centre back in the silhouette's rect.
+            float tx = Mathf.Round(u * (cols - 1f));
+            float ty = Mathf.Round(v * (rows - 1f));
+            var   silRt = this.silhouetteImage.rectTransform;
+            var   rect  = silRt.rect;
+            var   inSil = new Vector3(
+                rect.xMin + (tx + 0.5f) / cols * rect.width,
+                rect.yMin + (ty + 0.5f) / rows * rect.height,
+                0f);
+
+            var local = this.aimSpace.InverseTransformPoint(silRt.TransformPoint(inSil));
+            return new Vector3(local.x, local.y, 0f);
         }
 
         private void RaiseFeedbackTexts()
