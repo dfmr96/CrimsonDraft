@@ -220,6 +220,7 @@ namespace CrimsonDraft.Navigation.Editor
                         EditorStyles.toolbarButton, GUILayout.Width(40f));
                 }
                 this.DrawArrivalControls();
+                this.DrawApplyToPrefab();
                 this.cameraMode = GUILayout.Toggle(this.cameraMode, "Move Camera", EditorStyles.toolbarButton, GUILayout.Width(88f));
                 if (!this.cameraMode) this.StopFlying();
                 this.DrawFovField();
@@ -551,6 +552,25 @@ namespace CrimsonDraft.Navigation.Editor
                 }
             }
             DoorArrivalSettings.Distance = EditorGUILayout.FloatField(DoorArrivalSettings.Distance, EditorStyles.toolbarTextField, GUILayout.Width(34f));
+        }
+
+        // Writes this room's camera and zone overrides back into the room prefab asset.
+        private void DrawApplyToPrefab()
+        {
+            var room = this.CurrentRoom;
+            using (new EditorGUI.DisabledScope(room == null || CameraPrefabOverrides.InstanceRoot(room) == null))
+            {
+                if (!GUILayout.Button(new GUIContent("Apply to Prefab", "Apply the overrides of this room's cameras and camera zones to the room prefab. Other overrides of the instance are left alone."),
+                        EditorStyles.toolbarButton, GUILayout.Width(92f)) || room == null) return;
+
+                var rooms = this.cameras;
+                EditorApplication.delayCall += () =>
+                {
+                    int count = CameraPrefabOverrides.Apply(room, rooms);
+                    Debug.Log($"[CameraZoneViewer] Applied {count} camera/zone override(s) of '{room.name}' to its prefab.");
+                    this.Repaint();
+                };
+            }
         }
 
         private void DrawFovField()
