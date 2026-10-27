@@ -14,19 +14,17 @@ Material:
   m_ValidKeywords:
   - _ALPHATEST_ON
   - _LIGHTINGMETHOD_TEXEL_LIT
-  - _SURFACE_TYPE_TRANSPARENT
   - _TEXTURESAMPLEMODE_POINT
   - _VERTEXJITTERMODE_VIEW_SPACE
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2450
   stringTagMap:
-    RenderType: Transparent
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - MOTIONVECTORS
-  - DepthOnly
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -56,14 +54,14 @@ Material:
     - _AffineWrapStrength: 1
     - _AlphaClip: 1
     - _AlphaClipThreshold: 0
-    - _AlphaToMask: 0
+    - _AlphaToMask: 1
     - _Blend: 0
     - _CastShadows: 1
     - _CellSize: 0.1
     - _ColorDepth: 64
     - _Cull: 2
-    - _DstBlend: 10
-    - _DstBlendAlpha: 10
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
     - _EnableAffineTextureMapping: 0
     - _EnableShadows: 0
     - _EnableTextureDownsampling: 0
@@ -76,9 +74,9 @@ Material:
     - _ShadowDistCutoff: 100
     - _ShadowOffset: 0.01
     - _Smoothness: 0.5
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _Surface: 1
+    - _Surface: 0
     - _TEXTURESAMPLEMODE: 0
     - _TextureResolution: 256
     - _UseColorQuantization: 1
@@ -87,7 +85,7 @@ Material:
     - _VERTEXJITTERMODE: 1
     - _VertexPrecision: 140
     - _ZTest: 4
-    - _ZWrite: 0
+    - _ZWrite: 1
     - _ZWriteControl: 0
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 0}
