@@ -37,19 +37,15 @@ namespace CrimsonDraft.Combat
             this.context.SuppressNextCommandFocusSfx();
             int slot = this.context.SelectedOperator;
 
-            // Position/activate with content hidden; the operator's own border grows to
-            // make room, and only once THAT finishes does the panel reveal its text —
-            // otherwise the options would appear before there's space drawn for them.
             this.commandPanel.Show(this.menuView.GetOperatorOverviewRect(slot));
             this.commandPanel.SetDimmed(false);
-            this.menuView.ExpandOperatorBorder(slot, true, this.commandPanel.RevealContent);
+            this.commandPanel.RevealContent();
         }
 
         public void OnCancel()
         {
             this.sfx?.PlayCancel(this.commandPanel.PanelRect.gameObject);
             this.commandPanel.Hide();
-            this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
             this.context.TransitionTo(this.context.OperatorSelState);
         }
 
@@ -60,7 +56,6 @@ namespace CrimsonDraft.Combat
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 this.context.Orchestrator.EnqueueAction(PendingAction.Melee(this.context.SelectedOperator));
                 this.commandPanel.Hide();
-                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);
                 return;
@@ -76,7 +71,6 @@ namespace CrimsonDraft.Combat
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 this.context.Orchestrator.EnqueueAction(PendingAction.Shoot(this.context.SelectedOperator));
                 this.commandPanel.Hide();
-                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
                 this.menuView.SetDimmed(false);
                 this.context.TransitionTo(this.context.OperatorSelState);
                 return;
@@ -86,7 +80,6 @@ namespace CrimsonDraft.Combat
             {
                 this.sfx?.PlayDecide(this.commandPanel.PanelRect.gameObject);
                 this.commandPanel.Hide();
-                this.menuView.ExpandOperatorBorder(this.context.SelectedOperator, false);
                 this.context.TransitionTo(this.context.CombatInventoryState);
             }
         }

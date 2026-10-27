@@ -39,6 +39,13 @@ namespace CrimsonDraft.Combat
         [SerializeField] private CanvasGroup?   contentGroup;
         [SerializeField] private float          revealDuration = 0.12f;
 
+        [Header("Open Animation")]
+        [SerializeField, Range(0f, 1f)] private float openStartScale = 0.5f;
+        [SerializeField] private float openDuration = 0.15f;
+
+        // The card's focus bounce is still moving when the panel opens, so the panel keeps tracking the card's top edge.
+        private RectTransform? followTarget;
+
         private Action[] submitHandlers   = Array.Empty<Action>();
         private Action[] selectedHandlers = Array.Empty<Action>();
         private EntryVisualState[] entryVisualStates = Array.Empty<EntryVisualState>();
@@ -55,6 +62,8 @@ namespace CrimsonDraft.Combat
         // (unrelated to how tall the panel currently is mid-unfurl).
         public void RepositionTo(RectTransform operatorRect)
         {
+            this.followTarget = operatorRect;
+
             var panel   = (RectTransform)this.transform;
             var hudRoot = (RectTransform)this.transform.parent;
 
@@ -66,22 +75,20 @@ namespace CrimsonDraft.Combat
             panel.localPosition = new Vector3(localPos.x + this.offset.x, localPos.y + this.offset.y, 0f);
         }
 
-        // No longer grows itself — the operator's own OperatorBorderPanel does that now,
-        // so this just positions/activates with its content hidden. Call RevealContent()
-        // once that border finishes expanding.
+        // Positions/activates with its content hidden; call RevealContent() to fade it in.
         public void Show(RectTransform operatorRect)
         {
             RepositionTo(operatorRect);
-
-            // Defensive, in addition to Awake() — this GameObject starts inactive in the
-            // scene, and belt-and-suspenders is cheap here.
-            var ownBackground = GetComponent<Image>();
-            if (ownBackground != null) ownBackground.enabled = false;
 
             this.contentGroup?.DOKill();
             if (this.contentGroup != null) this.contentGroup.alpha = 0f;
 
             this.gameObject.SetActive(true);
+
+            // Pivot is bottom-center, so it opens like a window growing out of the card's top edge.
+            this.transform.DOKill();
+            this.transform.localScale = Vector3.one * this.openStartScale;
+            this.transform.DOScale(Vector3.one, this.openDuration).SetEase(Ease.OutQuad).SetUpdate(true);
         }
 
         public void RevealContent()
@@ -138,8 +145,15 @@ namespace CrimsonDraft.Combat
                 this.dimmingOverlay.DOFade(dimmed ? 0.6f : 0f, 0.1f);
         }
 
+        private void LateUpdate()
+        {
+            if (this.followTarget != null)
+                this.RepositionTo(this.followTarget);
+        }
+
         public void Hide()
         {
+            this.followTarget = null;
             if (this.dimmingOverlay != null)
             {
                 this.dimmingOverlay.DOKill();
@@ -154,6 +168,9 @@ namespace CrimsonDraft.Combat
             if (this.contentGroup != null)
                 this.contentGroup.alpha = 0f;
 
+            this.transform.DOKill();
+            this.transform.localScale = Vector3.one;
+
             this.gameObject.SetActive(false);
         }
 
@@ -163,11 +180,6 @@ namespace CrimsonDraft.Combat
 
         private void Awake()
         {
-            // The operator's own OperatorBorderPanel is the visible frame now — this
-            // panel is purely a content/position holder above it.
-            var ownBackground = GetComponent<Image>();
-            if (ownBackground != null) ownBackground.enabled = false;
-
             this.submitHandlers   = new Action[this.entries.Length];
             this.selectedHandlers = new Action[this.entries.Length];
             this.entryVisualStates = new EntryVisualState[this.entries.Length];

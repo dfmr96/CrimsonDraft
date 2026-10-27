@@ -206,7 +206,7 @@ namespace CrimsonDraft.Combat
         internal void SuppressNextCommandFocusSfx()  => this.suppressNextCommandFocusSfx  = true;
 
         internal void RepositionCommandPanelToOperator(int slot) =>
-            this.commandPanel.RepositionTo(this.menuView.GetOperatorRect(slot));
+            this.commandPanel.RepositionTo(this.menuView.GetOperatorOverviewRect(slot));
 
         internal void BeginShootConfiguration(int slot)
         {
@@ -251,7 +251,6 @@ namespace CrimsonDraft.Combat
             this.combatInventoryView.Hide();
             this.aimView.Hide();
             this.battlefieldView.HideEnemyTargetIndicator();
-            this.menuView.ExpandOperatorBorder(interruptedSlot, false);
             this.menuView.ReleaseOperatorFocus(interruptedSlot);
             this.orchestrator.SetWaitMode(false);
         }

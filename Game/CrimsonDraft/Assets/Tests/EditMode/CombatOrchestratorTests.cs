@@ -293,11 +293,16 @@ namespace CrimsonDraft.Tests
             public readonly Dictionary<int, int> TurnOrderByIndex = new();
             public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
             public void SetOperatorGauge(int index, float gauge01) { }
-            public void ExpandOperatorBorder(int index, bool expanded, System.Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
+            public void SetInventoryLift(bool lifted, System.Action? onComplete = null) => onComplete?.Invoke();
+            public void RestoreOperatorFocus(int index) { }
+            public IReadOnlyList<RectTransform> GetOperatorOverviewRects() => System.Array.Empty<RectTransform>();
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> DimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.DimmedByIndex[index] = dimmed;
+            public void SetOperatorMissing(int index, bool missing) { }
+            public void PlayOperatorHealFlash(int index) { }
+            public int OperatorSlotCount => 0;
             public bool IsOperatorFocused(int index) => false;
         }
 

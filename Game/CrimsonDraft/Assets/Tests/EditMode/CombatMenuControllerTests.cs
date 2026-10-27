@@ -923,14 +923,16 @@ namespace CrimsonDraft.Tests
             public void SetOperatorActionPending(int index, bool pending) => this.ActionPendingByIndex[index] = pending;
             public readonly Dictionary<int, int> TurnOrderByIndex = new();
             public void SetOperatorTurnOrder(int index, int position) => this.TurnOrderByIndex[index] = position;
-            // Synchronous, like the real card's animation eventually completing —
-            // keeps existing tests' flow (which expect the reveal to have happened by
-            // the time Enter() returns) working without needing to await anything.
-            public void ExpandOperatorBorder(int index, bool expanded, Action? onComplete = null) => onComplete?.Invoke();
             public void SetOperatorWeapon(int index, WeaponItem? weapon) { }
+            public void SetInventoryLift(bool lifted, System.Action? onComplete = null) => onComplete?.Invoke();
+            public void RestoreOperatorFocus(int index) { }
+            public IReadOnlyList<RectTransform> GetOperatorOverviewRects() => System.Array.Empty<RectTransform>();
             public void SetDimmed(bool dimmed) { }
             public readonly Dictionary<int, bool> OperatorDimmedByIndex = new();
             public void SetOperatorDimmed(int index, bool dimmed) => this.OperatorDimmedByIndex[index] = dimmed;
+            public void SetOperatorMissing(int index, bool missing) { }
+            public void PlayOperatorHealFlash(int index) { }
+            public int OperatorSlotCount => 0;
             public int  FocusedOperatorIndex { get; set; } = -1;
             public bool IsOperatorFocused(int index) => this.FocusedOperatorIndex == index;
             public RectTransform GetOperatorAnchor(int index) =>

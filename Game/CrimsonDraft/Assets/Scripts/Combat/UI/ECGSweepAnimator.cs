@@ -1,5 +1,6 @@
 #nullable enable
 
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -66,6 +67,10 @@ namespace CrimsonDraft.Combat
 
         [Header("Status Text (CDG_Status: Fine / Caution / Danger / Critical)")]
         [SerializeField] private TMP_Text? statusLabel;
+
+        [Header("Heal Flash")]
+        [SerializeField] private Color healFlashColor = Color.white;
+        [SerializeField, Min(0.05f)] private float healFlashDuration = 0.6f;
 
         [Header("Damage Glitch (CRT signal-loss burst)")]
         [SerializeField, Min(0f)] private float glitchDuration = 0.35f;
@@ -317,6 +322,29 @@ namespace CrimsonDraft.Combat
                 this.effectImage.color = effectColor;
             }
         }
+
+        #endregion
+
+        #region Heal Flash
+
+        /// <summary>White flash over the glow behind the trace that fades back into its band colour; played when the operator is healed.</summary>
+        public void FlashHeal()
+        {
+            if (this.effectImage == null) return;
+            this.EnsureEffectBaseAlphaCaptured();
+
+            this.healFlash?.Kill(true); // lands on the colour it started from
+            Color start = this.effectImage.color;
+            this.healFlash = DOVirtual.Float(1f, 0f, this.healFlashDuration, t =>
+                {
+                    var c = Color.Lerp(start, this.healFlashColor, t);
+                    c.a = Mathf.Lerp(start.a, 1f, t);
+                    this.effectImage.color = c;
+                })
+                .SetEase(Ease.OutQuad).SetUpdate(true).SetLink(this.gameObject);
+        }
+
+        private Tween? healFlash;
 
         #endregion
 

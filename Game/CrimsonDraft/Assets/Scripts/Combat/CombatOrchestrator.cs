@@ -99,8 +99,16 @@ namespace CrimsonDraft.Combat
             for (int i = 0; i < this.roster.Count; i++)
             {
                 this.menuView.SetOperatorDimmed(i, true);
+                this.menuView.SetOperatorMissing(i, !this.roster[i].IsPresent);
                 if (!this.roster[i].IsAlive)
                     this.atbSystem.MarkDead(i, ATBActorKind.Operator);
+            }
+
+            // Cards beyond the roster (an empty fourth slot) are just absent operators.
+            for (int i = this.roster.Count; i < this.menuView.OperatorSlotCount; i++)
+            {
+                this.menuView.SetOperatorDimmed(i, true);
+                this.menuView.SetOperatorMissing(i, true);
             }
 
             this.knownAliveEnemySlots.Clear();
@@ -521,7 +529,12 @@ namespace CrimsonDraft.Combat
 
             int targetSlot = action.TargetOperatorSlot >= 0 ? action.TargetOperatorSlot : action.SlotIndex;
             if (targetSlot >= this.roster.Count) return;
-            this.inventory.TryUseConsumable(action.Item, targetSlot);
+            if (!this.inventory.TryUseConsumable(action.Item, targetSlot)) return;
+
+            OperatorRuntime healed = this.roster[targetSlot];
+            this.ecgFeedback?.SetOperatorHealthState(targetSlot, healed.HpRatio, healed.IsAlive);
+            this.menuView.SetOperatorHealth(targetSlot, healed.HpRatio, healed.IsAlive);
+            this.menuView.PlayOperatorHealFlash(targetSlot);
         }
 
         private void ApplyEnemyAttack(PendingAction action)
