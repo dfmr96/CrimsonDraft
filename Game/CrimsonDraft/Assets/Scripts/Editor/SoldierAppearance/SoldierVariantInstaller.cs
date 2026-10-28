@@ -24,7 +24,12 @@ namespace CrimsonDraft.Editor
         private static readonly (string basePath, string variantPath)[] AppearancePrefabs =
         {
             ("Assets/Prefabs/Characters/Ethan_Combat_FBX.prefab", "Assets/Prefabs/Characters/Ethan_Combat_Appearance.prefab"),
-            ("Assets/Prefabs/Characters/Player.prefab",           "Assets/Prefabs/Characters/Player_Appearance.prefab"),
+        };
+
+        // Installed on the prefab itself (no variant): every scene already instances it directly.
+        private static readonly string[] InPlaceAppearancePrefabs =
+        {
+            "Assets/Prefabs/Characters/Player.prefab",
         };
 
         [MenuItem("CrimsonDraft/Soldier Appearance/Create Appearance Prefab Variants")]
@@ -65,7 +70,7 @@ namespace CrimsonDraft.Editor
         public static void UpdateAppearancePrefabVariants()
         {
             var variantsModel = LoadVariantsModel();
-            foreach (var (_, variantPath) in AppearancePrefabs)
+            foreach (var variantPath in AppearancePrefabs.Select(p => p.variantPath).Concat(InPlaceAppearancePrefabs))
             {
                 if (!File.Exists(variantPath)) continue;
                 var root = PrefabUtility.LoadPrefabContents(variantPath);

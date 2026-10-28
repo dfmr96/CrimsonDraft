@@ -238,6 +238,8 @@ namespace CrimsonDraft.Navigation
             builder.Register<OperatorCorpseSpawner>(Lifetime.Singleton).As<IOperatorCorpseSpawner>();
             builder.Register<OperatorCorpseBootstrap>(Lifetime.Singleton).AsImplementedInterfaces().AsSelf();
             builder.Register<DeadOperatorGearReleaser>(Lifetime.Singleton).AsImplementedInterfaces();
+            // After SaveGameLoader, so the leader is picked from the loaded HP.
+            builder.Register<PlayerOperatorAppearance>(Lifetime.Singleton).AsImplementedInterfaces();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<DebugWorldOverlay>(Lifetime.Singleton).AsImplementedInterfaces();

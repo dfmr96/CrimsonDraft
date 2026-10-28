@@ -125,7 +125,7 @@ namespace CrimsonDraft.Editor
                 else
                 {
                     EditorGUILayout.HelpBox("Select a soldier (scene instance or Prefab Stage) with a SoldierAppearance.\n" +
-                        "Prefab Variants ready to use: Ethan_Combat_Appearance and Player_Appearance.", MessageType.Info);
+                        "Ready to use: Ethan_Combat_Appearance (combat) and Player (navigation).", MessageType.Info);
                     if (GUILayout.Button("Create Appearance Prefab Variants"))
                         SoldierVariantInstaller.CreateAppearancePrefabVariants();
                 }
