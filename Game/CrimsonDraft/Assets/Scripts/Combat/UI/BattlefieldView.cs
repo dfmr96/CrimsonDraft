@@ -229,6 +229,10 @@ public void Populate(EncounterData encounter)
             {
                 var op = encounter.Operators[i];
                 if (op == null) continue;
+                // The roster (party/inventory order) drives weapon, HP, ATB and audio for slot i,
+                // so the body must come from it too or a model ends up holding another operator's gun.
+                if (this.roster != null && i < this.roster.Count && this.roster[i].Data != null)
+                    op = this.roster[i].Data!;
                 // A dead operator has no body on the battlefield — MarkDead already keeps them
                 // out of turns/targeting, this keeps their empty slot visually empty too. They
                 // also never get a PlayOperatorDeath call during this encounter (they were
