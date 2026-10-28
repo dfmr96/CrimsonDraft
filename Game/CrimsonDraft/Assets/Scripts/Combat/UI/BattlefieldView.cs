@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using VContainer;
 using CrimsonDraft.Operators;
+using CrimsonDraft.Operators.Appearance;
 using CrimsonDraft.Audio;
 
 namespace CrimsonDraft.Combat
@@ -258,6 +259,13 @@ public void Populate(EncounterData encounter)
                 }
                 go.name = $"Operator_{i}";
                 this.spawnedSprites.Add(go);
+
+                // Per-operator gear/body on the shared soldier model (runs after the prefab's own Awake profile).
+                if (op.AppearanceProfile != null)
+                {
+                    var appearance = go.GetComponentInChildren<SoldierAppearance>(true);
+                    if (appearance != null) appearance.Apply(op.AppearanceProfile);
+                }
                 this.operatorGoBySlot[i] = go;
 
                 var operatorAnimator = go.GetComponentInChildren<Animator>();
