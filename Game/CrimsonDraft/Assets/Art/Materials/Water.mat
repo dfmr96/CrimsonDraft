@@ -21,25 +21,20 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Water
-  m_Shader: {fileID: -6465566751694194690, guid: 8b8b697340fa16848ba72c93c8de257b, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 22f423f19b193dc428c0014aa2a2ecb5, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _ALPHAMODULATE_ON
-  - _LIGHTINGMETHOD_TEXEL_LIT
-  - _SURFACE_TYPE_TRANSPARENT
-  - _TEXTURESAMPLEMODE_POINT
+  - _LIGHTINGMETHOD_VERTEX_LIT
   - _VERTEXJITTERMODE_VIEW_SPACE
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
-  stringTagMap:
-    RenderType: Transparent
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
-  - DepthOnly
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -133,6 +128,7 @@ Material:
     - _ColorMask: 15
     - _Cull: 2
     - _Cutoff: 0.5
+    - _DepthDecay: 1.94
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DoubleSidedNormalMode: 0
@@ -154,6 +150,7 @@ Material:
     - _LightingDynamic: 1
     - _LightingMode: 0
     - _LightnessMultiplier: 1
+    - _MaxDepth: 0.42
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
@@ -188,6 +185,9 @@ Material:
     - _VertexColorBlendMode: 0
     - _VertexColorMode: 0
     - _VertexPrecision: 154
+    - _WaterScale: 1
+    - _WaterSharpness: 5
+    - _WaterSpeed: 1.24
     - _WorkflowMode: 0
     - _XRMotionVectorsPass: 1
     - _ZTest: 4
@@ -211,5 +211,7 @@ Material:
     - _Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _UVAnimationParameters: {r: 1, g: 1, b: 1, a: 1}
     - _UVAnimationParametersFrameLimit: {r: 0, g: 60, b: 0, a: 0}
+    - _WaterColor: {r: 0.028924882, g: 0.0535516, b: 0.09433961, a: 1}
+    - _WaterCrestColor: {r: 0.49056602, g: 0.45122817, b: 0.45122817, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
