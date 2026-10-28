@@ -26,10 +26,11 @@ namespace CrimsonDraft.Editor
             ("Assets/Prefabs/Characters/Ethan_Combat_FBX.prefab", "Assets/Prefabs/Characters/Ethan_Combat_Appearance.prefab"),
         };
 
-        // Installed on the prefab itself (no variant): every scene already instances it directly.
+        // Installed on the prefab itself (no variant): scenes instance the Player directly and the corpse is spawned from settings.
         private static readonly string[] InPlaceAppearancePrefabs =
         {
             "Assets/Prefabs/Characters/Player.prefab",
+            "Assets/Prefabs/Characters/OperatorNavCorpse.prefab",
         };
 
         [MenuItem("CrimsonDraft/Soldier Appearance/Create Appearance Prefab Variants")]
