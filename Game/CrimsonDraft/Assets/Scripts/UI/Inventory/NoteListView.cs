@@ -99,7 +99,8 @@ namespace CrimsonDraft.UI
                 rt.anchoredPosition = new Vector2(0f, -this.rows.Count * this.rowHeight);
                 rt.sizeDelta        = new Vector2(0f, this.rowHeight);
 
-                // Where the strip rests: a thin rect along the row's bottom edge. It hangs from the list,
+                // Where the strip rests: a thin rect just under the row's bottom edge (pivot on its top, so
+                // it hangs below the letters instead of covering them). It hangs from the list,
                 // not from the row: the strip copies its target's on-screen size, and the selected row is
                 // scaled up, which would push the strip past the edges of the list's background.
                 var anchorGo = new GameObject($"SelectionAnchor_{this.rows.Count}", typeof(RectTransform));
@@ -107,9 +108,9 @@ namespace CrimsonDraft.UI
                 anchor.SetParent(this.listRoot, false);
                 anchor.anchorMin        = new Vector2(0f, 1f);
                 anchor.anchorMax        = new Vector2(1f, 1f);
-                anchor.pivot            = new Vector2(0.5f, 0f);
+                anchor.pivot            = new Vector2(0.5f, 1f);
                 anchor.anchoredPosition = new Vector2(0f, -(this.rows.Count + 1) * this.rowHeight);
-                anchor.sizeDelta        = new Vector2(0f, 3f);
+                anchor.sizeDelta        = new Vector2(0f, 2f);
 
                 this.rows.Add(new Row
                 {
