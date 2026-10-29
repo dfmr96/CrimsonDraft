@@ -18,6 +18,7 @@ namespace CrimsonDraft.Rendering.Outline
         private LayerMask outlineLayer;
         private Color     outlineColor;
         private float     outlineWidthPixels;
+        private float     pixelGridHeight;
 
         // Legacy/unlit tags only -- these switches/levers use plain Lit/Unlit materials, no
         // custom lit passes to worry about matching.
@@ -33,8 +34,9 @@ namespace CrimsonDraft.Rendering.Outline
             requiresIntermediateTexture = true;
         }
 
-        public void Setup(Material mask, Material composite, LayerMask layer, Color color, float widthPixels)
+        public void Setup(Material mask, Material composite, LayerMask layer, Color color, float widthPixels, float pixelGridHeight)
         {
+            this.pixelGridHeight    = pixelGridHeight;
             this.maskMaterial       = mask;
             this.compositeMaterial  = composite;
             this.outlineLayer       = layer;
@@ -54,6 +56,7 @@ namespace CrimsonDraft.Rendering.Outline
             public Material      material = null!;
             public Color         color;
             public float         widthPixels;
+            public float         pixelGridHeight;
             public Vector4       maskTexelSize;
         }
 
@@ -105,6 +108,7 @@ namespace CrimsonDraft.Rendering.Outline
                 compositePassData.material    = this.compositeMaterial;
                 compositePassData.color       = this.outlineColor;
                 compositePassData.widthPixels = this.outlineWidthPixels;
+                compositePassData.pixelGridHeight = this.pixelGridHeight;
                 compositePassData.maskTexelSize = new Vector4(1f / maskDesc.width, 1f / maskDesc.height, maskDesc.width, maskDesc.height);
 
                 builder.UseTexture(compositePassData.src, AccessFlags.Read);
@@ -120,6 +124,7 @@ namespace CrimsonDraft.Rendering.Outline
                     data.material.SetTexture("_OutlineMask", data.mask);
                     data.material.SetColor("_OutlineColor", data.color);
                     data.material.SetFloat("_OutlineWidth", data.widthPixels);
+                    data.material.SetFloat("_OutlinePixelGrid", data.pixelGridHeight);
                     data.material.SetVector("_OutlineMask_TexelSize", data.maskTexelSize);
                     Blitter.BlitTexture(ctx.cmd, data.src, new Vector4(1, 1, 0, 0), data.material, 0);
                 });

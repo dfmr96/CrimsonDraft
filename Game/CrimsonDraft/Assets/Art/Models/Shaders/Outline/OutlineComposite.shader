@@ -4,6 +4,7 @@ Shader "Hidden/CrimsonDraft/OutlineComposite"
     {
         _OutlineColor ("Outline Color", Color) = (1, 0.85, 0.1, 1)
         _OutlineWidth ("Outline Width (px)", Range(1, 8)) = 2
+        _OutlinePixelGrid ("Pixel Grid Height (0 = off)", Float) = 270
         [HideInInspector] _OutlineMask ("Outline Mask", 2D) = "black" {}
     }
 
@@ -28,26 +29,40 @@ Shader "Hidden/CrimsonDraft/OutlineComposite"
             float4 _OutlineMask_TexelSize;
             float4 _OutlineColor;
             float  _OutlineWidth;
+            float  _OutlinePixelGrid;
 
             half4 frag(Varyings IN) : SV_Target
             {
                 float2 uv    = IN.texcoord;
                 float2 texel = _OutlineMask_TexelSize.xy * _OutlineWidth;
 
-                float center = SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv).r;
+                // PSX look: the edge is worked out on a coarse grid (_OutlinePixelGrid rows, columns in
+                // proportion to the screen), so the rim is made of chunky square blocks one cell thick
+                // instead of a smooth screen-resolution line. The grid is a fraction of the screen, not
+                // a pixel count, so it looks the same at any resolution.
+                float2 sampleUv = uv;
+                if (_OutlinePixelGrid > 0.5)
+                {
+                    float  aspect = _OutlineMask_TexelSize.y / _OutlineMask_TexelSize.x; // width / height
+                    float2 grid   = float2(_OutlinePixelGrid * aspect, _OutlinePixelGrid);
+                    sampleUv = (floor(uv * grid) + 0.5) / grid;
+                    texel    = 1.0 / grid;
+                }
+
+                float center = SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv).r;
 
                 // Edge = "this pixel isn't marked, but a neighbour within outlineWidth is" --
                 // same idea as an inverted-hull outline, just done as a screen-space dilate
                 // against the silhouette mask instead of extruding geometry.
                 float neighbourMax = 0;
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2( texel.x, 0)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2(-texel.x, 0)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2(0,  texel.y)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2(0, -texel.y)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2( texel.x,  texel.y)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2(-texel.x,  texel.y)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2( texel.x, -texel.y)).r);
-                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_LinearClamp, uv + float2(-texel.x, -texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2( texel.x, 0)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2(-texel.x, 0)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2(0,  texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2(0, -texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2( texel.x,  texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2(-texel.x,  texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2( texel.x, -texel.y)).r);
+                neighbourMax = max(neighbourMax, SAMPLE_TEXTURE2D(_OutlineMask, sampler_PointClamp, sampleUv + float2(-texel.x, -texel.y)).r);
 
                 float isEdge = saturate(neighbourMax - center);
 

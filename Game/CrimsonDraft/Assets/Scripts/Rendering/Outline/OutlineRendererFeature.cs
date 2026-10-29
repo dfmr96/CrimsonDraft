@@ -17,6 +17,9 @@ namespace CrimsonDraft.Rendering.Outline
         [SerializeField] private LayerMask       outlineLayer       = 0;
         [SerializeField] private Color           outlineColor       = new(1f, 0.85f, 0.1f, 1f);
         [SerializeField] private float           outlineWidthPixels = 2f;
+        [Tooltip("PSX look: filas de la cuadricula gruesa sobre la que se calcula el borde (cada celda es un bloque del outline). " +
+                 "Menos = mas pixelado. 0 = outline suave a resolucion de pantalla.")]
+        [SerializeField, Min(0)] private int     outlinePixelGridHeight = 270;
         [SerializeField] private RenderPassEvent renderEvent        = RenderPassEvent.BeforeRenderingPostProcessing;
 
         // Serialized (rather than found only via Shader.Find in Create()) so the Renderer Data
@@ -50,7 +53,7 @@ namespace CrimsonDraft.Rendering.Outline
             if (this.maskMaterial == null || this.compositeMaterial == null || this.pass == null)
                 return;
 
-            this.pass.Setup(this.maskMaterial, this.compositeMaterial, this.outlineLayer, this.outlineColor, this.outlineWidthPixels);
+            this.pass.Setup(this.maskMaterial, this.compositeMaterial, this.outlineLayer, this.outlineColor, this.outlineWidthPixels, this.outlinePixelGridHeight);
             renderer.EnqueuePass(this.pass);
         }
 
