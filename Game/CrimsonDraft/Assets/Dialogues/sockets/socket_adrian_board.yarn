@@ -1,12 +1,15 @@
 title: socket_adrian_board
 ---
 <<if $insert_result == "success">>
-You placed [important]{$item_name}[/important] on the board. ({$slots_filled}/{$slots_total})
+You placed [important]{$item_name}[/important] on the painting.
 <<elseif $insert_result == "wrong_item">>
 [important]{$item_name}[/important] doesn't fit here.
 <<elseif $activated>>
 All the emblems are in place.
+<<elseif $slots_filled == 0>>
+It looks like a painting with a pig figure, hexagonal in shape.
+It seems to have 3 empty hexagonal spaces. Something could be placed there.
 <<else>>
-A board with slots for emblems. ({$slots_filled}/{$slots_total})
+It looks like a painting with a pig figure, hexagonal in shape.
 <<endif>>
 ===
