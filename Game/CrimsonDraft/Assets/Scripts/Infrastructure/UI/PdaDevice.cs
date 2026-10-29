@@ -96,6 +96,16 @@ namespace CrimsonDraft.Infrastructure.UI
                 });
         }
 
+        /// <summary>
+        /// Draws or hides the PDA model without folding it (e.g. the pause menu's Video tab, where the bare
+        /// scene has to be visible to judge gamma). A no-op while the PDA is not shown.
+        /// </summary>
+        public void SetVisible(bool visible)
+        {
+            if (!IsShown) return;
+            SetOverlayActive(visible);
+        }
+
         void OnDestroy()
         {
             this.tween?.Kill();

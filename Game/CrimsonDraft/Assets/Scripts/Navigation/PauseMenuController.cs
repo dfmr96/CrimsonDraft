@@ -186,6 +186,9 @@ namespace CrimsonDraft.Navigation
             this.view.FadeInventoryVolume(!on);
             this.view.SetBackdropVisible(!on);
             this.view.SetVideoUiMode(on);
+
+            // The PDA model would cover the scene gamma is being judged on.
+            this.view.Pda?.SetVisible(!on);
         }
 
         private void OnActionChange(object obj, InputActionChange change)
