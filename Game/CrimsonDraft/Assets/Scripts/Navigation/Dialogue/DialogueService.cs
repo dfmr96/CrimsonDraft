@@ -43,6 +43,9 @@ namespace CrimsonDraft.Navigation.Dialogue
 
         public bool IsRunning => this.runner.IsDialogueRunning;
 
+        // True for prompts that live inside a UI already drawn by the stacked UI camera (inspect).
+        protected virtual bool UsesStackedUiCamera => false;
+
         public void StartDialogue(
             string                                  nodeName,
             IReadOnlyDictionary<string, object>?   variables  = null,
@@ -77,7 +80,10 @@ namespace CrimsonDraft.Navigation.Dialogue
             }
 
             this.inputService.SwitchToDialogue();
-            UiCameraGate.Request(this);
+            // The stacked UI camera runs its CRT over the whole frame, world included. The UI-only rig
+            // draws the dialogue canvas instead (DialogueUiOnlyEffect), so the stacked one stays off.
+            if (UsesStackedUiCamera || UiOnlyEffectRig.Current == null)
+                UiCameraGate.Request(this);
             this.dialoguePublisher.Publish(new DialogueActiveChangedEvent(true));
             _ = this.runner.StartDialogue(nodeName);
         }

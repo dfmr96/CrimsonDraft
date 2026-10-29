@@ -19,6 +19,8 @@ namespace CrimsonDraft.Navigation.Dialogue
         // open underneath -- falling back to the gameplay map here would leave
         // InventoryConfirm/InventoryNavigate disabled once the prompt ends, locking out any
         // further interaction with the still-open panel (e.g. a hotspot's reward text).
+        protected override bool UsesStackedUiCamera => true;
+
         protected override void ReturnToPreviousInputContext() => this.inputService.SwitchToInventory();
     }
 }
