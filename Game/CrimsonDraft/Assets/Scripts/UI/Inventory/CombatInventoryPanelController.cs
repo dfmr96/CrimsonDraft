@@ -516,7 +516,7 @@ namespace CrimsonDraft.UI
             if (this.pendingCombineAmmo != null)
             {
                 InventoryItemView? target = ViewAtCursor();
-                if (target != null && target.Data.ItemType == ItemType.Weapon
+                if (target != null && target.Data is WeaponData
                     && this.inventoryService.CanReload(this.pendingCombineAmmo, this.operatorSlot))
                 {
                     this.sfx?.PlayDecide(gameObject);

@@ -85,8 +85,13 @@ namespace CrimsonDraft.Inventory
             var preferred  = PreferredContainer(entry);
             var candidates = new List<ItemContainer>();
             if (preferred != null) candidates.Add(preferred);
-            candidates.AddRange(EnsureContainers().Where(c => c != preferred));
-            if (preferred != EnsureStorage()) candidates.Add(EnsureStorage());
+
+            // A permanent item stays in its own operator's grid, so there is nowhere else to try.
+            if (!item.Data.IsPermanent)
+            {
+                candidates.AddRange(EnsureContainers().Where(c => c != preferred));
+                if (preferred != EnsureStorage()) candidates.Add(EnsureStorage());
+            }
 
             foreach (var container in candidates)
                 for (int rotation = 0; rotation <= 1; rotation++)

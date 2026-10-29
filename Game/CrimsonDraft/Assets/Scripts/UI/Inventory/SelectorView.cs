@@ -94,17 +94,7 @@ namespace CrimsonDraft.UI
             HideTooltip();
         }
 
-        public void ShowOnMelee(OperatorWidgetView widget)
-        {
-            RectTransform slot = widget.MeleeSlotRoot;
-            PlaceOnRect(slot);
-
-            if (this.tooltip != null && widget.MeleeData != null)
-                this.tooltip.ShowAtItem(widget.MeleeData.DisplayName, slot);
-
-        }
-
-        // Parks the selector over a fixed (non-grid) widget element: the melee slot or the logo.
+        // Parks the selector over a fixed (non-grid) widget element: the logo.
         private void PlaceOnRect(RectTransform slot)
         {
             SetHover(false, ColorSelector);

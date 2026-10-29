@@ -34,7 +34,6 @@ namespace CrimsonDraft.UI
         private bool           inputBound;
         private bool           isCombineMode;
         private bool           pickupHighlight; // the selector rests on a world pickup's item, not on the cursor's cell
-        private bool           onMeleeSlot;
         private bool           onLogoSlot;
         private bool           transferMode;
         private bool           holdingDirection;
@@ -72,7 +71,6 @@ namespace CrimsonDraft.UI
             this.presenters.RefreshAccess();
             this.transferMode  = true;
             this.isCombineMode = false;
-            this.onMeleeSlot   = false;
             this.onLogoSlot    = false;
             this.navigator     = new GridNavigator(
                 this.inventory.GetContainer, this.presenters.BuildLinks(), ContainerId.Storage, this.presenters.BuildStorageRows());
@@ -211,25 +209,10 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            if (this.onMeleeSlot)
-            {
-                if (dir.y < 0)
-                {
-                    ExitMeleeSlot();
-                    this.sfx.PlayCursor(this.gameObject);
-                }
-                else if (dir.y > 0)
-                {
-                    if (TryEnterLogoSlot()) this.sfx.PlayCursor(this.gameObject);
-                    else                    this.tabManager?.EnterTabBar();
-                }
-                return;
-            }
-
             if (Navigator.Move(dir, this.IsHoldingItem) == NavigationExit.Up)
             {
                 if (this.transferMode) return;
-                if (!TryEnterMeleeSlot() && !TryEnterLogoSlot()) this.tabManager?.EnterTabBar();
+                if (!TryEnterLogoSlot()) this.tabManager?.EnterTabBar();
                 return;
             }
 
@@ -241,7 +224,7 @@ namespace CrimsonDraft.UI
         {
             if (this.pickupHighlight) return;
             if (this.navigator == null && (this.presenters == null || this.inventory == null)) return;
-            if (this.onMeleeSlot || this.onLogoSlot || !this.selector.IsVisible) return;
+            if (this.onLogoSlot || !this.selector.IsVisible) return;
 
             var presenter = CurrentPresenter;
             var cell      = Navigator.Cell;
@@ -308,12 +291,6 @@ namespace CrimsonDraft.UI
                 return;
             }
 
-            if (this.onMeleeSlot)
-            {
-                ConfirmMeleeSlot();
-                return;
-            }
-
             if (this.IsHoldingItem)
             {
                 Drop();
@@ -347,7 +324,7 @@ namespace CrimsonDraft.UI
 
         private void OnPickup(InputAction.CallbackContext _)
         {
-            if (this.onMeleeSlot || this.onLogoSlot) return;
+            if (this.onLogoSlot) return;
             if (this.contextMenu != null && this.contextMenu.IsOpen)   return;
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) return;
 
@@ -400,9 +377,7 @@ namespace CrimsonDraft.UI
 
             if (selectItemId != null && SelectItemById(selectItemId)) return;
 
-            var widget = this.onMeleeSlot ? CurrentWidget() : null;
-            if (widget != null) this.selector.ShowOnMelee(widget);
-            else                Refresh();
+            Refresh();
         }
 
         // ── Public API (TabManager / OpenClose / HUD) ────────────────────────
@@ -442,7 +417,7 @@ namespace CrimsonDraft.UI
                 return true;
             }
 
-            // The logo and melee slots are just places the cursor can rest, not sub menus: Cancel there
+            // The logo slot is just a place the cursor can rest, not sub menus: Cancel there
             // is not consumed, so TabManager moves up to the tab bar (the same as pressing Up there)
             // and one more Cancel closes the inventory.
 
@@ -512,7 +487,7 @@ namespace CrimsonDraft.UI
         }
 
         private bool CanSpawnDebugItem() =>
-            !this.onMeleeSlot && !this.onLogoSlot && !this.isCombineMode && this.selector.IsVisible
+            !this.onLogoSlot && !this.isCombineMode && this.selector.IsVisible
             && (this.tabManager == null || (!this.tabManager.IsTabBarActive && !this.tabManager.IsConsumingTabInput))
             && (this.contextMenu == null || !this.contextMenu.IsOpen)
             && (this.inspectPanel == null || !this.inspectPanel.IsOpen);
@@ -537,7 +512,6 @@ namespace CrimsonDraft.UI
             this.inventory.CancelHeld();
             if (this.contextMenu != null && this.contextMenu.IsOpen)   this.contextMenu.Close();
             if (this.inspectPanel != null && this.inspectPanel.IsOpen) this.inspectPanel.Close();
-            if (this.onMeleeSlot) ExitMeleeSlot();
             this.onLogoSlot = false;
             this.partyPanel?.SetBioMode(false, animate: false);
             this.tabManager?.ResetTabBar();
@@ -554,7 +528,6 @@ namespace CrimsonDraft.UI
             Navigator.Reset(this.presenters.FirstGrid, Vector2Int.zero);
             this.holdingDirection = false;
             this.lastDir          = Vector2Int.zero;
-            this.onMeleeSlot      = false;
             this.onLogoSlot       = false;
             this.pickupHighlight  = false;
             this.partyPanel?.SetBioMode(false, animate: false);
@@ -605,7 +578,6 @@ namespace CrimsonDraft.UI
                 var placement = container.Placements.FirstOrDefault(p => p.Item.Data.ItemId == itemId);
                 if (placement == null) continue;
 
-                this.onMeleeSlot = false;
                 this.onLogoSlot  = false;
                 this.partyPanel?.SetBioMode(false, animate: false);
                 Navigator.Reset(container.Id, placement.Origin);
@@ -615,7 +587,7 @@ namespace CrimsonDraft.UI
             return false;
         }
 
-        // ── Melee slot ───────────────────────────────────────────────────────
+        // ── Operator widget ──────────────────────────────────────────────────
 
         private OperatorWidgetView? CurrentWidget()
         {
@@ -623,26 +595,9 @@ namespace CrimsonDraft.UI
             return op >= 0 && this.partyPanel != null ? this.partyPanel.GetWidget(op) : null;
         }
 
-        private bool TryEnterMeleeSlot()
-        {
-            if (!this.inventory.IsCarried(Navigator.Grid)) return false;
-            var widget = CurrentWidget();
-            if (widget == null || !widget.HasMeleeWeapon) return false;
-
-            this.onMeleeSlot = true;
-            this.selector.ShowOnMelee(widget);
-            return true;
-        }
-
-        private void ExitMeleeSlot()
-        {
-            this.onMeleeSlot = false;
-            Refresh();
-        }
-
         // ── Logo slot ────────────────────────────────────────────────────────
 
-        // The logo sits above the melee slot: grid -> melee -> logo -> tab bar. It is skipped
+        // The logo sits above the grid: grid -> logo -> tab bar. It is skipped
         // while an item is held or a combine is pending, so those flows can't be interrupted.
         private bool TryEnterLogoSlot()
         {
@@ -650,7 +605,6 @@ namespace CrimsonDraft.UI
             var widget = CurrentWidget();
             if (widget == null || !widget.HasLogo) return false;
 
-            this.onMeleeSlot = false;
             this.onLogoSlot  = true;
             this.selector.ShowOnLogo(widget);
             return true;
@@ -659,15 +613,6 @@ namespace CrimsonDraft.UI
         private void ExitLogoSlot()
         {
             this.onLogoSlot = false;
-
-            // Back down through the melee slot when this operator has one, else onto the grid.
-            var widget = CurrentWidget();
-            if (widget != null && widget.HasMeleeWeapon && this.inventory.IsCarried(Navigator.Grid))
-            {
-                this.onMeleeSlot = true;
-                this.selector.ShowOnMelee(widget);
-                return;
-            }
             Refresh();
         }
 
@@ -697,16 +642,6 @@ namespace CrimsonDraft.UI
             if (this.partyPanel == null) return;
             this.sfx.PlayDecide(this.gameObject);
             this.partyPanel.ToggleBio();
-        }
-
-        private void ConfirmMeleeSlot()
-        {
-            var widget    = CurrentWidget();
-            var meleeData = widget != null ? widget.MeleeData : null;
-            if (widget == null || meleeData == null || this.contextMenu == null) return;
-
-            this.sfx.PlayDecide(this.gameObject);
-            this.contextMenu.OpenForMeleeInspectOnly(widget.MeleeSlotRoot, meleeData);
         }
 
         // ── Input reading ────────────────────────────────────────────────────

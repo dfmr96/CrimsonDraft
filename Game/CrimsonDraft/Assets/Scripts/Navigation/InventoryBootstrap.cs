@@ -39,8 +39,8 @@ namespace CrimsonDraft.Navigation
             if (this.initialized) return;
             this.initialized = true;
 
-            // Melee is permanently equipped and never stored in the inventory, so it isn't part
-            // of the saved state below -- apply it unconditionally on every load.
+            // Melee is permanently equipped on every load. It also takes room in the operator's grid
+            // (a permanent item: it can't be moved out of it), so the loadout puts it there below.
             for (int slot = 0; slot < this.loadout.DefaultMelee.Length; slot++)
                 this.roster[slot].SetMeleeWeapon(this.loadout.DefaultMelee[slot]);
 
@@ -48,8 +48,12 @@ namespace CrimsonDraft.Navigation
             if (saved != null)
             {
                 this.inventory.Restore(saved, this.itemDatabase);
+                EnsureMeleeInGrids(); // saves from before melee took room don't have it yet
                 return;
             }
+
+            // First, so the weapons claim the first free cells of each grid.
+            EnsureMeleeInGrids();
 
             foreach (var entry in this.loadout.Items)
                 this.inventory.TryAdd(entry.item, ContainerId.Operator(entry.operatorSlot), entry.quantity);
@@ -68,6 +72,21 @@ namespace CrimsonDraft.Navigation
                     .First(w => w.Data == weaponData && !w.IsEquipped);
                 this.inventory.Equip(weapon, slot);
                 weapon.SetAmmo(weapon.MaxAmmo);
+            }
+        }
+
+        private void EnsureMeleeInGrids()
+        {
+            for (int slot = 0; slot < this.loadout.DefaultMelee.Length; slot++)
+            {
+                var melee = this.loadout.DefaultMelee[slot];
+                if (melee == null) continue;
+
+                var id = ContainerId.Operator(slot);
+                if (this.inventory.GetContainer(id).Placements.Any(p => p.Item.Data == melee)) continue;
+
+                if (!this.inventory.TryAdd(melee, id))
+                    UnityEngine.Debug.LogError($"InventoryBootstrap: no room in operator {slot}'s grid for '{melee.ItemId}'.");
             }
         }
 

@@ -51,7 +51,6 @@ namespace CrimsonDraft.UI
         private bool              isOpen        = false;
         private bool              currentCanSplit;
         private InventoryItemView? currentItem;
-        private MeleeWeaponData?   currentMeleeItem;
         private RectTransform     rectTransform = null!;
         private Tween?            openTween;
         private bool              opening;
@@ -85,7 +84,6 @@ namespace CrimsonDraft.UI
         public void Open(InventoryItemView item, ContextMenuOptions options)
         {
             this.currentItem     = item;
-            this.currentMeleeItem = null;
             this.isOpen          = true;
             this.currentCanSplit = options.CanSplit;
             this.useTargets      = options.CanUse ? options.UseTargets : null;
@@ -114,31 +112,6 @@ namespace CrimsonDraft.UI
             }
 
             PositionNextToItem(item);
-            RefreshVisuals(snapSelector: true);
-            Show();
-            PlayOpenAnimation();
-        }
-
-        // For items with no InventoryItemView -- e.g. a permanently-equipped melee weapon,
-        // which never enters the spatial inventory grid. Only Inspect is ever meaningful here
-        // (nothing to Use/Equip/Split or Combine), so the other two stay disabled/hidden.
-        public void OpenForMeleeInspectOnly(RectTransform anchor, MeleeWeaponData meleeData)
-        {
-            this.currentItem      = null;
-            this.currentMeleeItem = meleeData;
-            this.isOpen           = true;
-            this.currentCanSplit  = false;
-            this.useTargets       = null;
-            ShowActionOptions();
-
-            this.options[0].SetDisabled(true);
-            this.options[1].SetDisabled(false);
-            this.options[2].SetDisabled(true);
-            this.options[0].SetLabel("Use");
-
-            this.selectedIndex = 1; // Inspect is the only enabled option
-
-            PositionNextToRect(anchor);
             RefreshVisuals(snapSelector: true);
             Show();
             PlayOpenAnimation();
@@ -384,7 +357,6 @@ namespace CrimsonDraft.UI
         void ExecuteOption(MenuOption.OptionType type)
         {
             var item      = this.currentItem;
-            var meleeData = this.currentMeleeItem;
             bool toTargets = type == MenuOption.OptionType.Use && item != null && this.useTargets != null;
             if (!toTargets) Close();
 
@@ -402,8 +374,7 @@ namespace CrimsonDraft.UI
                         Debug.LogWarning("[Menu] InspectPanel not assigned.");
                         break;
                     }
-                    if (item != null)           this.inspectPanel.Open(item);
-                    else if (meleeData != null) this.inspectPanel.Open(meleeData);
+                    if (item != null) this.inspectPanel.Open(item);
                     break;
                 case MenuOption.OptionType.Combine:
                     if (item != null) OnCombineRequested?.Invoke(item);

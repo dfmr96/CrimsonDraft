@@ -16,6 +16,7 @@ namespace CrimsonDraft.Inventory
                 ConsumableData consumable => new ConsumableItem(consumable),
                 KeyItemData    key        => new KeyItem(key),
                 SocketItemData socket     => new SocketItem(socket),
+                MeleeWeaponData melee     => new InventoryItem(melee),
                 _ => throw new ArgumentException($"Unknown ItemData subtype: {data.GetType().Name}", nameof(data)),
             };
 

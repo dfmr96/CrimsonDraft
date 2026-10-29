@@ -83,6 +83,10 @@ namespace CrimsonDraft.Inventory
             if (this.held == null || (this.heldReturn == null && !this.HeldIsSpawned)) return DropResult.Rejected;
             if (!IsAccessible(target)) return DropResult.Rejected;
 
+            // A permanent item (a melee weapon) only goes back into the grid it was picked up from.
+            if (this.held.Data.IsPermanent && (this.heldReturn == null || this.heldReturn.Container != target))
+                return DropResult.Rejected;
+
             var container = GetContainer(target);
             var footprint = ItemPlacement.FootprintOf(this.held.Data.GridSize, this.HeldRotation);
             if (!container.IsWithinBounds(footprint, origin)) return DropResult.Rejected;
@@ -99,6 +103,10 @@ namespace CrimsonDraft.Inventory
             if (overlapping.Count > 1 || this.heldReturn == null || this.heldReturn.SplitSource != null) return DropResult.Rejected;
             var displaced = overlapping.First();
             if (displaced.IsEquipped) return DropResult.Rejected;
+
+            // The swapped-out item lands where the held one came from: not allowed for a permanent one
+            // when that is another grid.
+            if (displaced.Data.IsPermanent && this.heldReturn.Container != target) return DropResult.Rejected;
 
             return TrySwap(container, origin, displaced) ? DropResult.Swapped : DropResult.Rejected;
         }

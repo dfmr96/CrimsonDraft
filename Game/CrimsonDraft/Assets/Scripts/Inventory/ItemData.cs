@@ -28,6 +28,10 @@ namespace CrimsonDraft.Inventory
         public Vector2Int        GridSize        => this.gridSize;
         public bool              Combinable      => this.combinable;
         public virtual bool      Stackable       => this.stackable;
+
+        // Stays with the operator it was given to: it can be moved around that operator's own grid, but
+        // never into storage, another operator's grid or out of the inventory (the melee weapons).
+        public virtual bool      IsPermanent     => false;
         public int               MaxStack        => this.maxStack;
         public Sprite?           Icon            => this.icon;
         public DialogueReference ExamineDialogue => this.examineDialogue;

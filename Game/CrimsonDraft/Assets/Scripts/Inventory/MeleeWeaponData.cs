@@ -5,8 +5,9 @@ using CrimsonDraft.Operators;
 
 namespace CrimsonDraft.Inventory
 {
-    // Permanently-equipped melee weapon data -- never enters the spatial inventory pipeline
-    // (no ammo/magazine, no uses), so it's just an identity + icon plus its combat stats.
+    // Permanently-equipped melee weapon data. It takes room in its operator's grid like any item but
+    // cannot be unequipped or moved to storage (IsPermanent); it has no ammo/magazine and no uses,
+    // so it's just an identity + icon plus its combat stats.
     [CreateAssetMenu(fileName = "MeleeWeaponData", menuName = "CrimsonDraft/Inventory/Melee Weapon Data")]
     public sealed class MeleeWeaponData : ItemData, IMeleeWeapon
     {
@@ -31,6 +32,7 @@ namespace CrimsonDraft.Inventory
         // which is generated from the length/angle above; kept so existing assets don't lose data.
         [SerializeField] private BurstPatternData? slashPattern;
 
+        public override bool     IsPermanent             => true;
         public int               Damage                  => this.damage;
         public int                PoiseDamage             => this.poiseDamage;
         public float              ArmorDamageMultiplier   => this.armorDamageMultiplier;

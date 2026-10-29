@@ -80,7 +80,7 @@ namespace CrimsonDraft.UI
             var options = new ContextMenuOptions
             {
                 CanCombine = data.Combinable,
-                CanEquip   = data.ItemType == ItemType.Weapon,
+                CanEquip   = data is WeaponData,
                 CanUse     = (data is ConsumableData consumable && consumable.HealAmount > 0 && healTargets!.Any(t => t.Enabled))
                           || data.ItemType == ItemType.SocketItem,
                 CanSplit   = data.ItemType == ItemType.AmmoBox && this.inventory.CanSplit(view.BoundItem),
