@@ -9,7 +9,7 @@ namespace CrimsonDraft.Infrastructure.Map
 {
     public readonly struct MapDoorVisual
     {
-        public MapDoorVisual(string doorId, string roomId, DoorMapState state, Vector2 position, float rotation, Vector2 size)
+        public MapDoorVisual(string doorId, string roomId, DoorMapState state, Vector2 position, float rotation, Vector2 size, MapStairKind stairs = MapStairKind.None)
         {
             this.DoorId   = doorId;
             this.RoomId   = roomId;
@@ -17,6 +17,7 @@ namespace CrimsonDraft.Infrastructure.Map
             this.Position = position;
             this.Rotation = rotation;
             this.Size     = size;
+            this.Stairs   = stairs;
         }
 
         public string       DoorId   { get; }
@@ -25,6 +26,7 @@ namespace CrimsonDraft.Infrastructure.Map
         public Vector2      Position { get; }
         public float        Rotation { get; }
         public Vector2      Size     { get; }
+        public MapStairKind Stairs   { get; }
 
         /// <summary>True on an odd number of quarter turns (90°, 270°): the door is drawn with
         /// the vertical sprite instead of rotating the horizontal one.</summary>
@@ -108,7 +110,8 @@ namespace CrimsonDraft.Infrastructure.Map
                     state,
                     owner.Position + door.Transform.Offset,
                     door.Transform.Rotation,
-                    door.Size));
+                    door.Size,
+                    door.Stairs));
             }
             return visuals;
         }

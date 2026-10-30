@@ -10,20 +10,19 @@ namespace CrimsonDraft.Navigation.Pushables
     //   1. the player touches the box (closest point of the box within radius + skin, on XZ);
     //   2. the player stands at the box's floor level;
     //   3. the player is square to one face, not at a corner (inside the face span minus a margin);
-    //   4. a probe point ahead of the player, along the move direction, lands inside the box on the
-    //      axis of that face -- i.e. the player is moving into the face, not along it or away.
+    //   4. the move direction is within an angle limit of the axis pointing into that face --
+    //      i.e. the player is moving into the face, not along it or away.
     // Pure math, no physics queries: PlayerController gathers the candidates and enforces RE2's
     // "exactly one pushable touched" rule before calling this.
     public static class PushDetector
     {
-        // RE2 corner margin is 128 units (~0.13 m); its probe reaches 1.2 x the character's
-        // half-width + 128 units ahead of it.
-        public const float DefaultCornerMargin      = 0.13f;
-        public const float DefaultProbeRadiusFactor = 1.2f;
-        public const float DefaultProbeExtra        = 0.13f;
-
-        public static float ProbeDistance(float playerRadius, float radiusFactor, float extra) =>
-            playerRadius * radiusFactor + extra;
+        // RE2 corner margin is 128 units (~0.13 m); 0.05 here because our player is wider relative to
+        // the props, and 0.13 left too narrow a pushable span on the sides. RE2's probe (1.2 x half-width + 128 units ahead)
+        // depended on the gap between player and box, so a diagonal input near its limit flickered in
+        // and out of the push; here "moving into the face" is an angle limit instead: the move
+        // direction must align with the push axis by at least this cosine (0.6 ~ 53 degrees).
+        public const float DefaultCornerMargin     = 0.05f;
+        public const float DefaultMinAlignment     = 0.6f;
 
         public static bool IsTouching(Vector3 playerPosition, float playerRadius, Bounds box, float contactSkin)
         {
@@ -45,7 +44,7 @@ namespace CrimsonDraft.Navigation.Pushables
             Vector3 moveDirection,
             Bounds  box,
             float   cornerMargin,
-            float   probeDistance,
+            float   minAlignment,
             out Vector3 axis)
         {
             axis = Vector3.zero;
@@ -69,20 +68,14 @@ namespace CrimsonDraft.Navigation.Pushables
                         (!squareToXFace ||
                          Mathf.Abs(offset.z) / Mathf.Max(extents.z, 1e-4f) >= Mathf.Abs(offset.x) / Mathf.Max(extents.x, 1e-4f));
 
-            Vector3 probe = playerPosition + move.normalized * probeDistance;
-            if (useZ)
-            {
-                if (Mathf.Abs(probe.z - box.center.z) > extents.z)
-                    return false;
-                axis = new Vector3(0f, 0f, offset.z <= 0f ? 1f : -1f);
-            }
-            else
-            {
-                if (Mathf.Abs(probe.x - box.center.x) > extents.x)
-                    return false;
-                axis = new Vector3(offset.x <= 0f ? 1f : -1f, 0f, 0f);
-            }
+            Vector3 candidate = useZ
+                ? new Vector3(0f, 0f, offset.z <= 0f ? 1f : -1f)
+                : new Vector3(offset.x <= 0f ? 1f : -1f, 0f, 0f);
 
+            if (Vector3.Dot(move.normalized, candidate) < minAlignment)
+                return false;
+
+            axis = candidate;
             return true;
         }
     }

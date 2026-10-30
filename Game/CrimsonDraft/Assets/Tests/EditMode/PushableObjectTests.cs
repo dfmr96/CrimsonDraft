@@ -17,13 +17,12 @@ namespace CrimsonDraft.Tests
 
         private static readonly Bounds Box = new(new Vector3(0f, 0.5f, 0f), Vector3.one);
 
-        private static float Probe =>
-            PushDetector.ProbeDistance(Radius, PushDetector.DefaultProbeRadiusFactor, PushDetector.DefaultProbeExtra);
+        private const float MinAlignment = PushDetector.DefaultMinAlignment;
 
         private static Vector3 SouthOfBox(float x = 0f) => new(x, 1f, -1.04f);
 
         private static bool Resolve(Vector3 player, Vector3 move, out Vector3 axis) =>
-            PushDetector.TryResolveAxis(player, move, Box, CornerMargin, Probe, out axis);
+            PushDetector.TryResolveAxis(player, move, Box, CornerMargin, MinAlignment, out axis);
 
         [Test]
         public void IsTouching_playerAgainstFace_true()
@@ -73,8 +72,8 @@ namespace CrimsonDraft.Tests
         [Test]
         public void TryResolveAxis_atCorner_doesNotPush()
         {
-            // 0.45 m off-centre on a 0.5 m half-width face is inside the 0.13 m corner margin.
-            Assert.IsFalse(Resolve(SouthOfBox(x: 0.45f), Vector3.forward, out _));
+            // 0.48 m off-centre on a 0.5 m half-width face is inside the 0.05 m corner margin.
+            Assert.IsFalse(Resolve(SouthOfBox(x: 0.48f), Vector3.forward, out _));
         }
 
         [Test]
@@ -113,8 +112,18 @@ namespace CrimsonDraft.Tests
             // 0.4 m deep shelf: a player square to its long (-X) face pushes it east.
             var shelf = new Bounds(new Vector3(0f, 1f, 0f), new Vector3(0.4f, 2f, 1f));
 
-            Assert.IsTrue(PushDetector.TryResolveAxis(new Vector3(-0.74f, 1f, 0.1f), Vector3.right, shelf, CornerMargin, Probe, out var axis));
+            Assert.IsTrue(PushDetector.TryResolveAxis(new Vector3(-0.74f, 1f, 0.1f), Vector3.right, shelf, CornerMargin, MinAlignment, out var axis));
             Assert.AreEqual(Vector3.right, axis);
+        }
+
+        [Test]
+        public void TryResolveAxis_movingInAt45Degrees_pushes_regardlessOfGapToBox()
+        {
+            // Regression: the old probe depended on the player-box gap, so ~45 degree input flickered.
+            var move = new Vector3(Mathf.Sin(45f * Mathf.Deg2Rad), 0f, Mathf.Cos(45f * Mathf.Deg2Rad));
+
+            Assert.IsTrue(Resolve(new Vector3(0f, 1f, -1.00f), move, out _));
+            Assert.IsTrue(Resolve(new Vector3(0f, 1f, -1.04f), move, out _));
         }
     }
 }

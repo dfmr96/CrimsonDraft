@@ -12,7 +12,7 @@ using CrimsonDraft.Navigation.Rooms;
 namespace CrimsonDraft.Navigation.Interactables
 {
     [RequireComponent(typeof(DoorArrival))]
-    public sealed class SceneDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable, IAnimatedInteractable
+    public class SceneDoorInteractable : MonoBehaviour, IInteractable, IDoorInteractable, IAnimatedInteractable
     {
         private const string OpenedNodeName = "door_opened_feedback";
 
@@ -48,7 +48,7 @@ namespace CrimsonDraft.Navigation.Interactables
             this.unlocked = this.registry.IsUnlocked(this.doorId);
         }
 
-        public void Interact(InteractionContext context)
+        public virtual void Interact(InteractionContext context)
         {
             if (!this.data.Locked || this.unlocked)
             {

@@ -1,15 +1,16 @@
 title: socket_adrian_board
 ---
 <<if $insert_result == "success">>
-You placed [important]{$item_name}[/important] on the painting.
+You set [important]{$item_name}[/important] into the frame beneath the painting. It fits perfectly.
 <<elseif $insert_result == "wrong_item">>
 [important]{$item_name}[/important] doesn't fit here.
 <<elseif $activated>>
 All the emblems are in place.
 <<elseif $slots_filled == 0>>
-It looks like a painting with a pig figure, hexagonal in shape.
-It seems to have 3 empty hexagonal spaces. Something could be placed there.
+A painting of a woman with a horn of plenty. A fat pig eats at her feet while a dog, a horse and a sheep stand behind it, thin and silent.
+Below it, 3 empty hexagonal hollows. Something could be placed there.
 <<else>>
-It looks like a painting with a pig figure, hexagonal in shape.
+A fat pig eats at her feet while a dog, a horse and a sheep stand behind it, thin and silent.
+Some of the hollows beneath it are still empty.
 <<endif>>
 ===

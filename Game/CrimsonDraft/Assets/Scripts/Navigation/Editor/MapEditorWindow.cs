@@ -287,7 +287,8 @@ namespace CrimsonDraft.Navigation.Editor
                 EditorGUILayout.LabelField("Also seen from", door.OtherSides.Length == 0
                     ? "—"
                     : string.Join(", ", door.OtherSides.Select(side => $"{side.RoomId} ({side.DoorId})")));
-                if (DoorSprites()?.For(visual.State, visual.IsVertical) == null)
+                EditorGUILayout.LabelField("Stairs", door.Stairs == MapStairKind.None ? "— (set on its MapDoorMarker)" : door.Stairs.ToString());
+                if (DoorSprites()?.For(visual.State, visual.IsVertical, visual.Stairs) == null)
                     EditorGUILayout.HelpBox("Assign the door sprites on the MapDataSet asset.", MessageType.Warning);
             }
 
@@ -474,7 +475,7 @@ namespace CrimsonDraft.Navigation.Editor
         }
 
         private Sprite? DoorSprite(MapDoorVisual door)
-            => DoorSprites()?.For(door.State, door.IsVertical);
+            => DoorSprites()?.For(door.State, door.IsVertical, door.Stairs);
 
         // Like rooms, a door's Position is its footprint's bottom-left corner (map y up).
         private Rect DoorScreenRect(Rect canvas, MapDoorVisual door)

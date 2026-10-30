@@ -29,7 +29,25 @@ namespace CrimsonDraft.Infrastructure.Map
         public MapDoorSpriteSet Horizontal = new();
         public MapDoorSpriteSet Vertical   = new();
 
+        public Sprite? StairsHorizontalLeft;
+        public Sprite? StairsHorizontalRight;
+        public Sprite? StairsVerticalTop;
+        public Sprite? StairsVerticalDown;
+        public Sprite? ChuteDrop;
+
         public Sprite? For(DoorMapState state, bool vertical)
             => (vertical ? this.Vertical : this.Horizontal).For(state);
+
+        /// <summary>The sprite a door draws: its stairs sprite when it is stairs, else the
+        /// door sprite for its state.</summary>
+        public Sprite? For(DoorMapState state, bool vertical, MapStairKind stairs) => stairs switch
+        {
+            MapStairKind.HorizontalLeft  => this.StairsHorizontalLeft,
+            MapStairKind.HorizontalRight => this.StairsHorizontalRight,
+            MapStairKind.VerticalTop     => this.StairsVerticalTop,
+            MapStairKind.VerticalDown    => this.StairsVerticalDown,
+            MapStairKind.ChuteDrop       => this.ChuteDrop,
+            _                            => For(state, vertical),
+        };
     }
 }

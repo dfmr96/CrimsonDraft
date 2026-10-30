@@ -28,9 +28,11 @@ namespace CrimsonDraft.Navigation.Player
         [SerializeField] private CapsuleCollider? bodyCollider;                 // player body; defaults to the one on this object
         [SerializeField] private LayerMask pushableMask;                         // defaults to the "Pushable" layer
         [SerializeField] private float pushContactSkin       = 0.05f;           // gap still counted as touching a pushable
-        [SerializeField] private float pushCornerMargin      = PushDetector.DefaultCornerMargin;      // RE2: 128 u
-        [SerializeField] private float pushProbeRadiusFactor = PushDetector.DefaultProbeRadiusFactor; // RE2: 1.2 x half-width
-        [SerializeField] private float pushProbeExtra        = PushDetector.DefaultProbeExtra;        // RE2: + 128 u
+        [Tooltip("Contact skin while a push is already in progress: the prop moves first and the player follows via physics, so the gap breathes. Wider than pushContactSkin so it doesn't cut the push (hysteresis).")]
+        [SerializeField] private float pushKeepContactSkin   = 0.2f;
+        [SerializeField] private float pushCornerMargin     = PushDetector.DefaultCornerMargin;      // RE2: 128 u
+        [Range(0f, 1f)]
+        [SerializeField] private float pushMinAlignment      = PushDetector.DefaultMinAlignment;      // cos of max angle between input and push axis
         [SerializeField] private float pushFloorTolerance    = 0.5f;            // feet vs pushable base: same floor
         [SerializeField] private float pushStartDelay        = 0.2f;            // RE2 (PC): 6 frames of sustained contact at 30 fps
         [SerializeField] private float pushSpeed             = 0.9f;            // placeholder -- velocidad de empuje, pendiente de pasada de feel
@@ -316,7 +318,10 @@ namespace CrimsonDraft.Navigation.Player
 
             Vector3 scale  = this.bodyCollider.transform.lossyScale;
             float   radius = this.bodyCollider.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
-            float   reach  = radius + this.pushContactSkin;
+            // Starting a push needs a tight contact; once it is under way (the lean/hold timer is
+            // running) the looser skin keeps it from dropping as the prop pulls ahead of the player.
+            float   skin   = this.pushHoldTimer > 0f ? Mathf.Max(this.pushContactSkin, this.pushKeepContactSkin) : this.pushContactSkin;
+            float   reach  = radius + skin;
 
             // Candidates: anything on the pushable layer within the body capsule grown by the skin.
             Vector3 center     = this.bodyCollider.transform.TransformPoint(this.bodyCollider.center);
@@ -331,7 +336,7 @@ namespace CrimsonDraft.Navigation.Player
             {
                 var candidate = this.pushCandidates[i].GetComponentInParent<PushableObject>();
                 if (candidate == null || candidate == touched) continue;
-                if (!PushDetector.IsTouching(this.rb.position, radius, candidate.Bounds, this.pushContactSkin)) continue;
+                if (!PushDetector.IsTouching(this.rb.position, radius, candidate.Bounds, skin)) continue;
 
                 // RE2 only pushes when exactly one object is touched: never two at once, and
                 // never a box wedged against another one.
@@ -347,8 +352,7 @@ namespace CrimsonDraft.Navigation.Player
             if (!PushDetector.IsSameFloor(this.FootPosition.y, bounds, this.pushFloorTolerance))
                 return false;
 
-            float probe = PushDetector.ProbeDistance(radius, this.pushProbeRadiusFactor, this.pushProbeExtra);
-            if (!PushDetector.TryResolveAxis(this.rb.position, moveDir, bounds, this.pushCornerMargin, probe, out axis))
+            if (!PushDetector.TryResolveAxis(this.rb.position, moveDir, bounds, this.pushCornerMargin, this.pushMinAlignment, out axis))
                 return false;
 
             pushable = touched;
