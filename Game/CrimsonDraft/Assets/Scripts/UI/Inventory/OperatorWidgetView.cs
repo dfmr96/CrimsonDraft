@@ -257,7 +257,7 @@ namespace CrimsonDraft.UI
             return "Fine";
         }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Test-only — previews the ECG states from the Inspector without touching real HP.
         [Button("100% — Fine")]    private void TestEcgFine()     => this.ApplyHealthState(1f);
         [Button("60% — Caution")]  private void TestEcgCaution()  => this.ApplyHealthState(0.6f);

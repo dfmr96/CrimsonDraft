@@ -6,7 +6,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using VContainer;
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using CrimsonDraft.Infrastructure.DebugMenu;
 #endif
@@ -18,7 +18,7 @@ namespace CrimsonDraft.Combat
     public sealed class CombatDebugView : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI? text;
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IDisposable[] menuRegistrations = Array.Empty<IDisposable>();
 #endif
 
@@ -36,7 +36,7 @@ namespace CrimsonDraft.Combat
                               CombatOrchestrator orchestrator, IOperatorRoster roster,
                               IBattlefieldView battlefieldView, IEncounterContext encounterContext,
                               CombatSessionController combatSession
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                               , IDebugMenu debugMenu
 #endif
                               )
@@ -50,7 +50,7 @@ namespace CrimsonDraft.Combat
             this.combatSession    = combatSession;
             this.initialized      = true;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             // Only exists while the combat scene is loaded, so these entries appear and vanish with it.
             this.menuRegistrations = new[]
             {
@@ -61,7 +61,7 @@ namespace CrimsonDraft.Combat
 #endif
         }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void OnDestroy()
         {
             foreach (var registration in this.menuRegistrations) registration.Dispose();

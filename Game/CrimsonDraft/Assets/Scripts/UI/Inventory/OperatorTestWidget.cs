@@ -1,6 +1,6 @@
 #nullable enable
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 
 using NaughtyAttributes;
 using UnityEngine;

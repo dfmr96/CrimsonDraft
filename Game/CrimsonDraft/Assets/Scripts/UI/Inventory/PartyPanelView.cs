@@ -12,7 +12,7 @@ namespace CrimsonDraft.UI
     {
         [SerializeField] private OperatorWidgetView[] widgets = System.Array.Empty<OperatorWidgetView>();
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("Standalone (sin VContainer)")]
         [SerializeField] private PartyTestHarness? testHarness;
 #endif
@@ -40,7 +40,7 @@ namespace CrimsonDraft.UI
         {
             IOperatorRoster? source = this.roster;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (source == null && this.testHarness != null)
             {
                 var standaloneRoster = new OperatorRoster(this.testHarness);

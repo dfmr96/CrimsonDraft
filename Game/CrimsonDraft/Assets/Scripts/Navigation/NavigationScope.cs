@@ -240,7 +240,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<DeadOperatorGearReleaser>(Lifetime.Singleton).AsImplementedInterfaces();
             // After SaveGameLoader, so the leader is picked from the loaded HP.
             builder.Register<PlayerOperatorAppearance>(Lifetime.Singleton).AsImplementedInterfaces();
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<NavigationDebugKeys>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<DebugWorldOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
             if (this.roomCatalog != null)
@@ -278,7 +278,7 @@ namespace CrimsonDraft.Navigation
             builder.Register<MilestoneWorldState>(Lifetime.Singleton).As<IMilestoneWorldState>();
             builder.Register<MilestoneTracker>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<MilestoneService>(Lifetime.Singleton).AsImplementedInterfaces();
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             builder.Register<MilestoneDebugOverlay>(Lifetime.Singleton).AsImplementedInterfaces();
 #endif
         }
