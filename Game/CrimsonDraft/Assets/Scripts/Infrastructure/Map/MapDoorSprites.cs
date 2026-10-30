@@ -33,6 +33,7 @@ namespace CrimsonDraft.Infrastructure.Map
         public Sprite? StairsHorizontalRight;
         public Sprite? StairsVerticalTop;
         public Sprite? StairsVerticalDown;
+        public Sprite? ChuteDrop;
 
         public Sprite? For(DoorMapState state, bool vertical)
             => (vertical ? this.Vertical : this.Horizontal).For(state);
@@ -45,6 +46,7 @@ namespace CrimsonDraft.Infrastructure.Map
             MapStairKind.HorizontalRight => this.StairsHorizontalRight,
             MapStairKind.VerticalTop     => this.StairsVerticalTop,
             MapStairKind.VerticalDown    => this.StairsVerticalDown,
+            MapStairKind.ChuteDrop       => this.ChuteDrop,
             _                            => For(state, vertical),
         };
     }

@@ -37,7 +37,7 @@ namespace CrimsonDraft.Infrastructure.Map
         public string RoomId = "";
     }
 
-    /// <summary>Which stairs sprite a door draws on the map; None is an ordinary door.</summary>
+    /// <summary>Which stairs (or chute) sprite a door draws on the map; None is an ordinary door.</summary>
     public enum MapStairKind
     {
         None,
@@ -45,6 +45,7 @@ namespace CrimsonDraft.Infrastructure.Map
         HorizontalRight,
         VerticalTop,
         VerticalDown,
+        ChuteDrop,
     }
 
     [Serializable]
