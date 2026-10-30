@@ -118,7 +118,7 @@ namespace CrimsonDraft.Infrastructure
             builder.Register<GameStateResetter>(Lifetime.Singleton).AsImplementedInterfaces();
             builder.Register<PlaytimeTracker>(Lifetime.Singleton);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             builder.Register<DebugMenuRegistry>(Lifetime.Singleton).As<IDebugMenu>();
             builder.RegisterEntryPoint<DebugMenuController>().AsSelf();
 #endif

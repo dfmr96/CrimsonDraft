@@ -1,6 +1,6 @@
 #nullable enable
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
 
 using System.Linq;
 using System;

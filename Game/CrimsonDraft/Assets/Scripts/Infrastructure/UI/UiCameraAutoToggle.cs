@@ -67,7 +67,7 @@ namespace CrimsonDraft.Infrastructure.UI
             UiCameraGate.Changed += Apply;
             GatingChanged        += Apply;
             Apply();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             SceneManager.sceneLoaded   += OnSceneLoaded;
             SceneManager.sceneUnloaded += OnSceneUnloaded;
             Rescan();
@@ -79,7 +79,7 @@ namespace CrimsonDraft.Infrastructure.UI
             instances.Remove(this);
             UiCameraGate.Changed -= Apply;
             GatingChanged        -= Apply;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             SceneManager.sceneLoaded   -= OnSceneLoaded;
             SceneManager.sceneUnloaded -= OnSceneUnloaded;
 #endif
@@ -128,7 +128,7 @@ namespace CrimsonDraft.Infrastructure.UI
             && !graphic.canvasRenderer.cull
             && graphic.canvasRenderer.GetInheritedAlpha() > 0f;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
         // ---- Watchdog: UI on this camera that nobody requested would not show. ----
 
         private const float WatchInterval = 1f;

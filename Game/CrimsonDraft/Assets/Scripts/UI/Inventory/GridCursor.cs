@@ -100,7 +100,7 @@ namespace CrimsonDraft.UI
             if (this.inputService == null || this.inputBound) return;
             this.inputService.InventoryConfirm.performed += OnConfirm;
             this.inputService.InventoryPickup.performed  += OnPickup;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             this.inputService.InventoryNextTab.performed += OnDebugNextItem;
             this.inputService.InventoryPrevTab.performed += OnDebugPrevItem;
 #endif
@@ -112,7 +112,7 @@ namespace CrimsonDraft.UI
             if (!this.inputBound || this.inputService == null) return;
             this.inputService.InventoryConfirm.performed -= OnConfirm;
             this.inputService.InventoryPickup.performed  -= OnPickup;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             this.inputService.InventoryNextTab.performed -= OnDebugNextItem;
             this.inputService.InventoryPrevTab.performed -= OnDebugPrevItem;
 #endif
@@ -386,7 +386,7 @@ namespace CrimsonDraft.UI
         // tab's own submenus/held-item state get first chance to consume Cancel.
         public bool TryConsumeCancel()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
             if (TryDiscardDebugItem()) return true;
 #endif
             if (this.transferMode)
@@ -448,7 +448,7 @@ namespace CrimsonDraft.UI
 
         public void RequestClose() => OnCloseRequested?.Invoke();
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
         // ── Debug item spawner (RE 1.5 style) ────────────────────────────────
         // Hold Select (Tab) and press R1/L1 (E/Q) to put a catalog item in the hand and cycle it;
         // releasing Select keeps the item. Select + Cancel throws a spawned item away.
