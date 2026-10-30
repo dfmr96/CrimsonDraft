@@ -96,6 +96,7 @@ GameObject:
   - component: {fileID: 794310132307948231}
   - component: {fileID: 4733421483946225865}
   - component: {fileID: 7019707625781496709}
+  - component: {fileID: 6223054841676112750}
   m_Layer: 7
   m_Name: EE_00
   m_TagString: Untagged
@@ -202,6 +203,7 @@ MonoBehaviour:
   eyePoint: {fileID: 0}
   bloodBlob: {fileID: 5653039252133725243}
   startsAsCorpse: 0
+  stationary: 0
 --- !u!136 &4245418632458830340
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -294,6 +296,19 @@ MonoBehaviour:
     idInternal: 0
     valueGuidInternal: 
     WwiseObjectReference: {fileID: 11400000, guid: ca71e19b6c15d6f42b2ee8da58d621aa, type: 2}
+--- !u!114 &6223054841676112750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5300841775801237112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa7236ca17d86514fb0642abe5d2cb51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CrimsonDraft.Rendering::CrimsonDraft.Rendering.ZombieVariantRandomizer
+  variantSet: {fileID: 11400000, guid: d2f440843aaff694b9153c871fe73fc2, type: 2}
 --- !u!1001 &2187388172067565125
 PrefabInstance:
   m_ObjectHideFlags: 0
