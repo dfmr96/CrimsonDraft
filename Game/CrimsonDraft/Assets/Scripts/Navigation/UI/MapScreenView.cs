@@ -90,7 +90,7 @@ namespace CrimsonDraft.Navigation.UI
             int shown = 0;
             foreach (var door in doors)
             {
-                var sprite = doorSprites?.For(door.State, door.IsVertical);
+                var sprite = doorSprites?.For(door.State, door.IsVertical, door.Stairs);
                 if (sprite == null)
                     continue;
 

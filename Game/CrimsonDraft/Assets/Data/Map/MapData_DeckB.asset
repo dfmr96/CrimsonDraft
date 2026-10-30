@@ -25,7 +25,8 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_188
-    PickupIds: []
+    PickupIds:
+    - 4.6x30_Box
   - RoomId: Deck_B/BALCONY_A
     IncompleteSprite: {fileID: 628464479, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: 628464479, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -34,6 +35,7 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_04
+    - TR_01
     PickupIds: []
   - RoomId: Deck_B/DINNER_ROOM
     IncompleteSprite: {fileID: -1633136750, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -43,7 +45,8 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_32B
-    PickupIds: []
+    PickupIds:
+    - 12g_Box_00_Dinner_Room
   - RoomId: Deck_B/HALLWAY_A
     IncompleteSprite: {fileID: -1058353178, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: -1058353178, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -76,7 +79,8 @@ MonoBehaviour:
     DoorIds: []
     PickupIds:
     - CS_01_2
-    - KI_01
+    - KI_15
+    - TT_01
   - RoomId: Deck_B/RADIO
     IncompleteSprite: {fileID: -361816443, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: -361816443, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -85,6 +89,8 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds: []
     PickupIds:
+    - 12g_Box_00_Radio
+    - CS_01_00_Radio
     - KI_13
     - KI_25
   - RoomId: Deck_B/CHEFF_ROOM
@@ -107,6 +113,7 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_19B
+    - TR_04
     PickupIds: []
   - RoomId: Deck_B/BROKEN_SEAMAN_ROOM
     IncompleteSprite: {fileID: 1804883407, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -136,6 +143,7 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds: []
     PickupIds:
+    - 9mm_Box_00_Subcapitan_Room
     - CS_01_5
     - KI_12
   - RoomId: Deck_B/SEAMAN_ROOM_1
@@ -157,7 +165,7 @@ MonoBehaviour:
     DoorIds: []
     PickupIds:
     - 9mm_Box_5
-    - KI_15
+    - KI_28
   - RoomId: Deck_B/PORT_STAIRS
     IncompleteSprite: {fileID: 1161256490, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: 1161256490, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -166,7 +174,8 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_03
-    PickupIds: []
+    PickupIds:
+    - 9mm_Box_00_Port_Stairs
   - RoomId: Deck_B/HALLWAY_B1
     IncompleteSprite: {fileID: -1472420701, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: -1472420701, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -209,7 +218,8 @@ MonoBehaviour:
     DoorIds:
     - DR_0072
     - DR_23
-    PickupIds: []
+    PickupIds:
+    - CS_04
   - RoomId: Deck_B/INTERROGATION_ROOM
     IncompleteSprite: {fileID: 1601076775, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
     CompleteSprite: {fileID: 1601076775, guid: 2b241d2f819b6754c811851b939031a3, type: 3}
@@ -218,6 +228,8 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds: []
     PickupIds:
+    - 9mm_Box_00_Interrogation_Room
+    - CS_04_00_Interrogation_Room
     - KI_27
   - RoomId: Deck_B/KITCHEN_FRIDGE
     IncompleteSprite: {fileID: 617787531, guid: d96cf0f5ae0b791498bf568f21494370, type: 3}
@@ -243,7 +255,7 @@ MonoBehaviour:
     CompleteSprite: {fileID: 0}
     Position: {x: 0, y: 0}
     QuarterTurns: 0
-    IsOrphan: 0
+    IsOrphan: 1
     DoorIds: []
     PickupIds:
     - 9mm_Box
@@ -256,6 +268,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_72B
       RoomId: Deck_B/DINNER_ROOM
@@ -266,6 +279,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_02B
       RoomId: Deck_B/BALCONY_A
@@ -276,6 +290,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_03B
       RoomId: Deck_B/EXTERIOR_HALLWAY
@@ -286,6 +301,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_04B
       RoomId: Deck_B/HALLWAY_A
@@ -296,6 +312,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_05B
       RoomId: Deck_B/SEAMAN_ROOM_1
@@ -306,6 +323,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_06B
       RoomId: Deck_B/SEAMAN_ROOM_2
@@ -316,6 +334,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_07
       RoomId: Deck_B/SAVE_ROOM
@@ -326,6 +345,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_08B
       RoomId: Deck_B/CHEFF_ROOM
@@ -336,6 +356,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_01
       RoomId: Deck_B/HALLWAY_B3
@@ -346,6 +367,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_130B
       RoomId: Deck_B/HALLWAY_U
@@ -356,6 +378,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_188B
       RoomId: Deck_B/KITCHEN_FRIDGE
@@ -366,6 +389,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_19
       RoomId: Deck_B/HALLWAY_B1
@@ -376,6 +400,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_21B
       RoomId: Deck_B/STORAGE_P
@@ -386,6 +411,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_22B
       RoomId: Deck_B/SUBCAPITAN_ROOM
@@ -396,6 +422,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_23B
       RoomId: Deck_B/BROKEN_SEAMAN_ROOM
@@ -406,6 +433,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_241B
       RoomId: Deck_B/INTERROGATION_ROOM
@@ -416,6 +444,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_24
       RoomId: Deck_B/HALLWAY_B2
@@ -426,6 +455,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_25B
       RoomId: Deck_B/KITCHEN
@@ -436,6 +466,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_28B
       RoomId: Deck_B/LAVATORY
@@ -446,6 +477,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_30B
       RoomId: Deck_B/RADIO
@@ -456,6 +488,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_187
       RoomId: Deck_B/KITCHEN
@@ -466,6 +499,25 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_71B
       RoomId: Deck_B/HALLWAY_U
+  - DoorId: TR_01
+    Transform:
+      Offset: {x: 11, y: 61}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 7, y: 19}
+    Stairs: 4
+    OtherSides: []
+  - DoorId: TR_04
+    Transform:
+      Offset: {x: 4, y: 75}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 7, y: 19}
+    Stairs: 4
+    OtherSides: []

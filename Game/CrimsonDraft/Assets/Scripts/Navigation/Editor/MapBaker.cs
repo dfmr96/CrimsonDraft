@@ -107,6 +107,7 @@ namespace CrimsonDraft.Navigation.Editor
                         ZOrder = 0f,
                     },
                     Size = marker.Size,
+                    Stairs = marker.Stairs,
                 });
 
                 var room = marker.GetComponentInParent<RoomController>();

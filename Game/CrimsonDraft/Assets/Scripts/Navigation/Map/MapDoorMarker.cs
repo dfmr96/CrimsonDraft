@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEngine;
+using CrimsonDraft.Infrastructure.Map;
 using CrimsonDraft.Navigation.Interactables;
 
 namespace CrimsonDraft.Navigation.Map
@@ -13,6 +14,10 @@ namespace CrimsonDraft.Navigation.Map
         [SerializeField] private float mapRotation;
         [SerializeField] private Vector2 size = new(1f, 0.25f);
 
+        [Tooltip("None for an ordinary door; otherwise this door is stairs and draws the " +
+                 "matching stairs sprite on the map.")]
+        [SerializeField] private MapStairKind stairs;
+
         [Tooltip("If true, this door is skipped entirely when baking the map — no MapDoorData " +
                  "is created for it, so it never renders on the in-game map.")]
         [SerializeField] private bool excludeFromMap;
@@ -21,6 +26,12 @@ namespace CrimsonDraft.Navigation.Map
         {
             get => this.excludeFromMap;
             set => this.excludeFromMap = value;
+        }
+
+        public MapStairKind Stairs
+        {
+            get => this.stairs;
+            set => this.stairs = value;
         }
 
         public Vector2 MapOffset

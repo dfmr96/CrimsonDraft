@@ -37,12 +37,26 @@ namespace CrimsonDraft.Infrastructure.Map
         public string RoomId = "";
     }
 
+    /// <summary>Which stairs sprite a door draws on the map; None is an ordinary door.</summary>
+    public enum MapStairKind
+    {
+        None,
+        HorizontalLeft,
+        HorizontalRight,
+        VerticalTop,
+        VerticalDown,
+    }
+
     [Serializable]
     public sealed class MapDoorData
     {
         public string DoorId = "";
         public MapElementTransform Transform = new();
         public Vector2 Size = new(1f, 0.25f);
+
+        /// <summary>Baked from the door's MapDoorMarker. Anything but None draws the matching
+        /// stairs sprite instead of a door sprite.</summary>
+        public MapStairKind Stairs;
 
         /// <summary>Baked from the scene. Visiting any of these rooms reveals this door, and
         /// their doors' lock state shows on it.</summary>

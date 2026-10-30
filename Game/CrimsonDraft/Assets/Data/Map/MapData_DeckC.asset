@@ -23,7 +23,8 @@ MonoBehaviour:
     Position: {x: -178, y: -34}
     QuarterTurns: 0
     IsOrphan: 0
-    DoorIds: []
+    DoorIds:
+    - TR_03
     PickupIds:
     - CS_01_6
   - RoomId: Deck_C/HALLWAY_B
@@ -57,6 +58,7 @@ MonoBehaviour:
     IsOrphan: 0
     DoorIds:
     - DR_12B
+    - TR_02
     PickupIds: []
   - RoomId: Deck_C/HALLWAY_A
     IncompleteSprite: {fileID: 563684455, guid: 0ca375fa596ac2b4ca020b7dd4204a44, type: 3}
@@ -148,6 +150,7 @@ MonoBehaviour:
     DoorIds: []
     PickupIds:
     - KI_19_2
+    - TT_02
   doors:
   - DoorId: DR_107
     Transform:
@@ -156,6 +159,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_107B
       RoomId: Deck_C/SAVE_ROOM
@@ -166,6 +170,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_108B
       RoomId: Deck_C/OFFICE
@@ -176,6 +181,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides: []
   - DoorId: DR_11
     Transform:
@@ -184,6 +190,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_11B
       RoomId: Deck_C/LAB_HALLWAY
@@ -194,6 +201,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_17
       RoomId: Deck_C/WATER_ROOM
@@ -204,6 +212,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides: []
   - DoorId: DR_113
     Transform:
@@ -212,6 +221,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides: []
   - DoorId: DR_12B
     Transform:
@@ -220,6 +230,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_12
       RoomId: Deck_C/HALLWAY_A
@@ -230,6 +241,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_16B
       RoomId: Deck_C/HALLWAY_B
@@ -240,6 +252,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_177B
       RoomId: Deck_C/STORAGE_ROOM
@@ -250,6 +263,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_17
       RoomId: Deck_C/ENERGY_ROOM
@@ -260,6 +274,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_188B
       RoomId: Deck_C/ART_ROOM
@@ -270,6 +285,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_18
       RoomId: Deck_C/BALCONY_B
@@ -280,6 +296,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_73B
       RoomId: Deck_C/HALLWAY_CONNECTION
@@ -290,6 +307,7 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_74B
       RoomId: Deck_C/HALLWAY_CONNECTION
@@ -300,6 +318,25 @@ MonoBehaviour:
       Scale: {x: 1, y: 1}
       ZOrder: 0
     Size: {x: 1, y: 0.25}
+    Stairs: 0
     OtherSides:
     - DoorId: DR_78
       RoomId: Deck_C/HALLWAY_CONNECTION
+  - DoorId: TR_02
+    Transform:
+      Offset: {x: 11, y: 96}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 7, y: 19}
+    Stairs: 3
+    OtherSides: []
+  - DoorId: TR_03
+    Transform:
+      Offset: {x: 4, y: 79}
+      Rotation: 90
+      Scale: {x: 1, y: 1}
+      ZOrder: 0
+    Size: {x: 7, y: 19}
+    Stairs: 3
+    OtherSides: []
