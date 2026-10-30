@@ -166,7 +166,7 @@ namespace CrimsonDraft.Navigation.Interactables
             if (!hit.collider.TryGetComponent<ItemSocketInteractable>(out var socket))
                 return false;
 
-            return socket.TryInsert(item, this.dialogueService);
+            return socket.TryInsert(item, this.dialogueService, this.screenFader);
         }
 
 #if UNITY_EDITOR

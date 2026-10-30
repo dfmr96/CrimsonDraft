@@ -2,11 +2,13 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using VContainer;
 using Yarn.Unity;
 using CrimsonDraft.Infrastructure;
+using CrimsonDraft.Infrastructure.UI;
 using CrimsonDraft.Inventory;
 using CrimsonDraft.Navigation.Dialogue;
 using CrimsonDraft.Navigation.Gates;
@@ -26,9 +28,13 @@ namespace CrimsonDraft.Navigation.Interactables
         [SerializeField] private Collider?        blockingCollider; // optional physical barrier; disabled once the socket is fully activated
         [SerializeField] private GameObject?      revealOnActivate; // optional visual (e.g. the inserted item's mesh); hidden until the socket is fully activated
         [SerializeField] private GameObject?      hideOnActivate;   // optional visual (e.g. a steam/VFX blocker); switched off once the socket is fully activated
+        [Tooltip("Shows the end-of-demo screen once the socket is complete and its insert dialogue has closed.")]
+        [SerializeField] private bool             triggersDemoEnd;
+        [SerializeField, TextArea] private string demoEndMessage = "This is the end of the demo.\nThanks for playing.";
 
         private bool[] inserted = System.Array.Empty<bool>();
         private ItemSocketStateRegistry registry = null!;
+        private ScreenFader? screenFader; // from the TryInsert that completed the socket, for the demo end
 
         public string SocketId => this.socketId;
         public string GateId => GateIds.Socket(this.socketId);
@@ -159,7 +165,7 @@ namespace CrimsonDraft.Navigation.Interactables
             return false;
         }
 
-        public bool TryInsert(ItemData item, IDialogueService? dialogueService)
+        public bool TryInsert(ItemData item, IDialogueService? dialogueService, ScreenFader? screenFader = null)
         {
             if (this.IsActivated) return false;
             if (item is not SocketItemData) return false;
@@ -189,13 +195,17 @@ namespace CrimsonDraft.Navigation.Interactables
 
                 if (complete)
                 {
+                    this.screenFader = screenFader;
                     ApplyActivatedState();
                     RecordCompletion();
                     this.onActivated.Invoke();
 
                     // No dialogue service means no dialogue to wait for.
                     if (dialogueService == null)
+                    {
                         this.onActivatedAfterDialogue.Invoke();
+                        TriggerDemoEnd();
+                    }
                 }
 
                 return true;
@@ -238,6 +248,13 @@ namespace CrimsonDraft.Navigation.Interactables
         {
             this.onActivatedAfterDialogue.Invoke();
             if (NeedsTurn) FollowUp!.PromptTurn();
+            else TriggerDemoEnd();
+        }
+
+        private void TriggerDemoEnd()
+        {
+            if (this.triggersDemoEnd && this.screenFader != null)
+                this.screenFader.ShowEndScreenAsync(this.demoEndMessage).Forget();
         }
 
         private void ApplyActivatedState()
