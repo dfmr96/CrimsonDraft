@@ -53,12 +53,17 @@ namespace CrimsonDraft.UI
         [SerializeField] private Color startOnColor  = Color.white;
         [SerializeField] private Color startOffColor = new(1f, 1f, 1f, 0.25f);
 
+        // Lines of the decoder tree (children of Decoration_Lines named "E to A", "to E" for the START
+        // ones, plus an optional "Initial" stub): dim by default, lit along the branch being typed.
+        [SerializeField] private Color lineOnColor  = new Color32(0x9A, 0x9F, 0x5C, 0xFF);
+        [SerializeField] private Color lineOffColor = new Color32(0x3A, 0x3D, 0x22, 0xFF);
+
         [SerializeField] private float selectorPadding = 8f;
         [SerializeField] private float selectedScale    = 1.1f;
         [SerializeField] private float pressedScale     = 0.9f;
 
         [SerializeField] private float holdThreshold   = 0.3f;
-        [SerializeField] private float letterTimeout   = 2.3f;
+        [SerializeField] private float letterTimeout   = 1f;
         [SerializeField] private int   requiredLetters = 3;
 
         [SerializeField] private float morseUnitSeconds = 0.11f; // dot=1 unit, dash=3 units, gaps below
@@ -73,6 +78,13 @@ namespace CrimsonDraft.UI
 
         private readonly MorseDecoder      decoder   = new();
         private readonly Dictionary<char, Image> ledLookup = new();
+
+        private const char  StartNode        = '*';
+        private const string LinesRootName   = "Decoration_Lines";
+        private const string InitialLineName = "Initial";
+        private readonly Dictionary<(char, char), Image> lineLookup = new();
+        private readonly List<Image> allLines = new();
+        private Image? initialLine;
 
         private int   focusIndex; // 0 = Input, 1 = Output
         private char  activeLetter;
@@ -96,6 +108,61 @@ namespace CrimsonDraft.UI
                 if (!child.name.StartsWith("LED-", System.StringComparison.Ordinal)) continue;
                 if (child.TryGetComponent<Image>(out var image))
                     this.ledLookup[child.name[4]] = image;
+            }
+
+            CacheLines();
+        }
+
+        // Parses "E to A" (both orders work) and "to E" / "to T" (from START) into node pairs.
+        void CacheLines()
+        {
+            var root = this.ledRoot.Find(LinesRootName);
+            if (root == null) return;
+
+            foreach (Transform child in root)
+            {
+                if (!child.TryGetComponent<Image>(out var image)) continue;
+                this.allLines.Add(image);
+
+                var name = child.name.Trim();
+                if (name == InitialLineName)
+                {
+                    this.initialLine = image;
+                    continue;
+                }
+
+                var parts = name.Split(new[] { "to" }, StringSplitOptions.None);
+                if (parts.Length != 2) continue;
+
+                var from = parts[0].Trim();
+                var to   = parts[1].Trim();
+                if (to.Length != 1 || from.Length > 1) continue;
+
+                var a = from.Length == 0 ? StartNode : from[0];
+                this.lineLookup[(a, to[0])] = image;
+                this.lineLookup[(to[0], a)] = image;
+            }
+        }
+
+        // Lights the lines from START along the dots/dashes typed so far (".-." → to E, E to A,
+        // A to R), every other line stays dim. An empty sequence dims all of them.
+        void RefreshBranchLines(string sequence)
+        {
+            foreach (var line in this.allLines)
+                line.color = this.lineOffColor;
+
+            if (sequence.Length == 0) return;
+
+            if (this.initialLine != null) this.initialLine.color = this.lineOnColor;
+
+            var previous = StartNode;
+            for (int length = 1; length <= sequence.Length; length++)
+            {
+                if (!MorseDecoder.TryGetLetter(sequence.Substring(0, length), out char node)) break;
+
+                if (this.lineLookup.TryGetValue((previous, node), out var line))
+                    line.color = this.lineOnColor;
+                previous = node;
             }
         }
 
@@ -207,6 +274,7 @@ namespace CrimsonDraft.UI
             else        this.decoder.InputDot();
 
             SetActiveLed(letter, symbol);
+            RefreshBranchLines(this.decoder.CurrentSequence);
             RefreshCodeText(letter);
 
             this.lastInputTime = Time.unscaledTime;
@@ -327,6 +395,7 @@ namespace CrimsonDraft.UI
 
             this.activeLetter = '\0';
             this.decoder.Confirm();
+            RefreshBranchLines(string.Empty);
             SetStartLit(true);
             RefreshCodeText(null);
             SetTimeFill(1f);
@@ -342,6 +411,7 @@ namespace CrimsonDraft.UI
 
             this.decoder.Reset();
             this.activeLetter = '\0';
+            RefreshBranchLines(string.Empty);
             SetStartLit(true);
             RefreshCodeText(null);
             SetTimeFill(1f);
@@ -476,6 +546,7 @@ namespace CrimsonDraft.UI
             foreach (var kv in this.ledLookup)
                 SetLedOff(kv.Key, kv.Value);
 
+            RefreshBranchLines(string.Empty);
             SetStartLit(true);
             RefreshFocusVisuals();
             RefreshCodeText(null);

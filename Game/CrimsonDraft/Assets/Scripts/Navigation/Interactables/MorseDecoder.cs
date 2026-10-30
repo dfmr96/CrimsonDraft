@@ -54,6 +54,9 @@ namespace CrimsonDraft.Navigation.Interactables
         public void InputDot()  => _currentSequence.Append('.');
         public void InputDash() => _currentSequence.Append('-');
 
+        /// <summary>The letter a complete dot/dash sequence decodes to (e.g. ".-" → A); also the tree node reached by walking it.</summary>
+        public static bool TryGetLetter(string sequence, out char letter) => s_table.TryGetValue(sequence, out letter);
+
         /// <summary>What confirming CurrentSequence + symbol would decode to, without mutating state.</summary>
         public bool TryPreview(char symbol, out char letter) => s_table.TryGetValue(_currentSequence.ToString() + symbol, out letter);
 
