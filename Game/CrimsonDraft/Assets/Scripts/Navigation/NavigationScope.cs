@@ -216,6 +216,10 @@ namespace CrimsonDraft.Navigation
             foreach (var gate in FindObjectsByType<RemoteSocketGate>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 builder.RegisterComponent(gate);
 
+            // Optional — only doors that stay locked until a puzzle is solved have one.
+            foreach (var doorLock in FindObjectsByType<PuzzleDoorLock>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                builder.RegisterComponent(doorLock);
+
             // Optional — only the save room has a telegraph station (needs the world registries
             // for its one-time intro flag).
             foreach (var station in FindObjectsByType<TelegraphSaveStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
