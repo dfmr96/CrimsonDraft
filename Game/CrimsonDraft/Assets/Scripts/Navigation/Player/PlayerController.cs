@@ -63,6 +63,7 @@ namespace CrimsonDraft.Navigation.Player
         private static readonly int GrabHash        = Animator.StringToHash("Grab");
         private static readonly int GrabbedHash     = Animator.StringToHash("Grabbed");
         private static readonly int GrabbedHurtHash = Animator.StringToHash("GrabbedHurt");
+        private static readonly int StartledHash    = Animator.StringToHash("Startled");
 
         private IInputService         inputService         = null!;
         private IInventoryService     inventoryService     = null!;
@@ -76,7 +77,13 @@ namespace CrimsonDraft.Navigation.Player
         private Transform?            grabbedBy;
         private int                   healthOverlayLayerIndex = -1;
 
+        private Vector3 staggerDirection;
+        private float   staggerDistance;
+        private float   staggerDuration;
+        private float   staggerElapsed;
+
         public bool IsAiming { get; private set; }
+        public bool IsStaggering => this.staggerDuration > 0f && this.staggerElapsed < this.staggerDuration;
         public bool IsGrabbed => this.grabbedBy != null;
 
         // transform.position is the Rigidbody's pivot, not the ground — footOffset is the
@@ -122,6 +129,86 @@ namespace CrimsonDraft.Navigation.Player
         internal void SetAiming(bool value)
         {
             this.IsAiming = value;
+        }
+
+        // Paso atrás de susto (p. ej. una rata que salta a la cara): el jugador se desliza
+        // `distance` metros en `direction` (horizontal) durante `duration` segundos, frenando,
+        // ignorando el input y sin salirse del NavMesh. Dispara la animación "Startled".
+        public void Stagger(Vector3 direction, float distance, float duration)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f || distance <= 0f || duration <= 0f) return;
+
+            this.staggerDirection = direction.normalized;
+            this.staggerDistance  = distance;
+            this.staggerDuration  = duration;
+            this.staggerElapsed   = 0f;
+
+            this.animator.ResetTrigger(WalkHash);
+            this.animator.ResetTrigger(RunHash);
+            this.animator.ResetTrigger(IdleHash);
+            this.animator.SetTrigger(StartledHash);
+        }
+
+        // Sobresalto sin retroceso (p. ej. cada mordisco de una rata en la cara): solo la animación "Startled".
+        public void Flinch()
+        {
+            this.animator.ResetTrigger(IdleHash);
+            this.animator.SetTrigger(StartledHash);
+        }
+
+        private void TickStagger()
+        {
+            // Velocidad que decae linealmente a 0: su integral es exactamente `staggerDistance`.
+            var remaining = Mathf.Max(0f, 1f - this.staggerElapsed / this.staggerDuration);
+            var speed     = 2f * this.staggerDistance / this.staggerDuration * remaining;
+            this.staggerElapsed += Time.fixedDeltaTime;
+
+            // Más estricto que el movimiento normal: el retroceso se corta en cuanto hay algo
+            // delante o el siguiente paso ya no está sobre el NavMesh, para no acabar pegado a la
+            // geometría ni fuera del NavMesh (desde ahí casi ninguna dirección sería válida).
+            var step = speed * Time.fixedDeltaTime;
+            if (step > 0f && !CanStaggerStep(step))
+                this.staggerElapsed = this.staggerDuration;
+
+            this.rb.linearVelocity = this.IsStaggering ? this.staggerDirection * speed : Vector3.zero;
+
+            // Sin triggers de locomoción pendientes que saquen al jugador de la animación de susto.
+            this.animator.ResetTrigger(WalkHash);
+            this.animator.ResetTrigger(RunHash);
+            this.animator.ResetTrigger(IdleHash);
+            this.animator.SetFloat(SpeedHash, 0f);
+            this.ResetPush();
+
+            if (!this.IsStaggering)
+                EndStagger();
+        }
+
+        private bool CanStaggerStep(float step)
+        {
+            if (this.rb.SweepTest(this.staggerDirection, out _, step + 0.05f, QueryTriggerInteraction.Ignore))
+                return false;
+
+            var origin = this.rb.position;
+            var next   = new Vector3(origin.x + this.staggerDirection.x * step, origin.y - this.footOffset, origin.z + this.staggerDirection.z * step);
+            if (!NavMesh.SamplePosition(next, out var hit, 0.5f, NavMesh.AllAreas))
+                return false;
+
+            var gap = new Vector2(hit.position.x - next.x, hit.position.z - next.z);
+            return gap.sqrMagnitude <= 0.05f * 0.05f;
+        }
+
+        // Si el retroceso lo dejó fuera del NavMesh, lo devuelve al punto válido más cercano.
+        private void EndStagger()
+        {
+            this.rb.linearVelocity = Vector3.zero;
+
+            var foot = this.rb.position - new Vector3(0f, this.footOffset, 0f);
+            if (!NavMesh.SamplePosition(foot, out var hit, 0.5f, NavMesh.AllAreas)) return;
+
+            var gap = new Vector2(hit.position.x - foot.x, hit.position.z - foot.z);
+            if (gap.sqrMagnitude > 0.05f * 0.05f)
+                this.rb.position = new Vector3(hit.position.x, this.rb.position.y, hit.position.z);
         }
 
         // Un solo enemigo puede sostener al jugador a la vez.
@@ -202,6 +289,12 @@ namespace CrimsonDraft.Navigation.Player
             // Always ticked (see IPlayerMovementStrategy) -- ModernPlayerMovementStrategy
             // depends on this running every frame, aiming or not.
             var result = strategy.Tick(transform, raw, this.lastDevice, this.IsAiming, Time.fixedDeltaTime);
+
+            if (this.IsStaggering)
+            {
+                TickStagger();
+                return;
+            }
 
             if (this.grabbedBy != null)
             {
