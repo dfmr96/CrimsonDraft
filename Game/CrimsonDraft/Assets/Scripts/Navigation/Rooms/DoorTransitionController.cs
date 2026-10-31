@@ -21,6 +21,8 @@ namespace CrimsonDraft.Navigation.Rooms
         [SerializeField] private AK.Wwise.Switch closeSwitch = new();
 
         private RoomTransitionContext? context;
+        // Kept apart from context.SkipAction: NotifyComplete clears that one before OnDestroy runs.
+        private InputAction?           skipAction;
         private bool                   completed;
         private bool                   canSkip;
         // Set by the clip's OnDoorOpenSfx event: only a transition that opened a door closes one,
@@ -35,8 +37,8 @@ namespace CrimsonDraft.Navigation.Rooms
 
         private void OnDestroy()
         {
-            if (this.context?.SkipAction != null)
-                this.context.SkipAction.performed -= OnSkip;
+            if (this.skipAction != null)
+                this.skipAction.performed -= OnSkip;
         }
 
         private void OnSkip(InputAction.CallbackContext _)
@@ -57,8 +59,9 @@ namespace CrimsonDraft.Navigation.Rooms
                 return;
             }
 
-            if (this.context.SkipAction != null)
-                this.context.SkipAction.performed += OnSkip;
+            this.skipAction = this.context.SkipAction;
+            if (this.skipAction != null)
+                this.skipAction.performed += OnSkip;
 
             var prefab    = this.context.DoorPrefab ?? this.defaultDoorPrefab;
             Animator? animator = null;
@@ -106,6 +109,9 @@ namespace CrimsonDraft.Navigation.Rooms
         {
             if (this.completed) return;
             this.completed = true;
+            // Once completing, a skip must not run: its DOTween.Kill would cancel the fade-out
+            // without firing OnComplete, so NotifyComplete never comes and DoorTransition stays loaded.
+            this.canSkip = false;
 
             if (this.doorOpened)
             {
@@ -143,7 +149,8 @@ namespace CrimsonDraft.Navigation.Rooms
                 .DOFade(to, duration)
                 .SetEase(ease)
                 .SetUpdate(true)
-                .OnComplete(() => tcs.TrySetResult());
+                // OnKill also fires after a completed tween, so a Kill can never leave the await hanging.
+                .OnKill(() => tcs.TrySetResult());
             return tcs.Task;
         }
     }
