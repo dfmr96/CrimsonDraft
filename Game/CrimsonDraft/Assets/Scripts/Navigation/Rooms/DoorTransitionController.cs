@@ -74,7 +74,11 @@ namespace CrimsonDraft.Navigation.Rooms
 
                 animator = door.GetComponentInChildren<Animator>();
                 if (animator != null)
+                {
                     animator.gameObject.AddComponent<DoorAnimationRelay>().Init(this);
+                    // Hold the closed pose under the black: RunTransition releases it once the fade-in ends.
+                    animator.speed = 0f;
+                }
             }
             else
             {
@@ -94,6 +98,8 @@ namespace CrimsonDraft.Navigation.Rooms
                 OnAnimationComplete();
                 return;
             }
+
+            animator.speed = 1f;
 
             TimeoutFallback().Forget();
         }
