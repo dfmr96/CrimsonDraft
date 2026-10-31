@@ -68,15 +68,30 @@ namespace CrimsonDraft.Navigation.Rooms
             if (this.isTransitioning) return;
             this.isTransitioning = true;
 
-            this.inputService.SwitchToDoorTransition();
-            this.sceneEntryContext.SetPendingRoom(roomId);
+            try
+            {
+                this.inputService.SwitchToDoorTransition();
+                this.sceneEntryContext.SetPendingRoom(roomId);
 
-            await SceneManager.UnloadSceneAsync(fromScene).ToUniTask();
-            await SceneManager.LoadSceneAsync(toScene, LoadSceneMode.Additive).ToUniTask();
-            SceneManager.SetActiveScene(SceneManager.GetSceneByName(toScene));
+                if (SceneManager.sceneCount > 1)
+                {
+                    await SceneManager.UnloadSceneAsync(fromScene).ToUniTask();
+                    await SceneManager.LoadSceneAsync(toScene, LoadSceneMode.Additive).ToUniTask();
+                    SceneManager.SetActiveScene(SceneManager.GetSceneByName(toScene));
+                }
+                else
+                {
+                    // A loaded save (SaveGameService.LoadSlot) leaves fromScene as the only scene, and
+                    // Unity refuses to unload the last one: replace it with a Single load instead.
+                    await SceneManager.LoadSceneAsync(toScene, LoadSceneMode.Single).ToUniTask();
+                }
 
-            this.inputService.SwitchToGameplay();
-            this.isTransitioning = false;
+                this.inputService.SwitchToGameplay();
+            }
+            finally
+            {
+                this.isTransitioning = false;
+            }
         }
     }
 }
